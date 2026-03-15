@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reset cache Vanity & Glamour</title>
+  <style>
+    body{font-family:Arial,sans-serif;background:#0f172a;color:#fff;margin:0;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px}
+    .card{max-width:520px;background:#111827;border-radius:18px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    h1{margin:0 0 12px;font-size:26px}
+    p{line-height:1.5;color:#d1d5db}
+    button{margin-top:12px;padding:14px 18px;border:0;border-radius:12px;background:#fbbf24;color:#111827;font-weight:700;font-size:16px}
+    .ok{color:#86efac}
+    .err{color:#fca5a5}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Reset cache PWA</h1>
+    <p id="status">Pulizia in corso...</p>
+    <button id="go" hidden>Apri l'app</button>
+  </div>
+  <script>
+    (async()=>{
+      const status = document.getElementById('status');
+      const btn = document.getElementById('go');
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+        status.innerHTML = '<span class="ok">Cache e service worker ripuliti.</span><br>Adesso apri l\'app dal browser e reinstallala dalla schermata home.';
+      } catch (e) {
+        status.innerHTML = '<span class="err">Errore durante la pulizia.</span><br>' + String(e);
+      }
+      btn.hidden = false;
+      btn.onclick = () => location.href = './index.html?v=v8_1';
+    })();
+  </script>
+</body>
+</html>
