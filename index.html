@@ -171,7 +171,7 @@ window.addEventListener('error',e=>{
 
   <div id="sec_articoli" class="section">
     <div class="card">
-      <div class="h2">Articoli</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Articoli</div><button class="btn" type="button" data-action="newArt">+ Nuovo</button></div>
       <input id="qArt" placeholder="Cerca per codice, brand, modello, categoria, colore, taglia, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
     </div>
     <div style="height:10px"></div>
@@ -180,7 +180,7 @@ window.addEventListener('error',e=>{
 
   <div id="sec_clienti" class="section">
     <div class="card">
-      <div class="h2">Clienti</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Clienti</div><button class="btn" type="button" data-action="newCli">+ Nuovo</button></div>
       <input id="qCli" placeholder="Cerca per nome, telefono, città..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
     </div>
     <div style="height:10px"></div>
@@ -189,7 +189,7 @@ window.addEventListener('error',e=>{
 
   <div id="sec_ordini" class="section">
     <div class="card">
-      <div class="h2">Ordini</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Ordini</div><button class="btn" type="button" data-action="newOrd">+ Nuovo</button></div>
       <input id="qOrd" placeholder="Cerca per cliente, stato, id..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
     </div>
     <div style="height:10px"></div>
@@ -1308,8 +1308,14 @@ async function saveArt(){
       if(f && newPid && (!old || !Array.isArray(old.photoIds) || old.photoIds[0]!==newPid)) { try{ await idbDelete(newPid); }catch(_e){} }
       return;
     }
+    if(cloudEnabled()){
+      const saved=await cloudSaveOne('art', obj, db);
+      const idx=db.articoli.findIndex(x=>x.id===obj.id || x.codice===obj.codice);
+      if(idx>=0) db.articoli[idx]={...db.articoli[idx], ...saved, _ts: Date.now()};
+      saveDBLocal(db);
+    }
     hide('mArtEdit');
-    toast('Salvato');
+    toast(cloudEnabled() ? 'Salvato anche nel cloud' : 'Salvato');
   }catch(err){
     alert('Errore salvataggio articolo: '+String(err?.message||err||'Errore sconosciuto'));
   }
@@ -1323,9 +1329,10 @@ async function deleteArt(){
   db.articoli=db.articoli.filter(a=>a.id!==currentArtId);
   currentArtId=null;
   if(!saveDB(db)) return;
+  if(old && cloudEnabled()) await cloudDeleteOne('art', old);
   hide('mArtEdit');
   renderArt();
-  toast('Articolo eliminato');
+  toast(cloudEnabled() ? 'Articolo eliminato anche dal cloud' : 'Articolo eliminato');
 }
 
 /* ====== CLIENTI ====== */
@@ -1343,7 +1350,7 @@ function openCliEdit(id){
   document.getElementById('c_note').value=c?.note||'';
   show('mCliEdit');
 }
-function saveCli(){
+async function saveCli(){
   const db=loadDB();
   const nome=document.getElementById('c_nome').value.trim();
   if(!nome){ alert('Nome obbligatorio'); return; }
@@ -1369,14 +1376,26 @@ function saveCli(){
   };
   const i=db.clienti.findIndex(x=>x.id===obj.id);
   if(i>=0) db.clienti[i]=obj; else db.clienti.unshift(obj);
-  if(!saveDB(db)) return; hide('mCliEdit'); toast('Salvato');
+  if(!saveDB(db)) return;
+  if(cloudEnabled()){
+    const saved=await cloudSaveOne('cli', obj, db);
+    const idx=db.clienti.findIndex(x=>x.id===obj.id || (obj.telefono && x.telefono===obj.telefono) || x.nome===obj.nome);
+    if(idx>=0) db.clienti[idx]={...db.clienti[idx], ...saved, _ts: Date.now()};
+    saveDBLocal(db);
+  }
+  hide('mCliEdit');
+  toast(cloudEnabled() ? 'Salvato anche nel cloud' : 'Salvato');
 }
-function deleteCli(){
+async function deleteCli(){
   if(!currentCliId) return hide('mCliEdit');
   if(!confirm('Eliminare cliente?')) return;
   const db=loadDB();
+  const old=db.clienti.find(c=>c.id===currentCliId);
   db.clienti=db.clienti.filter(c=>c.id!==currentCliId);
-  if(!saveDB(db)) return; hide('mCliEdit');
+  if(!saveDB(db)) return;
+  if(old && cloudEnabled()) await cloudDeleteOne('cli', old);
+  hide('mCliEdit');
+  toast(cloudEnabled() ? 'Cliente eliminato anche dal cloud' : 'Cliente eliminato');
 }
 
 /* ====== ORDINI ====== */
@@ -1465,7 +1484,7 @@ function renderOrdRows(){
   const tot=ordRows.reduce((s,r)=>s+Number(r.prezzo||0),0);
   document.getElementById('o_tot').textContent=money(tot);
 }
-function saveOrd(){
+async function saveOrd(){
   const db=loadDB();
   const cli=document.getElementById('o_cli').value;
   if(!cli){ alert('Seleziona un cliente'); return; }
@@ -1483,14 +1502,26 @@ function saveOrd(){
   };
   const i=db.ordini.findIndex(x=>x.id===obj.id);
   if(i>=0) db.ordini[i]=obj; else db.ordini.unshift(obj);
-  if(!saveDB(db)) return; hide('mOrdEdit'); toast('Salvato');
+  if(!saveDB(db)) return;
+  if(cloudEnabled()){
+    const saved=await cloudSaveOne('ord', obj, db);
+    const idx=db.ordini.findIndex(x=>x.id===obj.id || x.id===saved?.id);
+    if(idx>=0) db.ordini[idx]={...db.ordini[idx], ...saved, _ts: Date.now()};
+    saveDBLocal(db);
+  }
+  hide('mOrdEdit');
+  toast(cloudEnabled() ? 'Salvato anche nel cloud' : 'Salvato');
 }
-function deleteOrd(){
+async function deleteOrd(){
   if(!currentOrdId) return hide('mOrdEdit');
   if(!confirm('Eliminare ordine?')) return;
   const db=loadDB();
+  const old=db.ordini.find(o=>o.id===currentOrdId);
   db.ordini=db.ordini.filter(o=>o.id!==currentOrdId);
-  if(!saveDB(db)) return; hide('mOrdEdit');
+  if(!saveDB(db)) return;
+  if(old && cloudEnabled()) await cloudDeleteOne('ord', old);
+  hide('mOrdEdit');
+  toast(cloudEnabled() ? 'Ordine eliminato anche dal cloud' : 'Ordine eliminato');
 }
 
 /* ====== IMPORT/EXPORT ====== */
@@ -1638,6 +1669,30 @@ function cloudUi(){
   bIn.hidden=!!cloudSession;
   bSync.hidden=!cloudSession;
   bOut.hidden=!cloudSession;
+}
+function cloudEnabled(){ return !!(window.VG_SUPABASE_READY && cloudSession); }
+async function cloudSaveOne(type, payload, dbRef){
+  if(!cloudEnabled()) return payload;
+  cloudBusy=true; cloudUi();
+  try{
+    if(type==='art') return await upsertCloudArticle(payload);
+    if(type==='cli') return await upsertCloudClient(payload);
+    if(type==='ord') return await upsertCloudOrder(payload, dbRef||loadDB());
+    return payload;
+  }finally{
+    cloudBusy=false; cloudUi();
+  }
+}
+async function cloudDeleteOne(type, payload){
+  if(!cloudEnabled() || !payload) return;
+  cloudBusy=true; cloudUi();
+  try{
+    if(type==='art') return await deleteCloudArticle(payload);
+    if(type==='cli') return await deleteCloudClient(payload);
+    if(type==='ord') return await deleteCloudOrder(payload);
+  }finally{
+    cloudBusy=false; cloudUi();
+  }
 }
 async function ensureCloud(){
   if(cloudClient) return cloudClient;
