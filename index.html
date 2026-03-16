@@ -1662,13 +1662,19 @@ function cloudUi(){
   const bSync=document.getElementById('btnCloudSync');
   const bOut=document.getElementById('btnCloudLogout');
   if(!s||!bIn||!bSync||!bOut) return;
-  if(!window.VG_SUPABASE_READY){ s.textContent='Cloud: non disponibile'; bIn.hidden=true; bSync.hidden=true; bOut.hidden=true; return; }
+  const logged=!!cloudSession;
+  const hide=(el,on)=>{ el.hidden=!!on; el.style.display=on?'none':''; };
+  if(!window.VG_SUPABASE_READY){
+    s.textContent='Cloud: non disponibile';
+    hide(bIn,true); hide(bSync,true); hide(bOut,true);
+    return;
+  }
   if(cloudBusy){ s.textContent='Cloud: lavoro in corso…'; }
-  else if(cloudSession?.user?.email){ s.textContent='Cloud: '+cloudSession.user.email; }
+  else if(cloudSession?.user?.email){ s.textContent='Cloud collegato: '+cloudSession.user.email; }
   else { s.textContent='Cloud: offline'; }
-  bIn.hidden=!!cloudSession;
-  bSync.hidden=!cloudSession;
-  bOut.hidden=!cloudSession;
+  hide(bIn,logged);
+  hide(bSync,!logged);
+  hide(bOut,!logged);
 }
 function cloudEnabled(){ return !!(window.VG_SUPABASE_READY && cloudSession); }
 async function cloudSaveOne(type, payload, dbRef){
