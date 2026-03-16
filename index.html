@@ -117,7 +117,7 @@ window.addEventListener('error',e=>{
   <h1>Vanity &amp; Glamour</h1>
   <div id="dateLine" class="date">--/--/----</div>
   <div id="cloudBar" class="date" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-    <span id="cloudState">Cloud: offline</span>
+    <span id="cloudState">Cloud</span>
     <button id="btnCloudLogin" class="pill" type="button">Login cloud</button>
     <button id="btnCloudSync" class="pill" type="button" hidden>Sincronizza</button>
     <button id="btnCloudLogout" class="pill" type="button" hidden>Esci</button>
@@ -1665,13 +1665,13 @@ function cloudUi(){
   const logged=!!cloudSession;
   const hide=(el,on)=>{ el.hidden=!!on; el.style.display=on?'none':''; };
   if(!window.VG_SUPABASE_READY){
-    s.textContent='Cloud: non disponibile';
+    s.textContent='Cloud';
     hide(bIn,true); hide(bSync,true); hide(bOut,true);
     return;
   }
-  if(cloudBusy){ s.textContent='Cloud: lavoro in corso…'; }
-  else if(cloudSession?.user?.email){ s.textContent='Cloud collegato: '+cloudSession.user.email; }
-  else { s.textContent='Cloud: offline'; }
+  if(cloudBusy){ s.textContent='Cloud'; }
+  else if(cloudSession?.user?.email){ s.textContent='Cloud'; }
+  else { s.textContent='Cloud'; }
   hide(bIn,logged);
   hide(bSync,!logged);
   hide(bOut,!logged);
