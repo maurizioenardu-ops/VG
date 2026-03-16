@@ -44,6 +44,10 @@ body{-webkit-tap-highlight-color:transparent}
 .t{font-weight:1000}
 .s{font-size:12px;color:var(--muted);margin-top:2px}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:1000;border:1px solid var(--line);background:#fff}
+.pill.cloudBtn{padding:9px 14px;border-radius:14px;font-size:13px;min-height:42px;box-shadow:0 5px 12px rgba(15,23,42,.08);background:rgba(255,255,255,.98)}
+.pill.cloudBtn.primary{background:#e0ecff;border-color:#93c5fd;color:#0f172a}
+.pill.cloudBtn.secondary{background:#fff;border-color:#cbd5e1;color:#0f172a}
+.pricePaid{color:#16a34a!important;font-weight:1000}
 .pill.promo{border-color:#fecaca;background:#fff1f2;color:#991b1b}
 .dot{width:10px;height:10px;border-radius:999px;background:#16a34a;display:inline-block}
 .priceHot{color:var(--red);font-weight:1000}
@@ -117,7 +121,7 @@ select[multiple]{min-height:150px}
   .navBottom button{font-size:10px;padding:10px 2px 12px}
   .card,.stat,.modal{border-radius:14px}
 
-.syncMini{display:none;gap:8px;flex-wrap:wrap;margin-top:8px}
+.syncMini{display:none;gap:8px;flex-wrap:wrap;margin-top:8px;padding-left:0}
 .syncMini.show{display:flex}
 .syncMini .pill{cursor:pointer}
 .helper{font-size:11px;color:var(--muted);margin-top:6px}
@@ -137,13 +141,13 @@ window.addEventListener('error',e=>{
   <div id="dateLine" class="date">--/--/----</div>
   <div id="cloudBar" class="date" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <span id="cloudState">Cloud</span>
-    <button id="btnCloudLogin" class="pill" type="button">Login cloud</button>
-    <button id="btnCloudSync" class="pill" type="button" hidden>Sincronizza</button>
-    <button id="btnCloudLogout" class="pill" type="button" hidden>Esci</button>
+    <button id="btnCloudLogin" class="pill cloudBtn secondary" type="button">Login cloud</button>
+    <button id="btnCloudSync" class="pill cloudBtn primary" type="button" hidden>Sincronizza</button>
+    <button id="btnCloudLogout" class="pill cloudBtn secondary" type="button" hidden>Esci</button>
   </div>
   <div id="cloudSyncMini" class="syncMini">
-    <button class="pill" type="button" data-action="cloudPull">Carica cloud</button>
-    <button class="pill" type="button" data-action="cloudPush">Invia cloud</button>
+    <button class="pill cloudBtn secondary" type="button" data-action="cloudPull">Carica cloud</button>
+    <button class="pill cloudBtn primary" type="button" data-action="cloudPush">Invia cloud</button>
   </div>
 </div>
 
@@ -1122,7 +1126,7 @@ function renderOrd(){
     const c=db.clienti.find(x=>x.id===o.clienteId);
     return `<div class="row" data-open="ord" data-id="${o.id}" style="grid-template-columns:1fr auto">
       <div>
-        <div class="t">${esc(c?c.nome:'-')} • <span class="priceHot">${money(o.totale||0)}</span></div>
+        <div class="t">${esc(c?c.nome:'-')} • <span class="${orderPaidStatus(o)?'pricePaid':'priceHot'}">${money(o.totale||0)}</span></div>
         <div class="s">${esc(o.stato||'-')} • ${esc(o.data||'')}${o.mis?` • Mis. ${esc(o.mis)}`:''}${o.tracking?` • Track ${esc(o.tracking)}`:''}</div>
       </div>
       <div class="pill">${esc(o.stato||'-')}</div>
@@ -2111,6 +2115,12 @@ async function upsertCloudClient(cli){
     ({data,error}=await sb.from('clienti').upsert({...payload,id:cli.id}).select('*').single());
   }else{
     ({data,error}=await sb.from('clienti').insert(payload).select('*').single());
+    if(error && cli.email){
+      const existing=await sb.from('clienti').select('*').eq('email', cli.email).maybeSingle();
+      if(existing.data && !existing.error){
+        ({data,error}=await sb.from('clienti').upsert({...payload,id:existing.data.id}).select('*').single());
+      }
+    }
   }
   if(error) throw error;
   return {...cli, id:data.id, _cloud:true};
@@ -2219,13 +2229,44 @@ async function pushLocalToCloud(){
   cloudBusy=true; cloudUi();
   try{
     const db=loadDB();
-    for(let i=0;i<db.articoli.length;i++) db.articoli[i]=await upsertCloudArticle(db.articoli[i]);
-    for(let i=0;i<db.clienti.length;i++) db.clienti[i]=await upsertCloudClient(db.clienti[i]);
-    for(let i=0;i<db.ordini.length;i++) db.ordini[i]=await upsertCloudOrder(db.ordini[i], db);
+    const artIdMap=new Map();
+    const cliIdMap=new Map();
+    for(let i=0;i<db.articoli.length;i++){
+      const oldId=db.articoli[i]?.id;
+      const saved=await upsertCloudArticle(db.articoli[i]);
+      db.articoli[i]=saved;
+      if(oldId && saved?.id && oldId!==saved.id) artIdMap.set(oldId, saved.id);
+    }
+    for(let i=0;i<db.clienti.length;i++){
+      const oldId=db.clienti[i]?.id;
+      const saved=await upsertCloudClient(db.clienti[i]);
+      db.clienti[i]=saved;
+      if(oldId && saved?.id && oldId!==saved.id) cliIdMap.set(oldId, saved.id);
+    }
+    if(cliIdMap.size || artIdMap.size){
+      db.ordini=(db.ordini||[]).map(o=>({
+        ...o,
+        clienteId: cliIdMap.get(o.clienteId) || o.clienteId,
+        righe: (o.righe||[]).map(r=>({ ...r, articoloId: artIdMap.get(r.articoloId) || r.articoloId }))
+      }));
+    }
+    const failed=[];
+    for(let i=0;i<db.ordini.length;i++){
+      try{
+        db.ordini[i]=await upsertCloudOrder(db.ordini[i], db);
+      }catch(err){
+        console.error('Ordine cloud fallito', db.ordini[i], err);
+        failed.push(db.ordini[i]?.numeroOrdine || db.ordini[i]?.id || ('ordine-'+(i+1)));
+      }
+    }
     saveDBLocal(db);
     renderAll();
     renderDiagnostics();
-    toast('Dati locali mandati nel cloud');
+    if(failed.length){
+      toast('Cloud parziale: '+failed.length+' ordini non inviati');
+    }else{
+      toast('Dati locali mandati nel cloud');
+    }
   } finally { cloudBusy=false; cloudUi(); }
 }
 async function cloudLogin(){
