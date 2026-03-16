@@ -1323,8 +1323,6 @@ function renderAll(){ renderHome(); renderArt(); renderCli(); renderOrd(); rende
 
 /* ====== ART view/edit ====== */
 let currentArtId=null;
-let currentCliId=null;
-let currentOrdId=null;
 async function openArtView(id){
   const db=loadDB(); const a=db.articoli.find(x=>x.id===id); if(!a) return;
   currentArtId=id;
