@@ -1,4 +1,4 @@
-const VERSION = 'v8_2';
+const VERSION = 'v8_7';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './manifest.json',

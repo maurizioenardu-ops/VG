@@ -1,549 +1,10 @@
-<!doctype html>
-<html lang="it">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Vanity & Glamour</title>
-<link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0f172a"/>
-<style>
-:root{--navy:#0f172a;--bg:#f8fafc;--card:#fff;--line:#bcc6d4;--muted:#6b7280;--blue:#2563eb;--red:#dc2626;--cream:#fff7ed;--soft:#eef4ff;--gold:#f59e0b}
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#111827}
-body{-webkit-tap-highlight-color:transparent}
-.top{position:sticky;top:0;background:var(--navy);color:#fff;padding:16px 14px 14px;z-index:10}
-.top h1{margin:0;font-size:20px;font-weight:900}
-.date{margin-top:4px;font-size:12px;opacity:.86}
-.app{max-width:560px;margin:0 auto;min-height:100vh;padding:12px 12px 84px}
-.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:12px 0}
-.tab{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 8px;font-weight:900;text-align:center;cursor:pointer;box-shadow:0 6px 14px rgba(15,23,42,.04)}
-.tab.active{background:#fef3c7;border-color:#f59e0b}
-.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}.cards.dashMain{grid-template-columns:1fr 1fr}.cards.dashMain .stat{min-height:96px}
-.stat,.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;box-shadow:0 10px 24px rgba(15,23,42,.05)}
-.stat{cursor:pointer}
-.k{font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:900}
-.v{font-size:22px;font-weight:900;margin-top:4px}
-#c_profit_month{color:#16a34a}
-#c_profit_total{color:#15803d}
-#c_inc_month,#f_inc{color:#2563eb}
-#c_due_total,#f_due{color:#ea580c}
-#f_profit{color:#15803d}
-#f_profit_month{color:#16a34a}
 
-.h2{font-size:16px;font-weight:900;margin:2px 0 10px}
-.small{font-size:12px;color:var(--muted)}
-.btnGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.btnBig{border:0;border-radius:14px;padding:10px 12px;font-weight:1000;font-size:13px;cursor:pointer;touch-action:manipulation;min-height:44px}
-.btnBig.primary{background:var(--blue);color:#fff}
-.btnBig.gray{background:#eef2ff;color:#111827}
-.section{display:none}
-.section.active{display:block}
-.list{display:flex;flex-direction:column;gap:10px}
-.row{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px}
-.thumb{width:64px;height:64px;border-radius:14px;border:1px solid var(--line);background:#f3f4f6;object-fit:cover}
-.t{font-weight:1000}
-.s{font-size:12px;color:var(--muted);margin-top:2px}
-.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:1000;border:1px solid var(--line);background:#fff}
-.pill.promo{border-color:#fecaca;background:#fff1f2;color:#991b1b}
-.dot{width:10px;height:10px;border-radius:999px;background:#16a34a;display:inline-block}
-.priceHot{color:var(--red);font-weight:1000}
-.navBottom{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:8px 10px;z-index:20}
-.navBottom .inner{max-width:560px;margin:0 auto;display:flex;justify-content:space-between}
-.navBottom button{border:none;background:none;padding:10px 6px 12px;font-weight:900;color:var(--muted);font-size:11px;touch-action:manipulation}
-.navBottom button.active{color:var(--blue)}
-/* modal */
-.modalwrap{position:fixed;inset:0;background:rgba(15,23,42,.4);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}
-.modal{background:#fff;width:100%;max-width:560px;border-radius:20px;border:1px solid var(--line);padding:14px;max-height:85vh;overflow:auto}
-.actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
-.actions.bottomMini .btn{min-height:42px;padding:9px 10px;font-size:13px;border-radius:12px}
-.actions.bottomMini{gap:8px}
-.actions.compact{grid-template-columns:repeat(3,minmax(0,auto));justify-content:flex-start;gap:8px}
-.btn{border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px 14px;font-weight:1000;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:50px;text-align:center;box-shadow:0 3px 10px rgba(15,23,42,.04)}
-.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
-.btn.danger{background:#fee2e2;border-color:#fca5a5}
-.btn.smallish{padding:9px 11px;min-height:40px;font-size:12px;border-radius:12px}
-.btn.orderAdd{background:#fff;border:1px solid var(--line);color:#111827;box-shadow:0 3px 10px rgba(15,23,42,.04)}
-.btn.orderAdd.small{padding:10px 12px;border-radius:14px;font-size:13px;min-height:46px;line-height:1.15}
-.orderAddWrap{margin-top:10px;display:flex;justify-content:flex-start}.orderAddWrap .btn{width:100%}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;font-weight:700;font-size:14px;background:#fff}
-textarea{min-height:90px;resize:none;overflow:hidden}
-select[multiple]{min-height:150px}
-.hero{width:100%;height:190px;border-radius:16px;object-fit:cover;border:1px solid var(--line);background:#f3f4f6}
-.thumbs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-.thumbs img{width:70px;height:70px;border-radius:12px;object-fit:cover;border:1px solid var(--line);cursor:pointer}
-.hr{height:1px;background:var(--line);margin:12px 0}
-.chartBars{display:grid;gap:10px;margin-top:8px}.chartRow{display:grid;grid-template-columns:68px minmax(0,1fr) auto;gap:10px;align-items:center}.barTrack{height:12px;background:#eef1f6;border-radius:999px;overflow:hidden}.barFill{height:100%;background:linear-gradient(90deg,var(--navy),#4a6ee0);border-radius:999px}.mutedBox{padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#fafbfe}.smallGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-.heroSpot{background:linear-gradient(135deg,#fff8ef 0%, #eef4ff 100%);border:1px solid #e6eaf2;border-radius:24px;padding:16px 16px 14px;margin-bottom:12px;box-shadow:0 12px 28px rgba(15,23,42,.06)}
-.heroSpot .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;font-weight:1000;margin-bottom:6px}
-.heroSpot .title{font-size:22px;line-height:1.05;font-weight:1000;margin:0 0 6px}
-.heroSpot .desc{font-size:13px;color:#475569;line-height:1.35;margin:0 0 12px}
-.sparkTitle{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px}.sparkTitle span{font-size:11px;text-transform:uppercase;color:#64748b;font-weight:1000}
-.sparkBars{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:end;height:92px}.sparkCol{display:flex;flex-direction:column;align-items:center;gap:6px}.sparkBarWrap{height:68px;width:100%;display:flex;align-items:flex-end}.sparkBar{width:100%;border-radius:14px 14px 8px 8px;background:linear-gradient(180deg,#60a5fa,#1d4ed8)}.sparkBar.soft{background:linear-gradient(180deg,#fbbf24,#f59e0b)}.sparkLbl{font-size:10px;color:#64748b;font-weight:900}.quickCard .h2{margin-bottom:8px}.substats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.micro{background:#f8fafc;border:1px solid #edf2f7;border-radius:14px;padding:10px 12px}.micro .k{font-size:10px}.micro .v{font-size:16px;margin-top:2px}.stat .v.big{font-size:24px}.stat .sub{margin-top:4px;font-size:11px;color:#64748b;font-weight:800}
-
-#mArtView .modal,#mArtEdit .modal{max-width:760px}
-
-#vArtPost,#a_post,#c_ship{overflow:hidden;resize:none;scrollbar-width:none;-ms-overflow-style:none}
-#vArtPost::-webkit-scrollbar,#a_post::-webkit-scrollbar,#c_ship::-webkit-scrollbar{display:none}
-@media (max-width:700px){
-  #mArtView .modal,#mArtEdit .modal{width:100vw;max-width:none;height:100vh;max-height:none;border-radius:0;padding:14px 14px 96px}
-  #mArtView.modalwrap,#mArtEdit.modalwrap{padding:0}
-  #mArtView .actions,#mArtEdit .actions,#mCliEdit .actions{position:sticky;bottom:-2px;background:linear-gradient(180deg,rgba(248,250,252,0),#fff 18%,#fff 100%);padding-top:10px;margin-top:12px}
-  #mArtView .actions.compact{grid-template-columns:repeat(3,minmax(0,1fr));justify-content:stretch}
-}
-@media (max-width:520px){
-  .smallGrid,.cards,.btnGrid,.grid2{grid-template-columns:1fr}
-  .actions{grid-template-columns:1fr 1fr}
-  .app{padding:10px 10px 88px}
-  .tabs{gap:6px}
-  .tab{padding:10px 6px;font-size:12px;border-radius:14px}
-  .top{padding:14px 12px 12px}
-  .top h1{font-size:18px}
-  .modalwrap{padding:8px}
-  .modal{max-height:88vh;padding:12px;border-radius:18px}
-  .row{grid-template-columns:54px minmax(0,1fr) auto;gap:8px;padding:9px}
-  .thumb{width:54px;height:54px}
-  input,select,textarea,.btn,.btnBig{font-size:16px}
-  .chartRow{grid-template-columns:56px minmax(0,1fr) auto;gap:8px}
-  .v{font-size:20px}
-}
-@media (max-width:390px){
-  .app{max-width:100%;padding-left:8px;padding-right:8px}
-  .tab{font-size:11px;padding:9px 4px}
-  .navBottom .inner{gap:2px}
-  .navBottom button{font-size:10px;padding:10px 2px 12px}
-  .card,.stat,.modal{border-radius:14px}
-
-.syncMini{display:none;gap:8px;flex-wrap:wrap;margin-top:8px}
-.syncMini.show{display:flex}
-.syncMini .pill{cursor:pointer}
-.helper{font-size:11px;color:var(--muted);margin-top:6px}
-
-</style>
-<script>
 window.addEventListener('error',e=>{
   const x=document.getElementById('dateLine');
   if(x) x.textContent='ERRORE JS: '+(e.message||e);
 });
-</script>
-<script src="supabaseClient.js"></script>
-</head>
-<body>
-<div class="top">
-  <h1 id="appTitle">Vanity &amp; Glamour</h1>
-  <div id="dateLine" class="date">--/--/----</div>
-  <div id="cloudBar" class="date" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-    <span id="cloudState">Cloud</span>
-    <button id="btnCloudLogin" class="pill" type="button">Login cloud</button>
-    <button id="btnCloudSync" class="pill" type="button" hidden>Sincronizza</button>
-    <button id="btnCloudLogout" class="pill" type="button" hidden>Esci</button>
-  </div>
-  <div id="cloudSyncMini" class="syncMini">
-    <button class="pill" type="button" data-action="cloudPull">Carica cloud</button>
-    <button class="pill" type="button" data-action="cloudPush">Invia cloud</button>
-  </div>
-</div>
-
-<div class="app">
-  <div class="tabs">
-    <div class="tab active" data-go="home" data-tab="home">Dashboard</div>
-    <div class="tab" data-go="articoli" data-tab="articoli">Articoli</div>
-    <div class="tab" data-go="clienti" data-tab="clienti">Clienti</div>
-    <div class="tab" data-go="ordini" data-tab="ordini">Ordini</div>
-    <div class="tab" data-go="finanze" data-tab="finanze">Finanze</div>
-  </div>
-
-  <div id="sec_home" class="section active">
-    <div class="heroSpot">
-      <div class="eyebrow">Novità in primo piano</div>
-      <div id="homeMood" class="title">Si parte bene</div>
-      <div id="homeMoodSub" class="desc">Panoramica vendite del momento.</div>
-      <div class="sparkTitle"><span>Andamento ultimi 6 mesi</span><span id="sparkHint">incassato</span></div>
-      <div id="homeSpark" class="sparkBars"></div>
-    </div>
-
-    <div class="cards dashMain">
-      <div class="stat" data-go="ordini"><div class="k">Ordini in corso</div><div id="c_open_orders" class="v big">0</div><div class="sub">non ancora consegnati</div></div>
-      <div class="stat" data-go="finanze"><div class="k">Guadagno mese</div><div id="c_profit_month" class="v big">0</div><div class="sub">margine del mese corrente</div></div>
-      <div class="stat" data-go="ordini"><div class="k">Media ordini</div><div id="c_avg_order" class="v big">0</div><div class="sub">valore medio per ordine</div></div>
-      <div class="stat" data-go="finanze"><div class="k">Guadagno totale</div><div id="c_profit_total" class="v big">0</div><div class="sub">margine complessivo</div></div>
-    </div>
-
-    <div class="card quickCard">
-      <div class="h2">Azioni rapide</div>
-      <div class="btnGrid">
-        <button class="btnBig primary" data-action="newOrd">Nuovo ordine</button>
-        <button class="btnBig gray" data-action="newArt">Nuovo articolo</button>
-        <button class="btnBig gray" data-action="newCli">Nuovo cliente</button>
-        <button class="btnBig gray" data-go="impostazioni">Impostazioni</button>
-      </div>
-      <div class="substats">
-        <div class="micro"><div class="k">Incassato mese</div><div id="c_inc_month" class="v">0</div></div>
-        <div class="micro"><div class="k">Da incassare</div><div id="c_due_total" class="v">0</div></div>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:12px">
-      <div class="h2">Info rapide</div>
-      <div id="dashList" class="list"></div>
-    </div>
-  </div>
-
-  <div id="sec_articoli" class="section">
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Articoli</div><button class="btn" type="button" data-action="newArt">+ Nuovo</button></div>
-      <input id="qArt" placeholder="Cerca per codice, brand, modello, categoria, colore, taglia, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
-    </div>
-    <div style="height:10px"></div>
-    <div id="listArt" class="list"></div>
-  </div>
-
-  <div id="sec_clienti" class="section">
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Clienti</div><button class="btn" type="button" data-action="newCli">+ Nuovo</button></div>
-      <input id="qCli" placeholder="Cerca per nome, telefono, città..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
-    </div>
-    <div style="height:10px"></div>
-    <div id="listCli" class="list"></div>
-  </div>
-
-  <div id="sec_ordini" class="section">
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Ordini</div><button class="btn" type="button" data-action="newOrd">+ Nuovo</button></div>
-      <input id="qOrd" placeholder="Cerca per cliente, stato, id..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
-    </div>
-    <div style="height:10px"></div>
-    <div id="listOrd" class="list"></div>
-  </div>
 
 
-  <div id="sec_finanze" class="section">
-    <div class="cards">
-      <div class="card"><div class="k">Fatturato ordini</div><div id="f_fatt" class="v">0</div></div>
-      <div class="card"><div class="k">Incassato totale</div><div id="f_inc" class="v">0</div></div>
-      <div class="card"><div class="k">Da incassare</div><div id="f_due" class="v">0</div></div>
-      <div class="card"><div class="k">Guadagno totale</div><div id="f_profit" class="v">0</div></div>
-      <div class="card"><div class="k">Guadagno mese</div><div id="f_profit_month" class="v">0</div></div>
-      <div class="card"><div class="k">Guadagno anno</div><div id="f_profit_year" class="v">0</div></div>
-    </div>
-    <div class="card">
-      <div class="h2">Riepilogo per stato ordine</div>
-      <div id="finByStatus" class="list"></div>
-    </div>
-    <div class="card" style="margin-top:12px">
-      <div class="h2">Andamento ultimi 6 mesi</div>
-      <div id="finTrendChart"></div>
-    </div>
-    <div class="card" style="margin-top:12px">
-      <div class="h2">Incassato vs guadagno anno</div>
-      <div id="finYearChart"></div>
-    </div>
-    <div class="card" style="margin-top:12px">
-      <div class="h2">Categorie per ricavo</div>
-      <div id="finByCat" class="list"></div>
-    </div>
-    <div class="card" style="margin-top:12px">
-      <div class="h2">Spazio archivio foto</div>
-      <div id="storageInfo" class="small">Calcolo in corso…</div>
-    </div>
-  </div>
-
-  <div id="sec_impostazioni" class="section">
-    <div class="card">
-      <div class="h2">Impostazioni</div>
-      <div class="small">Backup e strumenti</div>
-      <div class="actions">
-        <button class="btn" data-action="exportFull">Export DB (tutto)</button>
-        <button class="btn" data-action="exportLite">Export DB (senza foto)</button>
-        <label class="btn" style="display:inline-block">
-          Import JSON<input id="importFile" type="file" accept="application/json" style="display:none"/>
-        </label>
-        <button class="btn" data-action="refreshDiag">Aggiorna diagnostica</button>
-        <button class="btn danger" data-action="repairArchive">Ripara archivio</button>
-        <button class="btn danger" data-action="hardReset">Reset totale</button>
-      </div>
-      <div class="small" style="margin-top:10px" id="importHint"></div>
-    </div>
-    <div class="card" style="margin-top:12px">
-      <div class="h2">Diagnostica archivio</div>
-      <div id="diagBox" class="small">Lettura archivio in corso…</div>
-    </div>
-    <div class="card" style="margin-top:12px">
-      <div class="h2">Editor rapido interfaccia</div>
-      <div class="small">Modifica testi base e stile senza toccare GitHub.</div>
-      <div class="grid2" style="margin-top:10px">
-        <div><div class="k">Titolo app</div><input id="e_title" placeholder="Vanity & Glamour"/></div>
-        <div><div class="k">Etichetta cloud</div><input id="e_cloud" placeholder="Cloud"/></div>
-      </div>
-      <div class="grid2" style="margin-top:10px">
-        <div><div class="k">Tab Home</div><input id="e_tab_home" placeholder="Dashboard"/></div>
-        <div><div class="k">Tab Articoli</div><input id="e_tab_articoli" placeholder="Articoli"/></div>
-      </div>
-      <div class="grid2" style="margin-top:10px">
-        <div><div class="k">Tab Clienti</div><input id="e_tab_clienti" placeholder="Clienti"/></div>
-        <div><div class="k">Tab Ordini</div><input id="e_tab_ordini" placeholder="Ordini"/></div>
-      </div>
-      <div class="grid2" style="margin-top:10px">
-        <div><div class="k">Tab Finanze</div><input id="e_tab_finanze" placeholder="Finanze"/></div>
-        <div><div class="k">Tab Impost.</div><input id="e_tab_impostazioni" placeholder="Impost."/></div>
-      </div>
-      <div class="grid2" style="margin-top:10px">
-        <div><div class="k">Pulsante Salva</div><input id="e_btn_save" placeholder="Salva"/></div>
-        <div><div class="k">Pulsante Annulla</div><input id="e_btn_cancel" placeholder="Annulla"/></div>
-      </div>
-      <div style="margin-top:10px"><div class="k">Pulsante Elimina</div><input id="e_btn_delete" placeholder="Elimina"/></div>
-      <div style="margin-top:10px"><div class="k">CSS personalizzato</div><textarea id="e_css" placeholder=".btn{border-radius:10px}
-.top{padding-top:18px}"></textarea></div>
-      <div class="actions bottomMini" style="margin-top:10px">
-        <button class="btn primary" type="button" data-action="saveUiPrefs">Applica</button>
-        <button class="btn" type="button" data-action="loadUiPrefs">Ricarica</button>
-        <button class="btn danger" type="button" data-action="resetUiPrefs">Ripristina</button>
-      </div>
-      <div class="small" style="margin-top:8px" id="uiEditorHint">Le modifiche restano su questo dispositivo.</div>
-    </div>
-  </div>
-</div>
-
-<div class="navBottom">
-  <div class="inner">
-    <button class="active" data-go="home" data-nav="home">Home</button>
-    <button data-go="articoli" data-nav="articoli">Articoli</button>
-    <button data-go="clienti" data-nav="clienti">Clienti</button>
-    <button data-go="ordini" data-nav="ordini">Ordini</button>
-    <button data-go="finanze" data-nav="finanze">Finanze</button>
-    <button data-go="impostazioni" data-nav="impostazioni">Impost.</button>
-  </div>
-</div>
-
-<!-- MODALS -->
-<div id="mArtView" class="modalwrap"><div class="modal">
-  <div class="h2">Dettaglio articolo</div>
-  <img id="vArtHero" class="hero" alt=""/>
-  <div id="vArtThumbs" class="thumbs"></div>
-  <div class="hr"></div>
-  <div class="grid2">
-    <div><div class="k">Codice</div><div id="vArtCod" class="t">-</div></div>
-    <div><div class="k">Qualità</div><div id="vArtQual" class="t">-</div></div>
-  </div>
-  <div class="grid2" style="margin-top:10px">
-    <div><div class="k">Prezzo vendita</div><div id="vArtPrezzo" class="t">-</div></div>
-    <div>
-      <div class="k">Prezzo in uso</div>
-      <div id="vArtPrezzoUse" class="priceHot">-</div>
-      <div id="vArtPromoPill"></div>
-      <div class="orderAddWrap"><button class="btn orderAdd" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button></div>
-    </div>
-  </div>
-  <div style="margin-top:10px"><div class="k">Post</div><textarea id="vArtPost" readonly></textarea></div>
-  <div class="actions compact">
-    <button class="btn primary smallish" type="button" data-action="copyPost">Copia post</button>
-    <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
-    <button class="btn smallish" type="button" data-action="closeView">Chiudi</button>
-  </div>
-</div></div>
-
-<div id="mArtEdit" class="modalwrap"><div class="modal artModal">
-  <div class="h2" id="artEditTitle">Nuovo articolo</div>
-
-  <div class="formBlock dati inputSoft">
-    <div class="blockTitle">Dati articolo</div>
-    <div class="grid2">
-      <div><div class="k">Codice articolo</div><input id="a_cod" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-      <div><div class="k">Brand</div><input id="a_brand" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    </div>
-    <div class="grid2" style="margin-top:10px">
-      <div><div class="k">Modello</div><input id="a_mod" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-      <div><div class="k">Categoria</div><input id="a_cat" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    </div>
-    <div style="margin-top:10px"><div class="k">Fornitore</div><input id="a_forn" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-  </div>
-
-  <div class="formBlock varianti inputSoft">
-    <div class="blockTitle">Varianti e dettagli</div>
-    <div class="grid2">
-      <div><div class="k">Taglia</div><input id="a_taglia" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-      <div><div class="k">Variante</div><input id="a_variante" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    </div>
-    <div class="grid2" style="margin-top:10px">
-      <div><div class="k">Colore</div><input id="a_colore" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-      <div><div class="k">Misura</div><input id="a_mis" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    </div>
-  </div>
-
-  <div class="formBlock prezzi inputSoft">
-    <div class="blockTitle">Prezzi e margine</div>
-    <div class="grid2">
-      <div><div class="k">Qualità (auto)</div><input id="a_qual" readonly/></div>
-      <div><div class="k">Costo USD</div><input id="a_usd" inputmode="decimal" autocomplete="off"/></div>
-    </div>
-    <div class="grid2" style="margin-top:10px">
-      <div><div class="k">Costo EUR (auto)</div><input id="a_eur" readonly/></div>
-      <div><div class="k">Prezzo vendita (auto)</div><input id="a_sell" readonly/></div>
-    </div>
-    <div class="grid2" style="margin-top:10px">
-      <div><div class="k">Prezzo finale in uso</div><input id="a_final" readonly/></div>
-      <div><div class="k">Margine</div><input id="a_margin" readonly/><div id="a_margin_pct" class="miniNote"></div></div>
-    </div>
-    <div class="hr"></div>
-    <div class="grid2">
-      <div><div class="k">Promo attiva</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Attiva</label></div>
-      <div><div class="k">Scadenza promo</div><input id="a_promo_date" type="date" autocomplete="off"/></div>
-    </div>
-    <div style="margin-top:10px"><div class="k">Prezzo promo</div><input id="a_promo_price" inputmode="decimal" autocomplete="off"/></div>
-  </div>
-
-  <div class="formBlock postblk inputSoft">
-    <div class="blockTitle">Post e contenuti</div>
-    <div><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Dettagli utili per il post..."></textarea></div>
-    <div style="margin-top:10px"><div class="k">Post</div><textarea id="a_post" placeholder="Qui il post (auto)"></textarea></div>
-    <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
-    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*"/></div>
-    <div id="a_photo_prev" class="thumbs"></div>
-  </div>
-
-  <div class="actions bottomMini">
-    <button class="btn primary" type="button" data-action="saveArt">Salva</button>
-    <button class="btn" type="button" data-action="closeEdit">Annulla</button>
-    <button class="btn danger" type="button" data-action="deleteArt">Elimina</button>
-  </div>
-</div></div>
-
-</div></div>
-
-<div id="mCliView" class="modalwrap"><div class="modal">
-  <div class="h2">Dettaglio cliente</div>
-  <div class="grid2">
-    <div><div class="k">Nome</div><div id="vCliNome" class="t">-</div></div>
-    <div><div class="k">Telefono</div><div id="vCliTel" class="t">-</div></div>
-  </div>
-  <div style="margin-top:10px"><div class="k">Indirizzo</div><div id="vCliInd" class="t">-</div></div>
-  <div style="margin-top:10px"><div class="k">Indirizzo spedizione</div><textarea id="vCliShip" readonly placeholder="Shipping Address"></textarea></div>
-  <div style="margin-top:10px"><div class="k">Note</div><div id="vCliNote" class="t">-</div></div>
-  <div class="actions compact bottomMini">
-    <button class="btn primary smallish" type="button" data-action="copyCliShipFromView">Copia indirizzo</button>
-    <button class="btn smallish" type="button" data-action="editCliFromView">Modifica</button>
-    <button class="btn smallish" type="button" data-action="closeCliView">Chiudi</button>
-  </div>
-</div></div>
-
-<div id="mCliEdit" class="modalwrap"><div class="modal">
-  <div class="h2" id="cliEditTitle">Nuovo cliente</div>
-  <div class="grid2">
-    <div><div class="k">Nome</div><input id="c_nome" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div><div class="k">Telefono</div><input id="c_tel" inputmode="tel" autocomplete="off"/></div>
-  </div>
-  <div style="margin-top:10px"><div class="k">Indirizzo</div><input id="c_ind" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-  <div class="grid2" style="margin-top:10px">
-    <div><div class="k">CAP</div><input id="c_cap" inputmode="numeric" autocomplete="off"/></div>
-    <div><div class="k">Città</div><input id="c_citta" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-  </div>
-  <div style="margin-top:10px"><div class="k">Provincia</div><select id="c_prov"></select></div>
-  <div style="margin-top:10px"><div class="k">Note</div><textarea id="c_note"></textarea></div>
-  <div style="margin-top:10px"><div class="k">Indirizzo spedizione</div><textarea id="c_ship" readonly placeholder="Shipping Address"></textarea></div>
-  <div class="actions compact bottomMini">
-    <button class="btn primary smallish" type="button" data-action="copyCliShip">Copia indirizzo</button>
-    <button class="btn primary smallish" type="button" data-action="saveCli">Salva</button>
-    <button class="btn smallish" type="button" data-action="closeCli">Annulla</button>
-  </div>
-  <div class="actions compact" style="margin-top:8px">
-    <button class="btn danger smallish" type="button" data-action="deleteCli">Elimina</button>
-  </div>
-</div></div>
-
-</div></div>
-
-<div id="mOrdView" class="modalwrap"><div class="modal">
-  <div class="h2">Dettaglio ordine</div>
-  <div class="grid2">
-    <div><div class="k">Cliente</div><div id="vOrdCliente" class="t">-</div></div>
-    <div><div class="k">Stato</div><div id="vOrdStato" class="t">-</div></div>
-  </div>
-  <div class="grid2" style="margin-top:10px">
-    <div><div class="k">Data</div><div id="vOrdData" class="t">-</div></div>
-    <div><div class="k">Mis.</div><div id="vOrdMis" class="t">-</div></div>
-  </div>
-  <div style="margin-top:10px"><div class="k">Tracking</div><div id="vOrdTracking" class="t">-</div></div>
-  <div class="actions compact bottomMini">
-    <button class="btn smallish" type="button" data-action="track17FromView">Traccia spedizione</button>
-    <button class="btn smallish" type="button" data-action="openParcelFromView">Apri Parcel</button>
-  </div>
-  <div class="hr"></div>
-  <div class="h2">Articoli ordine</div>
-  <div id="vOrdRows" class="list"></div>
-  <div class="card" style="margin-top:10px"><div class="k">Totale</div><div id="vOrdTot" class="priceHot">0</div></div>
-  <div style="margin-top:10px"><div class="k">Note</div><div id="vOrdNote" class="t">-</div></div>
-  <div class="actions compact bottomMini">
-    <button class="btn smallish" type="button" data-action="editOrdFromView">Modifica</button>
-    <button class="btn smallish" type="button" data-action="closeOrdView">Chiudi</button>
-  </div>
-</div></div>
-
-<div id="mOrdEdit" class="modalwrap"><div class="modal">
-  <div class="h2" id="ordEditTitle">Nuovo ordine</div>
-  <div class="grid2">
-    <div><div class="k">Cliente (cerca)</div><input id="o_cli_q" placeholder="Cerca cliente..." autocomplete="off" autocapitalize="off" spellcheck="false"/><select id="o_cli"></select></div>
-    <div><div class="k">Stato</div>
-      <select id="o_stato">
-        <option>Richiesto</option>
-        <option>In attesa di pagamento</option>
-        <option>Pagato</option>
-        <option>In lavorazione</option>
-        <option>Spedito</option>
-        <option>Consegnato</option>
-      </select>
-    </div>
-  </div>
-  <div class="grid2" style="margin-top:10px">
-    <div><div class="k">Data</div><input id="o_data" type="date" autocomplete="off"/></div>
-    <div><div class="k">Note</div><input id="o_note" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-  </div>
-  <div class="grid2" style="margin-top:10px">
-    <div><div class="k">Mis.</div><input id="o_mis" placeholder="Es. 37 / M / XL" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div><div class="k">Tracking</div><input id="o_tracking" placeholder="Inserisci tracking" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-  </div>
-  <div class="actions bottomMini" style="margin-top:8px">
-    <button class="btn smallish" type="button" data-action="track17">Traccia spedizione</button>
-    <button class="btn smallish" type="button" data-action="openParcel">Apri Parcel</button>
-  </div>
-  <div class="hr"></div>
-  <div class="h2">Righe ordine</div>
-  <div class="grid2">
-    <div><div class="k">Articoli (cerca e seleziona anche più articoli)</div><input id="o_art_q" placeholder="Cerca articolo..." autocomplete="off" autocapitalize="off" spellcheck="false"/><select id="o_art" multiple></select><div class="helper">Puoi selezionare più articoli insieme.</div></div>
-    <div><div class="k">Prezzo manuale (solo se selezioni 1 articolo)</div><input id="o_price" inputmode="decimal" autocomplete="off"/><div class="helper">Se selezioni più articoli usa i prezzi degli articoli.</div></div>
-  </div>
-  <div class="actions bottomMini">
-    <button class="btn" type="button" data-action="addRow">Aggiungi selezionati</button>
-  </div>
-  <div id="o_rows" class="list"></div>
-  <div class="card" style="margin-top:10px"><div class="k">Totale</div><div id="o_tot" class="priceHot">0</div></div>
-  <div class="actions bottomMini">
-    <button class="btn primary" type="button" data-action="saveOrd">Salva</button>
-    <button class="btn" type="button" data-action="closeOrd">Annulla</button>
-    <button class="btn danger" type="button" data-action="deleteOrd">Elimina</button>
-  </div>
-</div></div>
-
-
-<div id="mCloudLogin" class="modalwrap"><div class="modal">
-  <div class="h2">Login cloud</div>
-  <div><div class="k">Email</div><input id="cloudEmail" type="email" autocomplete="username" autocapitalize="off" spellcheck="false"/></div>
-  <div style="margin-top:10px"><div class="k">Password</div><input id="cloudPassword" type="password" autocomplete="current-password"/></div>
-  <div class="actions bottomMini" style="margin-top:12px">
-    <button class="btn primary" type="button" data-action="doCloudLogin">Entra</button>
-    <button class="btn" type="button" data-action="closeCloudLogin">Annulla</button>
-  </div>
-</div></div>
-
-<div id="mConfirm" class="modalwrap"><div class="modal">
-  <div class="h2" id="confirmTitle">Conferma</div>
-  <div id="confirmText" class="small" style="font-size:14px;color:#111827"></div>
-  <div class="actions bottomMini" style="margin-top:12px">
-    <button class="btn danger" type="button" data-action="confirmYes">Conferma</button>
-    <button class="btn" type="button" data-action="confirmNo">Annulla</button>
-  </div>
-</div></div>
-
-<script>
 /* ====== DB ====== */
 const KEY='vg_db_full_v6';
 const LEGACY_KEYS=['vg_db_full_v5'];
@@ -926,62 +387,6 @@ function copyTextFrom(el){
   navigator.clipboard?.writeText(t).then(()=>toast('Copiato')).catch(()=>{ try{ el.select(); document.execCommand('copy'); toast('Copiato'); }catch(e){ toast('Copia non disponibile'); } });
 }
 
-const UI_KEY='vg_ui_prefs_v1';
-function defaultUiPrefs(){
-  return {
-    title:'Vanity & Glamour',
-    cloud:'Cloud',
-    tabs:{home:'Dashboard',articoli:'Articoli',clienti:'Clienti',ordini:'Ordini',finanze:'Finanze',impostazioni:'Impost.'},
-    buttons:{save:'Salva',cancel:'Annulla',delete:'Elimina'},
-    css:''
-  };
-}
-function normalizeUiPrefs(v){
-  const d=defaultUiPrefs();
-  const o=v&&typeof v==='object'?v:{};
-  return {
-    title:String(o.title||d.title),
-    cloud:String(o.cloud||d.cloud),
-    tabs:{...d.tabs,...(o.tabs||{})},
-    buttons:{...d.buttons,...(o.buttons||{})},
-    css:String(o.css||'')
-  };
-}
-function loadUiPrefs(){ try{ return normalizeUiPrefs(JSON.parse(localStorage.getItem(UI_KEY)||'{}')); }catch(e){ return defaultUiPrefs(); } }
-function saveUiPrefsData(prefs){ localStorage.setItem(UI_KEY, JSON.stringify(normalizeUiPrefs(prefs))); }
-function fillUiEditor(){
-  const p=loadUiPrefs();
-  const set=(id,val)=>{ const el=document.getElementById(id); if(el) el.value=val||''; };
-  set('e_title',p.title); set('e_cloud',p.cloud);
-  set('e_tab_home',p.tabs.home); set('e_tab_articoli',p.tabs.articoli); set('e_tab_clienti',p.tabs.clienti);
-  set('e_tab_ordini',p.tabs.ordini); set('e_tab_finanze',p.tabs.finanze); set('e_tab_impostazioni',p.tabs.impostazioni);
-  set('e_btn_save',p.buttons.save); set('e_btn_cancel',p.buttons.cancel); set('e_btn_delete',p.buttons.delete);
-  set('e_css',p.css);
-}
-function readUiEditor(){
-  const get=id=>document.getElementById(id)?.value?.trim()||'';
-  return normalizeUiPrefs({
-    title:get('e_title'), cloud:get('e_cloud'),
-    tabs:{home:get('e_tab_home'),articoli:get('e_tab_articoli'),clienti:get('e_tab_clienti'),ordini:get('e_tab_ordini'),finanze:get('e_tab_finanze'),impostazioni:get('e_tab_impostazioni')},
-    buttons:{save:get('e_btn_save'),cancel:get('e_btn_cancel'),delete:get('e_btn_delete')},
-    css:document.getElementById('e_css')?.value||''
-  });
-}
-function applyUiPrefs(){
-  const p=loadUiPrefs();
-  const titleEl=document.getElementById('appTitle'); if(titleEl) titleEl.textContent=p.title;
-  document.title=p.title;
-  document.querySelectorAll('[data-tab]').forEach(el=>{ const k=el.dataset.tab; if(p.tabs[k]) el.textContent=p.tabs[k]; });
-  document.querySelectorAll('[data-nav]').forEach(el=>{ const k=el.dataset.nav; if(p.tabs[k]) el.textContent=p.tabs[k]; });
-  document.querySelectorAll('[data-action="saveArt"],[data-action="saveCli"],[data-action="saveOrd"]').forEach(el=>el.textContent=p.buttons.save);
-  document.querySelectorAll('[data-action="closeEdit"],[data-action="closeCli"],[data-action="closeOrd"],[data-action="closeCloudLogin"],[data-action="confirmNo"]').forEach(el=>el.textContent=p.buttons.cancel);
-  document.querySelectorAll('[data-action="deleteArt"],[data-action="deleteCli"],[data-action="deleteOrd"],[data-action="confirmYes"]').forEach(el=>el.textContent=p.buttons.delete);
-  if(!cloudBusy && !cloudSession){ const cloudEl=document.getElementById('cloudState'); if(cloudEl) cloudEl.textContent=p.cloud; }
-  let styleEl=document.getElementById('uiCustomStyle');
-  if(!styleEl){ styleEl=document.createElement('style'); styleEl.id='uiCustomStyle'; document.head.appendChild(styleEl); }
-  styleEl.textContent=p.css||'';
-}
-
 /* ====== RENDER ====== */
 function dashboardMood(incMonth, prevMonth, openOrders, totalOrders){
   const ratio = prevMonth>0 ? incMonth/prevMonth : (incMonth>0 ? 1.2 : 0);
@@ -1117,7 +522,7 @@ function renderOrd(){
     return `<div class="row" data-open="ord" data-id="${o.id}" style="grid-template-columns:1fr auto">
       <div>
         <div class="t">${esc(c?c.nome:'-')} • <span class="priceHot">${money(o.totale||0)}</span></div>
-        <div class="s">${esc(o.stato||'-')} • ${esc(o.data||'')}${o.mis?` • Mis. ${esc(o.mis)}`:''}${o.tracking?` • Track ${esc(o.tracking)}`:''}</div>
+        <div class="s">${esc(o.stato||'-')} • ${esc(o.data||'')}</div>
       </div>
       <div class="pill">${esc(o.stato||'-')}</div>
     </div>`;
@@ -1323,8 +728,6 @@ function renderAll(){ renderHome(); renderArt(); renderCli(); renderOrd(); rende
 
 /* ====== ART view/edit ====== */
 let currentArtId=null;
-let currentCliId=null;
-let currentOrdId=null;
 async function openArtView(id){
   const db=loadDB(); const a=db.articoli.find(x=>x.id===id); if(!a) return;
   currentArtId=id;
@@ -1593,18 +996,6 @@ async function deleteArt(){
 
 /* ====== CLIENTI ====== */
 let currentCliId=null;
-function openCliView(id){
-  const db=loadDB(); const c=db.clienti.find(x=>x.id===id); if(!c) return;
-  currentCliId=id;
-  document.getElementById('vCliNome').textContent=c.nome||'-';
-  document.getElementById('vCliTel').textContent=c.telefono||'-';
-  document.getElementById('vCliInd').textContent=[c.indirizzo,c.cap?`${c.cap} ${c.citta||''}`:(c.citta||''),c.provincia||'', 'Italy'].filter(Boolean).join(' • ');
-  document.getElementById('vCliShip').value=buildShippingAddress(c);
-  document.getElementById('vCliNote').textContent=c.note||'-';
-  fitTextarea(document.getElementById('vCliShip'));
-  show('mCliView');
-}
-
 function openCliEdit(id){
   const db=loadDB(); const c=id?db.clienti.find(x=>x.id===id):null;
   currentCliId=id||null;
@@ -1670,22 +1061,6 @@ async function deleteCli(){
 /* ====== ORDINI ====== */
 let currentOrdId=null;
 let ordRows=[];
-function openOrdView(id){
-  const db=loadDB(); const o=db.ordini.find(x=>x.id===id); if(!o) return;
-  currentOrdId=id;
-  const c=db.clienti.find(x=>x.id===o.clienteId);
-  document.getElementById('vOrdCliente').textContent=c?c.nome:'-';
-  document.getElementById('vOrdStato').textContent=o.stato||'-';
-  document.getElementById('vOrdData').textContent=o.data||'-';
-  document.getElementById('vOrdMis').textContent=o.mis||'-';
-  document.getElementById('vOrdTracking').textContent=o.tracking||'-';
-  document.getElementById('vOrdTot').textContent=money(o.totale||0);
-  document.getElementById('vOrdNote').textContent=o.note||'-';
-  const rows=(o.righe||[]).map(r=>{ const a=db.articoli.find(x=>x.id===r.articoloId); return `<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(a?(a.modello||a.codice):'Articolo')}</div><div class="s">${esc(a?a.codice||'':'')} ${a&&a.misura?`• Mis. ${esc(a.misura)}`:''}</div></div><div class="t">${money(r.prezzo||0)}</div></div>`; }).join('') || `<div class="card"><div class="small">Nessun articolo</div></div>`;
-  document.getElementById('vOrdRows').innerHTML=rows;
-  show('mOrdView');
-}
-
 function openOrdEdit(id, prefillArticleId=null){
   const db=loadDB(); const o=id?db.ordini.find(x=>x.id===id):null;
   currentOrdId=id||null;
@@ -1698,8 +1073,6 @@ function openOrdEdit(id, prefillArticleId=null){
   document.getElementById('o_stato').value=o?.stato||'Richiesto';
   document.getElementById('o_data').value=o?.data||todayStr();
   document.getElementById('o_note').value=o?.note||'';
-  document.getElementById('o_mis').value=o?.mis||'';
-  document.getElementById('o_tracking').value=o?.tracking||'';
   document.getElementById('o_art').value='';
   document.getElementById('o_price').value='';
   ordRows=(o?.righe||[]).slice();
@@ -1765,22 +1138,6 @@ function addRow(){
   fillArtSelect(db);
   renderOrdRows();
 }
-function getTrackingValue(){
-  return String(document.getElementById('o_tracking')?.value||'').trim();
-}
-function openTrack17(){
-  const code=getTrackingValue();
-  if(!code){ toast('Inserisci il tracking'); return; }
-  window.open(`https://17track.net/en/track?nums=${encodeURIComponent(code)}`,'_blank','noopener');
-}
-function openTrackParcel(){
-  const code=getTrackingValue();
-  if(!code){ toast('Inserisci il tracking'); return; }
-  const fallback=`https://parcelapp.net/track/${encodeURIComponent(code)}`;
-  const now=Date.now();
-  window.location.href=`parcel://track/${encodeURIComponent(code)}`;
-  setTimeout(()=>{ if(Date.now()-now < 1800) window.open(fallback,'_blank','noopener'); }, 900);
-}
 function renderOrdRows(){
   const box=document.getElementById('o_rows');
   box.innerHTML=ordRows.map((r,i)=>`<div class="row" style="grid-template-columns:1fr auto">
@@ -1802,8 +1159,6 @@ async function saveOrd(){
     stato: document.getElementById('o_stato').value,
     data: document.getElementById('o_data').value.trim()||todayStr(),
     note: document.getElementById('o_note').value.trim(),
-    mis: document.getElementById('o_mis').value.trim(),
-    tracking: document.getElementById('o_tracking').value.trim(),
     righe: ordRows.slice(),
     totale: tot,
     _ts: Date.now()
@@ -1885,8 +1240,8 @@ document.addEventListener('click',(ev)=>{
   if(el.dataset.open){
     const id=el.dataset.id;
     if(el.dataset.open==='art') openArtView(id);
-    if(el.dataset.open==='cli') openCliView(id);
-    if(el.dataset.open==='ord') openOrdView(id);
+    if(el.dataset.open==='cli') openCliEdit(id);
+    if(el.dataset.open==='ord') openOrdEdit(id);
     return;
   }
   const a=el.dataset.action;
@@ -1896,9 +1251,6 @@ document.addEventListener('click',(ev)=>{
   if(a==='exportFull') return exportDB('full');
   if(a==='exportLite') return exportDB('lite');
   if(a==='refreshDiag'){ renderDiagnostics(); toast('Diagnostica aggiornata'); return; }
-  if(a==='saveUiPrefs'){ saveUiPrefsData(readUiEditor()); applyUiPrefs(); toast('Interfaccia aggiornata'); return; }
-  if(a==='loadUiPrefs'){ fillUiEditor(); applyUiPrefs(); toast('Editor ricaricato'); return; }
-  if(a==='resetUiPrefs'){ localStorage.removeItem(UI_KEY); fillUiEditor(); applyUiPrefs(); toast('Editor ripristinato'); return; }
   if(a==='repairArchive'){
     askConfirm('Riparo archivio foto e pulizia riferimenti sporchi?', ()=>repairArchive().then(()=>toast('Archivio riparato')).catch(err=>{toast('Riparazione fallita'); console.error(err);}),'Ripara archivio');
     return;
@@ -1906,7 +1258,6 @@ document.addEventListener('click',(ev)=>{
   if(a==='hardReset'){ askConfirm('Azzero tutti i dati locali di questa app?', ()=>{ [KEY, ...(typeof LEGACY_KEYS!=='undefined'?LEGACY_KEYS:[])].forEach(k=>localStorage.removeItem(k)); location.reload(); }, 'Reset locale'); return; }
   if(a==='copyPost') return copyTextFrom(document.getElementById('vArtPost'));
   if(a==='copyCliShip') return copyTextFrom(document.getElementById('c_ship'));
-  if(a==='copyCliShipFromView') return copyTextFrom(document.getElementById('vCliShip'));
   if(a==='addArtToOrder'){ const id=el.dataset.id; if(id) return openOrdEdit(null, id); return; }
   if(a==='addArtToOrderFromView'){ if(currentArtId) { hide('mArtView'); return openOrdEdit(null, currentArtId); } return; }
   if(a==='editFromView'){ hide('mArtView'); return openArtEdit(currentArtId); }
@@ -1914,21 +1265,13 @@ document.addEventListener('click',(ev)=>{
   if(a==='closeEdit') return hide('mArtEdit');
   if(a==='saveArt') return saveArt();
   if(a==='deleteArt') return deleteArt();
-  if(a==='editCliFromView'){ hide('mCliView'); return openCliEdit(currentCliId); }
-  if(a==='closeCliView') return hide('mCliView');
   if(a==='saveCli') return saveCli();
   if(a==='closeCli') return hide('mCliEdit');
   if(a==='deleteCli') return deleteCli();
-  if(a==='editOrdFromView'){ hide('mOrdView'); return openOrdEdit(currentOrdId); }
-  if(a==='closeOrdView') return hide('mOrdView');
   if(a==='saveOrd') return saveOrd();
   if(a==='closeOrd') return hide('mOrdEdit');
   if(a==='deleteOrd') return deleteOrd();
   if(a==='addRow') return addRow();
-  if(a==='track17') return openTrack17();
-  if(a==='openParcel') return openTrackParcel();
-  if(a==='track17FromView'){ const code=(document.getElementById('vOrdTracking').textContent||'').trim(); if(!code || code==='-') return toast('Tracking mancante'); window.open('https://17track.net/en/track?nums='+encodeURIComponent(code),'_blank'); return; }
-  if(a==='openParcelFromView'){ const code=(document.getElementById('vOrdTracking').textContent||'').trim(); if(!code || code==='-') return toast('Tracking mancante'); location.href='parcel://track/'+encodeURIComponent(code); setTimeout(()=>window.open('https://parcelapp.net/track/'+encodeURIComponent(code),'_blank'),500); return; }
   if(a==='cloudPull'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pullCloudToLocal().catch(err=>{toast('Sync cloud fallita'); console.error(err);}); }
   if(a==='cloudPush'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pushLocalToCloud().catch(err=>{toast('Sync cloud fallita'); console.error(err);}); }
   if(a==='doCloudLogin') return cloudLogin();
@@ -1975,7 +1318,6 @@ let cloudBusy=false;
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const isUuid=v=>UUID_RE.test(String(v||''));
 function cloudUi(){
-  const uiPrefs=loadUiPrefs();
   const s=document.getElementById('cloudState');
   const bIn=document.getElementById('btnCloudLogin');
   const bSync=document.getElementById('btnCloudSync');
@@ -1984,13 +1326,13 @@ function cloudUi(){
   const logged=!!cloudSession;
   const hide=(el,on)=>{ el.hidden=!!on; el.style.display=on?'none':''; };
   if(!window.VG_SUPABASE_READY){
-    s.textContent=uiPrefs.cloud||'Cloud';
+    s.textContent='Cloud';
     hide(bIn,true); hide(bSync,true); hide(bOut,true);
     return;
   }
-  if(cloudBusy){ s.textContent=(uiPrefs.cloud||'Cloud')+': lavoro in corso…'; }
-  else if(cloudSession?.user?.email){ s.textContent=uiPrefs.cloud||'Cloud'; }
-  else { s.textContent=uiPrefs.cloud||'Cloud'; }
+  if(cloudBusy){ s.textContent='Cloud'; }
+  else if(cloudSession?.user?.email){ s.textContent='Cloud'; }
+  else { s.textContent='Cloud'; }
   hide(bIn,logged);
   hide(bSync,!logged);
   hide(bOut,!logged);
@@ -2125,9 +1467,7 @@ async function upsertCloudOrder(ord, db){
     stato: (ord.stato||'Richiesto').toLowerCase().includes('conseg') ? 'consegnato' : ((ord.stato||'').toLowerCase().includes('sped') ? 'spedito' : ((ord.stato||'').toLowerCase().includes('ann') ? 'annullato' : 'in_lavorazione')),
     totale: Number(ord.totale || 0),
     pagato: true,
-    note: [ord.note||'', ord.mis?`[MIS:${ord.mis}]`:null].filter(Boolean).join(' ') || null,
-    tracking_code: ord.tracking || null,
-    tracking_url: ord.tracking ? `https://17track.net/en/track?nums=${encodeURIComponent(ord.tracking)}` : null
+    note: ord.note || null
   };
   if(isUuid(ord.id)) payload.id=ord.id;
   const {data,error}=await sb.from('ordini').upsert(payload,{onConflict:'numero_ordine'}).select('*').single();
@@ -2188,7 +1528,7 @@ async function pullCloudToLocal(){
     const db={version:'v6',createdAt:new Date().toISOString(),
       articoli:(prod||[]).map(p=>({id:p.id,codice:p.sku||'',brand:p.marca||'',modello:p.nome||'',categoria:catMap.get(p.categoria_id)||'',descrizione:p.descrizione||'',fornitore:'',taglia:p.taglia||'',variante:p.materiale||'',colore:p.colore||'',misura:'',costoUsd:0,costoEur:Number(p.prezzo_acquisto||0),prezzoVendita:Number(p.prezzo_vendita||0),promoAttiva:false,prezzoPromo:0,scadenzaPromo:'',post:'',note:'',foto:[],photoIds:[],_ts:Date.now(),_cloud:true})),
       clienti:(cli||[]).map(c=>({id:c.id,nome:[c.nome,c.cognome].filter(Boolean).join(' ').trim(),telefono:c.telefono||'',indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
-      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const misMatch=noteRaw.match(/\[MIS:([^\]]+)\]/i); return {id:o.id,numeroOrdine:o.numero_ordine,clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteRaw.replace(/\s*\[MIS:[^\]]+\]\s*/gi,' ').trim(),mis:misMatch?misMatch[1].trim():'',tracking:o.tracking_code||'',righe:righeByOrd.get(o.id)||[],totale:Number(o.totale||0),_ts:Date.now(),_cloud:true}; })
+      ordini:(ord||[]).map(o=>({id:o.id,numeroOrdine:o.numero_ordine,clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:o.note||'',righe:righeByOrd.get(o.id)||[],totale:Number(o.totale||0),_ts:Date.now(),_cloud:true}))
     };
     saveDBLocal(db);
     renderAll();
@@ -2239,13 +1579,8 @@ async function cloudLogout(){
 /* init */
 renderAll();
 renderDiagnostics();
-fillUiEditor();
-applyUiPrefs();
 const initial=location.hash.replace('#','')||'home';
 history.replaceState({page:initial},'', '#'+initial);
 go(initial,false);
 cloudUi();
 ensureCloud().catch(err=>console.warn('Cloud init fallita', err));
-</script>
-</body>
-</html>
