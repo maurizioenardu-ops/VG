@@ -84,6 +84,9 @@ select[multiple]{min-height:150px}
 #mArtView .modal,#mArtEdit .modal{max-width:760px}
 
 #vArtPost,#a_post,#c_ship{overflow:hidden;resize:none;scrollbar-width:none;-ms-overflow-style:none}
+.viewBottomSpace{margin-top:22px;padding-bottom:10px}
+.linkRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.linkRow input{flex:1 1 240px}
 #vArtPost::-webkit-scrollbar,#a_post::-webkit-scrollbar,#c_ship::-webkit-scrollbar{display:none}
 @media (max-width:700px){
   #mArtView .modal,#mArtEdit .modal{width:100vw;max-width:none;height:100vh;max-height:none;border-radius:0;padding:14px 14px 96px}
@@ -335,7 +338,8 @@ window.addEventListener('error',e=>{
     </div>
   </div>
   <div style="margin-top:10px"><div class="k">Post</div><textarea id="vArtPost" readonly></textarea></div>
-  <div class="actions compact">
+  <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
+  <div class="actions compact viewBottomSpace">
     <button class="btn primary smallish" type="button" data-action="copyPost">Copia post</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
     <button class="btn smallish" type="button" data-action="closeView">Chiudi</button>
@@ -397,6 +401,7 @@ window.addEventListener('error',e=>{
     <div><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Dettagli utili per il post..."></textarea></div>
     <div style="margin-top:10px"><div class="k">Post</div><textarea id="a_post" placeholder="Qui il post (auto)"></textarea></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
+    <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
     <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*"/></div>
     <div id="a_photo_prev" class="thumbs"></div>
   </div>
@@ -1340,6 +1345,8 @@ async function openArtView(id){
   pill.innerHTML = promoValid(a)?`<div class="pill promo" style="margin-top:6px"><span class="dot"></span>PROMO attiva</div>`:(a.promoAttiva?`<div class="pill" style="margin-top:6px">PROMO impostata</div>`:'');
   document.getElementById('vArtPost').value=buildPost(a);
   fitTextarea(document.getElementById('vArtPost'));
+  const vArtSupplierLink=document.getElementById('vArtSupplierLink');
+  if(vArtSupplierLink) vArtSupplierLink.value=(a.fornitoreLink||'').trim();
   show('mArtView');
 }
 async function openArtEdit(id){
@@ -1359,7 +1366,7 @@ async function openArtEdit(id){
     return;
   }
   set('a_cod', a?.codice); set('a_brand', a?.brand); set('a_mod', a?.modello);
-  set('a_cat', a?.categoria); set('a_desc', a?.descrizione); set('a_forn', a?.fornitore);
+  set('a_cat', a?.categoria); set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
   set('a_taglia', a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore);
   set('a_mis', a?.misura); set('a_usd', a?.costoUsd||'');
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
@@ -1530,6 +1537,7 @@ async function saveArt(){
       categoria: document.getElementById('a_cat').value.trim(),
       descrizione: document.getElementById('a_desc').value.trim(),
       fornitore: document.getElementById('a_forn').value.trim(),
+      fornitoreLink: document.getElementById('a_forn_link').value.trim(),
       taglia: document.getElementById('a_taglia').value.trim(),
       variante: document.getElementById('a_variante').value.trim(),
       colore: document.getElementById('a_colore').value.trim(),
@@ -1913,17 +1921,18 @@ document.addEventListener('click',(ev)=>{
   }
   if(a==='hardReset'){ askConfirm('Azzero tutti i dati locali di questa app?', ()=>{ [KEY, ...(typeof LEGACY_KEYS!=='undefined'?LEGACY_KEYS:[])].forEach(k=>localStorage.removeItem(k)); location.reload(); }, 'Reset locale'); return; }
   if(a==='copyPost') return copyTextFrom(document.getElementById('vArtPost'));
+  if(a==='openSupplierLink'){ const link=String(document.getElementById('vArtSupplierLink')?.value||'').trim(); if(!link){ toast('Nessun link fornitore'); return; } const safe=/^https?:\/\//i.test(link)?link:'https://'+link; window.open(safe,'_blank'); return; }
   if(a==='copyCliShip') return copyTextFrom(document.getElementById('c_ship'));
   if(a==='copyCliShipView') return copyTextFrom(document.getElementById('vCliShip'));
-  if(a==='editCliFromView'){ hide('mCliView'); return openCliEdit(currentCliId); }
+  if(a==='editCliFromView'){ hide('mCliView', true); return openCliEdit(currentCliId); }
   if(a==='closeCliView') return hide('mCliView');
-  if(a==='editOrdFromView'){ hide('mOrdView'); return openOrdEdit(currentOrdId); }
+  if(a==='editOrdFromView'){ hide('mOrdView', true); return openOrdEdit(currentOrdId); }
   if(a==='closeOrdView') return hide('mOrdView');
   if(a==='track17View') return openTrack17();
   if(a==='openParcelView') return openTrackParcel();
   if(a==='addArtToOrder'){ const id=el.dataset.id; if(id) return openOrdEdit(null, id); return; }
   if(a==='addArtToOrderFromView'){ if(currentArtId) { hide('mArtView'); return openOrdEdit(null, currentArtId); } return; }
-  if(a==='editFromView'){ hide('mArtView'); return openArtEdit(currentArtId); }
+  if(a==='editFromView'){ hide('mArtView', true); return openArtEdit(currentArtId); }
   if(a==='closeView') return hide('mArtView');
   if(a==='closeEdit') return hide('mArtEdit');
   if(a==='saveArt') return saveArt();
