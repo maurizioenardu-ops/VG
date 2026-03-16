@@ -1,3 +1,4 @@
+const CACHE_NAME='vg-cache-v9_1';
 const VERSION = 'v8_9c';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
