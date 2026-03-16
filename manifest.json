@@ -1,9 +1,9 @@
 {
-  "id": "/vanity-glamour/?app=v8_1",
+  "id": "/VG/?app=v8_2",
   "name": "Vanity & Glamour",
   "short_name": "V&G",
-  "start_url": "/vanity-glamour/index.html?v=v8_1",
-  "scope": "/vanity-glamour/",
+  "start_url": "/VG/index.html?v=v8_2",
+  "scope": "/VG/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
