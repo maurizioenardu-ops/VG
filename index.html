@@ -39,6 +39,23 @@ body{-webkit-tap-highlight-color:transparent}
 .section{display:none}
 .section.active{display:block}
 .list{display:flex;flex-direction:column;gap:10px}
+.artGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.artCard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;box-shadow:0 10px 24px rgba(15,23,42,.05);min-height:152px;display:flex;flex-direction:column;gap:10px;cursor:pointer}
+.artCard.tight{min-height:unset}
+.artCardHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.artIcon{width:62px;height:62px;border-radius:18px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:56px;line-height:1;background:linear-gradient(135deg,#fff8ef 0%, #eef4ff 100%);overflow:hidden}
+.artMeta{display:flex;flex-direction:column;gap:4px;min-width:0}
+.artMeta .t{line-height:1.1}
+.artMeta .s{margin-top:0}
+.artCount{margin-top:auto;font-size:12px;color:var(--muted);font-weight:800}
+.artBreadcrumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.artCrumb{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:12px;font-weight:900;cursor:pointer}
+.artCrumb.active{background:#fef3c7;border-color:#f59e0b}
+.artThumbLarge{width:100%;aspect-ratio:1/1;border-radius:18px;border:1px solid var(--line);background:#f3f4f6;object-fit:cover;display:none;min-height:156px}
+.artPlaceholder{width:100%;aspect-ratio:1/1;border-radius:18px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:38px;background:linear-gradient(135deg,#fff8ef 0%, #eef4ff 100%);min-height:156px}
+.artPrice{font-size:18px;font-weight:1000}
+.artActions{display:flex;gap:8px;margin-top:auto}
+.artActions .btn{flex:1;min-height:42px;padding:9px 10px;font-size:12px;border-radius:12px}
 .row{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px}
 .thumb{width:64px;height:64px;border-radius:14px;border:1px solid var(--line);background:#f3f4f6;object-fit:cover}
 .t{font-weight:1000}
@@ -101,6 +118,13 @@ select[multiple]{min-height:150px}
 }
 @media (max-width:520px){
   .smallGrid,.cards,.btnGrid,.grid2{grid-template-columns:1fr}
+  .artGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .artCard{padding:10px;border-radius:16px}
+  .artIcon{width:54px;height:54px;font-size:48px;border-radius:16px;padding:0}
+  .artMeta .t{font-size:13px}
+  .artMeta .s{font-size:11px}
+  .artPrice{font-size:16px}
+  .artActions .btn,.btn.orderAdd.small{min-height:40px;font-size:12px;padding:8px 10px}
   .actions{grid-template-columns:1fr 1fr}
   .app{padding:10px 10px 88px}
   .tabs{gap:6px}
@@ -141,13 +165,7 @@ window.addEventListener('error',e=>{
 <div class="top">
   <h1 id="appTitle">Vanity &amp; Glamour</h1>
   <div id="dateLine" class="date">--/--/----</div>
-  <div id="cloudBar" class="date" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-    <span id="cloudState">Cloud</span>
-</div>
-  <div id="cloudSyncMini" class="syncMini show">
-    <button class="pill cloudBtn secondary" type="button" data-action="cloudPull">Carica cloud</button>
-    <button class="pill cloudBtn primary" type="button" data-action="cloudPush">Invia cloud</button>
-  </div>
+  
 </div>
 
 <div class="app">
@@ -202,9 +220,10 @@ window.addEventListener('error',e=>{
         <div><input id="qArt" placeholder="Cerca per codice, brand, modello, categoria, colore, taglia, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
         <div><select id="qArtCat"><option value="">Tutte le categorie</option></select></div>
       </div>
+      <div id="artBreadcrumbs" class="artBreadcrumbs" style="display:none"></div>
     </div>
     <div style="height:10px"></div>
-    <div id="listArt" class="list"></div>
+    <div id="listArt" class="artGrid"></div>
   </div>
 
   <div id="sec_clienti" class="section">
@@ -277,9 +296,13 @@ window.addEventListener('error',e=>{
       <div class="card" style="margin-top:12px">
         <div class="h2">Cloud</div>
         <div class="small">Accesso e strumenti</div>
+        <div id="cloudBar" class="date" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span id="cloudState">Cloud</span>
+        </div>
         <div class="actions">
           <button id="btnCloudLogin" class="btn" type="button">Login cloud</button>
-          <button id="btnCloudSync" class="btn" type="button">Sincronizza</button>
+          <button class="btn" type="button" data-action="cloudPull">Carica cloud</button>
+          <button class="btn" type="button" data-action="cloudPush">Invia cloud</button>
           <button id="btnCloudLogout" class="btn danger" type="button">Esci</button>
         </div>
       </div>
@@ -1171,7 +1194,7 @@ function toast(msg){
 let confirmCallback=null;
 function askConfirm(text, cb, title='Conferma'){ document.getElementById('confirmTitle').textContent=title; document.getElementById('confirmText').textContent=text; confirmCallback=cb; show('mConfirm'); }
 function closeConfirm(run){ hide('mConfirm'); const fn=confirmCallback; confirmCallback=null; if(run && typeof fn==='function') fn(); }
-function toggleCloudSyncMini(){ const el=document.getElementById('cloudSyncMini'); if(!el) return; el.classList.toggle('show'); }
+function toggleCloudSyncMini(){ return; }
 function copyTextFrom(el){
   const t=el.value||el.textContent||'';
   if(!t) return toast('Niente da copiare');
@@ -1355,40 +1378,109 @@ function refreshArticleCategorySelects(selectedEdit=''){
     editSel.value=wanted||'';
   }
 }
+
+const ART_ICONS={
+  'borse':'👜','borsa':'👜','portafogli':'👛','portafoglio':'👛','cinture':'👔','cintura':'👔','scarpe':'👠','scarpa':'👠',
+  'gioielli':'💍','orologi':'⌚','occhiali':'🕶️','accessori':'✨'
+};
+const artBrowseState={level:'categorie',categoria:'',brand:''};
+function artIconForCategory(cat){
+  const key=String(cat||'').trim().toLowerCase();
+  return ART_ICONS[key] || '🛍️';
+}
+function setArtBrowse(level,categoria='',brand=''){
+  artBrowseState.level=level;
+  artBrowseState.categoria=categoria||'';
+  artBrowseState.brand=brand||'';
+}
+function renderArtBreadcrumbs(){
+  const box=document.getElementById('artBreadcrumbs');
+  if(!box) return;
+  const parts=[`<button class="artCrumb ${artBrowseState.level==='categorie'?'active':''}" type="button" data-action="artBackToCategories">Categorie</button>`];
+  if(artBrowseState.categoria){
+    parts.push(`<button class="artCrumb ${artBrowseState.level==='brands'?'active':''}" type="button" data-action="artBackToBrands">${esc(artBrowseState.categoria)}</button>`);
+  }
+  if(artBrowseState.brand){
+    parts.push(`<span class="artCrumb active">${esc(artBrowseState.brand)}</span>`);
+  }
+  box.innerHTML=parts.join('');
+  box.style.display=(artBrowseState.categoria||artBrowseState.brand)?'flex':'none';
+}
 function renderArt(){
   const db=loadDB();
   refreshArticleCategorySelects();
   const q=document.getElementById('qArt').value.trim().toLowerCase();
-  const cat=String(document.getElementById('qArtCat')?.value||'').trim();
+  const catFilter=String(document.getElementById('qArtCat')?.value||'').trim();
   const items=db.articoli.filter(a=>{
     const hay=((a.codice||'')+' '+(a.brand||'')+' '+(a.modello||'')+' '+(a.categoria||'')+' '+(a.descrizione||'')+' '+(a.colore||'')+' '+(a.taglia||'')+' '+(a.variante||'')).toLowerCase();
     const okText=!q || hay.includes(q);
-    const okCat=!cat || String(a.categoria||'').trim()===cat;
+    const okCat=!catFilter || String(a.categoria||'').trim()===catFilter;
     return okText && okCat;
-  }).sort((a,b)=>String(b._ts||0).localeCompare(String(a._ts||0)));
+  }).sort((a,b)=>Number(b._ts||0)-Number(a._ts||0));
   const el=document.getElementById('listArt');
-  el.innerHTML=items.map(a=>{
-    const promo=pseudoPromoBadge(a);
-    return `<div class="row" data-open="art" data-id="${a.id}">
-      <img class="thumb artThumb" data-photo-for="${a.id}" style="display:none"/>
-      <div>
-        <div class="t">${esc(a.modello||'-')}</div>
-        <div class="s">${esc(a.brand||'')} • ${esc(a.codice||'')} • ${esc(qualityFromCode(a.codice))}</div>
-        ${promo}
-      </div>
-      <div style="text-align:right">
-        <div class="k">Prezzo</div><div class="t">${money(currentPrice(a))}</div>
-        <div style="margin-top:8px"><button class="btn orderAdd small" type="button" data-action="addArtToOrder" data-id="${a.id}">Aggiungi a ordine</button></div>
-      </div>
-    </div>`;
-  }).join('') || `<div class="card"><div class="small">Nessun articolo</div></div>`;
-  hydrateArticleThumbs(items);
+  renderArtBreadcrumbs();
+  if(q){
+    const cards=items.map(a=>{
+      const promo=pseudoPromoBadge(a);
+      return `<div class="artCard tight" data-open="art" data-id="${a.id}">
+        <img class="artThumbLarge" data-photo-for="${a.id}"/>
+        <div class="artPlaceholder" data-placeholder-for="${a.id}">${artIconForCategory(a.categoria)}</div>
+        <div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${esc(a.brand||'Brand non indicato')} • ${esc(a.categoria||'Senza categoria')}</div>${promo}</div>
+        <div class="artPrice">${money(currentPrice(a))}</div>
+        <div class="artActions"><button class="btn orderAdd small" type="button" data-action="addArtToOrder" data-id="${a.id}">Aggiungi a ordine</button></div>
+      </div>`;
+    }).join('');
+    el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">Nessun articolo trovato.</div></div>`;
+    hydrateArticleThumbs(items);
+    return;
+  }
+
+  if(artBrowseState.level==='articoli' && artBrowseState.categoria && artBrowseState.brand){
+    const scoped=items.filter(a=>String(a.categoria||'').trim()===artBrowseState.categoria && String(a.brand||'').trim()===artBrowseState.brand);
+    const cards=scoped.map(a=>{
+      const promo=pseudoPromoBadge(a);
+      return `<div class="artCard tight" data-open="art" data-id="${a.id}">
+        <img class="artThumbLarge" data-photo-for="${a.id}"/>
+        <div class="artPlaceholder" data-placeholder-for="${a.id}">${artIconForCategory(a.categoria)}</div>
+        <div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${esc(a.codice||'Senza codice')} • ${esc(qualityFromCode(a.codice)||'')}</div>${promo}</div>
+        <div class="artPrice">${money(currentPrice(a))}</div>
+        <div class="artActions"><button class="btn orderAdd small" type="button" data-action="addArtToOrder" data-id="${a.id}">Aggiungi a ordine</button></div>
+      </div>`;
+    }).join('');
+    el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">Nessun articolo in questo brand.</div></div>`;
+    hydrateArticleThumbs(scoped);
+    return;
+  }
+
+  if(artBrowseState.level==='brands' && artBrowseState.categoria){
+    const scoped=items.filter(a=>String(a.categoria||'').trim()===artBrowseState.categoria);
+    const groups=new Map();
+    scoped.forEach(a=>{
+      const brand=String(a.brand||'Senza brand').trim()||'Senza brand';
+      if(!groups.has(brand)) groups.set(brand,{brand,count:0,latest:0});
+      const g=groups.get(brand); g.count+=1; g.latest=Math.max(g.latest,Number(a._ts||0));
+    });
+    const brands=[...groups.values()].sort((a,b)=>b.count-a.count || b.latest-a.latest || a.brand.localeCompare(b.brand));
+    el.innerHTML=brands.map(g=>`<div class="artCard" data-action="openArtBrand" data-category="${esc(artBrowseState.categoria)}" data-brand="${esc(g.brand)}"><div class="artCardHead"><div class="artMeta"><div class="t">${esc(g.brand)}</div><div class="s">Brand</div></div><div class="artIcon">🏷️</div></div><div class="artCount">${g.count} articol${g.count===1?'o':'i'}</div></div>`).join('') || `<div class="card" style="grid-column:1/-1"><div class="small">Nessun brand in questa categoria.</div></div>`;
+    return;
+  }
+
+  const groups=new Map();
+  items.forEach(a=>{
+    const categoria=String(a.categoria||'Senza categoria').trim()||'Senza categoria';
+    if(!groups.has(categoria)) groups.set(categoria,{categoria,count:0,latest:0,brands:new Set()});
+    const g=groups.get(categoria); g.count+=1; g.latest=Math.max(g.latest,Number(a._ts||0)); if(a.brand) g.brands.add(String(a.brand).trim());
+  });
+  const cats=[...groups.values()].sort((a,b)=>b.count-a.count || b.latest-a.latest || a.categoria.localeCompare(b.categoria));
+  el.innerHTML=cats.map(g=>`<div class="artCard" data-action="openArtCategory" data-category="${esc(g.categoria)}"><div class="artCardHead"><div class="artMeta"><div class="t">${esc(g.categoria)}</div><div class="s">Categorie articoli</div></div><div class="artIcon">${artIconForCategory(g.categoria)}</div></div><div class="artCount">${g.count} articol${g.count===1?'o':'i'} • ${g.brands.size} brand</div></div>`).join('') || `<div class="card" style="grid-column:1/-1"><div class="small">Nessun articolo</div></div>`;
 }
 async function hydrateArticleThumbs(items){
   for(const a of items){
     const pics=await getArticlePics(a);
     const el=document.querySelector('[data-photo-for="'+a.id+'"]');
-    if(el && pics[0]){ el.src=pics[0]; el.style.display='block'; }
+    const ph=document.querySelector('[data-placeholder-for="'+a.id+'"]');
+    if(el && pics[0]){ el.src=pics[0]; el.style.display='block'; if(ph) ph.style.display='none'; }
+    else if(ph){ ph.style.display='flex'; }
   }
 }
 function pseudoPromoBadge(a){
@@ -2356,6 +2448,10 @@ document.addEventListener('click',(ev)=>{
   }
   const a=el.dataset.action;
   if(a==='newArt') return openArtEdit(null);
+  if(a==='openArtCategory'){ setArtBrowse('brands', el.dataset.category||''); return renderArt(); }
+  if(a==='openArtBrand'){ setArtBrowse('articoli', el.dataset.category||'', el.dataset.brand||''); return renderArt(); }
+  if(a==='artBackToCategories'){ setArtBrowse('categorie'); return renderArt(); }
+  if(a==='artBackToBrands'){ setArtBrowse('brands', artBrowseState.categoria||''); return renderArt(); }
   if(a==='newCli') return openCliEdit(null);
   if(a==='newOrd') return openOrdEdit(null);
   if(a==='exportFull') return exportDB('full');
@@ -2440,7 +2536,6 @@ document.getElementById('importFile').addEventListener('change',(e)=>{
 document.getElementById('a_photo')?.addEventListener('change', refreshArtPhotoPreviewFromInput);
 document.getElementById('btnCloudLogin')?.addEventListener('click', ()=>show('mCloudLogin'));
 document.getElementById('btnCloudLogout')?.addEventListener('click', cloudLogout);
-document.getElementById('btnCloudSync')?.addEventListener('click', ()=>{ if(!cloudSession){ toast('Prima fai login cloud'); return; } toggleCloudSyncMini(); });
 
 // Province select
 const provSel=document.getElementById('c_prov');
