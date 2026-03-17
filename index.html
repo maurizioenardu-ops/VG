@@ -589,7 +589,7 @@ function normalizeDBShape(o){
   };
   db.articoli=db.articoli.map(x=>({
     ...x,
-    foto: [],
+    foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,6):[],
     photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,6):[]
   }));
   db.ordini=db.ordini.map(x=>({
@@ -627,7 +627,7 @@ function loadDB(){
     let merged=defDB();
     found.forEach(({db})=>{
       merged={
-        version:'v6',
+        version:'v6.1',
         createdAt: merged.createdAt||db.createdAt||new Date().toISOString(),
         articoli: mergeById(merged.articoli, db.articoli),
         clienti: mergeById(merged.clienti, db.clienti),
