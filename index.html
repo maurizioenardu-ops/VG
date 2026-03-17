@@ -771,6 +771,58 @@ async function uploadArticlePhotoToSupabase(file, codice, slot){
   if(error) throw error;
   return path;
 }
+async function syncArticlePhotosToCloud(artId, codice, pics){
+  const sb=await ensureCloud();
+  if(!sb||!cloudSession||!artId) return [];
+  const cleanCode=String(codice||artId||'art').trim() || String(artId);
+  const normalized=(pics||[]).filter(Boolean).slice(0,6);
+  const savedPaths=[];
+  for(let i=0;i<normalized.length;i++){
+    const src=String(normalized[i]||'').trim();
+    if(!src) continue;
+
+    // Se è già un path Supabase tipo CODICE/1.jpg, non ricaricare: usalo direttamente
+    if(!/^data:|^https?:\/\//i.test(src)){
+      const cleanPath = src.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
+      if(cleanPath) {
+        savedPaths.push(cleanPath);
+        continue;
+      }
+    }
+
+    let fileObj=null;
+    try{
+      const res=await fetch(src);
+      const blob=await res.blob();
+      const ext=((blob.type||'image/jpeg').split('/').pop()||'jpg').replace(/[^a-z0-9]/gi,'').toLowerCase() || 'jpg';
+      fileObj=new File([blob], `${cleanCode}-${i+1}.${ext}`, {type: blob.type || 'image/jpeg'});
+    }catch(_e){
+      continue;
+    }
+    const path=await uploadArticlePhotoToSupabase(fileObj, cleanCode, i+1);
+    savedPaths.push(path);
+  }
+  try{
+    await sb.from('prodotti_foto').delete().eq('prodotto_id', artId);
+  }catch(_e){}
+  if(savedPaths.length){
+    const rows=savedPaths.map((path,idx)=>({prodotto_id: artId, path, ordine: idx}));
+    const { error } = await sb.from('prodotti_foto').insert(rows);
+    if(error) throw error;
+  }
+  return savedPaths;
+}
+async function getCloudArticlePhotoUrls(artId){
+  const sb=await ensureCloud();
+  if(!sb||!cloudSession||!artId) return [];
+  const { data, error } = await sb.from('prodotti_foto').select('path,ordine').eq('prodotto_id', artId).order('ordine',{ascending:true});
+  if(error) throw error;
+  return (data||[]).map(r=>{
+    const { data:urlData } = sb.storage.from(SUPABASE_BUCKET).getPublicUrl(r.path);
+    return urlData?.publicUrl || '';
+  }).filter(Boolean);
+}
+
 async function deleteArticlePhotosFromSupabase(paths=[]){
   const sb=await ensureCloud();
   if(!sb) return;
@@ -2141,18 +2193,31 @@ async function upsertCloudArticle(art){
   if(isUuid(art.id)) payload.id=art.id;
   const {data,error}=await sb.from('prodotti').upsert(payload,{onConflict:'sku'}).select('*').single();
   if(error) throw error;
-  return {...art, id:data.id, _cloud:true};
+  const pics=await getArticlePics(art);
+  let cloudFoto=[];
+  try{
+    cloudFoto=await syncArticlePhotosToCloud(data.id, art.codice||data.sku||data.id, pics);
+  }catch(err){
+    console.warn('Sync foto cloud fallita', err);
+  }
+  return {...art, id:data.id, foto: cloudFoto.length?cloudFoto:(art.foto||[]), _cloud:true};
 }
 async function deleteCloudArticle(art){
   const sb=await ensureCloud();
   if(!sb||!cloudSession) return;
-  if(isUuid(art?.id)){
-    const {error}=await sb.from('prodotti').delete().eq('id', art.id);
-    if(error) throw error;
-  }else if(art?.codice){
-    const {error}=await sb.from('prodotti').delete().eq('sku', art.codice);
-    if(error) throw error;
-  }
+  try{
+    if(isUuid(art?.id)){
+      const { data:rows } = await sb.from('prodotti_foto').select('path').eq('prodotto_id', art.id);
+      const paths=(rows||[]).map(r=>r.path).filter(Boolean);
+      if(paths.length) await deleteArticlePhotosFromSupabase(paths);
+      await sb.from('prodotti_foto').delete().eq('prodotto_id', art.id);
+      const {error}=await sb.from('prodotti').delete().eq('id', art.id);
+      if(error) throw error;
+    }else if(art?.codice){
+      const {error}=await sb.from('prodotti').delete().eq('sku', art.codice);
+      if(error) throw error;
+    }
+  }catch(err){ throw err; }
 }
 async function upsertCloudClient(cli){
   const sb=await ensureCloud();
@@ -2255,16 +2320,24 @@ async function pullCloudToLocal(){
   if(!sb||!cloudSession) throw new Error('Login cloud mancante');
   cloudBusy=true; cloudUi();
   try{
-    const [{data:cats,error:catsErr},{data:prod,error:prodErr},{data:cli,error:cliErr},{data:ord,error:ordErr},{data:righe,error:righeErr}] = await Promise.all([
+    const [{data:cats,error:catsErr},{data:prod,error:prodErr},{data:cli,error:cliErr},{data:ord,error:ordErr},{data:righe,error:righeErr},{data:fotos,error:fotosErr}] = await Promise.all([
       sb.from('categorie').select('id,nome'),
       sb.from('prodotti').select('*').order('created_at',{ascending:false}),
       sb.from('clienti').select('*').order('created_at',{ascending:false}),
       sb.from('ordini').select('*').order('data_ordine',{ascending:false}),
-      sb.from('righe_ordine').select('ordine_id,prodotto_id,prezzo_unitario,prodotti(id,sku,nome)')
+      sb.from('righe_ordine').select('ordine_id,prodotto_id,prezzo_unitario,prodotti(id,sku,nome)'),
+      sb.from('prodotti_foto').select('prodotto_id,path,ordine').order('ordine',{ascending:true})
     ]);
-    if(catsErr||prodErr||cliErr||ordErr||righeErr) throw (catsErr||prodErr||cliErr||ordErr||righeErr);
+    if(catsErr||prodErr||cliErr||ordErr||righeErr||fotosErr) throw (catsErr||prodErr||cliErr||ordErr||righeErr||fotosErr);
     const catMap=new Map((cats||[]).map(c=>[c.id,c.nome]));
     const prodMap=new Map((prod||[]).map(p=>[p.id,p]));
+    const fotoByProd=new Map();
+    (fotos||[]).forEach(r=>{
+      const { data:urlData } = sb.storage.from(SUPABASE_BUCKET).getPublicUrl(r.path);
+      const arr=fotoByProd.get(r.prodotto_id)||[];
+      if(urlData?.publicUrl) arr.push(urlData.publicUrl);
+      fotoByProd.set(r.prodotto_id, arr);
+    });
     const righeByOrd=new Map();
     (righe||[]).forEach(r=>{
       const arr=righeByOrd.get(r.ordine_id)||[];
@@ -2272,7 +2345,7 @@ async function pullCloudToLocal(){
       righeByOrd.set(r.ordine_id,arr);
     });
     const db={version:'v6',createdAt:new Date().toISOString(),
-      articoli:(prod||[]).map(p=>({id:p.id,codice:p.sku||'',brand:p.marca||'',modello:p.nome||'',categoria:catMap.get(p.categoria_id)||'',descrizione:p.descrizione||'',fornitore:'',taglia:p.taglia||'',variante:p.materiale||'',colore:p.colore||'',misura:'',costoUsd:0,costoEur:Number(p.prezzo_acquisto||0),prezzoVendita:Number(p.prezzo_vendita||0),promoAttiva:false,prezzoPromo:0,scadenzaPromo:'',post:'',note:'',foto:[],photoIds:[],_ts:Date.now(),_cloud:true})),
+      articoli:(prod||[]).map(p=>({id:p.id,codice:p.sku||'',brand:p.marca||'',modello:p.nome||'',categoria:catMap.get(p.categoria_id)||'',descrizione:p.descrizione||'',fornitore:'',taglia:p.taglia||'',variante:p.materiale||'',colore:p.colore||'',misura:'',costoUsd:0,costoEur:Number(p.prezzo_acquisto||0),prezzoVendita:Number(p.prezzo_vendita||0),promoAttiva:false,prezzoPromo:0,scadenzaPromo:'',post:'',note:'',foto:fotoByProd.get(p.id)||[],photoIds:[],_ts:Date.now(),_cloud:true})),
       clienti:(cli||[]).map(c=>({id:c.id,nome:[c.nome,c.cognome].filter(Boolean).join(' ').trim(),telefono:c.telefono||'',indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const misMatch=noteRaw.match(/\[MIS:([^\]]+)\]/i); return {id:o.id,numeroOrdine:o.numero_ordine,clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteRaw.replace(/\s*\[MIS:[^\]]+\]\s*/gi,' ').trim(),mis:misMatch?misMatch[1].trim():'',tracking:o.tracking_code||'',righe:righeByOrd.get(o.id)||[],totale:Number(o.totale||0),_ts:Date.now(),_cloud:true}; })
     };
