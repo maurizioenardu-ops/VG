@@ -45,6 +45,7 @@ body{-webkit-tap-highlight-color:transparent}
 .s{font-size:12px;color:var(--muted);margin-top:2px}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:1000;border:1px solid var(--line);background:#fff}
 .pill.cloudBtn{padding:9px 14px;border-radius:14px;font-size:13px;min-height:42px;box-shadow:0 5px 12px rgba(15,23,42,.08);background:rgba(255,255,255,.98)}
+.cloudBtn.mini{padding:7px 12px;min-height:36px;font-size:12px;border-radius:12px}
 .pill.cloudBtn.primary{background:#e0ecff;border-color:#93c5fd;color:#0f172a}
 .pill.cloudBtn.secondary{background:#fff;border-color:#cbd5e1;color:#0f172a}
 .pricePaid{color:#16a34a!important;font-weight:1000}
@@ -95,7 +96,7 @@ select[multiple]{min-height:150px}
 @media (max-width:700px){
   #mArtView .modal,#mArtEdit .modal{width:100vw;max-width:none;height:100vh;max-height:none;border-radius:0;padding:14px 14px 96px}
   #mArtView.modalwrap,#mArtEdit.modalwrap{padding:0}
-  #mArtView .actions,#mArtEdit .actions,#mCliEdit .actions{position:sticky;bottom:-2px;background:linear-gradient(180deg,rgba(248,250,252,0),#fff 18%,#fff 100%);padding-top:10px;margin-top:12px}
+  #mArtView .actions,#mArtEdit .actions,#mCliEdit .actions{position:static;background:transparent;padding-top:16px;margin-top:24px}
   #mArtView .actions.compact{grid-template-columns:repeat(3,minmax(0,1fr));justify-content:stretch}
 }
 @media (max-width:520px){
@@ -134,6 +135,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
+  <meta name="vg-version" content="v9_1">
 </head>
 <body>
 <div class="top">
@@ -141,11 +143,8 @@ window.addEventListener('error',e=>{
   <div id="dateLine" class="date">--/--/----</div>
   <div id="cloudBar" class="date" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <span id="cloudState">Cloud</span>
-    <button id="btnCloudLogin" class="pill cloudBtn secondary" type="button">Login cloud</button>
-    <button id="btnCloudSync" class="pill cloudBtn primary" type="button" hidden>Sincronizza</button>
-    <button id="btnCloudLogout" class="pill cloudBtn secondary" type="button" hidden>Esci</button>
-  </div>
-  <div id="cloudSyncMini" class="syncMini">
+</div>
+  <div id="cloudSyncMini" class="syncMini show">
     <button class="pill cloudBtn secondary" type="button" data-action="cloudPull">Carica cloud</button>
     <button class="pill cloudBtn primary" type="button" data-action="cloudPush">Invia cloud</button>
   </div>
@@ -179,8 +178,8 @@ window.addEventListener('error',e=>{
     <div class="card quickCard">
       <div class="h2">Azioni rapide</div>
       <div class="btnGrid">
-        <button class="btnBig primary" data-action="newOrd">Nuovo ordine</button>
-        <button class="btnBig gray" data-action="newArt">Nuovo articolo</button>
+        <button class="btnBig primary" data-action="newOrd">Nuovo articolo</button>
+        <button class="btnBig gray" data-action="newArt">Nuovo ordine</button>
         <button class="btnBig gray" data-action="newCli">Nuovo cliente</button>
         <button class="btnBig gray" data-go="impostazioni">Impostazioni</button>
       </div>
@@ -271,7 +270,18 @@ window.addEventListener('error',e=>{
       </div>
       <div class="small" style="margin-top:10px" id="importHint"></div>
     </div>
-    <div class="card" style="margin-top:12px">
+    
+      <div class="card" style="margin-top:12px">
+        <div class="h2">Cloud</div>
+        <div class="small">Accesso e strumenti</div>
+        <div class="actions">
+          <button id="btnCloudLogin" class="btn" type="button">Login cloud</button>
+          <button id="btnCloudSync" class="btn" type="button">Sincronizza</button>
+          <button id="btnCloudLogout" class="btn danger" type="button">Esci</button>
+        </div>
+      </div>
+
+<div class="card" style="margin-top:12px">
       <div class="h2">Diagnostica archivio</div>
       <div id="diagBox" class="small">Lettura archivio in corso…</div>
     </div>
@@ -719,14 +729,107 @@ async function idbCount(){
     req.onerror=()=>rej(req.error||new Error('Errore conteggio foto'));
   });
 }
+async function getPublicFotoUrl(path){
+  const src=String(path||'').trim();
+  if(!src) return '';
+  if(/^data:|^https?:\/\//i.test(src)) return src;
+  const sb=await ensureCloud();
+  if(!sb) return src;
+  const clean=src.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
+  const { data } = sb.storage.from(SUPABASE_BUCKET).getPublicUrl(clean);
+  return data?.publicUrl || src;
+}
 async function getArticlePics(a){
   if(!a) return [];
+  const cloudPics=[];
+  if(Array.isArray(a.foto) && a.foto.length){
+    for(const path of a.foto.slice(0,6)){
+      const url=await getPublicFotoUrl(path);
+      if(url) cloudPics.push(url);
+    }
+  }
+  if(cloudPics.length) return cloudPics;
   if(Array.isArray(a.photoIds) && a.photoIds.length){
     const out=[];
     for(const id of a.photoIds){ const x=await idbGet(id); if(x) out.push(x); }
     return out;
   }
-  return Array.isArray(a.foto)?a.foto.filter(Boolean):[];
+  return [];
+}
+async function uploadArticlePhotoToSupabase(file, codice, slot){
+  const sb=await ensureCloud();
+  if(!sb) throw new Error('Supabase non disponibile');
+  const ext=((file?.name||'').split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'') || 'jpg';
+  const cleanCode=String(codice||'').trim();
+  if(!cleanCode) throw new Error('Codice articolo mancante');
+  const path=`${cleanCode}/${slot}.${ext}`;
+  const { error } = await sb.storage.from(SUPABASE_BUCKET).upload(path, file, {
+    cacheControl: '3600',
+    upsert: true,
+    contentType: file?.type || 'image/jpeg'
+  });
+  if(error) throw error;
+  return path;
+}
+async function syncArticlePhotosToCloud(artId, codice, pics){
+  const sb=await ensureCloud();
+  if(!sb||!cloudSession||!artId) return [];
+  const cleanCode=String(codice||artId||'art').trim() || String(artId);
+  const normalized=(pics||[]).filter(Boolean).slice(0,6);
+  const savedPaths=[];
+  for(let i=0;i<normalized.length;i++){
+    const src=String(normalized[i]||'').trim();
+    if(!src) continue;
+
+    // Se è già un path Supabase tipo CODICE/1.jpg, non ricaricare: usalo direttamente
+    if(!/^data:|^https?:\/\//i.test(src)){
+      const cleanPath = src.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
+      if(cleanPath) {
+        savedPaths.push(cleanPath);
+        continue;
+      }
+    }
+
+    let fileObj=null;
+    try{
+      const res=await fetch(src);
+      const blob=await res.blob();
+      const ext=((blob.type||'image/jpeg').split('/').pop()||'jpg').replace(/[^a-z0-9]/gi,'').toLowerCase() || 'jpg';
+      fileObj=new File([blob], `${cleanCode}-${i+1}.${ext}`, {type: blob.type || 'image/jpeg'});
+    }catch(_e){
+      continue;
+    }
+    const path=await uploadArticlePhotoToSupabase(fileObj, cleanCode, i+1);
+    savedPaths.push(path);
+  }
+  try{
+    await sb.from('prodotti_foto').delete().eq('prodotto_id', artId);
+  }catch(_e){}
+  if(savedPaths.length){
+    const rows=savedPaths.map((path,idx)=>({prodotto_id: artId, path, ordine: idx}));
+    const { error } = await sb.from('prodotti_foto').insert(rows);
+    if(error) throw error;
+  }
+  return savedPaths;
+}
+async function getCloudArticlePhotoUrls(artId){
+  const sb=await ensureCloud();
+  if(!sb||!cloudSession||!artId) return [];
+  const { data, error } = await sb.from('prodotti_foto').select('path,ordine').eq('prodotto_id', artId).order('ordine',{ascending:true});
+  if(error) throw error;
+  return (data||[]).map(r=>{
+    const { data:urlData } = sb.storage.from(SUPABASE_BUCKET).getPublicUrl(r.path);
+    return urlData?.publicUrl || '';
+  }).filter(Boolean);
+}
+
+async function deleteArticlePhotosFromSupabase(paths=[]){
+  const sb=await ensureCloud();
+  if(!sb) return;
+  const clean=(paths||[]).map(x=>String(x||'').trim()).filter(Boolean).map(x=>x.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), ''));
+  if(!clean.length) return;
+  const { error } = await sb.storage.from(SUPABASE_BUCKET).remove(clean);
+  if(error) console.warn('Eliminazione foto Supabase fallita', error);
 }
 async function migratePhotosToIndexedDB(){
   const db=loadDB();
@@ -1533,6 +1636,7 @@ async function saveArt(){
     const qual=qualityFromCode(code);
     const usd=Number(document.getElementById('a_usd').value||0);
     const r=calcFromUsd(usd, qual);
+    const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):null;
     const obj={
       id: currentArtId||uid(),
       codice: code,
@@ -1554,25 +1658,30 @@ async function saveArt(){
       scadenzaPromo: document.getElementById('a_promo_date').value.trim(),
       post: document.getElementById('a_post').value,
       note: document.getElementById('a_note').value,
-      foto: [],
+      foto: Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : [],
       photoIds: []
     };
-    const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):null;
-    obj.photoIds = Array.isArray(old?.photoIds) ? old.photoIds.slice() : [];
     const f=document.getElementById('a_photo').files[0];
+    let photoUploadWarning='';
     if(f){
-      const data=await compressImageFile(f);
-      const pid='ph_'+uid();
-      await idbSet(pid,data);
-      obj.photoIds.unshift(pid);
-      obj.photoIds=obj.photoIds.slice(0,6);
+      try{
+        const nextSlot=(Array.isArray(obj.foto)?obj.foto.length:0)+1;
+        const cloudPath=await uploadArticlePhotoToSupabase(f, code, nextSlot);
+        obj.foto = Array.isArray(obj.foto) ? obj.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')) : [];
+        obj.foto.unshift(cloudPath);
+        obj.foto=[...new Set(obj.foto)].slice(0,6);
+        obj.photoIds=[];
+      }catch(photoErr){
+        console.warn('Upload foto Supabase fallito', photoErr);
+        photoUploadWarning='Foto non caricata su cloud';
+      }
     }
     obj._ts=Date.now();
     const i=db.articoli.findIndex(x=>x.id===obj.id);
     if(i>=0) db.articoli[i]=obj; else db.articoli.unshift(obj);
     if(!saveDB(db)){
-      const newPid = obj.photoIds?.[0];
-      if(f && newPid && (!old || !Array.isArray(old.photoIds) || old.photoIds[0]!==newPid)) { try{ await idbDelete(newPid); }catch(_e){} }
+      const newPath = obj.foto?.[0];
+      if(f && newPath && (!old || !Array.isArray(old.foto) || old.foto[0]!==newPath)) { try{ await deleteArticlePhotosFromSupabase([newPath]); }catch(_e){} }
       return;
     }
     if(cloudEnabled()){
@@ -1582,7 +1691,7 @@ async function saveArt(){
       saveDBLocal(db);
     }
     hide('mArtEdit');
-    toast(cloudEnabled() ? 'Salvato anche nel cloud' : 'Salvato');
+    toast(photoUploadWarning || (cloudEnabled() ? 'Salvato anche nel cloud' : 'Salvato'));
   }catch(err){
     toast('Errore salvataggio articolo'); console.error(err);
   }
@@ -1593,6 +1702,7 @@ async function deleteArt(){
   const db=loadDB();
   const old=db.articoli.find(a=>a.id===currentArtId);
   for(const pid of (old?.photoIds||[])) await idbDelete(pid);
+  await deleteArticlePhotosFromSupabase(old?.foto||[]);
   db.articoli=db.articoli.filter(a=>a.id!==currentArtId);
   currentArtId=null;
   if(!saveDB(db)) return;
@@ -1888,7 +1998,7 @@ function importDB(file){
       }
       localStorage.setItem(KEY, JSON.stringify(o));
       renderAll();
-      document.getElementById('importHint').textContent = 'Import OK. Database ricaricato con foto su IndexedDB.';
+      document.getElementById('importHint').textContent = 'Import OK. Database ricaricato.';
       toast('Import OK');
     }catch(e){
       toast('Import fallito'); console.error(e);
@@ -1994,6 +2104,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SUPABASE_BUCKET='articoli';
 const isUuid=v=>UUID_RE.test(String(v||''));
 function cloudUi(){
   const uiPrefs=loadUiPrefs();
@@ -2082,18 +2193,31 @@ async function upsertCloudArticle(art){
   if(isUuid(art.id)) payload.id=art.id;
   const {data,error}=await sb.from('prodotti').upsert(payload,{onConflict:'sku'}).select('*').single();
   if(error) throw error;
-  return {...art, id:data.id, _cloud:true};
+  const pics=await getArticlePics(art);
+  let cloudFoto=[];
+  try{
+    cloudFoto=await syncArticlePhotosToCloud(data.id, art.codice||data.sku||data.id, pics);
+  }catch(err){
+    console.warn('Sync foto cloud fallita', err);
+  }
+  return {...art, id:data.id, foto: cloudFoto.length?cloudFoto:(art.foto||[]), _cloud:true};
 }
 async function deleteCloudArticle(art){
   const sb=await ensureCloud();
   if(!sb||!cloudSession) return;
-  if(isUuid(art?.id)){
-    const {error}=await sb.from('prodotti').delete().eq('id', art.id);
-    if(error) throw error;
-  }else if(art?.codice){
-    const {error}=await sb.from('prodotti').delete().eq('sku', art.codice);
-    if(error) throw error;
-  }
+  try{
+    if(isUuid(art?.id)){
+      const { data:rows } = await sb.from('prodotti_foto').select('path').eq('prodotto_id', art.id);
+      const paths=(rows||[]).map(r=>r.path).filter(Boolean);
+      if(paths.length) await deleteArticlePhotosFromSupabase(paths);
+      await sb.from('prodotti_foto').delete().eq('prodotto_id', art.id);
+      const {error}=await sb.from('prodotti').delete().eq('id', art.id);
+      if(error) throw error;
+    }else if(art?.codice){
+      const {error}=await sb.from('prodotti').delete().eq('sku', art.codice);
+      if(error) throw error;
+    }
+  }catch(err){ throw err; }
 }
 async function upsertCloudClient(cli){
   const sb=await ensureCloud();
@@ -2196,16 +2320,24 @@ async function pullCloudToLocal(){
   if(!sb||!cloudSession) throw new Error('Login cloud mancante');
   cloudBusy=true; cloudUi();
   try{
-    const [{data:cats,error:catsErr},{data:prod,error:prodErr},{data:cli,error:cliErr},{data:ord,error:ordErr},{data:righe,error:righeErr}] = await Promise.all([
+    const [{data:cats,error:catsErr},{data:prod,error:prodErr},{data:cli,error:cliErr},{data:ord,error:ordErr},{data:righe,error:righeErr},{data:fotos,error:fotosErr}] = await Promise.all([
       sb.from('categorie').select('id,nome'),
       sb.from('prodotti').select('*').order('created_at',{ascending:false}),
       sb.from('clienti').select('*').order('created_at',{ascending:false}),
       sb.from('ordini').select('*').order('data_ordine',{ascending:false}),
-      sb.from('righe_ordine').select('ordine_id,prodotto_id,prezzo_unitario,prodotti(id,sku,nome)')
+      sb.from('righe_ordine').select('ordine_id,prodotto_id,prezzo_unitario,prodotti(id,sku,nome)'),
+      sb.from('prodotti_foto').select('prodotto_id,path,ordine').order('ordine',{ascending:true})
     ]);
-    if(catsErr||prodErr||cliErr||ordErr||righeErr) throw (catsErr||prodErr||cliErr||ordErr||righeErr);
+    if(catsErr||prodErr||cliErr||ordErr||righeErr||fotosErr) throw (catsErr||prodErr||cliErr||ordErr||righeErr||fotosErr);
     const catMap=new Map((cats||[]).map(c=>[c.id,c.nome]));
     const prodMap=new Map((prod||[]).map(p=>[p.id,p]));
+    const fotoByProd=new Map();
+    (fotos||[]).forEach(r=>{
+      const { data:urlData } = sb.storage.from(SUPABASE_BUCKET).getPublicUrl(r.path);
+      const arr=fotoByProd.get(r.prodotto_id)||[];
+      if(urlData?.publicUrl) arr.push(urlData.publicUrl);
+      fotoByProd.set(r.prodotto_id, arr);
+    });
     const righeByOrd=new Map();
     (righe||[]).forEach(r=>{
       const arr=righeByOrd.get(r.ordine_id)||[];
@@ -2213,7 +2345,7 @@ async function pullCloudToLocal(){
       righeByOrd.set(r.ordine_id,arr);
     });
     const db={version:'v6',createdAt:new Date().toISOString(),
-      articoli:(prod||[]).map(p=>({id:p.id,codice:p.sku||'',brand:p.marca||'',modello:p.nome||'',categoria:catMap.get(p.categoria_id)||'',descrizione:p.descrizione||'',fornitore:'',taglia:p.taglia||'',variante:p.materiale||'',colore:p.colore||'',misura:'',costoUsd:0,costoEur:Number(p.prezzo_acquisto||0),prezzoVendita:Number(p.prezzo_vendita||0),promoAttiva:false,prezzoPromo:0,scadenzaPromo:'',post:'',note:'',foto:[],photoIds:[],_ts:Date.now(),_cloud:true})),
+      articoli:(prod||[]).map(p=>({id:p.id,codice:p.sku||'',brand:p.marca||'',modello:p.nome||'',categoria:catMap.get(p.categoria_id)||'',descrizione:p.descrizione||'',fornitore:'',taglia:p.taglia||'',variante:p.materiale||'',colore:p.colore||'',misura:'',costoUsd:0,costoEur:Number(p.prezzo_acquisto||0),prezzoVendita:Number(p.prezzo_vendita||0),promoAttiva:false,prezzoPromo:0,scadenzaPromo:'',post:'',note:'',foto:fotoByProd.get(p.id)||[],photoIds:[],_ts:Date.now(),_cloud:true})),
       clienti:(cli||[]).map(c=>({id:c.id,nome:[c.nome,c.cognome].filter(Boolean).join(' ').trim(),telefono:c.telefono||'',indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const misMatch=noteRaw.match(/\[MIS:([^\]]+)\]/i); return {id:o.id,numeroOrdine:o.numero_ordine,clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteRaw.replace(/\s*\[MIS:[^\]]+\]\s*/gi,' ').trim(),mis:misMatch?misMatch[1].trim():'',tracking:o.tracking_code||'',righe:righeByOrd.get(o.id)||[],totale:Number(o.totale||0),_ts:Date.now(),_cloud:true}; })
     };
