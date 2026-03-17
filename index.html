@@ -198,7 +198,10 @@ window.addEventListener('error',e=>{
   <div id="sec_articoli" class="section">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Articoli</div><button class="btn" type="button" data-action="newArt">+ Nuovo</button></div>
-      <input id="qArt" placeholder="Cerca per codice, brand, modello, categoria, colore, taglia, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
+      <div class="grid2" style="margin-top:10px">
+        <div><input id="qArt" placeholder="Cerca per codice, brand, modello, categoria, colore, taglia, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+        <div><select id="qArtCat"><option value="">Tutte le categorie</option></select></div>
+      </div>
     </div>
     <div style="height:10px"></div>
     <div id="listArt" class="list"></div>
@@ -356,6 +359,7 @@ window.addEventListener('error',e=>{
   <div class="actions compact viewBottomSpace">
     <button class="btn primary smallish" type="button" data-action="copyPost">Copia post</button>
     <button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button>
+    <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
     <button class="btn smallish" type="button" data-action="closeView">Chiudi</button>
   </div>
@@ -372,7 +376,7 @@ window.addEventListener('error',e=>{
     </div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k">Modello</div><input id="a_mod" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-      <div><div class="k">Categoria</div><input id="a_cat" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+      <div><div class="k">Categoria</div><select id="a_cat"><option value="">Seleziona categoria</option></select></div>
     </div>
     <div style="margin-top:10px"><div class="k">Fornitore</div><input id="a_forn" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
   </div>
@@ -1269,12 +1273,38 @@ function renderHome(){
   }).join('');
 }
 
+function articleCategoryOptions(db){
+  const defaults=['Borse','Portafogli','Cinture','Scarpe','Accessori'];
+  const found=(db?.articoli||[]).map(a=>String(a?.categoria||'').trim()).filter(Boolean);
+  return [...new Set([...defaults, ...found])].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+}
+function refreshArticleCategorySelects(selectedEdit=''){
+  const db=loadDB();
+  const options=articleCategoryOptions(db);
+  const qSel=document.getElementById('qArtCat');
+  const editSel=document.getElementById('a_cat');
+  if(qSel){
+    const prev=String(qSel.value||'').trim();
+    qSel.innerHTML='<option value="">Tutte le categorie</option>'+options.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    qSel.value=options.includes(prev)?prev:'';
+  }
+  if(editSel){
+    const wanted=String(selectedEdit||editSel.value||'').trim();
+    editSel.innerHTML='<option value="">Seleziona categoria</option>'+options.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    if(wanted && !options.includes(wanted)) editSel.innerHTML += `<option value="${esc(wanted)}">${esc(wanted)}</option>`;
+    editSel.value=wanted||'';
+  }
+}
 function renderArt(){
   const db=loadDB();
+  refreshArticleCategorySelects();
   const q=document.getElementById('qArt').value.trim().toLowerCase();
+  const cat=String(document.getElementById('qArtCat')?.value||'').trim();
   const items=db.articoli.filter(a=>{
     const hay=((a.codice||'')+' '+(a.brand||'')+' '+(a.modello||'')+' '+(a.categoria||'')+' '+(a.descrizione||'')+' '+(a.colore||'')+' '+(a.taglia||'')+' '+(a.variante||'')).toLowerCase();
-    return !q || hay.includes(q);
+    const okText=!q || hay.includes(q);
+    const okCat=!cat || String(a.categoria||'').trim()===cat;
+    return okText && okCat;
   }).sort((a,b)=>String(b._ts||0).localeCompare(String(a._ts||0)));
   const el=document.getElementById('listArt');
   el.innerHTML=items.map(a=>{
@@ -1576,8 +1606,9 @@ async function openArtEdit(id){
   const set=(k,v)=>document.getElementById(k).value=(v===0?0:(v||''));
 
   if(!a){
-    ['a_cod','a_brand','a_mod','a_cat','a_desc','a_forn','a_taglia','a_variante','a_colore','a_mis','a_usd','a_promo_price','a_promo_date','a_note','a_post','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
+    ['a_cod','a_brand','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_mis','a_usd','a_promo_price','a_promo_date','a_note','a_post','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
     .forEach(fid => document.getElementById(fid).value='');
+    refreshArticleCategorySelects('');
     document.getElementById('a_promo_on').checked=false;
     document.getElementById('a_photo').value='';
     currentArtExistingPics=[];
@@ -1586,7 +1617,8 @@ async function openArtEdit(id){
     return;
   }
   set('a_cod', a?.codice); set('a_brand', a?.brand); set('a_mod', a?.modello);
-  set('a_cat', a?.categoria); set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
+  refreshArticleCategorySelects(a?.categoria||'');
+  set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
   set('a_taglia', a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore);
   set('a_mis', a?.misura); set('a_usd', a?.costoUsd||'');
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
@@ -1762,6 +1794,39 @@ async function compressImageFile(file,maxSide=1600,quality=0.78){
     img.onerror=()=>rej(new Error('Impossibile leggere la foto selezionata'));
     img.src=src;
   });
+}
+
+function duplicateCurrentArticle(){
+  if(!currentArtId){ toast('Apri prima un articolo'); return; }
+  const db=loadDB();
+  const a=db.articoli.find(x=>x.id===currentArtId);
+  if(!a){ toast('Articolo non trovato'); return; }
+  const clone=JSON.parse(JSON.stringify(a));
+  clone.id='';
+  clone.codice='';
+  hide('mArtView');
+  openArtEdit(null);
+  document.getElementById('artEditTitle').textContent='Duplica articolo';
+  document.getElementById('a_brand').value=clone.brand||'';
+  document.getElementById('a_mod').value=clone.modello||'';
+  refreshArticleCategorySelects(clone.categoria||'');
+  document.getElementById('a_desc').value=clone.descrizione||'';
+  document.getElementById('a_forn').value=clone.fornitore||'';
+  document.getElementById('a_forn_link').value=clone.fornitoreLink||'';
+  document.getElementById('a_taglia').value=clone.taglia||'';
+  document.getElementById('a_variante').value=clone.variante||'';
+  document.getElementById('a_colore').value=clone.colore||'';
+  document.getElementById('a_mis').value=clone.misura||'';
+  document.getElementById('a_usd').value=clone.costoUsd||'';
+  document.getElementById('a_promo_on').checked=!!clone.promoAttiva;
+  document.getElementById('a_promo_date').value=clone.scadenzaPromo||'';
+  document.getElementById('a_promo_price').value=clone.prezzoPromo||'';
+  document.getElementById('a_note').value=clone.note||'';
+  document.getElementById('a_post').value=clone.post||'';
+  currentArtExistingPics=(clone.foto||[]).slice(0,6);
+  renderArtPhotoPrev(currentArtExistingPics);
+  renderArtAutoFields();
+  toast('Articolo duplicato: cambia il codice e salva');
 }
 
 async function saveArt(){
@@ -2217,7 +2282,13 @@ document.addEventListener('click',(ev)=>{
   if(a==='track17View') return openTrack17();
   if(a==='openParcelView') return openTrackParcel();
   if(a==='addArtToOrder'){ const id=el.dataset.id; if(id) return openOrdEdit(null, id); return; }
-  if(a==='addArtToOrderFromView'){ if(currentArtId) { hide('mArtView'); return openOrdEdit(null, currentArtId); } return; }
+  if(a==='addArtToOrderFromView'){
+    if(!currentArtId){ toast('Articolo non trovato'); return; }
+    hide('mArtView');
+    requestAnimationFrame(()=>openOrdEdit(null, currentArtId));
+    return;
+  }
+  if(a==='duplicateArt') return duplicateCurrentArticle();
   if(a==='editFromView'){ hide('mArtView', true); return openArtEdit(currentArtId); }
   if(a==='closeView') return hide('mArtView');
   if(a==='closeEdit') return hide('mArtEdit');
@@ -2242,6 +2313,7 @@ document.addEventListener('click',(ev)=>{
 });
 
 document.getElementById('qArt').addEventListener('input', renderArt);
+document.getElementById('qArtCat')?.addEventListener('change', renderArt);
 document.getElementById('qCli').addEventListener('input', renderCli);
 ['c_nome','c_tel','c_ind','c_cap','c_citta','c_prov'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', refreshClientShipping); if(el) el.addEventListener('change', refreshClientShipping); });
 document.getElementById('qOrd').addEventListener('input', renderOrd);
