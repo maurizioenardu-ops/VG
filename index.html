@@ -97,7 +97,7 @@ select[multiple]{min-height:150px}
   #mArtView .modal,#mArtEdit .modal{width:100vw;max-width:none;height:100vh;max-height:none;border-radius:0;padding:14px 14px 96px}
   #mArtView.modalwrap,#mArtEdit.modalwrap{padding:0}
   #mArtView .actions,#mArtEdit .actions,#mCliEdit .actions{position:static;background:transparent;padding-top:16px;margin-top:24px}
-  #mArtView .actions.compact{grid-template-columns:repeat(3,minmax(0,1fr));justify-content:stretch}
+  #mArtView .actions.compact{grid-template-columns:repeat(2,minmax(0,1fr));justify-content:stretch}
 }
 @media (max-width:520px){
   .smallGrid,.cards,.btnGrid,.grid2{grid-template-columns:1fr}
@@ -135,7 +135,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v9_2">
+  <meta name="vg-version" content="v9_3">
 </head>
 <body>
 <div class="top">
@@ -355,6 +355,7 @@ window.addEventListener('error',e=>{
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
     <button class="btn primary smallish" type="button" data-action="copyPost">Copia post</button>
+    <button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
     <button class="btn smallish" type="button" data-action="closeView">Chiudi</button>
   </div>
@@ -1636,6 +1637,50 @@ async function compressImageFile(file,maxSide=1600,quality=0.78){
     img.onerror=()=>rej(new Error('Impossibile leggere la foto selezionata'));
     img.src=src;
   });
+async function dataUrlToFile(dataUrl, filename='photo.jpg'){
+  const res = await fetch(dataUrl);
+  const blob = await res.blob();
+  return new File([blob], filename, { type: blob.type || 'image/jpeg' });
+}
+function slugifyFilePart(v){
+  return String(v||'articolo').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') || 'articolo';
+}
+async function downloadCurrentArticlePhotos(){
+  const db=loadDB();
+  const a=db.articoli.find(x=>x.id===currentArtId);
+  if(!a){ toast('Articolo non trovato'); return; }
+  const pics=await getArticlePics(a);
+  if(!pics.length){ toast('Nessuna foto da scaricare'); return; }
+  const base=slugifyFilePart((a.codice||a.modello||a.brand||'articolo'));
+  let done=0;
+  for(let i=0;i<pics.length;i++){
+    const src=String(pics[i]||'').trim();
+    if(!src) continue;
+    try{
+      const ext = (/\.png($|\?)/i.test(src) ? 'png' : /\.webp($|\?)/i.test(src) ? 'webp' : 'jpg');
+      const name = `${base}-${i+1}.${ext}`;
+      const link=document.createElement('a');
+      if(/^data:/i.test(src)){
+        link.href=src;
+      }else{
+        const res=await fetch(src, {mode:'cors'});
+        const blob=await res.blob();
+        link.href=URL.createObjectURL(blob);
+      }
+      link.download=name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      if(link.href.startsWith('blob:')) setTimeout(()=>URL.revokeObjectURL(link.href), 3000);
+      done++;
+      await new Promise(r=>setTimeout(r, 180));
+    }catch(err){
+      console.warn('Download foto fallito', err);
+    }
+  }
+  toast(done ? `Scaricate ${done} foto` : 'Download foto fallito');
+}
+
 }
 
 async function saveArt(){
@@ -1685,7 +1730,9 @@ async function saveArt(){
     if(f){
       try{
         const nextSlot=(Array.isArray(obj.foto)?obj.foto.length:0)+1;
-        const cloudPath=await uploadArticlePhotoToSupabase(f, code, nextSlot);
+        const compressedData = await compressImageFile(f, 1400, 0.74);
+        const uploadFile = await dataUrlToFile(compressedData, `${code||'articolo'}-${nextSlot}.jpg`);
+        const cloudPath=await uploadArticlePhotoToSupabase(uploadFile, code, nextSlot);
         obj.foto = Array.isArray(obj.foto) ? obj.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')) : [];
         obj.foto.unshift(cloudPath);
         obj.foto=[...new Set(obj.foto)].slice(0,6);
@@ -2054,6 +2101,7 @@ document.addEventListener('click',(ev)=>{
   }
   if(a==='hardReset'){ askConfirm('Azzero tutti i dati locali di questa app?', ()=>{ [KEY, ...(typeof LEGACY_KEYS!=='undefined'?LEGACY_KEYS:[])].forEach(k=>localStorage.removeItem(k)); location.reload(); }, 'Reset locale'); return; }
   if(a==='copyPost') return copyTextFrom(document.getElementById('vArtPost'));
+  if(a==='downloadArtPhotos') return downloadCurrentArticlePhotos();
   if(a==='openSupplierLink'){ const link=String(document.getElementById('vArtSupplierLink')?.value||'').trim(); if(!link){ toast('Nessun link fornitore'); return; } const safe=/^https?:\/\//i.test(link)?link:'https://'+link; window.open(safe,'_blank'); return; }
   if(a==='copyCliShip') return copyTextFrom(document.getElementById('c_ship'));
   if(a==='copyCliShipView') return copyTextFrom(document.getElementById('vCliShip'));
