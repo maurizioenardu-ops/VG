@@ -805,32 +805,65 @@ async function downloadCurrentArticlePhotos(){
   if(!pics.length){ toast('Nessuna foto da scaricare'); return; }
   const baseName=(art.codice||art.brand||art.modello||'articolo').toString().trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'articolo';
 
-  toast(`Avvio download di ${pics.length} foto...`);
-  let ok=0;
+  toast(`Preparo ${pics.length} foto...`);
+  const files=[];
   for(let i=0;i<pics.length;i++){
     try{
       const src=pics[i];
       const blob=await blobFromPhotoSrc(src);
       const ext=guessPhotoExtension(src, blob);
-      const url=URL.createObjectURL(blob);
+      const type=blob?.type || (ext==='png' ? 'image/png' : ext==='webp' ? 'image/webp' : ext==='gif' ? 'image/gif' : 'image/jpeg');
+      const name=`${baseName}_${String(i+1).padStart(2,'0')}.${ext}`;
+      files.push(new File([blob], name, { type, lastModified: Date.now() }));
+    }catch(err){
+      console.warn('Preparazione foto articolo fallita', err);
+    }
+  }
+  if(!files.length){ toast('Download foto fallito'); return; }
+
+  const canNativeShare = typeof navigator!=='undefined'
+    && typeof navigator.share==='function'
+    && typeof navigator.canShare==='function'
+    && navigator.canShare({ files });
+
+  if(canNativeShare){
+    try{
+      await navigator.share({
+        files,
+        title: `Foto ${baseName}`,
+        text: `Salva ${files.length} foto dell'articolo ${baseName}`
+      });
+      toast(`Seleziona Galleria, Foto o File per salvare ${files.length} foto.`);
+      return;
+    }catch(err){
+      if(err && err.name==='AbortError') return;
+      console.warn('Condivisione nativa foto fallita', err);
+    }
+  }
+
+  let ok=0;
+  for(let i=0;i<files.length;i++){
+    try{
+      const file=files[i];
+      const url=URL.createObjectURL(file);
       const a=document.createElement('a');
       a.href=url;
-      a.download=`${baseName}_${String(i+1).padStart(2,'0')}.${ext}`;
+      a.download=file.name;
       a.rel='noopener';
       document.body.appendChild(a);
       a.click();
       a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url), 4000);
+      setTimeout(()=>URL.revokeObjectURL(url), 12000);
       ok++;
-      await new Promise(r=>setTimeout(r, 900));
+      await new Promise(r=>setTimeout(r, 1400));
     }catch(err){
       console.warn('Download foto articolo fallito', err);
     }
   }
-  toast(ok===pics.length
-    ? `Scaricate ${ok} foto. Le trovi nei Download e poi in Galleria.`
+  toast(ok===files.length
+    ? `Avviate ${ok} foto. Le trovi nei Download e poi in Galleria.`
     : (ok
-      ? `Scaricate ${ok} foto su ${pics.length}. Se ne manca qualcuna, abilita i download multipli del browser.`
+      ? `Avviate ${ok} foto su ${files.length}. Se il browser ne blocca qualcuna, usa Condividi/Salva dal telefono.`
       : 'Download foto fallito'));
 }
 async function uploadArticlePhotoToSupabase(file, codice, slot){
