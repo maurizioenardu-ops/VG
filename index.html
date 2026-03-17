@@ -729,14 +729,55 @@ async function idbCount(){
     req.onerror=()=>rej(req.error||new Error('Errore conteggio foto'));
   });
 }
+async function getPublicFotoUrl(path){
+  const src=String(path||'').trim();
+  if(!src) return '';
+  if(/^data:|^https?:\/\//i.test(src)) return src;
+  const sb=await ensureCloud();
+  if(!sb) return src;
+  const clean=src.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
+  const { data } = sb.storage.from(SUPABASE_BUCKET).getPublicUrl(clean);
+  return data?.publicUrl || src;
+}
 async function getArticlePics(a){
   if(!a) return [];
+  const cloudPics=[];
+  if(Array.isArray(a.foto) && a.foto.length){
+    for(const path of a.foto.slice(0,6)){
+      const url=await getPublicFotoUrl(path);
+      if(url) cloudPics.push(url);
+    }
+  }
+  if(cloudPics.length) return cloudPics;
   if(Array.isArray(a.photoIds) && a.photoIds.length){
     const out=[];
     for(const id of a.photoIds){ const x=await idbGet(id); if(x) out.push(x); }
     return out;
   }
-  return Array.isArray(a.foto)?a.foto.filter(Boolean):[];
+  return [];
+}
+async function uploadArticlePhotoToSupabase(file, codice, slot){
+  const sb=await ensureCloud();
+  if(!sb) throw new Error('Supabase non disponibile');
+  const ext=((file?.name||'').split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'') || 'jpg';
+  const cleanCode=String(codice||'').trim();
+  if(!cleanCode) throw new Error('Codice articolo mancante');
+  const path=`${cleanCode}/${slot}.${ext}`;
+  const { error } = await sb.storage.from(SUPABASE_BUCKET).upload(path, file, {
+    cacheControl: '3600',
+    upsert: true,
+    contentType: file?.type || 'image/jpeg'
+  });
+  if(error) throw error;
+  return path;
+}
+async function deleteArticlePhotosFromSupabase(paths=[]){
+  const sb=await ensureCloud();
+  if(!sb) return;
+  const clean=(paths||[]).map(x=>String(x||'').trim()).filter(Boolean).map(x=>x.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), ''));
+  if(!clean.length) return;
+  const { error } = await sb.storage.from(SUPABASE_BUCKET).remove(clean);
+  if(error) console.warn('Eliminazione foto Supabase fallita', error);
 }
 async function migratePhotosToIndexedDB(){
   const db=loadDB();
@@ -1543,6 +1584,7 @@ async function saveArt(){
     const qual=qualityFromCode(code);
     const usd=Number(document.getElementById('a_usd').value||0);
     const r=calcFromUsd(usd, qual);
+    const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):null;
     const obj={
       id: currentArtId||uid(),
       codice: code,
@@ -1564,25 +1606,23 @@ async function saveArt(){
       scadenzaPromo: document.getElementById('a_promo_date').value.trim(),
       post: document.getElementById('a_post').value,
       note: document.getElementById('a_note').value,
-      foto: [],
-      photoIds: []
+      foto: Array.isArray(old?.foto) ? old.foto.slice() : [],
+      photoIds: Array.isArray(old?.photoIds) ? old.photoIds.slice() : []
     };
-    const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):null;
-    obj.photoIds = Array.isArray(old?.photoIds) ? old.photoIds.slice() : [];
     const f=document.getElementById('a_photo').files[0];
     if(f){
-      const data=await compressImageFile(f);
-      const pid='ph_'+uid();
-      await idbSet(pid,data);
-      obj.photoIds.unshift(pid);
-      obj.photoIds=obj.photoIds.slice(0,6);
+      const nextSlot=(Array.isArray(obj.foto)?obj.foto.length:0)+1;
+      const cloudPath=await uploadArticlePhotoToSupabase(f, code, nextSlot);
+      obj.foto.unshift(cloudPath);
+      obj.foto=obj.foto.slice(0,6);
+      obj.photoIds=[];
     }
     obj._ts=Date.now();
     const i=db.articoli.findIndex(x=>x.id===obj.id);
     if(i>=0) db.articoli[i]=obj; else db.articoli.unshift(obj);
     if(!saveDB(db)){
-      const newPid = obj.photoIds?.[0];
-      if(f && newPid && (!old || !Array.isArray(old.photoIds) || old.photoIds[0]!==newPid)) { try{ await idbDelete(newPid); }catch(_e){} }
+      const newPath = obj.foto?.[0];
+      if(f && newPath && (!old || !Array.isArray(old.foto) || old.foto[0]!==newPath)) { try{ await deleteArticlePhotosFromSupabase([newPath]); }catch(_e){} }
       return;
     }
     if(cloudEnabled()){
@@ -1603,6 +1643,7 @@ async function deleteArt(){
   const db=loadDB();
   const old=db.articoli.find(a=>a.id===currentArtId);
   for(const pid of (old?.photoIds||[])) await idbDelete(pid);
+  await deleteArticlePhotosFromSupabase(old?.foto||[]);
   db.articoli=db.articoli.filter(a=>a.id!==currentArtId);
   currentArtId=null;
   if(!saveDB(db)) return;
@@ -2004,6 +2045,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SUPABASE_BUCKET='articoli';
 const isUuid=v=>UUID_RE.test(String(v||''));
 function cloudUi(){
   const uiPrefs=loadUiPrefs();
