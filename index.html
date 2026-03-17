@@ -417,7 +417,7 @@ window.addEventListener('error',e=>{
     <div style="margin-top:10px"><div class="k">Post</div><textarea id="a_post" placeholder="Qui il post (auto)"></textarea></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*"/></div>
+    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple/><div class="small" style="margin-top:6px">Puoi selezionare più foto insieme (massimo 6 totali per articolo).</div></div>
     <div id="a_photo_prev" class="thumbs"></div>
   </div>
 
@@ -1506,6 +1506,7 @@ function renderAll(){ renderHome(); renderArt(); renderCli(); renderOrd(); rende
 
 /* ====== ART view/edit ====== */
 let currentArtId=null;
+let currentArtExistingPics=[];
 async function openArtView(id){
   const db=loadDB(); const a=db.articoli.find(x=>x.id===id); if(!a) return;
   currentArtId=id;
@@ -1538,6 +1539,7 @@ async function openArtEdit(id){
     .forEach(fid => document.getElementById(fid).value='');
     document.getElementById('a_promo_on').checked=false;
     document.getElementById('a_photo').value='';
+    currentArtExistingPics=[];
     renderArtPhotoPrev([]);
     show('mArtEdit');
     return;
@@ -1553,12 +1555,44 @@ async function openArtEdit(id){
   fitTextarea(document.getElementById('a_post'));
   document.getElementById('a_photo').value='';
   renderArtAutoFields();
-  renderArtPhotoPrev(await getArticlePics(a));
+  currentArtExistingPics=await getArticlePics(a);
+  renderArtPhotoPrev(currentArtExistingPics);
   show('mArtEdit');
 }
 function renderArtPhotoPrev(pics){
   const box=document.getElementById('a_photo_prev');
   box.innerHTML=(pics||[]).map(src=>`<img src="${src}"/>`).join('');
+}
+function mergePreviewPics(existingPics,newPics){
+  const out=[];
+  for(const src of [...(existingPics||[]), ...(newPics||[])]){
+    if(src && !out.includes(src)) out.push(src);
+    if(out.length>=6) break;
+  }
+  return out;
+}
+async function filesToObjectUrls(fileList,maxCount){
+  const files=Array.from(fileList||[]).filter(f=>f && String(f.type||'').startsWith('image/')).slice(0,Math.max(0,maxCount||0));
+  return files.map(f=>URL.createObjectURL(f));
+}
+function revokeObjectUrls(urls){
+  (urls||[]).forEach(src=>{ if(typeof src==='string' && src.startsWith('blob:')){ try{ URL.revokeObjectURL(src); }catch(_e){} } });
+}
+async function refreshArtPhotoPreviewFromInput(){
+  const input=document.getElementById('a_photo');
+  if(!input) return;
+  const maxNew=Math.max(0, 6 - (Array.isArray(currentArtExistingPics)?currentArtExistingPics.length:0));
+  const files=Array.from(input.files||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
+  if(files.length>maxNew){
+    toast(`Puoi aggiungere ancora ${maxNew} foto`);
+    const dt=new DataTransfer();
+    files.slice(0,maxNew).forEach(f=>dt.items.add(f));
+    input.files=dt.files;
+  }
+  const selected=Array.from(input.files||[]);
+  const blobUrls=await filesToObjectUrls(selected,maxNew);
+  renderArtPhotoPrev(mergePreviewPics(currentArtExistingPics, blobUrls));
+  setTimeout(()=>revokeObjectUrls(blobUrls), 1200);
 }
 function fitTextarea(el){
   if(!el) return;
@@ -1731,27 +1765,35 @@ async function saveArt(){
       foto: Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : [],
       photoIds: []
     };
-    const f=document.getElementById('a_photo').files[0];
+    const photoInput=document.getElementById('a_photo');
+    const selectedFiles=Array.from(photoInput?.files||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
     let photoUploadWarning='';
-    if(f){
+    if(selectedFiles.length){
       try{
-        const nextSlot=(Array.isArray(obj.foto)?obj.foto.length:0)+1;
-        const cloudPath=await uploadArticlePhotoToSupabase(f, code, nextSlot);
         obj.foto = Array.isArray(obj.foto) ? obj.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')) : [];
-        obj.foto.unshift(cloudPath);
+        const maxNew=Math.max(0, 6 - obj.foto.length);
+        const uploaded=[];
+        for(const [idx,file] of selectedFiles.slice(0,maxNew).entries()){
+          const nextSlot=obj.foto.length + uploaded.length + 1;
+          const cloudPath=await uploadArticlePhotoToSupabase(file, code, nextSlot);
+          uploaded.push(cloudPath);
+        }
+        obj.foto=[...obj.foto, ...uploaded];
         obj.foto=[...new Set(obj.foto)].slice(0,6);
         obj.photoIds=[];
+        if(selectedFiles.length>maxNew) photoUploadWarning=`Caricate ${maxNew} foto, limite massimo raggiunto`;
       }catch(photoErr){
         console.warn('Upload foto Supabase fallito', photoErr);
-        photoUploadWarning='Foto non caricata su cloud';
+        photoUploadWarning='Una o più foto non caricate su cloud';
       }
     }
     obj._ts=Date.now();
     const i=db.articoli.findIndex(x=>x.id===obj.id);
     if(i>=0) db.articoli[i]=obj; else db.articoli.unshift(obj);
     if(!saveDB(db)){
-      const newPath = obj.foto?.[0];
-      if(f && newPath && (!old || !Array.isArray(old.foto) || old.foto[0]!==newPath)) { try{ await deleteArticlePhotosFromSupabase([newPath]); }catch(_e){} }
+      const oldFoto=Array.isArray(old?.foto)?old.foto.filter(Boolean):[];
+      const newlyUploaded=(Array.isArray(obj.foto)?obj.foto.filter(Boolean):[]).filter(path=>!oldFoto.includes(path));
+      if(newlyUploaded.length){ try{ await deleteArticlePhotosFromSupabase(newlyUploaded); }catch(_e){} }
       return;
     }
     if(cloudEnabled()){
@@ -2162,6 +2204,7 @@ document.getElementById('importFile').addEventListener('change',(e)=>{
   if(f) importDB(f);
   e.target.value='';
 });
+document.getElementById('a_photo')?.addEventListener('change', refreshArtPhotoPreviewFromInput);
 document.getElementById('btnCloudLogin')?.addEventListener('click', ()=>show('mCloudLogin'));
 document.getElementById('btnCloudLogout')?.addEventListener('click', cloudLogout);
 document.getElementById('btnCloudSync')?.addEventListener('click', ()=>{ if(!cloudSession){ toast('Prima fai login cloud'); return; } toggleCloudSyncMini(); });
