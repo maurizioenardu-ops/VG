@@ -97,7 +97,7 @@ select[multiple]{min-height:150px}
   #mArtView .modal,#mArtEdit .modal{width:100vw;max-width:none;height:100vh;max-height:none;border-radius:0;padding:14px 14px 96px}
   #mArtView.modalwrap,#mArtEdit.modalwrap{padding:0}
   #mArtView .actions,#mArtEdit .actions,#mCliEdit .actions{position:static;background:transparent;padding-top:16px;margin-top:24px}
-  #mArtView .actions.compact{grid-template-columns:repeat(2,minmax(0,1fr));justify-content:stretch}
+  #mArtView .actions.compact{grid-template-columns:repeat(3,minmax(0,1fr));justify-content:stretch}
 }
 @media (max-width:520px){
   .smallGrid,.cards,.btnGrid,.grid2{grid-template-columns:1fr}
@@ -135,7 +135,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v9_5">
+  <meta name="vg-version" content="v9_2">
 </head>
 <body>
 <div class="top">
@@ -776,6 +776,56 @@ async function getArticlePics(a){
   }
   return [];
 }
+async function blobFromPhotoSrc(src){
+  const val=String(src||'').trim();
+  if(!val) throw new Error('Sorgente foto vuota');
+  if(/^data:/i.test(val)){
+    const res=await fetch(val);
+    return await res.blob();
+  }
+  const res=await fetch(val, { mode:'cors', cache:'no-store' });
+  if(!res.ok) throw new Error('Download foto fallito');
+  return await res.blob();
+}
+function guessPhotoExtension(src, blob){
+  const clean=String(src||'').split('?')[0].split('#')[0];
+  const match=clean.match(/\.([a-z0-9]{2,5})$/i);
+  if(match) return match[1].toLowerCase();
+  const mime=String(blob?.type||'').toLowerCase();
+  if(mime.includes('png')) return 'png';
+  if(mime.includes('webp')) return 'webp';
+  if(mime.includes('gif')) return 'gif';
+  return 'jpg';
+}
+async function downloadCurrentArticlePhotos(){
+  const db=loadDB();
+  const art=db.articoli.find(x=>x.id===currentArtId);
+  if(!art){ toast('Articolo non trovato'); return; }
+  const pics=await getArticlePics(art);
+  if(!pics.length){ toast('Nessuna foto da scaricare'); return; }
+  const baseName=(art.codice||art.brand||art.modello||'articolo').toString().trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'articolo';
+  let ok=0;
+  for(let i=0;i<pics.length;i++){
+    try{
+      const src=pics[i];
+      const blob=await blobFromPhotoSrc(src);
+      const ext=guessPhotoExtension(src, blob);
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;
+      a.download=`${baseName}_${String(i+1).padStart(2,'0')}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 2000);
+      ok++;
+      await new Promise(r=>setTimeout(r, 180));
+    }catch(err){
+      console.warn('Download foto articolo fallito', err);
+    }
+  }
+  toast(ok ? `Scaricate ${ok} foto` : 'Download foto fallito');
+}
 async function uploadArticlePhotoToSupabase(file, codice, slot){
   const sb=await ensureCloud();
   if(!sb) throw new Error('Supabase non disponibile');
@@ -959,17 +1009,13 @@ function emojiQualityForPost(a){
   return (q==='ORIGINALE') ? '🥇' : '🔝💯';
 }
 function buildPost(a){
-  const brand=String(a?.brand||'').trim();
-  let modello=String(a?.modello||'').trim();
-  if(!a?.codice) return '';
-  if(brand){
-    const escBrand = brand.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-    modello = modello.replace(new RegExp('^'+escBrand+'\\s+','i'),'').trim();
-  }
+  const brand=(a.brand||'').trim();
+  const modello=(a.modello||'').trim();
+  if(!a.codice) return '';
   const qemoji=emojiQualityForPost(a);
   let lines=[];
   if(a.promoAttiva) lines.push('🔥PROMOZIONE🔥');
-  lines.push([brand, modello, qemoji].filter(Boolean).join(' ').replace(/\\s+/g,' ').trim());
+  lines.push(`${brand} ${modello} ${qemoji}`.trim());
   const qual=qualityFromCode(a.codice);
   if(qual==='ORIGINALE') lines.push('QUALITÀ SUPERIORE');
   else if(qual) lines.push(`Qualità ${qual}`);
@@ -985,7 +1031,7 @@ function buildPost(a){
   if(a.colori) lines.push(a.colori);
   if(a.tracolla) lines.push(a.tracolla);
   lines.push(`cod. ${a.codice}`);
-  return lines.join('\\n');
+  return lines.join('\n');
 }
 
 function withIntlPrefix(tel){
@@ -1641,50 +1687,6 @@ async function compressImageFile(file,maxSide=1600,quality=0.78){
     img.onerror=()=>rej(new Error('Impossibile leggere la foto selezionata'));
     img.src=src;
   });
-async function dataUrlToFile(dataUrl, filename='photo.jpg'){
-  const res = await fetch(dataUrl);
-  const blob = await res.blob();
-  return new File([blob], filename, { type: blob.type || 'image/jpeg' });
-}
-function slugifyFilePart(v){
-  return String(v||'articolo').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') || 'articolo';
-}
-async function downloadCurrentArticlePhotos(){
-  const db=loadDB();
-  const a=db.articoli.find(x=>x.id===currentArtId);
-  if(!a){ toast('Articolo non trovato'); return; }
-  const pics=await getArticlePics(a);
-  if(!pics.length){ toast('Nessuna foto da scaricare'); return; }
-  const base=slugifyFilePart((a.codice||a.modello||a.brand||'articolo'));
-  let done=0;
-  for(let i=0;i<pics.length;i++){
-    const src=String(pics[i]||'').trim();
-    if(!src) continue;
-    try{
-      const ext = (/\.png($|\?)/i.test(src) ? 'png' : /\.webp($|\?)/i.test(src) ? 'webp' : 'jpg');
-      const name = `${base}-${i+1}.${ext}`;
-      const link=document.createElement('a');
-      if(/^data:/i.test(src)){
-        link.href=src;
-      }else{
-        const res=await fetch(src, {mode:'cors'});
-        const blob=await res.blob();
-        link.href=URL.createObjectURL(blob);
-      }
-      link.download=name;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      if(link.href.startsWith('blob:')) setTimeout(()=>URL.revokeObjectURL(link.href), 3000);
-      done++;
-      await new Promise(r=>setTimeout(r, 180));
-    }catch(err){
-      console.warn('Download foto fallito', err);
-    }
-  }
-  toast(done ? `Scaricate ${done} foto` : 'Download foto fallito');
-}
-
 }
 
 async function saveArt(){
@@ -1734,9 +1736,7 @@ async function saveArt(){
     if(f){
       try{
         const nextSlot=(Array.isArray(obj.foto)?obj.foto.length:0)+1;
-        const compressedData = await compressImageFile(f, 1400, 0.74);
-        const uploadFile = await dataUrlToFile(compressedData, `${code||'articolo'}-${nextSlot}.jpg`);
-        const cloudPath=await uploadArticlePhotoToSupabase(uploadFile, code, nextSlot);
+        const cloudPath=await uploadArticlePhotoToSupabase(f, code, nextSlot);
         obj.foto = Array.isArray(obj.foto) ? obj.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')) : [];
         obj.foto.unshift(cloudPath);
         obj.foto=[...new Set(obj.foto)].slice(0,6);
