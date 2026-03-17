@@ -135,7 +135,6 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <meta name="vg-version" content="v9_2">
 </head>
 <body>
@@ -806,39 +805,7 @@ async function downloadCurrentArticlePhotos(){
   if(!pics.length){ toast('Nessuna foto da scaricare'); return; }
   const baseName=(art.codice||art.brand||art.modello||'articolo').toString().trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'articolo';
 
-  if(window.JSZip){
-    try{
-      const zip=new JSZip();
-      let ok=0;
-      for(let i=0;i<pics.length;i++){
-        const src=pics[i];
-        try{
-          const blob=await blobFromPhotoSrc(src);
-          const ext=guessPhotoExtension(src, blob);
-          zip.file(`${baseName}_${String(i+1).padStart(2,'0')}.${ext}`, blob);
-          ok++;
-        }catch(err){
-          console.warn('Preparazione foto ZIP fallita', err);
-        }
-      }
-      if(!ok){ toast('Download foto fallito'); return; }
-      toast(`Preparazione ZIP (${ok} foto)...`);
-      const zipBlob=await zip.generateAsync({ type:'blob', compression:'DEFLATE', compressionOptions:{ level:6 } });
-      const zipUrl=URL.createObjectURL(zipBlob);
-      const a=document.createElement('a');
-      a.href=zipUrl;
-      a.download=`${baseName}_foto.zip`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(()=>URL.revokeObjectURL(zipUrl), 4000);
-      toast(`Scaricate ${ok} foto in ZIP`);
-      return;
-    }catch(err){
-      console.warn('Creazione ZIP fallita, provo download multiplo', err);
-    }
-  }
-
+  toast(`Avvio download di ${pics.length} foto...`);
   let ok=0;
   for(let i=0;i<pics.length;i++){
     try{
@@ -849,17 +816,22 @@ async function downloadCurrentArticlePhotos(){
       const a=document.createElement('a');
       a.href=url;
       a.download=`${baseName}_${String(i+1).padStart(2,'0')}.${ext}`;
+      a.rel='noopener';
       document.body.appendChild(a);
       a.click();
       a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url), 2000);
+      setTimeout(()=>URL.revokeObjectURL(url), 4000);
       ok++;
-      await new Promise(r=>setTimeout(r, 350));
+      await new Promise(r=>setTimeout(r, 900));
     }catch(err){
       console.warn('Download foto articolo fallito', err);
     }
   }
-  toast(ok===pics.length ? `Scaricate ${ok} foto` : (ok ? `Scaricate ${ok} foto. Se ne manca qualcuna, abilita i download multipli del browser.` : 'Download foto fallito'));
+  toast(ok===pics.length
+    ? `Scaricate ${ok} foto. Le trovi nei Download e poi in Galleria.`
+    : (ok
+      ? `Scaricate ${ok} foto su ${pics.length}. Se ne manca qualcuna, abilita i download multipli del browser.`
+      : 'Download foto fallito'));
 }
 async function uploadArticlePhotoToSupabase(file, codice, slot){
   const sb=await ensureCloud();
