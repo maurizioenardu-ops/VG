@@ -659,6 +659,7 @@ function saveDB(db){
   try{ renderAll(); }catch(err){ console.error('Render post-salvataggio fallito', err); }
   return true;
 }
+function safeLower(v){ return String(v==null?'':v).trim().toLowerCase(); }
 
 function openPhotoDB(){
   return new Promise((res,rej)=>{
@@ -1769,8 +1770,9 @@ async function saveArt(){
     const code=document.getElementById('a_cod').value.trim();
     if(!code){ toast('Codice articolo obbligatorio'); return; }
 
+    const codeLower=safeLower(code);
     const exists = db.articoli.find(a => 
-      a.codice.toLowerCase() === code.toLowerCase() 
+      safeLower(a?.codice) === codeLower
       && a.id !== currentArtId
     );
     if(exists){
@@ -1836,14 +1838,22 @@ async function saveArt(){
       if(newlyUploaded.length){ try{ await deleteArticlePhotosFromSupabase(newlyUploaded); }catch(_e){} }
       return;
     }
+    let cloudFailed=false;
     if(cloudEnabled()){
-      const saved=await cloudSaveOne('art', obj, db);
-      const idx=db.articoli.findIndex(x=>x.id===obj.id || x.codice===obj.codice);
-      if(idx>=0) db.articoli[idx]={...db.articoli[idx], ...saved, _ts: Date.now()};
-      saveDBLocal(db);
+      try{
+        const saved=await cloudSaveOne('art', obj, db);
+        const idx=db.articoli.findIndex(x=>x.id===obj.id || x.codice===obj.codice);
+        if(idx>=0) db.articoli[idx]={...db.articoli[idx], ...saved, _ts: Date.now()};
+        saveDBLocal(db);
+      }catch(cloudErr){
+        cloudFailed=true;
+        console.error('Sync cloud articolo fallita', cloudErr);
+      }
     }
     hide('mArtEdit');
-    toast(photoUploadWarning || (cloudEnabled() ? 'Salvato anche nel cloud' : 'Salvato'));
+    if(photoUploadWarning) toast(photoUploadWarning);
+    else if(cloudFailed) toast('Salvato in locale, ma cloud non aggiornato');
+    else toast(cloudEnabled() ? 'Salvato anche nel cloud' : 'Salvato');
   }catch(err){
     toast('Errore salvataggio articolo'); console.error(err);
   }
@@ -1919,8 +1929,9 @@ async function saveCli(){
   const nome=document.getElementById('c_nome').value.trim();
   if(!nome){ toast('Nome obbligatorio'); return; }
 
+  const nomeLower=safeLower(nome);
   const exists = db.clienti.find(c =>
-    c.nome.toLowerCase() === nome.toLowerCase()
+    safeLower(c?.nome) === nomeLower
     && c.id !== currentCliId
   );
   if(exists){
@@ -1941,14 +1952,20 @@ async function saveCli(){
   const i=db.clienti.findIndex(x=>x.id===obj.id);
   if(i>=0) db.clienti[i]=obj; else db.clienti.unshift(obj);
   if(!saveDB(db)) return;
+  let cloudFailed=false;
   if(cloudEnabled()){
-    const saved=await cloudSaveOne('cli', obj, db);
-    const idx=db.clienti.findIndex(x=>x.id===obj.id || (obj.telefono && x.telefono===obj.telefono) || x.nome===obj.nome);
-    if(idx>=0) db.clienti[idx]={...db.clienti[idx], ...saved, _ts: Date.now()};
-    saveDBLocal(db);
+    try{
+      const saved=await cloudSaveOne('cli', obj, db);
+      const idx=db.clienti.findIndex(x=>x.id===obj.id || (obj.telefono && x.telefono===obj.telefono) || x.nome===obj.nome);
+      if(idx>=0) db.clienti[idx]={...db.clienti[idx], ...saved, _ts: Date.now()};
+      saveDBLocal(db);
+    }catch(cloudErr){
+      cloudFailed=true;
+      console.error('Sync cloud cliente fallita', cloudErr);
+    }
   }
   hide('mCliEdit');
-  toast(cloudEnabled() ? 'Salvato anche nel cloud' : 'Salvato');
+  toast(cloudFailed ? 'Salvato in locale, ma cloud non aggiornato' : (cloudEnabled() ? 'Salvato anche nel cloud' : 'Salvato'));
 }
 async function deleteCli(){
   if(!currentCliId) return hide('mCliEdit');
@@ -2093,14 +2110,20 @@ async function saveOrd(){
   const i=db.ordini.findIndex(x=>x.id===obj.id);
   if(i>=0) db.ordini[i]=obj; else db.ordini.unshift(obj);
   if(!saveDB(db)) return;
+  let cloudFailed=false;
   if(cloudEnabled()){
-    const saved=await cloudSaveOne('ord', obj, db);
-    const idx=db.ordini.findIndex(x=>x.id===obj.id || x.id===saved?.id);
-    if(idx>=0) db.ordini[idx]={...db.ordini[idx], ...saved, _ts: Date.now()};
-    saveDBLocal(db);
+    try{
+      const saved=await cloudSaveOne('ord', obj, db);
+      const idx=db.ordini.findIndex(x=>x.id===obj.id || x.id===saved?.id);
+      if(idx>=0) db.ordini[idx]={...db.ordini[idx], ...saved, _ts: Date.now()};
+      saveDBLocal(db);
+    }catch(cloudErr){
+      cloudFailed=true;
+      console.error('Sync cloud ordine fallita', cloudErr);
+    }
   }
   hide('mOrdEdit');
-  toast(cloudEnabled() ? 'Salvato anche nel cloud' : 'Salvato');
+  toast(cloudFailed ? 'Salvato in locale, ma cloud non aggiornato' : (cloudEnabled() ? 'Salvato anche nel cloud' : 'Salvato'));
 }
 async function deleteOrd(){
   if(!currentOrdId) return hide('mOrdEdit');
