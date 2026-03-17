@@ -135,7 +135,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v9_3">
+  <meta name="vg-version" content="v9_4">
 </head>
 <body>
 <div class="top">
@@ -1645,42 +1645,89 @@ async function dataUrlToFile(dataUrl, filename='photo.jpg'){
 function slugifyFilePart(v){
   return String(v||'articolo').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') || 'articolo';
 }
+
 async function downloadCurrentArticlePhotos(){
   const db=loadDB();
   const a=db.articoli.find(x=>x.id===currentArtId);
   if(!a){ toast('Articolo non trovato'); return; }
   const pics=await getArticlePics(a);
   if(!pics.length){ toast('Nessuna foto da scaricare'); return; }
+
   const base=slugifyFilePart((a.codice||a.modello||a.brand||'articolo'));
-  let done=0;
+  const prepared=[];
+
   for(let i=0;i<pics.length;i++){
     const src=String(pics[i]||'').trim();
     if(!src) continue;
     try{
-      const ext = (/\.png($|\?)/i.test(src) ? 'png' : /\.webp($|\?)/i.test(src) ? 'webp' : 'jpg');
-      const name = `${base}-${i+1}.${ext}`;
-      const link=document.createElement('a');
+      let blob=null;
+      let ext='jpg';
       if(/^data:/i.test(src)){
-        link.href=src;
+        const res=await fetch(src);
+        blob=await res.blob();
       }else{
         const res=await fetch(src, {mode:'cors'});
-        const blob=await res.blob();
-        link.href=URL.createObjectURL(blob);
+        blob=await res.blob();
       }
-      link.download=name;
+      if((blob.type||'').includes('png')) ext='png';
+      else if((blob.type||'').includes('webp')) ext='webp';
+      prepared.push(new File([blob], `${base}-${i+1}.${ext}`, {type: blob.type || 'image/jpeg'}));
+    }catch(err){
+      console.warn('Preparazione download foto fallita', err);
+    }
+  }
+
+  if(!prepared.length){
+    toast('Download foto fallito');
+    return;
+  }
+
+  try{
+    if(navigator.canShare && navigator.share && navigator.canShare({files: prepared})){
+      await navigator.share({
+        files: prepared,
+        title: `Foto ${a.codice||a.modello||'articolo'}`,
+        text: 'Foto articolo'
+      });
+      toast(`Foto pronte (${prepared.length})`);
+      return;
+    }
+  }catch(err){
+    console.warn('Share foto non disponibile', err);
+  }
+
+  // Fallback: download diretto, su mobile i multipli possono essere limitati
+  let done=0;
+  for(let i=0;i<prepared.length;i++){
+    try{
+      const file=prepared[i];
+      const href=URL.createObjectURL(file);
+      const link=document.createElement('a');
+      link.href=href;
+      link.download=file.name;
       document.body.appendChild(link);
       link.click();
       link.remove();
-      if(link.href.startsWith('blob:')) setTimeout(()=>URL.revokeObjectURL(link.href), 3000);
+      setTimeout(()=>URL.revokeObjectURL(href), 3000);
       done++;
-      await new Promise(r=>setTimeout(r, 180));
+      await new Promise(r=>setTimeout(r, 350));
     }catch(err){
-      console.warn('Download foto fallito', err);
+      console.warn('Download diretto foto fallito', err);
     }
   }
-  toast(done ? `Scaricate ${done} foto` : 'Download foto fallito');
-}
 
+  if(done){
+    toast(done===prepared.length ? `Scaricate ${done} foto` : `Scaricate ${done}/${prepared.length} foto`);
+  }else{
+    // ultima spiaggia: apri la prima
+    try{
+      const href=URL.createObjectURL(prepared[0]);
+      window.open(href, '_blank');
+      toast('Aperta la prima foto');
+    }catch(_e){
+      toast('Download foto non supportato su questo browser');
+    }
+  }
 }
 
 async function saveArt(){
