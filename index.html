@@ -795,7 +795,12 @@ async function getArticlePics(a){
   if(cloudPics.length) return cloudPics;
   if(Array.isArray(a.photoIds) && a.photoIds.length){
     const out=[];
-    for(const id of a.photoIds){ const x=await idbGet(id); if(x) out.push(x); }
+    for(const id of a.photoIds){
+      const x=await idbGet(id);
+      if(!x) continue;
+      if(typeof x==='string') out.push(x);
+      else if(x instanceof Blob) out.push(URL.createObjectURL(x));
+    }
     return out;
   }
   return [];
@@ -1850,6 +1855,31 @@ async function compressImageFile(file,maxSide=1600,quality=0.78){
     img.src=src;
   });
 }
+async function compressImageBlob(file,maxSide=1600,quality=0.78){
+  const src=await fileToDataURL(file);
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    img.onload=()=>{
+      let w=img.width,h=img.height;
+      const scale=Math.min(1,maxSide/Math.max(w,h));
+      w=Math.max(1,Math.round(w*scale));
+      h=Math.max(1,Math.round(h*scale));
+      const canvas=document.createElement('canvas');
+      canvas.width=w; canvas.height=h;
+      const ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      canvas.toBlob((blob)=>{
+        if(blob) return res(blob);
+        try{
+          const fallback=canvas.toDataURL('image/jpeg',quality);
+          fetch(fallback).then(r=>r.blob()).then(res).catch(()=>rej(new Error('Compressione foto fallita')));
+        }catch(err){ rej(err); }
+      }, 'image/jpeg', quality);
+    };
+    img.onerror=()=>rej(new Error('Impossibile leggere la foto selezionata'));
+    img.src=src;
+  });
+}
 
 function duplicateCurrentArticle(){
   if(!currentArtId){ toast('Apri prima un articolo'); return; }
@@ -1933,40 +1963,33 @@ async function saveArt(){
     if(selectedFiles.length){
       obj.foto = Array.isArray(obj.foto) ? obj.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')) : [];
       obj.photoIds = Array.isArray(obj.photoIds) ? obj.photoIds.filter(Boolean) : [];
-      const maxNew=Math.max(0, 6 - obj.foto.length - obj.photoIds.length);
+      const existingCount=Math.max((obj.foto||[]).length, (obj.photoIds||[]).length);
+      const maxNew=Math.max(0, 6 - existingCount);
       const filesToSave=selectedFiles.slice(0,maxNew);
       if(selectedFiles.length>maxNew) photoUploadWarning=`Caricate ${maxNew} foto, limite massimo raggiunto`;
 
       if(filesToSave.length){
-        const uploaded=[];
         const localPhotoIds=[];
-        for(const [idx,file] of filesToSave.entries()){
+        for(const file of filesToSave){
           try{
-            if(cloudEnabled()){
-              const nextSlot=obj.foto.length + uploaded.length + 1;
-              const cloudPath=await uploadArticlePhotoToSupabase(file, code, nextSlot);
-              uploaded.push(cloudPath);
-            }else{
-              const dataUrl=await compressImageFile(file);
-              const pid='ph_'+uid();
-              await idbSet(pid, dataUrl);
-              localPhotoIds.push(pid);
-            }
-          }catch(photoErr){
-            console.warn('Salvataggio foto cloud fallito, provo in locale', photoErr);
+            const blob=await compressImageBlob(file);
+            const pid='ph_'+uid();
+            await idbSet(pid, blob);
+            localPhotoIds.push(pid);
+          }catch(localErr){
+            console.warn('Salvataggio foto locale fallito', localErr);
             try{
               const dataUrl=await compressImageFile(file);
               const pid='ph_'+uid();
               await idbSet(pid, dataUrl);
               localPhotoIds.push(pid);
-              photoUploadWarning='Una o più foto salvate solo in locale';
-            }catch(localErr){
-              console.warn('Salvataggio foto locale fallito', localErr);
+              photoUploadWarning='Una o più foto salvate in modalità compatibile';
+            }catch(fallbackErr){
+              console.warn('Fallback foto fallito', fallbackErr);
               photoUploadWarning='Una o più foto non salvate';
             }
           }
         }
-        obj.foto=[...new Set([...(obj.foto||[]), ...uploaded])].slice(0,6);
         obj.photoIds=[...new Set([...(obj.photoIds||[]), ...localPhotoIds])].slice(0,6);
       }
     }
