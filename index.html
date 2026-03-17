@@ -1210,14 +1210,26 @@ function renderPageState(name){
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.go===name));
   document.querySelectorAll('.navBottom button').forEach(b=>b.classList.toggle('active', b.dataset.go===name));
 }
+function currentHistoryPage(){
+  return (history.state&&history.state.page) || location.hash.replace('#','') || 'home';
+}
 function go(name, push=true){
   renderPageState(name);
-  if(push) history.pushState({page:name},'', '#'+name);
+  const state={page:name};
+  if(name==='articoli') state.artBrowse={...artBrowseState};
+  if(push) history.pushState(state,'', '#'+name);
+  else history.replaceState({...history.state, ...state},'', '#'+name);
 }
 window.addEventListener('popstate',(e)=>{
   if(activeModalId){ const mid=activeModalId; activeModalId=null; document.getElementById(mid).style.display='none'; return; }
-  const page=(e.state&&e.state.page) || location.hash.replace('#','') || 'home';
+  const state=e.state||{};
+  const page=state.page || location.hash.replace('#','') || 'home';
   renderPageState(page);
+  if(page==='articoli'){
+    const b=state.artBrowse||{level:'categorie',categoria:'',brand:''};
+    setArtBrowse(b.level||'categorie', b.categoria||'', b.brand||'', false);
+    renderArt();
+  }
 });
 
 /* ====== UI helpers ====== */
@@ -1415,21 +1427,22 @@ function renderHome(){
   renderShipAlerts();
 }
 
-function categoryKey(v){ return String(v||'').trim().toLowerCase(); }
-function uniqueCategoryNames(items=[]){
-  const map=new Map();
-  (items||[]).forEach(v=>{
-    const clean=String(v||'').trim();
-    const key=categoryKey(clean);
-    if(!key) return;
-    if(!map.has(key)) map.set(key, clean);
-  });
-  return [...map.values()].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+function normalizeCategoryName(v){
+  return String(v||'').trim().replace(/\s+/g,' ').toLowerCase();
 }
 function articleCategoryOptions(db){
   const saved=Array.isArray(db?.categorie)?db.categorie:[];
   const found=(db?.articoli||[]).map(a=>String(a?.categoria||'').trim()).filter(Boolean);
-  return uniqueCategoryNames([...saved, ...found]);
+  const out=[];
+  const seen=new Set();
+  for(const name of [...saved, ...found]){
+    const clean=String(name||'').trim().replace(/\s+/g,' ');
+    const key=normalizeCategoryName(clean);
+    if(!clean || seen.has(key)) continue;
+    seen.add(key);
+    out.push(clean);
+  }
+  return out.sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
 }
 function renderCategorySettings(){
   const db=loadDB();
@@ -1437,16 +1450,17 @@ function renderCategorySettings(){
   const hint=document.getElementById('catHint');
   if(!box) return;
   const cats=articleCategoryOptions(db);
-  const savedKeys=new Set((Array.isArray(db?.categorie)?db.categorie:[]).map(categoryKey));
-  box.innerHTML=cats.length?cats.map(c=>`<div class="row" style="grid-template-columns:1fr auto"><div class="main"><div class="t">${esc(c)}</div><div class="small">${savedKeys.has(categoryKey(c))?'Categoria salvata nelle impostazioni':'Categoria rilevata da articoli già esistenti'}</div></div><div><button class="btn danger smallish" type="button" data-action="deleteCategory" data-name="${esc(c)}">Elimina</button></div></div>`).join(''):'<div class="small">Nessuna categoria salvata.</div>';
-  if(hint) hint.textContent="Se elimini una categoria, sparisce dall'elenco rapido e gli articoli che la usavano restano senza categoria.";
+  const savedSet=new Set((Array.isArray(db?.categorie)?db.categorie:[]).map(normalizeCategoryName));
+  box.innerHTML=cats.length?cats.map(c=>`<div class="row" style="grid-template-columns:1fr auto"><div class="main"><div class="t">${esc(c)}</div><div class="small">${savedSet.has(normalizeCategoryName(c))?'Categoria salvata nelle impostazioni':'Categoria rilevata da articoli già esistenti'}</div></div><div><button class="btn danger smallish" type="button" data-action="deleteCategory" data-name="${esc(c)}">Elimina</button></div></div>`).join(''):'<div class="small">Nessuna categoria salvata.</div>';
+  if(hint) hint.textContent='Se elimini una categoria, viene tolta anche dagli articoli che la usavano. Gli articoli restano salvati e finiscono in Senza categoria.';
 }
 function addCategory(){
   const input=document.getElementById('catName');
   const nome=String(input?.value||'').trim();
   if(!nome){ toast('Scrivi il nome categoria'); return; }
   const db=loadDB();
-  db.categorie=uniqueCategoryNames([...(db.categorie||[]), nome]);
+  const next=[...new Set([...(db.categorie||[]), nome])].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.categorie=next;
   if(!saveDB(db)) return;
   if(input) input.value='';
   renderCategorySettings();
@@ -1454,18 +1468,23 @@ function addCategory(){
   toast('Categoria salvata');
 }
 function deleteCategory(nome){
-  const clean=String(nome||'').trim();
-  const key=categoryKey(clean);
-  if(!key) return;
-  askConfirm(`Elimino la categoria "${clean}"? Gli articoli che la usano resteranno senza categoria.`,()=>{
+  const clean=String(nome||'').trim().replace(/\s+/g,' ');
+  if(!clean) return;
+  askConfirm(`Elimino la categoria "${clean}"? Gli articoli restano salvati ma finiscono in "Senza categoria".`,()=>{
     const db=loadDB();
-    db.categorie=uniqueCategoryNames((db.categorie||[]).filter(c=>categoryKey(c)!==key));
-    db.articoli=(db.articoli||[]).map(a=> categoryKey(a?.categoria)===key ? {...a, categoria:''} : a);
+    const key=normalizeCategoryName(clean);
+    db.categorie=(db.categorie||[]).filter(c=>normalizeCategoryName(c)!==key);
+    db.articoli=(db.articoli||[]).map(a=>{
+      if(normalizeCategoryName(a?.categoria)!==key) return a;
+      return {...a, categoria:'', _ts: Date.now()};
+    });
     if(!saveDB(db)) return;
+    if(artBrowseState.categoria && normalizeCategoryName(artBrowseState.categoria)===key){
+      setArtBrowse('categorie','','',false);
+    }
     renderCategorySettings();
     refreshArticleCategorySelects();
-    if(artBrowseState?.categoria && categoryKey(artBrowseState.categoria)===key) setArtBrowse('categorie');
-    renderArticoli();
+    renderArt();
     toast('Categoria eliminata');
   },'Elimina categoria');
 }
@@ -1496,10 +1515,13 @@ function artIconForCategory(cat){
   const key=String(cat||'').trim().toLowerCase();
   return ART_ICONS[key] || '🛍️';
 }
-function setArtBrowse(level,categoria='',brand=''){
+function setArtBrowse(level,categoria='',brand='',pushHistory=true){
   artBrowseState.level=level;
   artBrowseState.categoria=categoria||'';
   artBrowseState.brand=brand||'';
+  if(pushHistory && currentHistoryPage()==='articoli'){
+    history.pushState({page:'articoli', artBrowse:{...artBrowseState}},'', '#articoli');
+  }
 }
 function renderArtBreadcrumbs(){
   const box=document.getElementById('artBreadcrumbs');
@@ -2232,18 +2254,33 @@ async function saveArt(){
 }
 async function deleteArt(){
   if(!currentArtId) return hide('mArtEdit');
-  
-  const db=loadDB();
-  const old=db.articoli.find(a=>a.id===currentArtId);
-  for(const pid of (old?.photoIds||[])) await idbDelete(pid);
-  await deleteArticlePhotosFromSupabase(old?.foto||[]);
-  db.articoli=db.articoli.filter(a=>a.id!==currentArtId);
-  currentArtId=null;
-  if(!saveDB(db)) return;
-  if(old && cloudEnabled()) await cloudDeleteOne('art', old);
-  hide('mArtEdit');
-  renderArt();
-  toast(cloudEnabled() ? 'Articolo eliminato anche dal cloud' : 'Articolo eliminato');
+  const artId=currentArtId;
+  askConfirm('Elimino questo articolo?', async ()=>{
+    const db=loadDB();
+    const old=db.articoli.find(a=>a.id===artId);
+    if(!old){ hide('mArtEdit'); hide('mArtView'); currentArtId=null; renderArt(); return; }
+    for(const pid of (old?.photoIds||[])){
+      try{ await idbDelete(pid); }catch(_e){}
+    }
+    try{ await deleteArticlePhotosFromSupabase(old?.foto||[]); }catch(_e){}
+    db.articoli=db.articoli.filter(a=>a.id!==artId);
+    currentArtId=null;
+    if(!saveDB(db)) return;
+    hide('mArtEdit');
+    hide('mArtView');
+    renderAll();
+    if(old && cloudEnabled()){
+      try{
+        await cloudDeleteOne('art', old);
+        toast('Articolo eliminato');
+      }catch(err){
+        console.error('Eliminazione cloud articolo fallita', err);
+        toast('Articolo eliminato, ma cloud non aggiornato');
+      }
+    }else{
+      toast('Articolo eliminato');
+    }
+  },'Elimina articolo');
 }
 
 function openCliView(id){
@@ -3030,7 +3067,7 @@ renderDiagnostics();
 fillUiEditor();
 applyUiPrefs();
 const initial=location.hash.replace('#','')||'home';
-history.replaceState({page:initial},'', '#'+initial);
+history.replaceState({page:initial, artBrowse:{...artBrowseState}},'', '#'+initial);
 go(initial,false);
 cloudUi();
 refreshAutoCloudPull();
