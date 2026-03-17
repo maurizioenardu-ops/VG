@@ -1606,8 +1606,8 @@ async function saveArt(){
       scadenzaPromo: document.getElementById('a_promo_date').value.trim(),
       post: document.getElementById('a_post').value,
       note: document.getElementById('a_note').value,
-      foto: Array.isArray(old?.foto) ? old.foto.slice() : [],
-      photoIds: Array.isArray(old?.photoIds) ? old.photoIds.slice() : []
+      foto: Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : [],
+      photoIds: []
     };
     const f=document.getElementById('a_photo').files[0];
     let photoUploadWarning='';
@@ -1615,8 +1615,9 @@ async function saveArt(){
       try{
         const nextSlot=(Array.isArray(obj.foto)?obj.foto.length:0)+1;
         const cloudPath=await uploadArticlePhotoToSupabase(f, code, nextSlot);
+        obj.foto = Array.isArray(obj.foto) ? obj.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')) : [];
         obj.foto.unshift(cloudPath);
-        obj.foto=obj.foto.slice(0,6);
+        obj.foto=[...new Set(obj.foto)].slice(0,6);
         obj.photoIds=[];
       }catch(photoErr){
         console.warn('Upload foto Supabase fallito', photoErr);
@@ -1945,7 +1946,7 @@ function importDB(file){
       }
       localStorage.setItem(KEY, JSON.stringify(o));
       renderAll();
-      document.getElementById('importHint').textContent = 'Import OK. Database ricaricato con foto su IndexedDB.';
+      document.getElementById('importHint').textContent = 'Import OK. Database ricaricato.';
       toast('Import OK');
     }catch(e){
       toast('Import fallito'); console.error(e);
