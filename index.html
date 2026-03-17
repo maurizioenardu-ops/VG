@@ -1610,12 +1610,18 @@ async function saveArt(){
       photoIds: Array.isArray(old?.photoIds) ? old.photoIds.slice() : []
     };
     const f=document.getElementById('a_photo').files[0];
+    let photoUploadWarning='';
     if(f){
-      const nextSlot=(Array.isArray(obj.foto)?obj.foto.length:0)+1;
-      const cloudPath=await uploadArticlePhotoToSupabase(f, code, nextSlot);
-      obj.foto.unshift(cloudPath);
-      obj.foto=obj.foto.slice(0,6);
-      obj.photoIds=[];
+      try{
+        const nextSlot=(Array.isArray(obj.foto)?obj.foto.length:0)+1;
+        const cloudPath=await uploadArticlePhotoToSupabase(f, code, nextSlot);
+        obj.foto.unshift(cloudPath);
+        obj.foto=obj.foto.slice(0,6);
+        obj.photoIds=[];
+      }catch(photoErr){
+        console.warn('Upload foto Supabase fallito', photoErr);
+        photoUploadWarning='Foto non caricata su cloud';
+      }
     }
     obj._ts=Date.now();
     const i=db.articoli.findIndex(x=>x.id===obj.id);
@@ -1632,7 +1638,7 @@ async function saveArt(){
       saveDBLocal(db);
     }
     hide('mArtEdit');
-    toast(cloudEnabled() ? 'Salvato anche nel cloud' : 'Salvato');
+    toast(photoUploadWarning || (cloudEnabled() ? 'Salvato anche nel cloud' : 'Salvato'));
   }catch(err){
     toast('Errore salvataggio articolo'); console.error(err);
   }
