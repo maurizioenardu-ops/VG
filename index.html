@@ -1489,20 +1489,6 @@ function renderHome(){
 function normalizeCategoryName(v){
   return String(v||'').trim().replace(/\s+/g,' ').toLowerCase();
 }
-function categoryDisplayName(v){
-  const clean=String(v||'').trim().replace(/\s+/g,' ');
-  return clean || 'Senza categoria';
-}
-function isUncategorizedValue(v){
-  const clean=String(v||'').trim().replace(/\s+/g,' ');
-  return !clean || normalizeCategoryName(clean)==='senza categoria';
-}
-function categoryMatchesBrowseValue(rawValue,browseValue){
-  const target=String(browseValue||'').trim();
-  if(!target) return true;
-  if(normalizeCategoryName(target)==='senza categoria') return isUncategorizedValue(rawValue);
-  return String(rawValue||'').trim()===target;
-}
 function articleCategoryOptions(db){
   const saved=Array.isArray(db?.categorie)?db.categorie:[];
   const found=(db?.articoli||[]).map(a=>String(a?.categoria||'').trim()).filter(Boolean);
@@ -1584,8 +1570,28 @@ const ART_ICONS={
   'gioielli':'💍','orologi':'⌚','occhiali':'🕶️','accessori':'✨'
 };
 const artBrowseState={level:'categorie',categoria:'',brand:''};
+function normalizeCategoryValue(raw){
+  const v=String(raw??'').trim();
+  return (!v || /^senza\s+categoria$/i.test(v)) ? '' : v;
+}
+function displayCategoryValue(raw){
+  return normalizeCategoryValue(raw) || 'Senza categoria';
+}
+function normalizeBrandValue(raw){
+  const v=String(raw??'').trim();
+  return (!v || /^senza\s+brand$/i.test(v)) ? '' : v;
+}
+function displayBrandValue(raw){
+  return normalizeBrandValue(raw) || 'Senza brand';
+}
+function matchesBrowseCategory(articleValue, browseValue){
+  return displayCategoryValue(articleValue)===displayCategoryValue(browseValue);
+}
+function matchesBrowseBrand(articleValue, browseValue){
+  return displayBrandValue(articleValue)===displayBrandValue(browseValue);
+}
 function artIconForCategory(cat){
-  const key=String(cat||'').trim().toLowerCase();
+  const key=normalizeCategoryValue(cat).toLowerCase();
   return ART_ICONS[key] || '🛍️';
 }
 function setArtBrowse(level,categoria='',brand='',pushHistory=true){
@@ -1615,9 +1621,11 @@ function renderArt(){
   const q=document.getElementById('qArt').value.trim().toLowerCase();
   const catFilter=String(document.getElementById('qArtCat')?.value||'').trim();
   const items=db.articoli.filter(a=>{
-    const hay=((a.codice||'')+' '+(a.brand||'')+' '+(a.modello||'')+' '+(a.categoria||'')+' '+(a.descrizione||'')+' '+(a.colore||'')+' '+(a.taglia||'')+' '+(a.variante||'')).toLowerCase();
+    const catLabel=displayCategoryValue(a.categoria);
+    const brandLabel=displayBrandValue(a.brand);
+    const hay=((a.codice||'')+' '+brandLabel+' '+(a.modello||'')+' '+catLabel+' '+(a.descrizione||'')+' '+(a.colore||'')+' '+(a.taglia||'')+' '+(a.variante||'')).toLowerCase();
     const okText=!q || hay.includes(q);
-    const okCat=!catFilter || categoryMatchesBrowseValue(a.categoria, catFilter);
+    const okCat=!catFilter || displayCategoryValue(a.categoria)===displayCategoryValue(catFilter);
     return okText && okCat;
   }).sort((a,b)=>Number(b._ts||0)-Number(a._ts||0));
   const el=document.getElementById('listArt');
@@ -1628,7 +1636,7 @@ function renderArt(){
       return `<div class="artCard tight" data-open="art" data-id="${a.id}">
         <img class="artThumbLarge" data-photo-for="${a.id}"/>
         <div class="artPlaceholder" data-placeholder-for="${a.id}">${artIconForCategory(a.categoria)}</div>
-        <div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${esc(a.brand||'Brand non indicato')} • ${esc(categoryDisplayName(a.categoria))}</div>${promo}</div>
+        <div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))}</div>${promo}</div>
         <div class="artPrice">${money(currentPrice(a))}</div>
         <div class="artActions"><button class="btn orderAdd small" type="button" data-action="addArtToOrder" data-id="${a.id}">Aggiungi a ordine</button></div>
       </div>`;
@@ -1639,7 +1647,7 @@ function renderArt(){
   }
 
   if(artBrowseState.level==='articoli' && artBrowseState.categoria && artBrowseState.brand){
-    const scoped=items.filter(a=>categoryMatchesBrowseValue(a.categoria, artBrowseState.categoria) && String(a.brand||'').trim()===artBrowseState.brand);
+    const scoped=items.filter(a=>matchesBrowseCategory(a.categoria, artBrowseState.categoria) && matchesBrowseBrand(a.brand, artBrowseState.brand));
     const cards=scoped.map(a=>{
       const promo=pseudoPromoBadge(a);
       return `<div class="artCard tight" data-open="art" data-id="${a.id}">
@@ -1656,10 +1664,10 @@ function renderArt(){
   }
 
   if(artBrowseState.level==='brands' && artBrowseState.categoria){
-    const scoped=items.filter(a=>categoryMatchesBrowseValue(a.categoria, artBrowseState.categoria));
+    const scoped=items.filter(a=>matchesBrowseCategory(a.categoria, artBrowseState.categoria));
     const groups=new Map();
     scoped.forEach(a=>{
-      const brand=String(a.brand||'Senza brand').trim()||'Senza brand';
+      const brand=displayBrandValue(a.brand);
       if(!groups.has(brand)) groups.set(brand,{brand,count:0,latest:0});
       const g=groups.get(brand); g.count+=1; g.latest=Math.max(g.latest,Number(a._ts||0));
     });
@@ -1670,9 +1678,9 @@ function renderArt(){
 
   const groups=new Map();
   items.forEach(a=>{
-    const categoria=categoryDisplayName(a.categoria);
+    const categoria=displayCategoryValue(a.categoria);
     if(!groups.has(categoria)) groups.set(categoria,{categoria,count:0,latest:0,brands:new Set()});
-    const g=groups.get(categoria); g.count+=1; g.latest=Math.max(g.latest,Number(a._ts||0)); if(a.brand) g.brands.add(String(a.brand).trim());
+    const g=groups.get(categoria); g.count+=1; g.latest=Math.max(g.latest,Number(a._ts||0)); if(normalizeBrandValue(a.brand)) g.brands.add(normalizeBrandValue(a.brand));
   });
   const cats=[...groups.values()].sort((a,b)=>b.count-a.count || b.latest-a.latest || a.categoria.localeCompare(b.categoria));
   el.innerHTML=cats.map(g=>`<div class="artCard" data-action="openArtCategory" data-category="${esc(g.categoria)}"><div class="artCardHead"><div class="artMeta"><div class="t">${esc(g.categoria)}</div><div class="s">Categorie articoli</div></div><div class="artIcon">${artIconForCategory(g.categoria)}</div></div><div class="artCount">${g.count} articol${g.count===1?'o':'i'} • ${g.brands.size} brand</div></div>`).join('') || `<div class="card" style="grid-column:1/-1"><div class="small">Nessun articolo</div></div>`;
