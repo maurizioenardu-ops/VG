@@ -1,0 +1,6 @@
+Correzione fatta solo su Scarica foto negli articoli.
+
+Fix reali:
+- converte i path storage Supabase (es. codice/1.jpg) in URL pubblici prima di preparare i file
+- se la condivisione file non è supportata, prova ad aprire la condivisione dei link foto
+- se i file non si preparano, non resta muto: prova comunque la condivisione link

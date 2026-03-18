@@ -1310,9 +1310,11 @@ async function buildArticlePhotoFiles(art, pics, baseName){
   const files=[];
   for(let i=0;i<pics.length;i++){
     try{
-      const src=pics[i];
-      const blob=await blobFromPhotoSrc(src);
-      const ext=guessPhotoExtension(src, blob);
+      const rawSrc=String(pics[i]||'').trim();
+      const fetchSrc = (/^data:|^https?:\/\/|^blob:/i.test(rawSrc)) ? rawSrc : (await getPublicFotoUrl(rawSrc));
+      if(!fetchSrc) throw new Error('URL foto non disponibile');
+      const blob=await blobFromPhotoSrc(fetchSrc);
+      const ext=guessPhotoExtension(fetchSrc || rawSrc, blob);
       const type=blob?.type || (ext==='png' ? 'image/png' : ext==='webp' ? 'image/webp' : ext==='gif' ? 'image/gif' : 'image/jpeg');
       const name=`${baseName}_${String(i+1).padStart(2,'0')}.${ext}`;
       files.push(new File([blob], name, { type, lastModified: Date.now() }));
@@ -1321,6 +1323,31 @@ async function buildArticlePhotoFiles(art, pics, baseName){
     }
   }
   return files;
+}
+async function tryNativeShareArticleLinks(pics, baseName){
+  try{
+    if(typeof navigator==='undefined' || typeof navigator.share!=='function' || !pics?.length) return false;
+    const urls=[];
+    for(const raw of pics){
+      const clean=String(raw||'').trim();
+      if(!clean) continue;
+      const url = (/^https?:\/\//i.test(clean)) ? clean : await getPublicFotoUrl(clean);
+      if(url && /^https?:\/\//i.test(url) && !urls.includes(url)) urls.push(url);
+      if(urls.length>=10) break;
+    }
+    if(!urls.length) return false;
+    const payload = {
+      title:`Foto ${baseName}`,
+      text:`Foto articolo ${baseName}\n\n${urls.join('\n')}`
+    };
+    if(urls.length===1) payload.url = urls[0];
+    await navigator.share(payload);
+    return true;
+  }catch(err){
+    if(err && err.name==='AbortError') return 'abort';
+    console.warn('Condivisione link foto fallita', err);
+    return false;
+  }
 }
 async function downloadCurrentArticlePhotos(){
   const db=loadDB();
@@ -1340,6 +1367,12 @@ async function downloadCurrentArticlePhotos(){
           : `Seleziona Galleria, Foto o File per salvare ${__articlePhotoShareCache.files.length} foto.`);
         return;
       }
+      const sharedLinks = await tryNativeShareArticleLinks(pics, baseName);
+      if(sharedLinks===true){
+        toast('Condivisione aperta. Il browser sta inviando i link delle foto.');
+        return;
+      }
+      if(sharedLinks==='abort') return;
     }catch(err){
       if(err && err.name==='AbortError') return;
       console.warn('Condivisione nativa foto da cache fallita', err);
@@ -1348,7 +1381,16 @@ async function downloadCurrentArticlePhotos(){
 
   toast(`Preparo ${pics.length} foto...`);
   const files=await buildArticlePhotoFiles(art, pics, baseName);
-  if(!files.length){ toast('Download foto fallito'); return; }
+  if(!files.length){
+    const sharedLinks = await tryNativeShareArticleLinks(pics, baseName);
+    if(sharedLinks===true){
+      toast('Condivisione aperta. Il browser sta inviando i link delle foto.');
+      return;
+    }
+    if(sharedLinks==='abort') return;
+    toast('Condivisione foto fallita');
+    return;
+  }
   __articlePhotoShareCache = { key: cacheKey, files, at: Date.now() };
 
   try{
@@ -1368,6 +1410,13 @@ async function downloadCurrentArticlePhotos(){
       return;
     }
   }
+
+  const sharedLinks = await tryNativeShareArticleLinks(pics, baseName);
+  if(sharedLinks===true){
+    toast('Condivisione aperta. Il browser sta inviando i link delle foto.');
+    return;
+  }
+  if(sharedLinks==='abort') return;
 
   let ok=0;
   for(let i=0;i<files.length;i++){
