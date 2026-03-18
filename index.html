@@ -311,8 +311,8 @@ window.addEventListener('error',e=>{
         </div>
         <div class="actions">
           <button id="btnCloudLogin" class="btn" type="button">Login cloud</button>
-          <button class="btn" type="button" data-action="cloudPull">Carica cloud</button>
-          <button class="btn" type="button" data-action="cloudPush">Invia cloud</button>
+          <button id="btnCloudPull" class="btn" type="button" data-action="cloudPull">Carica cloud</button>
+          <button id="btnCloudPush" class="btn" type="button" data-action="cloudPush">Invia cloud</button>
           <button id="btnCloudLogout" class="btn danger" type="button">Esci</button>
         </div>
       </div>
@@ -1213,16 +1213,12 @@ function emojiQualityForPost(a){
   return (q==='ORIGINALE') ? '🥇' : '🔝💯';
 }
 function buildPost(a){
-  const brand=(a.brand||'').trim();
   const modello=(a.modello||'').trim();
   if(!a.codice) return '';
   const qemoji=emojiQualityForPost(a);
   let lines=[];
   if(a.promoAttiva) lines.push('🔥PROMOZIONE🔥');
-  lines.push(`${brand} ${modello} ${qemoji}`.trim());
-  const qual=qualityFromCode(a.codice);
-  if(qual==='ORIGINALE') lines.push('QUALITÀ SUPERIORE');
-  else if(qual) lines.push(`Qualità ${qual}`);
+  lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
   if((a.descrizione||'').trim()) lines.push((a.descrizione||'').trim());
   const detail=[];
   if(a.taglia) detail.push(`Taglia ${a.taglia}`);
@@ -3015,8 +3011,8 @@ document.addEventListener('click',(ev)=>{
   if(a==='addRow') return addRow();
   if(a==='track17') return openTrack17();
   if(a==='openParcel') return openTrackParcel();
-  if(a==='cloudPull'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pullCloudToLocal().catch(err=>{toast('Sync cloud fallita'); console.error(err);}); }
-  if(a==='cloudPush'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pushLocalToCloud().catch(err=>{toast('Sync cloud fallita'); console.error(err);}); }
+  if(a==='cloudPull'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pullCloudToLocal().catch(err=>{toast(err?.message||'Carica cloud fallita'); console.error(err);}); }
+  if(a==='cloudPush'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pushLocalToCloud().catch(err=>{toast(err?.message||'Invia cloud fallita'); console.error(err);}); }
   if(a==='doCloudLogin') return cloudLogin();
   if(a==='closeCloudLogin') return hide('mCloudLogin');
   if(a==='confirmYes') return closeConfirm(true);
@@ -3098,22 +3094,29 @@ function cloudUi(){
   const uiPrefs=loadUiPrefs();
   const s=document.getElementById('cloudState');
   const bIn=document.getElementById('btnCloudLogin');
-  const bSync=document.getElementById('btnCloudSync');
+  const bPull=document.getElementById('btnCloudPull');
+  const bPush=document.getElementById('btnCloudPush');
   const bOut=document.getElementById('btnCloudLogout');
-  if(!s||!bIn||!bSync||!bOut) return;
+  if(!s||!bIn||!bPull||!bPush||!bOut) return;
   const logged=!!cloudSession;
   const hide=(el,on)=>{ el.hidden=!!on; el.style.display=on?'none':''; };
+  const setDisabled=(el,on)=>{ el.disabled=!!on; el.style.opacity=on?'.65':''; };
   if(!window.VG_SUPABASE_READY){
     s.textContent=uiPrefs.cloud||'Cloud';
-    hide(bIn,true); hide(bSync,true); hide(bOut,true);
+    hide(bIn,true); hide(bPull,true); hide(bPush,true); hide(bOut,true);
     return;
   }
   if(cloudBusy){ s.textContent=(uiPrefs.cloud||'Cloud')+': lavoro in corso…'; }
-  else if(cloudSession?.user?.email){ s.textContent=uiPrefs.cloud||'Cloud'; }
+  else if(cloudSession?.user?.email){ s.textContent=`${uiPrefs.cloud||'Cloud'}: ${cloudSession.user.email}`; }
   else { s.textContent=uiPrefs.cloud||'Cloud'; }
   hide(bIn,logged);
-  hide(bSync,!logged);
+  hide(bPull,!logged);
+  hide(bPush,!logged);
   hide(bOut,!logged);
+  setDisabled(bIn,cloudBusy);
+  setDisabled(bPull,cloudBusy||!logged);
+  setDisabled(bPush,cloudBusy||!logged);
+  setDisabled(bOut,cloudBusy||!logged);
 }
 function cloudEnabled(){ return !!(window.VG_SUPABASE_READY && cloudSession); }
 async function cloudSaveOne(type, payload, dbRef){
@@ -3307,7 +3310,10 @@ async function pullCloudToLocal(opts={}){
   const sb=await ensureCloud();
   if(!sb||!cloudSession) throw new Error('Login cloud mancante');
   const bg=!!opts.background;
-  if(!bg){ cloudBusy=true; cloudUi(); }
+  if(!bg){
+    try{ localStorage.setItem(KEY+'_backup_before_cloud_pull', localStorage.getItem(KEY)||''); }catch(_){ }
+    cloudBusy=true; cloudUi();
+  }
   try{
     const [{data:cats,error:catsErr},{data:prod,error:prodErr},{data:cli,error:cliErr},{data:ord,error:ordErr},{data:righe,error:righeErr},{data:fotos,error:fotosErr}] = await Promise.all([
       sb.from('categorie').select('id,nome'),
@@ -3357,6 +3363,10 @@ async function pushLocalToCloud(){
   cloudBusy=true; cloudUi();
   try{
     const db=loadDB();
+    if(!db.articoli.length && !db.clienti.length && !db.ordini.length){
+      toast('Niente da inviare al cloud');
+      return;
+    }
     const artIdMap=new Map();
     const cliIdMap=new Map();
     for(let i=0;i<db.articoli.length;i++){
