@@ -160,7 +160,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v9_2">
+  <meta name="vg-version" content="v9_3">
 </head>
 <body>
 <div class="top">
@@ -683,6 +683,7 @@ function normalizeDBShape(o){
     foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,12):[],
     fotoManuali:Array.isArray(x?.fotoManuali)?x.fotoManuali.filter(Boolean).slice(0,12):[],
     fotoArticoli:Array.isArray(x?.fotoArticoli)?x.fotoArticoli.filter(Boolean).slice(0,12):[],
+    orderPhotoIds:Array.isArray(x?.orderPhotoIds)?x.orderPhotoIds.filter(Boolean).slice(0,12):[],
     totale:Number(x?.totale||0),
     incassato:Number(x?.incassato||0)
   }));
@@ -766,7 +767,9 @@ function loadDB(){
 }
 function saveDB(db){
   try{
-    localStorage.setItem(KEY, JSON.stringify(db));
+    const raw=JSON.stringify(db);
+    localStorage.setItem(KEY, raw);
+    try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
     const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
     legacyKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
   }catch(err){
@@ -901,6 +904,41 @@ async function getArticlePics(a){
     return out;
   }
   return [];
+}
+async function getStoredPhotoSources(ids=[]){
+  const out=[];
+  for(const id of (ids||[])){
+    try{
+      const x=await idbGet(id);
+      if(!x) continue;
+      if(typeof x==='string') out.push(x);
+      else if(x instanceof Blob) out.push(URL.createObjectURL(x));
+    }catch(_e){}
+  }
+  return out;
+}
+async function getOrderManualPics(ord){
+  const legacy=Array.isArray(ord?.fotoManuali)?ord.fotoManuali.filter(Boolean).slice(0,12):[];
+  const stored=await getStoredPhotoSources(Array.isArray(ord?.orderPhotoIds)?ord.orderPhotoIds.filter(Boolean).slice(0,12):[]);
+  return mergeUniquePics(legacy, stored).slice(0,12);
+}
+async function getOrderPics(ord, db){
+  const articlePics=await getOrderArticleSnapshotPhotos(ord?.righe||[], db||loadDB());
+  const manualPics=await getOrderManualPics(ord||{});
+  return mergeUniquePics(articlePics, manualPics).slice(0,12);
+}
+async function blobToDataUrl(blob){
+  return await new Promise((res,rej)=>{
+    const fr=new FileReader();
+    fr.onload=()=>res(String(fr.result||''));
+    fr.onerror=()=>rej(fr.error||new Error('Lettura file fallita'));
+    fr.readAsDataURL(blob);
+  });
+}
+async function requestPersistentStorage(){
+  try{
+    if(navigator.storage?.persist) await navigator.storage.persist();
+  }catch(_e){}
 }
 async function blobFromPhotoSrc(src){
   const val=String(src||'').trim();
@@ -2430,8 +2468,7 @@ async function saveArt(){
     const r=calcFromUsd(usd, qual);
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
     const obj={
-      ...(old||{}),
-      id: currentArtId||old?.id||uid(),
+      id: currentArtId||uid(),
       codice: code,
       brand: getArticleBrandValue(),
       modello: document.getElementById('a_mod').value.trim(),
@@ -2451,7 +2488,7 @@ async function saveArt(){
       scadenzaPromo: document.getElementById('a_promo_date').value.trim(),
       post: document.getElementById('a_post').value,
       note: document.getElementById('a_note').value,
-      foto: Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : (Array.isArray(old?.photos) ? old.photos.filter(Boolean).slice() : []),
+      foto: Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : [],
       photoIds: Array.isArray(old?.photoIds) ? old.photoIds.filter(Boolean).slice() : []
     };
     const photoInput=document.getElementById('a_photo');
@@ -2611,7 +2648,7 @@ async function refreshOrdPhotoPreviewFromState(){
   setTimeout(()=>revokeObjectUrls(blobUrls), 1200);
 }
 
-function openOrdView(id){
+async function openOrdView(id){
   const db=loadDB(); const o=db.ordini.find(x=>x.id===id);
   if(!o) return;
   currentOrdId=id;
@@ -2625,7 +2662,7 @@ function openOrdView(id){
   document.getElementById('vOrdTot').textContent=money(o.totale||0);
   const rows=document.getElementById('vOrdRows');
   rows.innerHTML=(o.righe||[]).map(r=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(r.codice||'')} • ${esc(r.modello||'')}</div><div class="s">${money(r.prezzo||0)}</div></div><div class="pill">Riga</div></div>`).join('') || `<div class="small">Nessuna riga</div>`;
-  const ordPics=mergeUniquePics(o.foto||[], o.fotoArticoli||[], o.fotoManuali||[]);
+  const ordPics=await getOrderPics(o, db);
   document.getElementById('vOrdPhotos').innerHTML=ordPics.map(src=>`<img src="${src}" onclick="window.open('${src}','_blank','noopener')"/>`).join('');
   document.getElementById('vOrdPhotosEmpty').style.display=ordPics.length?'none':'block';
   show('mOrdView');
@@ -2661,10 +2698,8 @@ async function saveCli(){
     toast('Cliente già esistente');
     return;
   }
-  const old=currentCliId?db.clienti.find(x=>x.id===currentCliId):null;
   const obj={
-    ...(old||{}),
-    id: currentCliId||old?.id||uid(),
+    id: currentCliId||uid(),
     nome,
     telefono: document.getElementById('c_tel').value.trim(),
     indirizzo: document.getElementById('c_ind').value.trim(),
@@ -2723,7 +2758,7 @@ async function openOrdEdit(id, prefillArticleId=null){
   document.getElementById('o_art').value='';
   document.getElementById('o_price').value='';
   document.getElementById('o_photo').value='';
-  currentOrdExistingManualPhotos=Array.isArray(o?.fotoManuali) ? o.fotoManuali.filter(Boolean).slice(0,12) : [];
+  currentOrdExistingManualPhotos=o ? await getOrderManualPics(o) : [];
   ordRows=(o?.righe||[]).slice();
   if(prefillArticleId){
     const a=db.articoli.find(x=>x.id===prefillArticleId);
@@ -2823,21 +2858,37 @@ async function saveOrd(){
   if(!cli){ toast('Seleziona un cliente'); return; }
   if(!ordRows.length){ toast('Aggiungi almeno una riga'); return; }
   const tot=ordRows.reduce((s,r)=>s+Number(r.prezzo||0),0);
+  const old=currentOrdId?db.ordini.find(x=>x.id===currentOrdId):null;
   const articlePics=await getOrderArticleSnapshotPhotos(ordRows, db);
   const photoInput=document.getElementById('o_photo');
   const selectedFiles=Array.from(photoInput?.files||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
-  const manualBase=Array.isArray(currentOrdExistingManualPhotos) ? currentOrdExistingManualPhotos.filter(Boolean) : [];
-  const maxNew=Math.max(0, 12 - mergeUniquePics(articlePics, manualBase).length);
-  const newManual=[];
+  const existingManualIds=Array.isArray(old?.orderPhotoIds)?old.orderPhotoIds.filter(Boolean).slice(0,12):[];
+  const existingManualLegacy=Array.isArray(old?.fotoManuali)?old.fotoManuali.filter(Boolean).slice(0,12):[];
+  const existingManualCount=Math.max(existingManualIds.length, existingManualLegacy.length, Array.isArray(currentOrdExistingManualPhotos)?currentOrdExistingManualPhotos.length:0);
+  const maxNew=Math.max(0, 12 - mergeUniquePics(articlePics, currentOrdExistingManualPhotos).length);
+  const newManualIds=[];
+  const newManualLegacy=[];
   for(const file of selectedFiles.slice(0,maxNew)){
-    try{ newManual.push(await compressImageFile(file, 1400, 0.76)); }catch(err){ console.warn('Compressione foto ordine fallita', err); }
+    try{
+      const blob=await compressImageBlob(file);
+      const pid='oph_'+uid();
+      await idbSet(pid, blob);
+      newManualIds.push(pid);
+    }catch(err){
+      console.warn('Compressione foto ordine fallita', err);
+      try{
+        const dataUrl=await compressImageFile(file, 1400, 0.76);
+        const pid='oph_'+uid();
+        await idbSet(pid, dataUrl);
+        newManualIds.push(pid);
+        newManualLegacy.push(dataUrl);
+      }catch(_e){}
+    }
   }
-  const manualPics=mergeUniquePics(manualBase, newManual);
-  const allOrderPics=mergeUniquePics(articlePics, manualPics);
-  const old=currentOrdId?db.ordini.find(x=>x.id===currentOrdId):null;
+  const manualCount=existingManualCount + newManualIds.length;
+  const allOrderPics=mergeUniquePics(articlePics, currentOrdExistingManualPhotos);
   const obj={
-    ...(old||{}),
-    id: currentOrdId||old?.id||('ORD-'+uid().slice(0,6).toUpperCase()),
+    id: currentOrdId||('ORD-'+uid().slice(0,6).toUpperCase()),
     clienteId: cli,
     stato: document.getElementById('o_stato').value,
     data: document.getElementById('o_data').value.trim()||todayStr(),
@@ -2845,9 +2896,10 @@ async function saveOrd(){
     mis: document.getElementById('o_mis').value.trim(),
     tracking: document.getElementById('o_tracking').value.trim(),
     righe: ordRows.slice(),
-    fotoArticoli: articlePics,
-    fotoManuali: manualPics,
-    foto: allOrderPics,
+    fotoArticoli: [],
+    fotoManuali: [...existingManualLegacy, ...newManualLegacy].slice(0,12),
+    orderPhotoIds: [...new Set([...existingManualIds, ...newManualIds])].slice(0,12),
+    foto: [],
     totale: tot,
     _ts: Date.now()
   };
@@ -2855,7 +2907,7 @@ async function saveOrd(){
   if(i>=0) db.ordini[i]=obj; else db.ordini.unshift(obj);
   if(!saveDB(db)) return;
   hide('mOrdEdit');
-  toast(allOrderPics.length ? 'Ordine salvato con foto' : 'Ordine salvato');
+  toast(manualCount || articlePics.length ? 'Ordine salvato con foto' : 'Ordine salvato');
   if(cloudEnabled()){
     try{
       const saved=await cloudSaveOne('ord', obj, db);
@@ -2873,6 +2925,9 @@ async function deleteOrd(){
   
   const db=loadDB();
   const old=db.ordini.find(o=>o.id===currentOrdId);
+  for(const pid of (old?.orderPhotoIds||[])){
+    try{ await idbDelete(pid); }catch(_e){}
+  }
   db.ordini=db.ordini.filter(o=>o.id!==currentOrdId);
   if(!saveDB(db)) return;
   if(old && cloudEnabled()) await cloudDeleteOne('ord', old);
@@ -2907,16 +2962,11 @@ function importDB(file){
       if(!incoming || !Array.isArray(incoming.articoli)||!Array.isArray(incoming.clienti)||!Array.isArray(incoming.ordini)) throw new Error('JSON non compatibile');
       for(const art of incoming.articoli){
         art.photoIds=Array.isArray(art.photoIds)?art.photoIds.filter(Boolean).slice(0,6):[];
-        const incomingPics = Array.isArray(art.foto) ? art.foto.slice(0,6) : (Array.isArray(art.photos) ? art.photos.slice(0,6) : (Array.isArray(art.immagini) ? art.immagini.slice(0,6) : []));
-        if(incomingPics.length){
-          for(const src of incomingPics){
-            try{
-              const pid='ph_'+uid();
-              await idbSet(pid,src);
-              art.photoIds.push(pid);
-            }catch(photoErr){
-              console.warn('Import foto fallito', photoErr);
-            }
+        if(Array.isArray(art.foto) && art.foto.length){
+          for(const src of art.foto.slice(0,6)){
+            const pid='ph_'+uid();
+            await idbSet(pid,src);
+            art.photoIds.push(pid);
           }
         }
         art.foto=[];
@@ -2940,13 +2990,10 @@ function importDB(file){
       document.getElementById('importHint').textContent = mode==='merge' ? 'Import OK. JSON unito ai dati già presenti.' : 'Import OK. Database sostituito con il JSON.';
       toast(mode==='merge' ? 'Import unito ai dati attuali' : 'Import sostitutivo completato');
     }catch(e){
-      const msg=e?.message||String(e)||'Errore sconosciuto';
-      toast('Import fallito: '+msg); console.error(e);
-      const hint=document.getElementById('importHint');
-      if(hint) hint.textContent='Import fallito: '+msg;
+      toast('Import fallito'); console.error(e);
     }
   };
-  r.readAsText(file, 'utf-8');
+  r.readAsText(file);
 }
 
 /* ====== EVENTS ====== */
@@ -3199,7 +3246,7 @@ async function ensureCloud(){
   return cloudClient;
 }
 function saveDBLocal(db){
-  try{ localStorage.setItem(KEY, JSON.stringify(db)); }catch(err){ console.error(err); }
+  try{ const raw=JSON.stringify(db); localStorage.setItem(KEY, raw); try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){} }catch(err){ console.error(err); }
 }
 async function ensureCategoryId(nome){
   if(!nome) return null;
@@ -3216,7 +3263,7 @@ async function upsertCloudArticle(art){
   const payload={
     sku: art.codice||null,
     nome: [art.brand, art.modello].filter(Boolean).join(' ').trim() || art.modello || art.codice || 'Articolo',
-    descrizione: art.descrizione || art.note || null,
+    descrizione: [art.descrizione||'', art.note?`Note: ${art.note}`:'', art.post?`Post: ${art.post}`:''].filter(Boolean).join('\n\n') || null,
     categoria_id,
     marca: art.brand || null,
     colore: art.colore || null,
@@ -3391,10 +3438,17 @@ async function pullCloudToLocal(opts={}){
       arr.push({articoloId:r.prodotto_id,codice:r.prodotti?.sku||prodMap.get(r.prodotto_id)?.sku||'',modello:r.prodotti?.nome||prodMap.get(r.prodotto_id)?.nome||'',prezzo:Number(r.prezzo_unitario||0)});
       righeByOrd.set(r.ordine_id,arr);
     });
+    const localDb=loadDB();
+    const localArtById=new Map((localDb.articoli||[]).map(a=>[a.id,a]));
+    const localArtByCode=new Map((localDb.articoli||[]).map(a=>[safeLower(a.codice),a]));
+    const localOrdById=new Map((localDb.ordini||[]).map(o=>[o.id,o]));
     const db={version:'v6',createdAt:new Date().toISOString(),
-      articoli:(prod||[]).map(p=>({id:p.id,codice:p.sku||'',brand:p.marca||'',modello:p.nome||'',categoria:catMap.get(p.categoria_id)||'',descrizione:p.descrizione||'',fornitore:'',taglia:p.taglia||'',variante:p.materiale||'',colore:p.colore||'',misura:'',costoUsd:0,costoEur:Number(p.prezzo_acquisto||0),prezzoVendita:Number(p.prezzo_vendita||0),promoAttiva:false,prezzoPromo:0,scadenzaPromo:'',post:'',note:'',foto:fotoByProd.get(p.id)||[],photoIds:[],_ts:Date.now(),_cloud:true})),
+      articoli:(prod||[]).map(p=>{
+        const local=localArtById.get(p.id)||localArtByCode.get(safeLower(p.sku));
+        return {id:p.id,codice:p.sku||'',brand:p.marca||'',modello:p.nome||'',categoria:catMap.get(p.categoria_id)||'',descrizione:p.descrizione||local?.descrizione||'',fornitore:local?.fornitore||'',fornitoreLink:local?.fornitoreLink||'',taglia:p.taglia||'',variante:p.materiale||'',colore:p.colore||'',misura:local?.misura||'',costoUsd:Number(local?.costoUsd||0),costoEur:Number(p.prezzo_acquisto||0),prezzoVendita:Number(p.prezzo_vendita||0),promoAttiva:!!local?.promoAttiva,prezzoPromo:Number(local?.prezzoPromo||0),scadenzaPromo:local?.scadenzaPromo||'',post:local?.post||'',note:local?.note||'',foto:(fotoByProd.get(p.id)||local?.foto||[]).slice(0,6),photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,6):[],_ts:Date.now(),_cloud:true};
+      }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:[c.nome,c.cognome].filter(Boolean).join(' ').trim(),telefono:c.telefono||'',indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
-      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const misMatch=noteRaw.match(/\[MIS:([^\]]+)\]/i); return {id:o.id,numeroOrdine:o.numero_ordine,clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteRaw.replace(/\s*\[MIS:[^\]]+\]\s*/gi,' ').trim(),mis:misMatch?misMatch[1].trim():'',tracking:o.tracking_code||'',righe:righeByOrd.get(o.id)||[],totale:Number(o.totale||0),_ts:Date.now(),_cloud:true}; })
+      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const misMatch=noteRaw.match(/\[MIS:([^\]]+)\]/i); const local=localOrdById.get(o.id); return {id:o.id,numeroOrdine:o.numero_ordine,clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteRaw.replace(/\s*\[MIS:[^\]]+\]\s*/gi,' ').trim(),mis:misMatch?misMatch[1].trim():'',tracking:o.tracking_code||'',righe:righeByOrd.get(o.id)||[],fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,12):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,12):[],foto:[],totale:Number(o.totale||0),_ts:Date.now(),_cloud:true}; })
     };
     updateShippingNotifications(db, bg?'cloud-auto':'cloud');
     saveDBLocal(db);
@@ -3488,6 +3542,7 @@ history.replaceState({page:initial, artBrowse:{...artBrowseState}},'', '#'+initi
 go(initial,false);
 cloudUi();
 refreshAutoCloudPull();
+requestPersistentStorage();
 ensureCloud().catch(err=>console.warn('Cloud init fallita', err));
 </script>
 </body>
