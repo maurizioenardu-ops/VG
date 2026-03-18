@@ -674,12 +674,35 @@ function normalizeDBShape(o){
   };
   db.articoli=db.articoli.map(x=>({
     ...x,
+    codice:normalizeSpaceText(x?.codice||x?.sku||''),
+    brand:normalizeSpaceText(x?.brand||x?.marca||''),
+    categoria:normalizeSpaceText(x?.categoria||''),
     foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,6):[],
     photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,6):[]
   }));
+  db.clienti=db.clienti.map(x=>({
+    ...x,
+    nome:normalizeSpaceText(x?.nome||x?.name||''),
+    cognome:normalizeSpaceText(x?.cognome||x?.surname||''),
+    telefono:normalizePhone(x?.telefono||x?.tel||x?.phone||''),
+    email:normalizeEmail(x?.email||''),
+    indirizzo:normalizeSpaceText(x?.indirizzo||x?.address||''),
+    cap:normalizeSpaceText(x?.cap||''),
+    citta:normalizeSpaceText(x?.citta||x?.city||''),
+    provincia:normalizeSpaceText(x?.provincia||x?.province||''),
+    note:typeof x?.note==='string'?x.note:(x?.note||'')
+  }));
   db.ordini=db.ordini.map(x=>({
     ...x,
-    righe:Array.isArray(x?.righe)?x.righe:[],
+    numeroOrdine:ensureOrderNumber(x),
+    clienteId:String(x?.clienteId||''),
+    righe:Array.isArray(x?.righe)?x.righe.map(r=>({
+      ...r,
+      articoloId:String(r?.articoloId||''),
+      codice:normalizeSpaceText(r?.codice||r?.sku||''),
+      modello:normalizeSpaceText(r?.modello||r?.nome||''),
+      prezzo:Number(r?.prezzo||r?.prezzo_unitario||0)
+    })):[],
     foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,12):[],
     fotoManuali:Array.isArray(x?.fotoManuali)?x.fotoManuali.filter(Boolean).slice(0,12):[],
     fotoArticoli:Array.isArray(x?.fotoArticoli)?x.fotoArticoli.filter(Boolean).slice(0,12):[],
@@ -687,37 +710,244 @@ function normalizeDBShape(o){
     totale:Number(x?.totale||0),
     incassato:Number(x?.incassato||0)
   }));
-  db.categorie=[...new Set((db.categorie||[]).map(x=>String(x||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
-  db.brands=[...new Set((db.brands||[]).map(x=>String(x||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
-  db.clienti=dedupeClienti(db.clienti||[]);
+
+  const artDedup=dedupeArticoliWithMap(db.articoli||[]);
+  db.articoli=artDedup.items;
+
+  db.clienti=db.clienti.map(c=>({...c, nome:normalizeClientDisplayName(c)}));
+  const cliDedup=dedupeClientiWithMap(db.clienti||[]);
+  db.clienti=cliDedup.items.map(c=>({...c, nome:normalizeClientDisplayName(c)}));
+
+  db.ordini=db.ordini.map(o=>({
+    ...o,
+    numeroOrdine:ensureOrderNumber(o),
+    clienteId:cliDedup.idMap.get(String(o?.clienteId||'')) || String(o?.clienteId||''),
+    righe:(Array.isArray(o?.righe)?o.righe:[]).map(r=>({
+      ...r,
+      articoloId:artDedup.idMap.get(String(r?.articoloId||'')) || String(r?.articoloId||''),
+      codice:normalizeSpaceText(r?.codice||r?.sku||''),
+      modello:normalizeSpaceText(r?.modello||r?.nome||''),
+      prezzo:Number(r?.prezzo||r?.prezzo_unitario||0)
+    }))
+  }));
+  const ordDedup=dedupeOrdiniWithMap(db.ordini||[]);
+  db.ordini=ordDedup.items.map(o=>({
+    ...o,
+    numeroOrdine:ensureOrderNumber(o),
+    righe:Array.isArray(o?.righe)?o.righe:[]
+  }));
+
+  db.categorie=[...new Set((db.categorie||[]).map(x=>normalizeSpaceText(x)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.brands=[...new Set((db.brands||[]).map(x=>normalizeSpaceText(x)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
   return db;
 }
 
-function normalizeClientDedupKey(x){
-  const clean=v=>String(v==null?'':v).trim().toLowerCase().replace(/\s+/g,' ');
-  const nome=clean(x?.nome||x?.name||'');
-  const cognome=clean(x?.cognome||x?.surname||'');
-  const telefono=clean(x?.telefono||x?.tel||x?.phone||'').replace(/[^\d+]/g,'');
-  const email=clean(x?.email||'');
-  const citta=clean(x?.citta||x?.city||'');
-  return [nome,cognome,telefono,email,citta].join('|');
+function normalizeSpaceText(v){ return String(v==null?'':v).trim().replace(/\s+/g,' '); }
+function normalizeTextKey(v){ return normalizeSpaceText(v).toLowerCase(); }
+function normalizePhone(v){
+  let out=normalizeSpaceText(v).replace(/[^\d+]/g,'');
+  if(out.startsWith('00')) out='+'+out.slice(2);
+  if(out.startsWith('+39')) out=out.slice(3);
+  else if(out.startsWith('39') && out.length>=11) out=out.slice(2);
+  return out;
 }
-function dedupeClienti(list=[]){
-  const byId=new Map();
-  const noKey=[];
+function normalizeEmail(v){ return normalizeTextKey(v); }
+function looksLikeUuid(v){ return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(v||'')); }
+function choosePreferredId(){
+  const ids=Array.from(arguments).flat().map(v=>normalizeSpaceText(v)).filter(Boolean);
+  return ids.find(looksLikeUuid) || ids[0] || '';
+}
+function recordRichnessScore(rec){
+  let score=Number(rec?._ts||0);
+  if(!rec || typeof rec!=='object') return score;
+  Object.entries(rec).forEach(([k,v])=>{
+    if(k==='_ts') return;
+    if(Array.isArray(v)) score += v.filter(Boolean).length * 4;
+    else if(v && typeof v==='object') score += 3;
+    else if(typeof v==='number') score += Number.isFinite(v) ? 2 : 0;
+    else if(normalizeSpaceText(v)) score += 1;
+  });
+  return score;
+}
+function normalizeClientDisplayName(x){
+  const nome=normalizeSpaceText(x?.nome||x?.name||x?.nomeCompleto||'');
+  const cognome=normalizeSpaceText(x?.cognome||x?.surname||'');
+  if(nome && cognome){
+    const cognKey=normalizeTextKey(cognome);
+    const nomeKey=normalizeTextKey(nome);
+    if(nomeKey===cognKey || nomeKey.endsWith(' '+cognKey)) return nome;
+    return `${nome} ${cognome}`.trim();
+  }
+  return nome || cognome;
+}
+function splitClientNameForCloud(cli){
+  const full=normalizeClientDisplayName(cli) || 'Cliente';
+  const explicitSurname=normalizeSpaceText(cli?.cognome||'');
+  if(explicitSurname){
+    let rawName=normalizeSpaceText(cli?.nome||'');
+    const tailKey=normalizeTextKey(rawName.split(' ').slice(-explicitSurname.split(' ').length).join(' '));
+    if(tailKey && tailKey===normalizeTextKey(explicitSurname)) rawName=normalizeSpaceText(rawName.slice(0, Math.max(0, rawName.length-explicitSurname.length)));
+    return { nome: rawName || full, cognome: explicitSurname };
+  }
+  const parts=full.split(' ').filter(Boolean);
+  if(parts.length>=2) return { nome: parts.slice(0,-1).join(' '), cognome: parts.slice(-1).join(' ') };
+  return { nome: full, cognome: '' };
+}
+
+function normalizeClientDedupKey(x){
+  const full=normalizeTextKey(normalizeClientDisplayName(x));
+  const telefono=normalizePhone(x?.telefono||x?.tel||x?.phone||'');
+  const email=normalizeEmail(x?.email||'');
+  const citta=normalizeTextKey(x?.citta||x?.city||'');
+  const cap=normalizeTextKey(x?.cap||'');
+  const indirizzo=normalizeTextKey(x?.indirizzo||x?.address||'');
+  if(email) return `email|${email}`;
+  if(telefono && telefono.replace(/\D/g,'').length>=6) return `tel|${telefono}`;
+  if(full) return `name|${full}|${citta}|${cap}|${indirizzo}`;
+  return '';
+}
+function mergeClientRecords(prev,item){
+  if(!prev) return {
+    ...item,
+    id:choosePreferredId(item?.id),
+    nome:normalizeClientDisplayName(item),
+    cognome:normalizeSpaceText(item?.cognome||''),
+    telefono:normalizePhone(item?.telefono||item?.tel||item?.phone||''),
+    email:normalizeEmail(item?.email||''),
+    indirizzo:normalizeSpaceText(item?.indirizzo||item?.address||''),
+    cap:normalizeSpaceText(item?.cap||''),
+    citta:normalizeSpaceText(item?.citta||item?.city||''),
+    provincia:normalizeSpaceText(item?.provincia||item?.province||'')
+  };
+  const nextWins=recordRichnessScore(item) >= recordRichnessScore(prev);
+  const merged=nextWins ? {...prev, ...item} : {...item, ...prev};
+  merged.id=choosePreferredId(prev?.id, item?.id) || merged.id;
+  merged.nome=normalizeClientDisplayName(merged);
+  merged.cognome=normalizeSpaceText(merged?.cognome||'');
+  merged.telefono=normalizePhone(merged?.telefono||merged?.tel||merged?.phone||'');
+  merged.email=normalizeEmail(merged?.email||'');
+  merged.indirizzo=normalizeSpaceText(merged?.indirizzo||merged?.address||'');
+  merged.cap=normalizeSpaceText(merged?.cap||'');
+  merged.citta=normalizeSpaceText(merged?.citta||merged?.city||'');
+  merged.provincia=normalizeSpaceText(merged?.provincia||merged?.province||'');
+  return merged;
+}
+function dedupeSemanticList(list, keyFn, mergeFn){
+  const items=[];
+  const idToIndex=new Map();
+  const keyToIndex=new Map();
+  const idMap=new Map();
   for(const raw of (Array.isArray(list)?list:[])){
     if(!raw) continue;
     const item={...raw};
-    const key=normalizeClientDedupKey(item);
-    if(!key || /^\|+$/i.test(key)) { noKey.push(item); continue; }
-    const prev=byId.get(key);
-    if(!prev){ byId.set(key,item); continue; }
-    const prevScore=(prev._ts||0)+Object.values(prev).filter(Boolean).length;
-    const nextScore=(item._ts||0)+Object.values(item).filter(Boolean).length;
-    if(nextScore>=prevScore) byId.set(key,{...prev,...item,id:prev.id||item.id});
+    const rawId=normalizeSpaceText(item?.id||'');
+    const rawKey=keyFn(item);
+    let idx=(rawId && idToIndex.has(rawId)) ? idToIndex.get(rawId) : null;
+    if(idx==null && rawKey && keyToIndex.has(rawKey)) idx=keyToIndex.get(rawKey);
+    if(idx==null){
+      const merged=mergeFn(null,item);
+      items.push(merged);
+      idx=items.length-1;
+    }else{
+      const prev=items[idx];
+      const merged=mergeFn(prev,item);
+      const prevId=normalizeSpaceText(prev?.id||'');
+      const nextId=normalizeSpaceText(merged?.id||'');
+      if(prevId && nextId && prevId!==nextId) idMap.set(prevId,nextId);
+      items[idx]=merged;
+    }
+    const final=items[idx];
+    const finalId=normalizeSpaceText(final?.id||'');
+    if(rawId && finalId && rawId!==finalId) idMap.set(rawId, finalId);
+    if(rawId) idToIndex.set(rawId, idx);
+    if(finalId) idToIndex.set(finalId, idx);
+    if(rawKey) keyToIndex.set(rawKey, idx);
+    const finalKey=keyFn(final);
+    if(finalKey) keyToIndex.set(finalKey, idx);
   }
-  return [...byId.values(), ...noKey];
+  return {items,idMap};
 }
+function dedupeClientiWithMap(list=[]){ return dedupeSemanticList(list, normalizeClientDedupKey, mergeClientRecords); }
+function dedupeClienti(list=[]){ return dedupeClientiWithMap(list).items; }
+
+function normalizeArticleDedupKey(x){
+  const code=normalizeTextKey(x?.codice||x?.sku||'');
+  return code ? `code|${code}` : '';
+}
+function mergeArticleRecords(prev,item){
+  if(!prev) return {
+    ...item,
+    id:choosePreferredId(item?.id),
+    codice:normalizeSpaceText(item?.codice||item?.sku||''),
+    brand:normalizeSpaceText(item?.brand||item?.marca||''),
+    categoria:normalizeSpaceText(item?.categoria||''),
+    foto:Array.isArray(item?.foto)?item.foto.filter(Boolean).slice(0,6):[],
+    photoIds:Array.isArray(item?.photoIds)?item.photoIds.filter(Boolean).slice(0,6):[]
+  };
+  const nextWins=recordRichnessScore(item) >= recordRichnessScore(prev);
+  const merged=nextWins ? {...prev, ...item} : {...item, ...prev};
+  merged.id=choosePreferredId(prev?.id, item?.id) || merged.id;
+  merged.codice=normalizeSpaceText(merged?.codice||merged?.sku||'');
+  merged.brand=normalizeSpaceText(merged?.brand||merged?.marca||'');
+  merged.categoria=normalizeSpaceText(merged?.categoria||'');
+  merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]).slice(0,6);
+  merged.photoIds=[...new Set([...(prev?.photoIds||[]), ...(item?.photoIds||[])].filter(Boolean).map(String))].slice(0,6);
+  return merged;
+}
+function dedupeArticoliWithMap(list=[]){ return dedupeSemanticList(list, normalizeArticleDedupKey, mergeArticleRecords); }
+
+function ensureOrderNumber(order){
+  const explicit=normalizeSpaceText(order?.numeroOrdine||order?.numero_ordine||'');
+  if(explicit) return explicit;
+  const id=normalizeSpaceText(order?.id||'');
+  if(!id) return '';
+  const clean=id.replace(/[^a-z0-9]+/gi,'').toUpperCase();
+  return clean ? `VGAPP-${clean.slice(0,24)}` : '';
+}
+function normalizeOrderRowKey(r){
+  const code=normalizeTextKey(r?.codice||r?.sku||r?.articoloId||'');
+  const price=Number(r?.prezzo||r?.prezzo_unitario||0).toFixed(2);
+  return `${code}|${price}`;
+}
+function normalizeOrderFingerprint(o){
+  const num=normalizeTextKey(ensureOrderNumber(o));
+  if(num) return `num|${num}`;
+  const data=normalizeTextKey(o?.data||o?.data_ordine||'');
+  const tracking=normalizeTextKey(o?.tracking||o?.tracking_code||'');
+  const totale=Number(o?.totale||0).toFixed(2);
+  const note=normalizeTextKey(o?.note||'');
+  const righe=(Array.isArray(o?.righe)?o.righe:[]).map(normalizeOrderRowKey).sort().join('~');
+  return [data,tracking,totale,righe,note].some(Boolean) ? `fp|${data}|${tracking}|${totale}|${righe}|${note}` : '';
+}
+function mergeOrderRecords(prev,item){
+  if(!prev) return {
+    ...item,
+    id:choosePreferredId(item?.id),
+    numeroOrdine:ensureOrderNumber(item),
+    righe:Array.isArray(item?.righe)?item.righe:[],
+    foto:Array.isArray(item?.foto)?item.foto.filter(Boolean).slice(0,12):[],
+    fotoManuali:Array.isArray(item?.fotoManuali)?item.fotoManuali.filter(Boolean).slice(0,12):[],
+    fotoArticoli:Array.isArray(item?.fotoArticoli)?item.fotoArticoli.filter(Boolean).slice(0,12):[],
+    orderPhotoIds:Array.isArray(item?.orderPhotoIds)?item.orderPhotoIds.filter(Boolean).slice(0,12):[],
+    totale:Number(item?.totale||0),
+    incassato:Number(item?.incassato||0)
+  };
+  const nextWins=recordRichnessScore(item) >= recordRichnessScore(prev);
+  const primary=nextWins ? item : prev;
+  const secondary=nextWins ? prev : item;
+  const merged=nextWins ? {...prev, ...item} : {...item, ...prev};
+  merged.id=choosePreferredId(prev?.id, item?.id) || merged.id;
+  merged.numeroOrdine=ensureOrderNumber(merged);
+  merged.righe=(Array.isArray(primary?.righe) && primary.righe.length) ? primary.righe : (Array.isArray(secondary?.righe) ? secondary.righe : []);
+  merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]).slice(0,12);
+  merged.fotoManuali=mergeUniquePics(prev?.fotoManuali||[], item?.fotoManuali||[]).slice(0,12);
+  merged.fotoArticoli=mergeUniquePics(prev?.fotoArticoli||[], item?.fotoArticoli||[]).slice(0,12);
+  merged.orderPhotoIds=[...new Set([...(prev?.orderPhotoIds||[]), ...(item?.orderPhotoIds||[])].filter(Boolean).map(String))].slice(0,12);
+  merged.totale=Number(merged?.totale||0);
+  merged.incassato=Number(merged?.incassato||0);
+  return merged;
+}
+function dedupeOrdiniWithMap(list=[]){ return dedupeSemanticList(list, normalizeOrderFingerprint, mergeOrderRecords); }
 
 function mergeById(arrA=[], arrB=[]){
   const map=new Map();
@@ -748,13 +978,15 @@ function loadDB(){
       merged={
         version:'v6.1',
         createdAt: merged.createdAt||db.createdAt||new Date().toISOString(),
-        articoli: mergeById(merged.articoli, db.articoli),
-        clienti: mergeById(merged.clienti, db.clienti),
-        ordini: mergeById(merged.ordini, db.ordini),
+        articoli:[...(merged.articoli||[]), ...(db.articoli||[])],
+        clienti:[...(merged.clienti||[]), ...(db.clienti||[])],
+        ordini:[...(merged.ordini||[]), ...(db.ordini||[])],
         categorie: [...new Set([...(merged.categorie||[]), ...(db.categorie||[])])].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'})),
         brands: [...new Set([...(merged.brands||[]), ...(db.brands||[])])].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}))
       };
     });
+
+    merged=normalizeDBShape(merged);
 
     const mergedRaw = JSON.stringify(merged);
     const rawMain=localStorage.getItem(KEY);
@@ -767,7 +999,8 @@ function loadDB(){
 }
 function saveDB(db){
   try{
-    const raw=JSON.stringify(db);
+    const cleanDb=normalizeDBShape(db||defDB());
+    const raw=JSON.stringify(cleanDb);
     localStorage.setItem(KEY, raw);
     try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
     const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
@@ -909,6 +1142,34 @@ async function getArticlePics(a){
   }
   return out.slice(0,6);
 }
+async function getArticleCloudSyncSources(a){
+  if(!a) return [];
+  const out=[];
+  const pushRef=(src)=>{
+    const clean=String(src||'').trim();
+    if(!clean || out.includes(clean)) return;
+    out.push(clean);
+  };
+  if(Array.isArray(a.foto) && a.foto.length){
+    for(const src of a.foto.slice(0,6)){
+      const clean=String(src||'').trim();
+      if(!clean) continue;
+      if(/^data:|^https?:\/\//i.test(clean)) pushRef(clean);
+      else pushRef(clean.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), ''));
+      if(out.length>=6) return out.slice(0,6);
+    }
+  }
+  if(Array.isArray(a.photoIds) && a.photoIds.length){
+    for(const id of a.photoIds){
+      const x=await idbGet(id);
+      if(!x) continue;
+      if(typeof x==='string') pushRef(x);
+      else if(x instanceof Blob) pushRef(URL.createObjectURL(x));
+      if(out.length>=6) break;
+    }
+  }
+  return out.slice(0,6);
+}
 async function getStoredPhotoSources(ids=[]){
   const out=[];
   for(const id of (ids||[])){
@@ -969,7 +1230,7 @@ async function downloadCurrentArticlePhotos(){
   const db=loadDB();
   const art=db.articoli.find(x=>x.id===currentArtId);
   if(!art){ toast('Articolo non trovato'); return; }
-  const pics=await getArticlePics(art);
+  const pics=await getArticleCloudSyncSources(art);
   if(!pics.length){ toast('Nessuna foto da scaricare'); return; }
   const baseName=(art.codice||art.brand||art.modello||'articolo').toString().trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'articolo';
 
@@ -1054,41 +1315,57 @@ async function syncArticlePhotosToCloud(artId, codice, pics){
   if(!sb||!cloudSession||!artId) return [];
   const cleanCode=String(codice||artId||'art').trim() || String(artId);
   const normalized=(pics||[]).filter(Boolean).slice(0,6);
+  const { data:existingRows } = await sb.from('prodotti_foto').select('path,ordine').eq('prodotto_id', artId).order('ordine',{ascending:true});
+  const existingPaths=(existingRows||[]).map(r=>String(r?.path||'').trim()).filter(Boolean);
   const savedPaths=[];
+  const uploadErrors=[];
   for(let i=0;i<normalized.length;i++){
     const src=String(normalized[i]||'').trim();
     if(!src) continue;
 
-    // Se è già un path Supabase tipo CODICE/1.jpg, non ricaricare: usalo direttamente
     if(!/^data:|^https?:\/\//i.test(src)){
       const cleanPath = src.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
-      if(cleanPath) {
+      if(cleanPath){
         savedPaths.push(cleanPath);
         continue;
       }
     }
 
-    let fileObj=null;
     try{
       const res=await fetch(src);
+      if(!res.ok) throw new Error('Download foto cloud fallito');
       const blob=await res.blob();
       const ext=((blob.type||'image/jpeg').split('/').pop()||'jpg').replace(/[^a-z0-9]/gi,'').toLowerCase() || 'jpg';
-      fileObj=new File([blob], `${cleanCode}-${i+1}.${ext}`, {type: blob.type || 'image/jpeg'});
-    }catch(_e){
-      continue;
+      const fileObj=new File([blob], `${cleanCode}-${i+1}.${ext}`, {type: blob.type || 'image/jpeg'});
+      const path=await uploadArticlePhotoToSupabase(fileObj, cleanCode, i+1);
+      savedPaths.push(path);
+    }catch(err){
+      const fallback=existingPaths[i];
+      if(fallback && !savedPaths.includes(fallback)) savedPaths.push(fallback);
+      uploadErrors.push(err);
     }
-    const path=await uploadArticlePhotoToSupabase(fileObj, cleanCode, i+1);
-    savedPaths.push(path);
   }
+  const finalPaths=[...new Set((savedPaths.length ? savedPaths : existingPaths).filter(Boolean))].slice(0,6);
+  let deleted=false;
   try{
     await sb.from('prodotti_foto').delete().eq('prodotto_id', artId);
-  }catch(_e){}
-  if(savedPaths.length){
-    const rows=savedPaths.map((path,idx)=>({prodotto_id: artId, path, ordine: idx}));
-    const { error } = await sb.from('prodotti_foto').insert(rows);
-    if(error) throw error;
+    deleted=true;
+    if(finalPaths.length){
+      const rows=finalPaths.map((path,idx)=>({prodotto_id: artId, path, ordine: idx}));
+      const { error } = await sb.from('prodotti_foto').insert(rows);
+      if(error) throw error;
+    }
+  }catch(err){
+    if(deleted && existingPaths.length){
+      try{
+        const restoreRows=existingPaths.map((path,idx)=>({prodotto_id: artId, path, ordine: idx}));
+        await sb.from('prodotti_foto').insert(restoreRows);
+      }catch(_restoreErr){}
+    }
+    throw err;
   }
-  return savedPaths;
+  if(uploadErrors.length) console.warn('Sync foto cloud parziale', uploadErrors);
+  return finalPaths;
 }
 async function getCloudArticlePhotoUrls(artId){
   const sb=await ensureCloud();
@@ -2798,18 +3075,13 @@ async function saveCli(){
   const nome=document.getElementById('c_nome').value.trim();
   if(!nome){ toast('Nome obbligatorio'); return; }
 
-  const nomeLower=safeLower(nome);
-  const exists = db.clienti.find(c =>
-    safeLower(c?.nome) === nomeLower
-    && c.id !== currentCliId
-  );
-  if(exists){
-    toast('Cliente già esistente');
-    return;
-  }
-  const obj={
+  const old=currentCliId?db.clienti.find(c=>c.id===currentCliId):null;
+  const candidate={
+    ...old,
     id: currentCliId||uid(),
     nome,
+    cognome: old?.cognome||'',
+    email: old?.email||'',
     telefono: document.getElementById('c_tel').value.trim(),
     indirizzo: document.getElementById('c_ind').value.trim(),
     cap: document.getElementById('c_cap').value.trim(),
@@ -2817,6 +3089,22 @@ async function saveCli(){
     provincia: document.getElementById('c_prov').value,
     note: document.getElementById('c_note').value,
     _ts: Date.now()
+  };
+  const candidateKey=normalizeClientDedupKey(candidate) || normalizeTextKey(candidate.nome);
+  const exists = db.clienti.find(c => c.id !== currentCliId && (normalizeClientDedupKey(c) || normalizeTextKey(c?.nome)) === candidateKey);
+  if(exists){
+    toast('Cliente già esistente');
+    return;
+  }
+  const obj={
+    ...candidate,
+    nome: normalizeClientDisplayName(candidate),
+    telefono: normalizePhone(candidate.telefono),
+    email: normalizeEmail(candidate.email),
+    indirizzo: normalizeSpaceText(candidate.indirizzo),
+    cap: normalizeSpaceText(candidate.cap),
+    citta: normalizeSpaceText(candidate.citta),
+    provincia: normalizeSpaceText(candidate.provincia)
   };
   const i=db.clienti.findIndex(x=>x.id===obj.id);
   if(i>=0) db.clienti[i]=obj; else db.clienti.unshift(obj);
@@ -2826,8 +3114,9 @@ async function saveCli(){
   if(cloudEnabled()){
     try{
       const saved=await cloudSaveOne('cli', obj, db);
-      const idx=db.clienti.findIndex(x=>x.id===obj.id || (obj.telefono && x.telefono===obj.telefono) || x.nome===obj.nome);
-      if(idx>=0) db.clienti[idx]={...db.clienti[idx], ...saved, _ts: Date.now()};
+      const savedKey=normalizeClientDedupKey(saved) || normalizeClientDedupKey(obj) || normalizeTextKey(saved?.nome||obj?.nome);
+      const idx=db.clienti.findIndex(x=>x.id===obj.id || x.id===saved?.id || (normalizeClientDedupKey(x) || normalizeTextKey(x?.nome))===savedKey);
+      if(idx>=0) db.clienti[idx]={...db.clienti[idx], ...saved, nome:normalizeClientDisplayName({...db.clienti[idx], ...saved}), _ts: Date.now()};
       saveDBLocal(db);
     }catch(cloudErr){
       console.error('Sync cloud cliente fallita', cloudErr);
@@ -2996,8 +3285,10 @@ async function saveOrd(){
   }
   const manualCount=existingManualCount + newManualIds.length;
   const allOrderPics=mergeUniquePics(articlePics, currentOrdExistingManualPhotos);
+  const newOrderId=currentOrdId||('ORD-'+uid().slice(0,6).toUpperCase());
   const obj={
-    id: currentOrdId||('ORD-'+uid().slice(0,6).toUpperCase()),
+    id: newOrderId,
+    numeroOrdine: ensureOrderNumber({ id:newOrderId, numeroOrdine: old?.numeroOrdine }),
     clienteId: cli,
     stato: document.getElementById('o_stato').value,
     data: document.getElementById('o_data').value.trim()||todayStr(),
@@ -3086,9 +3377,9 @@ function importDB(file){
         nextDb=normalizeDBShape({
           version: incoming.version || curr.version || 'v6.2',
           createdAt: curr.createdAt || incoming.createdAt || new Date().toISOString(),
-          articoli: mergeById(curr.articoli||[], incoming.articoli||[]),
-          clienti: mergeById(curr.clienti||[], incoming.clienti||[]),
-          ordini: mergeById(curr.ordini||[], incoming.ordini||[]),
+          articoli: [...(curr.articoli||[]), ...(incoming.articoli||[])],
+          clienti: [...(curr.clienti||[]), ...(incoming.clienti||[])],
+          ordini: [...(curr.ordini||[]), ...(incoming.ordini||[])],
           categorie: [...new Set([...(curr.categorie||[]), ...(incoming.categorie||[])])],
           brands: [...new Set([...(curr.brands||[]), ...(incoming.brands||[])])]
         });
@@ -3355,7 +3646,12 @@ async function ensureCloud(){
   return cloudClient;
 }
 function saveDBLocal(db){
-  try{ const raw=JSON.stringify(db); localStorage.setItem(KEY, raw); try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){} }catch(err){ console.error(err); }
+  try{
+    const cleanDb=normalizeDBShape(db||defDB());
+    const raw=JSON.stringify(cleanDb);
+    localStorage.setItem(KEY, raw);
+    try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
+  }catch(err){ console.error(err); }
 }
 async function ensureCategoryId(nome){
   if(!nome) return null;
@@ -3415,11 +3711,12 @@ async function deleteCloudArticle(art){
 async function upsertCloudClient(cli){
   const sb=await ensureCloud();
   if(!sb||!cloudSession) return cli;
+  const nameParts=splitClientNameForCloud(cli);
   const payload={
-    nome: cli.nome || 'Cliente',
-    cognome: null,
-    telefono: cli.telefono || null,
-    email: cli.email || null,
+    nome: nameParts.nome || 'Cliente',
+    cognome: nameParts.cognome || null,
+    telefono: normalizePhone(cli.telefono || null) || null,
+    email: normalizeEmail(cli.email || null) || null,
     indirizzo: cli.indirizzo || null,
     citta: cli.citta || null,
     cap: cli.cap || null,
@@ -3428,19 +3725,31 @@ async function upsertCloudClient(cli){
     note: cli.note || null
   };
   let data=null, error=null;
-  if(isUuid(cli.id)){
-    ({data,error}=await sb.from('clienti').upsert({...payload,id:cli.id}).select('*').single());
+  let matchedId=isUuid(cli.id) ? cli.id : null;
+
+  if(!matchedId && payload.email){
+    const existing=await sb.from('clienti').select('*').eq('email', payload.email).maybeSingle();
+    if(existing.data && !existing.error) matchedId=existing.data.id;
+  }
+  if(!matchedId && payload.telefono){
+    const existing=await sb.from('clienti').select('*').eq('telefono', payload.telefono).maybeSingle();
+    if(existing.data && !existing.error) matchedId=existing.data.id;
+  }
+  if(!matchedId && payload.nome){
+    const probeKey=normalizeClientDedupKey({...cli, nome:normalizeClientDisplayName(cli), cognome:nameParts.cognome, email:payload.email, telefono:payload.telefono});
+    const existing=await sb.from('clienti').select('*').eq('nome', payload.nome).limit(20);
+    const rows=Array.isArray(existing.data) ? existing.data : [];
+    const match=rows.find(row=>normalizeClientDedupKey({nome:[row.nome,row.cognome].filter(Boolean).join(' ').trim(), cognome:row.cognome, telefono:row.telefono, email:row.email, indirizzo:row.indirizzo, citta:row.citta, cap:row.cap})===probeKey);
+    if(match) matchedId=match.id;
+  }
+
+  if(matchedId){
+    ({data,error}=await sb.from('clienti').upsert({...payload,id:matchedId}).select('*').single());
   }else{
     ({data,error}=await sb.from('clienti').insert(payload).select('*').single());
-    if(error && cli.email){
-      const existing=await sb.from('clienti').select('*').eq('email', cli.email).maybeSingle();
-      if(existing.data && !existing.error){
-        ({data,error}=await sb.from('clienti').upsert({...payload,id:existing.data.id}).select('*').single());
-      }
-    }
   }
   if(error) throw error;
-  return {...cli, id:data.id, _cloud:true};
+  return {...cli, id:data.id, nome:normalizeClientDisplayName({nome:data.nome, cognome:data.cognome}), cognome:data.cognome||cli.cognome||'', telefono:data.telefono||cli.telefono||'', email:data.email||cli.email||'', _cloud:true};
 }
 async function deleteCloudClient(cli){
   const sb=await ensureCloud();
@@ -3551,13 +3860,15 @@ async function pullCloudToLocal(opts={}){
     const localArtById=new Map((localDb.articoli||[]).map(a=>[a.id,a]));
     const localArtByCode=new Map((localDb.articoli||[]).map(a=>[safeLower(a.codice),a]));
     const localOrdById=new Map((localDb.ordini||[]).map(o=>[o.id,o]));
+    const localOrdByNumero=new Map((localDb.ordini||[]).map(o=>[normalizeTextKey(ensureOrderNumber(o)),o]).filter(([k])=>k));
+    const localOrdByFingerprint=new Map((localDb.ordini||[]).map(o=>[normalizeOrderFingerprint(o),o]).filter(([k])=>k));
     const db={version:'v6',createdAt:new Date().toISOString(),
       articoli:(prod||[]).map(p=>{
         const local=localArtById.get(p.id)||localArtByCode.get(safeLower(p.sku));
         const packed=unpackCloudArticleDescription(p.descrizione||''); const legacy=parseLegacyCloudDescription(packed.plain); const meta=(packed.meta&&typeof packed.meta==='object')?packed.meta:{}; const cleanBrand=p.marca||meta.brand||local?.brand||''; const pulledModel=stripBrandFromText(meta.modello||p.nome||'', cleanBrand) || stripBrandFromText(p.nome||'', cleanBrand) || local?.modello || ''; const pulledDescr=(meta.descrizione||legacy.descrizione||local?.descrizione||'').trim(); const pulledNote=(meta.note||legacy.note||local?.note||'').trim(); const pulledPost=(meta.post||local?.post||'').trim(); const rawSell=Number(p.prezzo_vendita||0); const metaSell=Number(meta.prezzoVendita||0); return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',taglia:meta.taglia||p.taglia||local?.taglia||'',variante:meta.variante||p.materiale||local?.variante||'',colore:meta.colore||p.colore||local?.colore||'',misura:meta.misura||local?.misura||'',costoUsd:Number(meta.costoUsd||local?.costoUsd||0),costoEur:Number(p.prezzo_acquisto||meta.costoEur||local?.costoEur||0),prezzoVendita:Number(rawSell||metaSell||local?.prezzoVendita||0),promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:Number(meta.prezzoPromo||local?.prezzoPromo||0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',post:pulledPost,note:pulledNote,foto:(fotoByProd.get(p.id)||local?.foto||[]).slice(0,6),photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,6):[],_ts:Date.now(),_cloud:true};
       }),
-      clienti:(cli||[]).map(c=>({id:c.id,nome:[c.nome,c.cognome].filter(Boolean).join(' ').trim(),telefono:c.telefono||'',indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
-      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const misMatch=noteRaw.match(/\[MIS:([^\]]+)\]/i); const local=localOrdById.get(o.id); return {id:o.id,numeroOrdine:o.numero_ordine,clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteRaw.replace(/\s*\[MIS:[^\]]+\]\s*/gi,' ').trim(),mis:misMatch?misMatch[1].trim():'',tracking:o.tracking_code||'',righe:righeByOrd.get(o.id)||[],fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,12):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,12):[],foto:[],totale:Number(o.totale||0),_ts:Date.now(),_cloud:true}; })
+      clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
+      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const cleanNote=noteRaw.replace(/\s*\[MIS:[^\]]+\]\s*/gi,' ').trim(); const misMatch=noteRaw.match(/\[MIS:([^\]]+)\]/i); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:cleanNote,righe:righeByOrd.get(o.id)||[]}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:cleanNote,mis:misMatch?misMatch[1].trim():'',tracking:o.tracking_code||'',righe:righeByOrd.get(o.id)||[],fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,12):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,12):[],foto:[],totale:Number(o.totale||0),_ts:Date.now(),_cloud:true}; })
     };
     updateShippingNotifications(db, bg?'cloud-auto':'cloud');
     saveDBLocal(db);
