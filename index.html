@@ -294,7 +294,7 @@ window.addEventListener('error',e=>{
           <option value="merge">Importa e unisci ai dati attuali</option>
         </select>
         <label class="btn" style="display:inline-block">
-          Import JSON<input id="importFile" type="file" accept=".json,application/json,text/json" style="display:none"/>
+          Import JSON<input id="importFile" type="file" accept="application/json" style="display:none"/>
         </label>
         <button class="btn" data-action="refreshDiag">Aggiorna diagnostica</button>
         <button class="btn danger" data-action="repairArchive">Ripara archivio</button>
@@ -2430,7 +2430,8 @@ async function saveArt(){
     const r=calcFromUsd(usd, qual);
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
     const obj={
-      id: currentArtId||uid(),
+      ...(old||{}),
+      id: currentArtId||old?.id||uid(),
       codice: code,
       brand: getArticleBrandValue(),
       modello: document.getElementById('a_mod').value.trim(),
@@ -2450,7 +2451,7 @@ async function saveArt(){
       scadenzaPromo: document.getElementById('a_promo_date').value.trim(),
       post: document.getElementById('a_post').value,
       note: document.getElementById('a_note').value,
-      foto: Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : [],
+      foto: Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : (Array.isArray(old?.photos) ? old.photos.filter(Boolean).slice() : []),
       photoIds: Array.isArray(old?.photoIds) ? old.photoIds.filter(Boolean).slice() : []
     };
     const photoInput=document.getElementById('a_photo');
@@ -2660,8 +2661,10 @@ async function saveCli(){
     toast('Cliente già esistente');
     return;
   }
+  const old=currentCliId?db.clienti.find(x=>x.id===currentCliId):null;
   const obj={
-    id: currentCliId||uid(),
+    ...(old||{}),
+    id: currentCliId||old?.id||uid(),
     nome,
     telefono: document.getElementById('c_tel').value.trim(),
     indirizzo: document.getElementById('c_ind').value.trim(),
@@ -2831,8 +2834,10 @@ async function saveOrd(){
   }
   const manualPics=mergeUniquePics(manualBase, newManual);
   const allOrderPics=mergeUniquePics(articlePics, manualPics);
+  const old=currentOrdId?db.ordini.find(x=>x.id===currentOrdId):null;
   const obj={
-    id: currentOrdId||('ORD-'+uid().slice(0,6).toUpperCase()),
+    ...(old||{}),
+    id: currentOrdId||old?.id||('ORD-'+uid().slice(0,6).toUpperCase()),
     clienteId: cli,
     stato: document.getElementById('o_stato').value,
     data: document.getElementById('o_data').value.trim()||todayStr(),
@@ -2894,51 +2899,23 @@ async function exportDB(mode){
 }
 function importDB(file){
   const mode=(document.getElementById('importMode')?.value||'replace');
-  const hintEl=document.getElementById('importHint');
-  if(!file){
-    const msg='Nessun file selezionato';
-    if(hintEl) hintEl.textContent=msg;
-    toast(msg);
-    return;
-  }
   const r=new FileReader();
-  r.onerror=()=>{
-    const msg='Lettura file fallita';
-    console.error(msg, r.error);
-    if(hintEl) hintEl.textContent=msg;
-    toast(msg);
-  };
   r.onload=async()=>{
     try{
-      const raw=typeof r.result==='string' ? r.result.trim() : '';
-      if(!raw) throw new Error('File JSON vuoto');
-      let parsed;
-      try{
-        parsed=JSON.parse(raw);
-      }catch(parseErr){
-        throw new Error('JSON non valido: '+(parseErr?.message||'errore di sintassi'));
-      }
+      const parsed=JSON.parse(r.result);
       const incoming=normalizeDBShape(parsed);
-      if(!incoming || typeof incoming!=='object') throw new Error('JSON vuoto o non valido');
-      if(!Array.isArray(incoming.articoli)) throw new Error('Manca array articoli');
-      if(!Array.isArray(incoming.clienti)) throw new Error('Manca array clienti');
-      if(!Array.isArray(incoming.ordini)) throw new Error('Manca array ordini');
-
-      let importedPhotos=0;
-      let skippedPhotos=0;
+      if(!incoming || !Array.isArray(incoming.articoli)||!Array.isArray(incoming.clienti)||!Array.isArray(incoming.ordini)) throw new Error('JSON non compatibile');
       for(const art of incoming.articoli){
         art.photoIds=Array.isArray(art.photoIds)?art.photoIds.filter(Boolean).slice(0,6):[];
-        if(Array.isArray(art.foto) && art.foto.length){
-          for(const src of art.foto.slice(0,6)){
-            if(!src) continue;
+        const incomingPics = Array.isArray(art.foto) ? art.foto.slice(0,6) : (Array.isArray(art.photos) ? art.photos.slice(0,6) : (Array.isArray(art.immagini) ? art.immagini.slice(0,6) : []));
+        if(incomingPics.length){
+          for(const src of incomingPics){
             try{
               const pid='ph_'+uid();
               await idbSet(pid,src);
               art.photoIds.push(pid);
-              importedPhotos++;
             }catch(photoErr){
-              skippedPhotos++;
-              console.error('Errore salvataggio foto in IndexedDB', photoErr);
+              console.warn('Import foto fallito', photoErr);
             }
           }
         }
@@ -2960,18 +2937,16 @@ function importDB(file){
       updateShippingNotifications(nextDb,'json-import');
       if(!saveDB(nextDb)) throw new Error('Salvataggio locale fallito');
       renderAll();
-      const baseMsg = mode==='merge' ? 'Import OK. JSON unito ai dati già presenti.' : 'Import OK. Database sostituito con il JSON.';
-      const photoMsg = skippedPhotos>0 ? ` Foto importate: ${importedPhotos}. Foto saltate: ${skippedPhotos}.` : (importedPhotos>0 ? ` Foto importate: ${importedPhotos}.` : '');
-      if(hintEl) hintEl.textContent = baseMsg + photoMsg;
-      toast(skippedPhotos>0 ? 'Import completato con alcune foto saltate' : (mode==='merge' ? 'Import unito ai dati attuali' : 'Import sostitutivo completato'));
+      document.getElementById('importHint').textContent = mode==='merge' ? 'Import OK. JSON unito ai dati già presenti.' : 'Import OK. Database sostituito con il JSON.';
+      toast(mode==='merge' ? 'Import unito ai dati attuali' : 'Import sostitutivo completato');
     }catch(e){
-      const msg=e?.message || String(e) || 'Errore sconosciuto';
-      console.error('Import fallito', e);
-      if(hintEl) hintEl.textContent='Errore import: '+msg;
-      toast('Import fallito: '+msg);
+      const msg=e?.message||String(e)||'Errore sconosciuto';
+      toast('Import fallito: '+msg); console.error(e);
+      const hint=document.getElementById('importHint');
+      if(hint) hint.textContent='Import fallito: '+msg;
     }
   };
-  r.readAsText(file,'utf-8');
+  r.readAsText(file, 'utf-8');
 }
 
 /* ====== EVENTS ====== */
