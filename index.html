@@ -885,25 +885,29 @@ async function listCloudFotoPathsByCode(codice){
 
 async function getArticlePics(a){
   if(!a) return [];
-  const cloudPics=[];
+  const out=[];
+  const pushPic=(src)=>{
+    const clean=String(src||'').trim();
+    if(!clean || out.includes(clean)) return;
+    out.push(clean);
+  };
   if(Array.isArray(a.foto) && a.foto.length){
     for(const path of a.foto.slice(0,6)){
       const url=await getPublicFotoUrl(path);
-      if(url) cloudPics.push(url);
+      if(url) pushPic(url);
+      if(out.length>=6) return out.slice(0,6);
     }
   }
-  if(cloudPics.length) return cloudPics;
   if(Array.isArray(a.photoIds) && a.photoIds.length){
-    const out=[];
     for(const id of a.photoIds){
       const x=await idbGet(id);
       if(!x) continue;
-      if(typeof x==='string') out.push(x);
-      else if(x instanceof Blob) out.push(URL.createObjectURL(x));
+      if(typeof x==='string') pushPic(x);
+      else if(x instanceof Blob) pushPic(URL.createObjectURL(x));
+      if(out.length>=6) break;
     }
-    return out;
   }
-  return [];
+  return out.slice(0,6);
 }
 async function getStoredPhotoSources(ids=[]){
   const out=[];
@@ -1282,26 +1286,55 @@ function emojiQualityForPost(a){
   const q=qualityFromCode(a.codice);
   return (q==='ORIGINALE') ? '🥇' : '🔝💯';
 }
+function escapeRegExp(str){
+  return String(str||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+}
+function stripBrandFromText(text, brand){
+  let out=String(text||'').replace(/\s+/g,' ').trim();
+  const cleanBrand=String(brand||'').trim();
+  if(!out || !cleanBrand) return out;
+  const parts=[cleanBrand, ...cleanBrand.split(/\s+/)].map(x=>String(x||'').trim()).filter(Boolean);
+  const uniq=[];
+  for(const part of parts){
+    const key=part.toLowerCase();
+    if(!key || uniq.some(x=>x.toLowerCase()===key)) continue;
+    uniq.push(part);
+  }
+  uniq.sort((a,b)=>b.length-a.length).forEach(part=>{
+    out=out.replace(new RegExp(`\\b${escapeRegExp(part)}\\b`,'gi'),' ');
+  });
+  return out.replace(/\s{2,}/g,' ').replace(/^[-–—:;,\.\s]+|[-–—:;,\.\s]+$/g,'').trim();
+}
+function normalizePostLine(text, brand){
+  return stripBrandFromText(text, brand).replace(/\s+/g,' ').trim();
+}
 function buildPost(a){
-  const modello=(a.modello||'').trim();
   if(!a.codice) return '';
+  const brand=(a.brand||'').trim();
+  const modello=normalizePostLine(a.modello||'', brand);
+  const descrizione=normalizePostLine(a.descrizione||'', brand);
+  const variante=normalizePostLine(a.variante||'', brand);
+  const colore=normalizePostLine(a.colore||'', brand);
+  const materiale=normalizePostLine(a.materiale||'', brand);
+  const colori=normalizePostLine(a.colori||'', brand);
+  const tracolla=normalizePostLine(a.tracolla||'', brand);
+  const misura=normalizePostLine(a.misura||'', brand);
+  const taglia=normalizePostLine(a.taglia||'', brand);
   const qemoji=emojiQualityForPost(a);
-  let lines=[];
+  const lines=[];
   if(a.promoAttiva) lines.push('🔥PROMOZIONE🔥');
-  lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
-  if((a.descrizione||'').trim()) lines.push((a.descrizione||'').trim());
-  const detail=[];
-  if(a.taglia) detail.push(`Taglia ${a.taglia}`);
-  if(a.variante) detail.push(a.variante);
-  if(a.colore) detail.push(a.colore);
-  if(a.misura) detail.push(`Mis. ${a.misura}`);
-  if(detail.length) lines.push(detail.join(' • '));
+  if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
+  if(descrizione) lines.push(descrizione);
+  if(taglia) lines.push(`Taglia ${taglia}`);
+  if(variante) lines.push(variante);
+  if(colore) lines.push(colore);
+  if(misura) lines.push(`Mis. ${misura}`);
   if(a.scatola) lines.push('Con scatola 🎁');
-  if(a.materiale) lines.push(`🧵 ${a.materiale}`);
-  if(a.colori) lines.push(a.colori);
-  if(a.tracolla) lines.push(a.tracolla);
+  if(materiale) lines.push(`🧵 ${materiale}`);
+  if(colori) lines.push(colori);
+  if(tracolla) lines.push(tracolla);
   lines.push(`cod. ${a.codice}`);
-  return lines.join('\n');
+  return lines.filter(Boolean).join('\n');
 }
 
 function withIntlPrefix(tel){
