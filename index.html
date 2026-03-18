@@ -659,7 +659,7 @@ const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maxi
 const round5=n=>Math.round(n/5)*5;
 
 function defDB(){
-  return {version:'v6.2',articoli:[],clienti:[],ordini:[],categorie:[],createdAt:new Date().toISOString()};
+  return {version:'v6.2',articoli:[],clienti:[],ordini:[],categorie:[],brands:[],createdAt:new Date().toISOString()};
 }
 function normalizeDBShape(o){
   if(!o || typeof o!=='object') return defDB();
@@ -669,6 +669,7 @@ function normalizeDBShape(o){
     clienti:Array.isArray(o.clienti)?o.clienti:[],
     ordini:Array.isArray(o.ordini)?o.ordini:[],
     categorie:Array.isArray(o.categorie)?o.categorie:[],
+    brands:Array.isArray(o.brands)?o.brands:[],
     createdAt:o.createdAt||new Date().toISOString()
   };
   db.articoli=db.articoli.map(x=>({
@@ -686,8 +687,37 @@ function normalizeDBShape(o){
     incassato:Number(x?.incassato||0)
   }));
   db.categorie=[...new Set((db.categorie||[]).map(x=>String(x||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.brands=[...new Set((db.brands||[]).map(x=>String(x||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.clienti=dedupeClienti(db.clienti||[]);
   return db;
 }
+
+function normalizeClientDedupKey(x){
+  const clean=v=>String(v==null?'':v).trim().toLowerCase().replace(/\s+/g,' ');
+  const nome=clean(x?.nome||x?.name||'');
+  const cognome=clean(x?.cognome||x?.surname||'');
+  const telefono=clean(x?.telefono||x?.tel||x?.phone||'').replace(/[^\d+]/g,'');
+  const email=clean(x?.email||'');
+  const citta=clean(x?.citta||x?.city||'');
+  return [nome,cognome,telefono,email,citta].join('|');
+}
+function dedupeClienti(list=[]){
+  const byId=new Map();
+  const noKey=[];
+  for(const raw of (Array.isArray(list)?list:[])){
+    if(!raw) continue;
+    const item={...raw};
+    const key=normalizeClientDedupKey(item);
+    if(!key || /^\|+$/i.test(key)) { noKey.push(item); continue; }
+    const prev=byId.get(key);
+    if(!prev){ byId.set(key,item); continue; }
+    const prevScore=(prev._ts||0)+Object.values(prev).filter(Boolean).length;
+    const nextScore=(item._ts||0)+Object.values(item).filter(Boolean).length;
+    if(nextScore>=prevScore) byId.set(key,{...prev,...item,id:prev.id||item.id});
+  }
+  return [...byId.values(), ...noKey];
+}
+
 function mergeById(arrA=[], arrB=[]){
   const map=new Map();
   [...arrA, ...arrB].forEach(it=>{
@@ -720,7 +750,8 @@ function loadDB(){
         articoli: mergeById(merged.articoli, db.articoli),
         clienti: mergeById(merged.clienti, db.clienti),
         ordini: mergeById(merged.ordini, db.ordini),
-        categorie: [...new Set([...(merged.categorie||[]), ...(db.categorie||[])])].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}))
+        categorie: [...new Set([...(merged.categorie||[]), ...(db.categorie||[])])].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'})),
+        brands: [...new Set([...(merged.brands||[]), ...(db.brands||[])])].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}))
       };
     });
 
@@ -745,6 +776,7 @@ function saveDB(db){
     return false;
   }
   try{ renderAll(); }catch(err){ console.error('Render post-salvataggio fallito', err); }
+  refreshArticleBrandSelects();
   return true;
 }
 function safeLower(v){ return String(v==null?'':v).trim().toLowerCase(); }
@@ -2085,7 +2117,7 @@ function renderFinanze(){
   renderStorageInfo();
 }
 
-function renderAll(){ renderHome(); renderArt(); renderCli(); renderOrd(); renderFinanze(); renderCategorySettings(); renderBrandSettings(); }
+function renderAll(){ renderHome(); renderArt(); renderCli(); renderOrd(); renderFinanze(); renderCategorySettings(); renderBrandSettings(); refreshArticleCategorySelects(); refreshArticleBrandSelects(); }
 
 /* ====== ART view/edit ====== */
 let currentArtId=null;
@@ -2888,7 +2920,8 @@ function importDB(file){
           articoli: mergeById(curr.articoli||[], incoming.articoli||[]),
           clienti: mergeById(curr.clienti||[], incoming.clienti||[]),
           ordini: mergeById(curr.ordini||[], incoming.ordini||[]),
-          categorie: [...new Set([...(curr.categorie||[]), ...(incoming.categorie||[])])]
+          categorie: [...new Set([...(curr.categorie||[]), ...(incoming.categorie||[])])],
+          brands: [...new Set([...(curr.brands||[]), ...(incoming.brands||[])])]
         });
       }
       updateShippingNotifications(nextDb,'json-import');
