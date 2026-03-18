@@ -2770,7 +2770,45 @@ document.addEventListener('click',(ev)=>{
     askConfirm('Riparo archivio foto e pulizia riferimenti sporchi?', ()=>repairArchive().then(()=>toast('Archivio riparato')).catch(err=>{toast('Riparazione fallita'); console.error(err);}),'Ripara archivio');
     return;
   }
-  if(a==='hardReset'){ askConfirm('Azzero tutti i dati locali di questa app?', ()=>{ [KEY, ...(typeof LEGACY_KEYS!=='undefined'?LEGACY_KEYS:[])].forEach(k=>localStorage.removeItem(k)); location.reload(); }, 'Reset locale'); return; }
+  if(a==='hardReset'){
+    askConfirm('Azzero tutti i dati locali di questa app? Cancello archivio locale, foto, cache e login cloud locale.', async ()=>{
+      try{
+        const keep=[];
+        try{
+          for(let i=0;i<localStorage.length;i++){
+            const k=localStorage.key(i);
+            if(k) keep.push(k);
+          }
+        }catch(_e){}
+        const appKeys=[KEY, UI_KEY, SHIP_ALERTS_KEY, SHIP_SNAPSHOT_KEY, ...(typeof LEGACY_KEYS!=='undefined'?LEGACY_KEYS:[])];
+        [...new Set([...keep, ...appKeys])].forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
+        try{ sessionStorage.clear(); }catch(_e){}
+        try{
+          if(typeof indexedDB!=='undefined'){
+            await new Promise(res=>{
+              const req=indexedDB.deleteDatabase(PHOTO_DB);
+              req.onsuccess=req.onerror=req.onblocked=()=>res(true);
+            });
+          }
+        }catch(_e){}
+        try{
+          if('serviceWorker' in navigator){
+            const regs=await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(r=>r.unregister()));
+          }
+        }catch(_e){}
+        try{
+          if(window.caches){
+            const ks=await caches.keys();
+            await Promise.all(ks.map(k=>caches.delete(k)));
+          }
+        }catch(_e){}
+        try{ cloudSession=null; cloudClient=null; }catch(_e){}
+      }catch(err){ console.error('Hard reset fallito', err); }
+      location.href='reset.html?ts='+Date.now();
+    }, 'Reset totale');
+    return;
+  }
   if(a==='addCategory') return addCategory();
   if(a==='deleteCategory') return deleteCategory(el.dataset.name||'');
   if(a==='copyPost') return copyTextFrom(document.getElementById('vArtPost'));

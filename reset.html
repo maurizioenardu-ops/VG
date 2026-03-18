@@ -1,18 +1,47 @@
-<!doctype html><html lang="it"><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Reset</title>
-<style>body{margin:0;font-family:system-ui;background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px}button{margin-top:20px;border:0;border-radius:14px;padding:14px 18px;font-weight:900}</style>
-<body><div><h1>Reset in corso…</h1><p>Fatto. Ora apri l’app pulita.</p><button onclick="location.href='./index.html?v=v8_4'">Apri app</button></div>
+<!doctype html>
+<html lang="it"><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Reset totale</title>
+<style>
+body{margin:0;font-family:system-ui;background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px}
+.card{max-width:560px;background:#111827;border-radius:20px;padding:26px;box-shadow:0 10px 30px rgba(0,0,0,.28)}
+button{margin-top:20px;border:0;border-radius:14px;padding:14px 18px;font-weight:900;background:#fbbf24;color:#111827}
+small{display:block;margin-top:10px;color:#cbd5e1}
+.ok{color:#86efac}.err{color:#fca5a5}
+</style>
+<body><div class="card"><h1>Reset totale in corso…</h1><p id="s">Pulizia archivio locale, foto, cache e service worker…</p><button id="go" hidden>Apri app pulita</button><small>Se avevi l'app installata, riaprila dal browser una volta e poi reinstallala.</small></div>
 <script>
 (async()=>{
+  const s=document.getElementById('s');
+  const go=document.getElementById('go');
   try{
-    if('serviceWorker' in navigator){
-      const regs=await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(r=>r.unregister()));
-    }
-    if(window.caches){
-      const ks=await caches.keys();
-      await Promise.all(ks.map(k=>caches.delete(k)));
-    }
-  }catch(e){}
+    try{ localStorage.clear(); }catch(_e){}
+    try{ sessionStorage.clear(); }catch(_e){}
+    try{
+      if(typeof indexedDB!=='undefined'){
+        await Promise.all(['vg_photos_v1'].map(name=>new Promise(res=>{
+          const req=indexedDB.deleteDatabase(name);
+          req.onsuccess=req.onerror=req.onblocked=()=>res(true);
+        })));
+      }
+    }catch(_e){}
+    try{
+      if('serviceWorker' in navigator){
+        const regs=await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r=>r.unregister()));
+      }
+    }catch(_e){}
+    try{
+      if(window.caches){
+        const ks=await caches.keys();
+        await Promise.all(ks.map(k=>caches.delete(k)));
+      }
+    }catch(_e){}
+    s.innerHTML='<span class="ok">Reset totale completato.</span><br>Adesso apri l'app pulita.';
+  }catch(e){
+    s.innerHTML='<span class="err">Reset completato solo in parte.</span><br>'+String(e);
+  }
+  go.hidden=false;
+  go.onclick=()=>location.href='./index.html?clean='+Date.now();
 })();
 </script>
 </body></html>
