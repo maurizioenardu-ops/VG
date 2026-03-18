@@ -1299,18 +1299,23 @@ async function downloadCurrentArticlePhotos(){
   }
   if(!files.length){ toast('Download foto fallito'); return; }
 
-  const canNativeShare = typeof navigator!=='undefined'
-    && typeof navigator.share==='function'
-    && typeof navigator.canShare==='function'
-    && navigator.canShare({ files });
+  const hasNativeShare = typeof navigator!=='undefined' && typeof navigator.share==='function';
+  const canShareFiles = hasNativeShare && (!navigator.canShare || navigator.canShare({ files }));
 
-  if(canNativeShare){
+  if(hasNativeShare){
     try{
-      await navigator.share({
-        files,
-        title: `Foto ${baseName}`,
-        text: `Salva ${files.length} foto dell'articolo ${baseName}`
-      });
+      if(canShareFiles){
+        await navigator.share({
+          files,
+          title: `Foto ${baseName}`,
+          text: `Salva ${files.length} foto dell'articolo ${baseName}`
+        });
+      }else{
+        await navigator.share({
+          title: `Foto ${baseName}`,
+          text: `Foto ${baseName}`
+        });
+      }
       toast(`Seleziona Galleria, Foto o File per salvare ${files.length} foto.`);
       return;
     }catch(err){
