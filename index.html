@@ -1840,7 +1840,23 @@ function buildPost(a){
   const taglia=normalizePostLine(a.taglia||'', brand);
   const qemoji=emojiQualityForPost(a);
   const lines=[];
-  if(a.promoAttiva) lines.push('🔥PROMOZIONE🔥');
+  if(a.promoAttiva){
+    const scadenzaRaw=String(a.scadenzaPromo||'').trim();
+    let scadenzaLabel=scadenzaRaw;
+    if(/^\d{4}-\d{2}-\d{2}$/.test(scadenzaRaw)){
+      const [yyyy,mm,dd]=scadenzaRaw.split('-');
+      scadenzaLabel=`${dd}/${mm}/${yyyy}`;
+    }
+    const tipoMateriale=materiale || variante;
+    lines.push('⭕️ PROMOZIONE ⭕️');
+    if(scadenzaLabel) lines.push(`(fino al ${scadenzaLabel})`);
+    if(modello) lines.push(modello);
+    if(tipoMateriale) lines.push(tipoMateriale);
+    if(colore) lines.push(colore);
+    if(misura) lines.push(`Mis. ${misura}`);
+    lines.push(`cod. ${a.codice}`);
+    return uniquePostLines(lines).join('\n');
+  }
   if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
   if(descrizione) lines.push(descrizione);
   if(taglia) lines.push(`Taglia ${taglia}`);
