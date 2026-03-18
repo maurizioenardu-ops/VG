@@ -43,7 +43,7 @@ body{-webkit-tap-highlight-color:transparent}
 .artCard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;box-shadow:0 10px 24px rgba(15,23,42,.05);min-height:152px;display:flex;flex-direction:column;gap:10px;cursor:pointer}
 .artCard.tight{min-height:unset}
 .artCardHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-.artIcon{width:62px;height:62px;border-radius:18px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:46px;line-height:1;background:linear-gradient(135deg,#fff8ef 0%, #eef4ff 100%)}
+.artIcon{width:62px;height:62px;border-radius:18px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:56px;line-height:1;background:linear-gradient(135deg,#fff8ef 0%, #eef4ff 100%);overflow:hidden}
 .artMeta{display:flex;flex-direction:column;gap:4px;min-width:0}
 .artMeta .t{line-height:1.1}
 .artMeta .s{margin-top:0}
@@ -94,6 +94,7 @@ select[multiple]{min-height:150px}
 .hero{width:100%;height:190px;border-radius:16px;object-fit:cover;border:1px solid var(--line);background:#f3f4f6}
 .thumbs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .thumbs img{width:70px;height:70px;border-radius:12px;object-fit:cover;border:1px solid var(--line);cursor:pointer}
+.orderPhotoGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}.orderPhotoGrid img{width:100%;aspect-ratio:1/1;border-radius:14px;object-fit:cover;border:1px solid var(--line);background:#f3f4f6}.helperRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .hr{height:1px;background:var(--line);margin:12px 0}
 .chartBars{display:grid;gap:10px;margin-top:8px}.chartRow{display:grid;grid-template-columns:68px minmax(0,1fr) auto;gap:10px;align-items:center}.barTrack{height:12px;background:#eef1f6;border-radius:999px;overflow:hidden}.barFill{height:100%;background:linear-gradient(90deg,var(--navy),#4a6ee0);border-radius:999px}.mutedBox{padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#fafbfe}.smallGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
 .heroSpot{background:linear-gradient(135deg,#fff8ef 0%, #eef4ff 100%);border:1px solid #e6eaf2;border-radius:24px;padding:16px 16px 14px;margin-bottom:12px;box-shadow:0 12px 28px rgba(15,23,42,.06)}
@@ -120,7 +121,7 @@ select[multiple]{min-height:150px}
   .smallGrid,.cards,.btnGrid,.grid2{grid-template-columns:1fr}
   .artGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   .artCard{padding:10px;border-radius:16px}
-  .artIcon{width:54px;height:54px;font-size:26px;border-radius:16px}
+  .artIcon{width:54px;height:54px;font-size:48px;border-radius:16px;padding:0}
   .artMeta .t{font-size:13px}
   .artMeta .s{font-size:11px}
   .artPrice{font-size:16px}
@@ -159,7 +160,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v9_2">
+  <meta name="vg-version" content="v9_3">
 </head>
 <body>
 <div class="top">
@@ -205,6 +206,11 @@ window.addEventListener('error',e=>{
         <div class="micro"><div class="k">Incassato mese</div><div id="c_inc_month" class="v">0</div></div>
         <div class="micro"><div class="k">Da incassare</div><div id="c_due_total" class="v">0</div></div>
       </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="h2">Avvisi spedizioni</div>
+      <div id="shipAlerts" class="shipAlerts"><div class="shipAlertEmpty">Nessun aggiornamento spedizioni.</div></div>
     </div>
 
     <div class="card" style="margin-top:12px">
@@ -283,6 +289,10 @@ window.addEventListener('error',e=>{
       <div class="actions">
         <button class="btn" data-action="exportFull">Export DB (tutto)</button>
         <button class="btn" data-action="exportLite">Export DB (senza foto)</button>
+        <select id="importMode" class="btn" style="appearance:auto;min-width:170px">
+          <option value="replace">Importa e sostituisci tutto</option>
+          <option value="merge">Importa e unisci ai dati attuali</option>
+        </select>
         <label class="btn" style="display:inline-block">
           Import JSON<input id="importFile" type="file" accept="application/json" style="display:none"/>
         </label>
@@ -290,7 +300,7 @@ window.addEventListener('error',e=>{
         <button class="btn danger" data-action="repairArchive">Ripara archivio</button>
         <button class="btn danger" data-action="hardReset">Reset totale</button>
       </div>
-      <div class="small" style="margin-top:10px" id="importHint"></div>
+      <div class="small" style="margin-top:10px" id="importHint">Scegli prima se vuoi sostituire tutto il database oppure unire il JSON ai dati già presenti.</div>
     </div>
     
       <div class="card" style="margin-top:12px">
@@ -301,8 +311,8 @@ window.addEventListener('error',e=>{
         </div>
         <div class="actions">
           <button id="btnCloudLogin" class="btn" type="button">Login cloud</button>
-          <button class="btn" type="button" data-action="cloudPull">Carica cloud</button>
-          <button class="btn" type="button" data-action="cloudPush">Invia cloud</button>
+          <button id="btnCloudPull" class="btn" type="button" data-action="cloudPull">Carica cloud</button>
+          <button id="btnCloudPush" class="btn" type="button" data-action="cloudPush">Invia cloud</button>
           <button id="btnCloudLogout" class="btn danger" type="button">Esci</button>
         </div>
       </div>
@@ -321,6 +331,22 @@ window.addEventListener('error',e=>{
         </div>
         <div id="catList" class="list" style="margin-top:10px"></div>
         <div class="small" style="margin-top:8px" id="catHint">Puoi eliminare una categoria dall'elenco. Gli articoli già salvati non vengono cancellati.</div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="h2">Brand articoli</div>
+        <div class="small">Li inserisci una volta qui e poi li scegli dal menu negli articoli.</div>
+        <div class="grid2" style="margin-top:10px">
+          <div>
+            <div class="k">Nuovo brand</div>
+            <input id="brandName" placeholder="Es. Gucci" autocomplete="off" autocapitalize="words" spellcheck="false"/>
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <button class="btn primary" type="button" data-action="addBrand">Aggiungi brand</button>
+          </div>
+        </div>
+        <div id="brandList" class="list" style="margin-top:10px"></div>
+        <div class="small" style="margin-top:8px" id="brandHint">Puoi aggiungere, rinominare o eliminare i brand. Gli articoli restano salvati.</div>
       </div>
 
 <div class="card" style="margin-top:12px">
@@ -385,6 +411,10 @@ window.addEventListener('error',e=>{
     <div><div class="k">Qualità</div><div id="vArtQual" class="t">-</div></div>
   </div>
   <div class="grid2" style="margin-top:10px">
+    <div><div class="k">Brand</div><div id="vArtBrand" class="t">-</div></div>
+    <div><div class="k">Fornitore</div><div id="vArtForn" class="t">-</div></div>
+  </div>
+  <div class="grid2" style="margin-top:10px">
     <div><div class="k">Prezzo vendita</div><div id="vArtPrezzo" class="t">-</div></div>
     <div>
       <div class="k">Prezzo in uso</div>
@@ -411,13 +441,20 @@ window.addEventListener('error',e=>{
     <div class="blockTitle">Dati articolo</div>
     <div class="grid2">
       <div><div class="k">Codice articolo</div><input id="a_cod" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-      <div><div class="k">Brand</div><input id="a_brand" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+      <div>
+        <div class="k">Brand</div>
+        <select id="a_brand">
+          <option value="">Seleziona brand</option>
+          <option value="__ALTRO__">Altro</option>
+        </select>
+        <input id="a_brand_custom" placeholder="Scrivi il brand" autocomplete="off" autocapitalize="off" spellcheck="false" style="display:none;margin-top:8px"/>
+      </div>
     </div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k">Modello</div><input id="a_mod" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
       <div><div class="k">Categoria</div><select id="a_cat"><option value="">Seleziona categoria</option></select></div>
     </div>
-    <div style="margin-top:10px"><div class="k">Fornitore</div><input id="a_forn" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+    <div style="margin-top:10px"><div class="k">Fornitore</div><select id="a_forn"></select><div id="a_forn_hint" class="date" style="margin-top:6px">Scelta automatica dal codice articolo.</div></div>
   </div>
 
   <div class="formBlock varianti inputSoft">
@@ -534,6 +571,7 @@ window.addEventListener('error',e=>{
   <div class="hr"></div>
   <div class="h2">Righe ordine</div>
   <div id="vOrdRows" class="list"></div>
+  <div style="margin-top:10px"><div class="k">Foto ordine</div><div id="vOrdPhotos" class="orderPhotoGrid"></div><div id="vOrdPhotosEmpty" class="small" style="margin-top:6px">Nessuna foto ordine</div></div>
   <div style="margin-top:10px"><div class="k">Note</div><div id="vOrdNote" class="mutedBox">-</div></div>
   <div style="margin-top:10px"><div class="k">Totale</div><div id="vOrdTot" class="t priceHot">-</div></div>
   <div class="actions compact bottomMini">
@@ -579,6 +617,7 @@ window.addEventListener('error',e=>{
     <button class="btn" type="button" data-action="addRow">Aggiungi selezionati</button>
   </div>
   <div id="o_rows" class="list"></div>
+  <div style="margin-top:10px"><div class="k">Foto ordine</div><input id="o_photo" type="file" accept="image/*" multiple/><div class="small" style="margin-top:6px">Le foto degli articoli collegati vengono copiate in automatico. Se l'articolo non c'è o è una variante, puoi aggiungerle a mano.</div><div id="o_photo_prev" class="orderPhotoGrid"></div></div>
   <div class="card" style="margin-top:10px"><div class="k">Totale</div><div id="o_tot" class="priceHot">0</div></div>
   <div class="actions bottomMini">
     <button class="btn primary" type="button" data-action="saveOrd">Salva</button>
@@ -620,7 +659,7 @@ const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maxi
 const round5=n=>Math.round(n/5)*5;
 
 function defDB(){
-  return {version:'v6.2',articoli:[],clienti:[],ordini:[],categorie:[],createdAt:new Date().toISOString()};
+  return {version:'v6.3',articoli:[],clienti:[],ordini:[],categorie:[],brands:[],createdAt:new Date().toISOString()};
 }
 function normalizeDBShape(o){
   if(!o || typeof o!=='object') return defDB();
@@ -630,6 +669,7 @@ function normalizeDBShape(o){
     clienti:Array.isArray(o.clienti)?o.clienti:[],
     ordini:Array.isArray(o.ordini)?o.ordini:[],
     categorie:Array.isArray(o.categorie)?o.categorie:[],
+    brands:Array.isArray(o.brands)?o.brands:[],
     createdAt:o.createdAt||new Date().toISOString()
   };
   db.articoli=db.articoli.map(x=>({
@@ -640,12 +680,45 @@ function normalizeDBShape(o){
   db.ordini=db.ordini.map(x=>({
     ...x,
     righe:Array.isArray(x?.righe)?x.righe:[],
+    foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,12):[],
+    fotoManuali:Array.isArray(x?.fotoManuali)?x.fotoManuali.filter(Boolean).slice(0,12):[],
+    fotoArticoli:Array.isArray(x?.fotoArticoli)?x.fotoArticoli.filter(Boolean).slice(0,12):[],
+    orderPhotoIds:Array.isArray(x?.orderPhotoIds)?x.orderPhotoIds.filter(Boolean).slice(0,12):[],
     totale:Number(x?.totale||0),
     incassato:Number(x?.incassato||0)
   }));
   db.categorie=[...new Set((db.categorie||[]).map(x=>String(x||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.brands=[...new Set((db.brands||[]).map(x=>String(x||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.clienti=dedupeClienti(db.clienti||[]);
   return db;
 }
+
+function normalizeClientDedupKey(x){
+  const clean=v=>String(v==null?'':v).trim().toLowerCase().replace(/\s+/g,' ');
+  const nome=clean(x?.nome||x?.name||'');
+  const cognome=clean(x?.cognome||x?.surname||'');
+  const telefono=clean(x?.telefono||x?.tel||x?.phone||'').replace(/[^\d+]/g,'');
+  const email=clean(x?.email||'');
+  const citta=clean(x?.citta||x?.city||'');
+  return [nome,cognome,telefono,email,citta].join('|');
+}
+function dedupeClienti(list=[]){
+  const byId=new Map();
+  const noKey=[];
+  for(const raw of (Array.isArray(list)?list:[])){
+    if(!raw) continue;
+    const item={...raw};
+    const key=normalizeClientDedupKey(item);
+    if(!key || /^\|+$/i.test(key)) { noKey.push(item); continue; }
+    const prev=byId.get(key);
+    if(!prev){ byId.set(key,item); continue; }
+    const prevScore=(prev._ts||0)+Object.values(prev).filter(Boolean).length;
+    const nextScore=(item._ts||0)+Object.values(item).filter(Boolean).length;
+    if(nextScore>=prevScore) byId.set(key,{...prev,...item,id:prev.id||item.id});
+  }
+  return [...byId.values(), ...noKey];
+}
+
 function mergeById(arrA=[], arrB=[]){
   const map=new Map();
   [...arrA, ...arrB].forEach(it=>{
@@ -678,7 +751,8 @@ function loadDB(){
         articoli: mergeById(merged.articoli, db.articoli),
         clienti: mergeById(merged.clienti, db.clienti),
         ordini: mergeById(merged.ordini, db.ordini),
-        categorie: [...new Set([...(merged.categorie||[]), ...(db.categorie||[])])].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}))
+        categorie: [...new Set([...(merged.categorie||[]), ...(db.categorie||[])])].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'})),
+        brands: [...new Set([...(merged.brands||[]), ...(db.brands||[])])].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}))
       };
     });
 
@@ -693,7 +767,9 @@ function loadDB(){
 }
 function saveDB(db){
   try{
-    localStorage.setItem(KEY, JSON.stringify(db));
+    const raw=JSON.stringify(db);
+    localStorage.setItem(KEY, raw);
+    try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
     const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
     legacyKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
   }catch(err){
@@ -703,6 +779,7 @@ function saveDB(db){
     return false;
   }
   try{ renderAll(); }catch(err){ console.error('Render post-salvataggio fallito', err); }
+  refreshArticleBrandSelects();
   return true;
 }
 function safeLower(v){ return String(v==null?'':v).trim().toLowerCase(); }
@@ -808,25 +885,64 @@ async function listCloudFotoPathsByCode(codice){
 
 async function getArticlePics(a){
   if(!a) return [];
-  const cloudPics=[];
+  const out=[];
+  const pushPic=(src)=>{
+    const clean=String(src||'').trim();
+    if(!clean || out.includes(clean)) return;
+    out.push(clean);
+  };
   if(Array.isArray(a.foto) && a.foto.length){
     for(const path of a.foto.slice(0,6)){
       const url=await getPublicFotoUrl(path);
-      if(url) cloudPics.push(url);
+      if(url) pushPic(url);
+      if(out.length>=6) return out.slice(0,6);
     }
   }
-  if(cloudPics.length) return cloudPics;
   if(Array.isArray(a.photoIds) && a.photoIds.length){
-    const out=[];
     for(const id of a.photoIds){
+      const x=await idbGet(id);
+      if(!x) continue;
+      if(typeof x==='string') pushPic(x);
+      else if(x instanceof Blob) pushPic(URL.createObjectURL(x));
+      if(out.length>=6) break;
+    }
+  }
+  return out.slice(0,6);
+}
+async function getStoredPhotoSources(ids=[]){
+  const out=[];
+  for(const id of (ids||[])){
+    try{
       const x=await idbGet(id);
       if(!x) continue;
       if(typeof x==='string') out.push(x);
       else if(x instanceof Blob) out.push(URL.createObjectURL(x));
-    }
-    return out;
+    }catch(_e){}
   }
-  return [];
+  return out;
+}
+async function getOrderManualPics(ord){
+  const legacy=Array.isArray(ord?.fotoManuali)?ord.fotoManuali.filter(Boolean).slice(0,12):[];
+  const stored=await getStoredPhotoSources(Array.isArray(ord?.orderPhotoIds)?ord.orderPhotoIds.filter(Boolean).slice(0,12):[]);
+  return mergeUniquePics(legacy, stored).slice(0,12);
+}
+async function getOrderPics(ord, db){
+  const articlePics=await getOrderArticleSnapshotPhotos(ord?.righe||[], db||loadDB());
+  const manualPics=await getOrderManualPics(ord||{});
+  return mergeUniquePics(articlePics, manualPics).slice(0,12);
+}
+async function blobToDataUrl(blob){
+  return await new Promise((res,rej)=>{
+    const fr=new FileReader();
+    fr.onload=()=>res(String(fr.result||''));
+    fr.onerror=()=>rej(fr.error||new Error('Lettura file fallita'));
+    fr.readAsDataURL(blob);
+  });
+}
+async function requestPersistentStorage(){
+  try{
+    if(navigator.storage?.persist) await navigator.storage.persist();
+  }catch(_e){}
 }
 async function blobFromPhotoSrc(src){
   const val=String(src||'').trim();
@@ -1042,6 +1158,76 @@ function qualityFromCode(code){
   if(first==='1' || /[A-Za-z]/.test(first)) return 'STANDARD';
   return 'STANDARD';
 }
+function supplierRuleFromCode(code){
+  const c=String(code||'').trim();
+  if(!c) return {mode:'free', options:['Jessica','Daniel'], value:''};
+  const first=c[0];
+  if(first==='2' || first==='3') return {mode:'fixed', options:['Jayden'], value:'Jayden'};
+  if(first==='1' || /[A-Za-z]/.test(first)) return {mode:'choice', options:['Jessica','Daniel'], value:''};
+  return {mode:'choice', options:['Jessica','Daniel'], value:''};
+}
+function getArticleBrandValue(){
+  const sel=document.getElementById('a_brand');
+  const custom=document.getElementById('a_brand_custom');
+  if(!sel) return "";
+  if(sel.value==='__ALTRO__') return String(custom?.value||'').trim();
+  return String(sel.value||'').trim();
+}
+function syncBrandField(value=''){
+  const sel=document.getElementById('a_brand');
+  const custom=document.getElementById('a_brand_custom');
+  if(!sel || !custom) return;
+  const clean=String(value||'').trim();
+  const known=getBrandPresetList().includes(clean);
+  if(clean && !known){
+    sel.value='__ALTRO__';
+    custom.style.display='block';
+    custom.value=clean;
+  }else{
+    sel.value=clean||'';
+    custom.style.display=sel.value==='__ALTRO__' ? 'block' : 'none';
+    if(sel.value!=='__ALTRO__') custom.value='';
+  }
+}
+function handleBrandSelectionChange(){
+  const sel=document.getElementById('a_brand');
+  const custom=document.getElementById('a_brand_custom');
+  if(!sel || !custom) return;
+  const show=sel.value==='__ALTRO__';
+  custom.style.display=show ? 'block' : 'none';
+  if(!show) custom.value='';
+  renderArtAutoFields();
+  if(show) setTimeout(()=>custom.focus(),0);
+}
+
+function updateSupplierField(preferredValue=''){
+  const sel=document.getElementById('a_forn');
+  const hint=document.getElementById('a_forn_hint');
+  if(!sel) return;
+  const rule=supplierRuleFromCode(document.getElementById('a_cod')?.value||'');
+  const current=String(preferredValue || sel.value || '').trim();
+  sel.innerHTML='';
+  if(rule.mode==='fixed'){
+    sel.innerHTML='<option value="Jayden">Jayden</option>';
+    sel.value='Jayden';
+    sel.disabled=true;
+    if(hint) hint.textContent='Codice che inizia per 2 o 3: fornitore fisso Jayden.';
+    return;
+  }
+  sel.disabled=false;
+  const ph=document.createElement('option');
+  ph.value='';
+  ph.textContent='Seleziona fornitore';
+  sel.appendChild(ph);
+  rule.options.forEach(name=>{
+    const opt=document.createElement('option');
+    opt.value=name;
+    opt.textContent=name;
+    sel.appendChild(opt);
+  });
+  sel.value=rule.options.includes(current)?current:'';
+  if(hint) hint.textContent='Codice standard: scegli Jessica oppure Daniel.';
+}
 function calcFromUsd(usd, qual){
   const costo=(Number(usd||0)*0.90)+5;
   if(!isFinite(costo)) return {costo:0, sell:0, marg:0};
@@ -1100,30 +1286,131 @@ function emojiQualityForPost(a){
   const q=qualityFromCode(a.codice);
   return (q==='ORIGINALE') ? '🥇' : '🔝💯';
 }
+function escapeRegExp(str){
+  return String(str||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+}
+function brandVariants(brand){
+  const clean=String(brand||'').trim();
+  if(!clean) return [];
+  const words=clean.split(/\s+/).map(x=>x.trim()).filter(Boolean);
+  const variants=[clean, ...words];
+  const acronym=words.map(w=>w[0]||'').join('').toUpperCase();
+  if(acronym && acronym.length>=2) variants.push(acronym);
+  const compact=clean.replace(/[^a-z0-9]/gi,'');
+  if(compact && compact.length<=5) variants.push(compact);
+  const uniq=[];
+  for(const part of variants){
+    const key=String(part||'').trim().toLowerCase();
+    if(!key || uniq.some(x=>x.toLowerCase()===key)) continue;
+    uniq.push(String(part).trim());
+  }
+  return uniq.sort((a,b)=>b.length-a.length);
+}
+function stripBrandFromText(text, brand){
+  let out=String(text||'').replace(/\s+/g,' ').trim();
+  const variants=brandVariants(brand);
+  if(!out || !variants.length) return out;
+  variants.forEach(part=>{
+    const rx=/[a-z0-9]/i.test(part)
+      ? new RegExp(`\\b${escapeRegExp(part)}\\b`,'gi')
+      : new RegExp(escapeRegExp(part),'gi');
+    out=out.replace(rx,' ');
+  });
+  return out.replace(/\s{2,}/g,' ').replace(/^[-–—:;,\.\s]+|[-–—:;,\.\s]+$/g,'').trim();
+}
+function normalizePostLine(text, brand){
+  return stripBrandFromText(text, brand).replace(/\s+/g,' ').trim();
+}
+function uniquePostLines(lines=[]){
+  const out=[];
+  const seen=new Set();
+  for(const raw of lines){
+    const line=String(raw||'').replace(/\s+/g,' ').trim();
+    if(!line) continue;
+    const key=line.toLowerCase();
+    if(seen.has(key)) continue;
+    seen.add(key);
+    out.push(line);
+  }
+  return out;
+}
 function buildPost(a){
-  const brand=(a.brand||'').trim();
-  const modello=(a.modello||'').trim();
   if(!a.codice) return '';
+  const brand=(a.brand||'').trim();
+  const modello=normalizePostLine(a.modello||'', brand);
+  const descrizione=normalizePostLine(a.descrizione||'', brand);
+  const variante=normalizePostLine(a.variante||'', brand);
+  const colore=normalizePostLine(a.colore||'', brand);
+  const materiale=normalizePostLine(a.materiale||'', brand);
+  const colori=normalizePostLine(a.colori||'', brand);
+  const tracolla=normalizePostLine(a.tracolla||'', brand);
+  const misura=normalizePostLine(a.misura||'', brand);
+  const taglia=normalizePostLine(a.taglia||'', brand);
   const qemoji=emojiQualityForPost(a);
-  let lines=[];
+  const lines=[];
   if(a.promoAttiva) lines.push('🔥PROMOZIONE🔥');
-  lines.push(`${brand} ${modello} ${qemoji}`.trim());
-  const qual=qualityFromCode(a.codice);
-  if(qual==='ORIGINALE') lines.push('QUALITÀ SUPERIORE');
-  else if(qual) lines.push(`Qualità ${qual}`);
-  if((a.descrizione||'').trim()) lines.push((a.descrizione||'').trim());
-  const detail=[];
-  if(a.taglia) detail.push(`Taglia ${a.taglia}`);
-  if(a.variante) detail.push(a.variante);
-  if(a.colore) detail.push(a.colore);
-  if(a.misura) detail.push(`Mis. ${a.misura}`);
-  if(detail.length) lines.push(detail.join(' • '));
+  if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
+  if(descrizione) lines.push(descrizione);
+  if(taglia) lines.push(`Taglia ${taglia}`);
+  if(variante) lines.push(variante);
+  if(colore) lines.push(colore);
+  if(misura) lines.push(`Mis. ${misura}`);
   if(a.scatola) lines.push('Con scatola 🎁');
-  if(a.materiale) lines.push(`🧵 ${a.materiale}`);
-  if(a.colori) lines.push(a.colori);
-  if(a.tracolla) lines.push(a.tracolla);
+  if(materiale) lines.push(`🧵 ${materiale}`);
+  if(colori) lines.push(colori);
+  if(tracolla) lines.push(tracolla);
   lines.push(`cod. ${a.codice}`);
-  return lines.join('\n');
+  return uniquePostLines(lines).join('\n');
+}
+function buildCloudArticleMeta(art){
+  return {
+    brand: art?.brand||'',
+    modello: art?.modello||'',
+    categoria: art?.categoria||'',
+    descrizione: art?.descrizione||'',
+    fornitore: art?.fornitore||'',
+    fornitoreLink: art?.fornitoreLink||'',
+    taglia: art?.taglia||'',
+    variante: art?.variante||'',
+    colore: art?.colore||'',
+    misura: art?.misura||'',
+    costoUsd: Number(art?.costoUsd||0),
+    costoEur: Number(art?.costoEur||0),
+    prezzoVendita: Number(art?.prezzoVendita||0),
+    promoAttiva: !!art?.promoAttiva,
+    prezzoPromo: Number(art?.prezzoPromo||0),
+    scadenzaPromo: art?.scadenzaPromo||'',
+    post: art?.post||'',
+    note: art?.note||''
+  };
+}
+function packCloudArticleDescription(art){
+  const plain=[String(art?.descrizione||'').trim(), String(art?.note||'').trim()].filter(Boolean).join('\n\n');
+  let meta='';
+  try{ meta=`\n\n[VGMETA]${JSON.stringify(buildCloudArticleMeta(art))}[/VGMETA]`; }catch(_e){}
+  return (plain + meta).trim() || null;
+}
+function unpackCloudArticleDescription(text){
+  const raw=String(text||'');
+  const match=raw.match(/\[VGMETA\]([\s\S]*?)\[\/VGMETA\]/i);
+  let meta={};
+  if(match?.[1]){
+    try{ meta=JSON.parse(match[1]); }catch(_e){}
+  }
+  const plain=raw.replace(/\s*\[VGMETA\][\s\S]*?\[\/VGMETA\]\s*/gi,' ').replace(/\s{3,}/g,'\n\n').trim();
+  return { plain, meta: (meta && typeof meta==='object') ? meta : {} };
+}
+function parseLegacyCloudDescription(text){
+  const raw=String(text||'').trim();
+  if(!raw) return { descrizione:'', note:'', post:'' };
+  const noteMatch=raw.match(/(?:^|\n\n)Note:\s*([\s\S]*?)(?=(?:\n\nPost:)|$)/i);
+  const postMatch=raw.match(/(?:^|\n\n)Post:\s*([\s\S]*?)$/i);
+  const descrizione=raw
+    .replace(/(?:^|\n\n)Note:\s*[\s\S]*?(?=(?:\n\nPost:)|$)/i,' ')
+    .replace(/(?:^|\n\n)Post:\s*[\s\S]*$/i,' ')
+    .replace(/\s{3,}/g,'\n\n')
+    .trim();
+  return { descrizione, note:(noteMatch?.[1]||'').trim(), post:(postMatch?.[1]||'').trim() };
 }
 
 function withIntlPrefix(tel){
@@ -1169,14 +1456,26 @@ function renderPageState(name){
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.go===name));
   document.querySelectorAll('.navBottom button').forEach(b=>b.classList.toggle('active', b.dataset.go===name));
 }
+function currentHistoryPage(){
+  return (history.state&&history.state.page) || location.hash.replace('#','') || 'home';
+}
 function go(name, push=true){
   renderPageState(name);
-  if(push) history.pushState({page:name},'', '#'+name);
+  const state={page:name};
+  if(name==='articoli') state.artBrowse={...artBrowseState};
+  if(push) history.pushState(state,'', '#'+name);
+  else history.replaceState({...history.state, ...state},'', '#'+name);
 }
 window.addEventListener('popstate',(e)=>{
   if(activeModalId){ const mid=activeModalId; activeModalId=null; document.getElementById(mid).style.display='none'; return; }
-  const page=(e.state&&e.state.page) || location.hash.replace('#','') || 'home';
+  const state=e.state||{};
+  const page=state.page || location.hash.replace('#','') || 'home';
   renderPageState(page);
+  if(page==='articoli'){
+    const b=state.artBrowse||{level:'categorie',categoria:'',brand:''};
+    setArtBrowse(b.level||'categorie', b.categoria||'', b.brand||'', false);
+    renderArt();
+  }
 });
 
 /* ====== UI helpers ====== */
@@ -1258,6 +1557,59 @@ function applyUiPrefs(){
 }
 
 /* ====== RENDER ====== */
+const SHIP_ALERTS_KEY='vg_ship_alerts_v1';
+const SHIP_SNAPSHOT_KEY='vg_ship_snapshot_v1';
+function getOrderSnapshotMap(ordini=[]){
+  const map={};
+  (ordini||[]).forEach(o=>{
+    const key=String(o.id||o.numeroOrdine||'').trim();
+    if(!key) return;
+    map[key]={numeroOrdine:o.numeroOrdine||'',stato:o.stato||'',tracking:o.tracking||'',data:o.data||''};
+  });
+  return map;
+}
+function loadShipAlerts(){
+  try{ return JSON.parse(localStorage.getItem(SHIP_ALERTS_KEY)||'[]'); }catch{ return []; }
+}
+function saveShipAlerts(items){
+  try{ localStorage.setItem(SHIP_ALERTS_KEY, JSON.stringify((items||[]).slice(0,20))); }catch{}
+}
+function renderShipAlerts(){
+  const box=document.getElementById('shipAlerts');
+  if(!box) return;
+  const items=loadShipAlerts();
+  if(!items.length){
+    box.innerHTML='<div class="shipAlertEmpty">Nessun aggiornamento spedizioni.</div>';
+    return;
+  }
+  box.innerHTML=items.map(a=>`<div class="shipAlert"><div class="t">${esc(a.title||'Aggiornamento spedizione')}</div><div class="s">${esc(a.text||'')}</div><div class="meta">${esc(a.when||'')}</div></div>`).join('');
+}
+function updateShippingNotifications(db, source='app'){
+  const curr=getOrderSnapshotMap(db?.ordini||[]);
+  let prev={};
+  try{ prev=JSON.parse(localStorage.getItem(SHIP_SNAPSHOT_KEY)||'{}'); }catch{}
+  const alerts=loadShipAlerts();
+  const fresh=[];
+  Object.keys(curr).forEach(key=>{
+    const now=curr[key], old=prev[key];
+    if(!old) return;
+    if((now.stato||'') !== (old.stato||'')){
+      fresh.push({title:`Ordine ${now.numeroOrdine||key}: stato aggiornato`, text:`Da ${old.stato||'-'} a ${now.stato||'-'}.`, when:new Date().toLocaleString('it-IT')});
+    }
+    if((now.tracking||'') !== (old.tracking||'')){
+      const t=now.tracking?`Nuovo tracking ${now.tracking}.`:'Tracking rimosso o svuotato.';
+      fresh.push({title:`Ordine ${now.numeroOrdine||key}: tracking aggiornato`, text:t, when:new Date().toLocaleString('it-IT')});
+    }
+  });
+  if(fresh.length){
+    const merged=[...fresh,...alerts].slice(0,20);
+    saveShipAlerts(merged);
+    toast(fresh.length===1 ? '1 aggiornamento spedizione' : `${fresh.length} aggiornamenti spedizione`);
+  }
+  try{ localStorage.setItem(SHIP_SNAPSHOT_KEY, JSON.stringify(curr)); }catch{}
+  renderShipAlerts();
+}
+
 function dashboardMood(incMonth, prevMonth, openOrders, totalOrders){
   const ratio = prevMonth>0 ? incMonth/prevMonth : (incMonth>0 ? 1.2 : 0);
   if(totalOrders===0) return {title:'Si riparte da qui', sub:'Nessun ordine registrato: dashboard pronta a ripartire.'};
@@ -1318,13 +1670,25 @@ function renderHome(){
     const target=(i===1)?'articoli':'ordini';
     return `<div class="row" data-go="${target}" style="grid-template-columns:1fr"><div class="main"><div class="t">${esc(t)}</div></div></div>`;
   }).join('');
+  renderShipAlerts();
 }
 
+function normalizeCategoryName(v){
+  return String(v||'').trim().replace(/\s+/g,' ').toLowerCase();
+}
 function articleCategoryOptions(db){
-  const defaults=['Borse','Portafogli','Cinture','Scarpe','Accessori'];
   const saved=Array.isArray(db?.categorie)?db.categorie:[];
   const found=(db?.articoli||[]).map(a=>String(a?.categoria||'').trim()).filter(Boolean);
-  return [...new Set([...defaults, ...saved, ...found])].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  const out=[];
+  const seen=new Set();
+  for(const name of [...saved, ...found]){
+    const clean=String(name||'').trim().replace(/\s+/g,' ');
+    const key=normalizeCategoryName(clean);
+    if(!clean || seen.has(key)) continue;
+    seen.add(key);
+    out.push(clean);
+  }
+  return out.sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
 }
 function renderCategorySettings(){
   const db=loadDB();
@@ -1332,33 +1696,74 @@ function renderCategorySettings(){
   const hint=document.getElementById('catHint');
   if(!box) return;
   const cats=articleCategoryOptions(db);
-  const savedSet=new Set(Array.isArray(db?.categorie)?db.categorie:[]);
-  box.innerHTML=cats.length?cats.map(c=>`<div class="row" style="grid-template-columns:1fr auto"><div class="main"><div class="t">${esc(c)}</div><div class="small">${savedSet.has(c)?'Categoria salvata nelle impostazioni':'Categoria rilevata da articoli già esistenti'}</div></div><div><button class="btn danger smallish" type="button" data-action="deleteCategory" data-name="${esc(c)}">Elimina</button></div></div>`).join(''):'<div class="small">Nessuna categoria salvata.</div>';
-  if(hint) hint.textContent='Le categorie salvate compaiono nel menu degli articoli. Se ne elimini una, gli articoli esistenti restano intatti.';
+  const savedSet=new Set((Array.isArray(db?.categorie)?db.categorie:[]).map(normalizeCategoryName));
+  box.innerHTML=cats.length?cats.map(c=>`<div class="row" style="grid-template-columns:1fr auto auto;gap:8px"><div class="main"><div class="t">${esc(c)}</div><div class="small">${savedSet.has(normalizeCategoryName(c))?'Categoria salvata nelle impostazioni':'Categoria rilevata da articoli già esistenti'}</div></div><div><button class="btn smallish" type="button" data-action="renameCategory" data-name="${esc(c)}">Modifica</button></div><div><button class="btn danger smallish" type="button" data-action="deleteCategory" data-name="${esc(c)}">Elimina</button></div></div>`).join(''):'<div class="small">Nessuna categoria salvata.</div>';
+  if(hint) hint.textContent='Puoi aggiungere, rinominare o eliminare le categorie. Se elimini una categoria, viene tolta anche dagli articoli che la usavano e gli articoli restano in Senza categoria.';
 }
 function addCategory(){
   const input=document.getElementById('catName');
-  const nome=String(input?.value||'').trim();
+  const nome=String(input?.value||'').trim().replace(/\s+/g,' ');
   if(!nome){ toast('Scrivi il nome categoria'); return; }
   const db=loadDB();
+  const key=normalizeCategoryName(nome);
+  const exists=(db.categorie||[]).some(c=>normalizeCategoryName(c)===key) || (db.articoli||[]).some(a=>normalizeCategoryName(a?.categoria)===key);
+  if(exists){ toast('Categoria già presente'); return; }
   const next=[...new Set([...(db.categorie||[]), nome])].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
   db.categorie=next;
   if(!saveDB(db)) return;
   if(input) input.value='';
   renderCategorySettings();
+  renderBrandSettings();
   refreshArticleCategorySelects();
+  refreshArticleBrandSelects();
   toast('Categoria salvata');
 }
+function renameCategory(oldName){
+  const cleanOld=String(oldName||'').trim().replace(/\s+/g,' ');
+  if(!cleanOld) return;
+  const nuovo=window.prompt('Nuovo nome categoria', cleanOld);
+  if(nuovo===null) return;
+  const cleanNew=String(nuovo||'').trim().replace(/\s+/g,' ');
+  if(!cleanNew){ toast('Nome categoria vuoto'); return; }
+  const oldKey=normalizeCategoryName(cleanOld);
+  const newKey=normalizeCategoryName(cleanNew);
+  const db=loadDB();
+  if(oldKey!==newKey){
+    const exists=(db.categorie||[]).some(c=>normalizeCategoryName(c)===newKey) || (db.articoli||[]).some(a=>normalizeCategoryName(a?.categoria)===newKey);
+    if(exists){ toast('Esiste già una categoria con questo nome'); return; }
+  }
+  db.categorie=(db.categorie||[]).map(c=>normalizeCategoryName(c)===oldKey ? cleanNew : c);
+  if(!(db.categorie||[]).some(c=>normalizeCategoryName(c)===newKey)) db.categorie.push(cleanNew);
+  db.categorie=[...new Set((db.categorie||[]).map(c=>String(c||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.articoli=(db.articoli||[]).map(a=> normalizeCategoryName(a?.categoria)===oldKey ? {...a, categoria: cleanNew, _ts: Date.now()} : a);
+  if(artBrowseState.categoria && normalizeCategoryName(artBrowseState.categoria)===oldKey){
+    setArtBrowse(artBrowseState.level, cleanNew, artBrowseState.brand||'', false);
+  }
+  if(!saveDB(db)) return;
+  renderCategorySettings();
+  refreshArticleCategorySelects(cleanNew);
+  renderArt();
+  toast('Categoria aggiornata');
+}
 function deleteCategory(nome){
-  const clean=String(nome||'').trim();
+  const clean=String(nome||'').trim().replace(/\s+/g,' ');
   if(!clean) return;
-  askConfirm(`Tolgo la categoria "${clean}" dall'elenco rapido?`,()=>{
+  askConfirm(`Elimino la categoria "${clean}"? Gli articoli restano salvati ma finiscono in "Senza categoria".`,()=>{
     const db=loadDB();
-    db.categorie=(db.categorie||[]).filter(c=>String(c||'').trim()!==clean);
+    const key=normalizeCategoryName(clean);
+    db.categorie=(db.categorie||[]).filter(c=>normalizeCategoryName(c)!==key);
+    db.articoli=(db.articoli||[]).map(a=>{
+      if(normalizeCategoryName(a?.categoria)!==key) return a;
+      return {...a, categoria:'', _ts: Date.now()};
+    });
     if(!saveDB(db)) return;
+    if(artBrowseState.categoria && normalizeCategoryName(artBrowseState.categoria)===key){
+      setArtBrowse('categorie','','',false);
+    }
     renderCategorySettings();
     refreshArticleCategorySelects();
-    toast('Categoria rimossa');
+    renderArt();
+    toast('Categoria eliminata');
   },'Elimina categoria');
 }
 function refreshArticleCategorySelects(selectedEdit=''){
@@ -1379,19 +1784,151 @@ function refreshArticleCategorySelects(selectedEdit=''){
   }
 }
 
+const DEFAULT_BRANDS=['Louis Vuitton','Gucci','Chanel','Dior','Alexander McQueen','Balenciaga','Versace'];
+function normalizeBrandName(v){
+  return String(v||'').trim().replace(/\s+/g,' ').toLowerCase();
+}
+function articleBrandOptions(db){
+  const seen=new Set();
+  const out=[];
+  const push=(v)=>{
+    const clean=String(v||'').trim().replace(/\s+/g,' ');
+    if(!clean || /^senza\s+brand$/i.test(clean)) return;
+    const key=normalizeBrandName(clean);
+    if(!key || seen.has(key)) return;
+    seen.add(key);
+    out.push(clean);
+  };
+  DEFAULT_BRANDS.forEach(push);
+  (Array.isArray(db?.brands)?db.brands:[]).forEach(push);
+  (Array.isArray(db?.articoli)?db.articoli:[]).forEach(a=>push(a?.brand));
+  return out.sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+}
+function renderBrandSettings(){
+  const db=loadDB();
+  const box=document.getElementById('brandList');
+  const hint=document.getElementById('brandHint');
+  if(!box) return;
+  const brands=articleBrandOptions(db);
+  const savedSet=new Set((Array.isArray(db?.brands)?db.brands:[]).map(normalizeBrandName));
+  box.innerHTML=brands.length?brands.map(b=>`<div class="row" style="grid-template-columns:1fr auto auto;gap:8px"><div class="main"><div class="t">${esc(b)}</div><div class="small">${savedSet.has(normalizeBrandName(b))?'Brand salvato nelle impostazioni':'Brand rilevato da articoli già esistenti'}</div></div><div><button class="btn smallish" type="button" data-action="renameBrand" data-name="${esc(b)}">Modifica</button></div><div><button class="btn danger smallish" type="button" data-action="deleteBrand" data-name="${esc(b)}">Elimina</button></div></div>`).join(''):'<div class="small">Nessun brand salvato.</div>';
+  if(hint) hint.textContent='Puoi aggiungere, rinominare o eliminare i brand. Se elimini un brand, gli articoli restano ma finiscono in Senza brand.';
+}
+function refreshArticleBrandSelects(selected=''){
+  const sel=document.getElementById('a_brand');
+  if(!sel) return;
+  const options=articleBrandOptions(loadDB());
+  const wanted=String(selected||getArticleBrandValue()||'').trim();
+  sel.innerHTML='<option value="">Seleziona brand</option>' + options.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('') + '<option value="__ALTRO__">Altro</option>';
+  if(wanted && options.includes(wanted)){
+    sel.value=wanted;
+  }else if(wanted){
+    sel.value='__ALTRO__';
+  }else{
+    sel.value='';
+  }
+  handleBrandSelectionChange();
+}
+function addBrand(){
+  const input=document.getElementById('brandName');
+  const nome=String(input?.value||'').trim().replace(/\s+/g,' ');
+  if(!nome){ toast('Scrivi il nome brand'); return; }
+  const db=loadDB();
+  const key=normalizeBrandName(nome);
+  const exists=articleBrandOptions(db).some(b=>normalizeBrandName(b)===key);
+  if(exists){ toast('Brand già presente'); return; }
+  db.brands=[...(Array.isArray(db.brands)?db.brands:[]), nome].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  if(!saveDB(db)) return;
+  if(input) input.value='';
+  renderBrandSettings();
+  refreshArticleBrandSelects(nome);
+  toast('Brand salvato');
+}
+function renameBrand(oldName){
+  const cleanOld=String(oldName||'').trim().replace(/\s+/g,' ');
+  if(!cleanOld) return;
+  const nuovo=window.prompt('Nuovo nome brand', cleanOld);
+  if(nuovo===null) return;
+  const cleanNew=String(nuovo||'').trim().replace(/\s+/g,' ');
+  if(!cleanNew){ toast('Nome brand vuoto'); return; }
+  const oldKey=normalizeBrandName(cleanOld);
+  const newKey=normalizeBrandName(cleanNew);
+  const db=loadDB();
+  if(oldKey!==newKey && articleBrandOptions(db).some(b=>normalizeBrandName(b)===newKey)){
+    toast('Esiste già un brand con questo nome'); return;
+  }
+  db.brands=(Array.isArray(db.brands)?db.brands:[]).map(b=>normalizeBrandName(b)===oldKey ? cleanNew : b);
+  if(!(Array.isArray(db.brands)?db.brands:[]).some(b=>normalizeBrandName(b)===newKey)) db.brands.push(cleanNew);
+  db.brands=[...new Set((db.brands||[]).map(b=>String(b||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.articoli=(db.articoli||[]).map(a=> normalizeBrandName(a?.brand)===oldKey ? {...a, brand: cleanNew, _ts: Date.now()} : a);
+  if(artBrowseState.brand && normalizeBrandName(artBrowseState.brand)===oldKey){
+    setArtBrowse(artBrowseState.level, artBrowseState.categoria||'', cleanNew, false);
+  }
+  if(!saveDB(db)) return;
+  renderBrandSettings();
+  refreshArticleBrandSelects(cleanNew);
+  renderArt();
+  toast('Brand aggiornato');
+}
+function deleteBrand(nome){
+  const clean=String(nome||'').trim().replace(/\s+/g,' ');
+  if(!clean) return;
+  askConfirm(`Elimino il brand "${clean}"? Gli articoli restano salvati ma finiscono in "Senza brand".`,()=>{
+    const db=loadDB();
+    const key=normalizeBrandName(clean);
+    db.brands=(db.brands||[]).filter(b=>normalizeBrandName(b)!==key);
+    db.articoli=(db.articoli||[]).map(a=> normalizeBrandName(a?.brand)===key ? {...a, brand:'', _ts: Date.now()} : a);
+    if(artBrowseState.brand && normalizeBrandName(artBrowseState.brand)===key){
+      setArtBrowse('brands', artBrowseState.categoria||'', '', false);
+    }
+    if(!saveDB(db)) return;
+    renderBrandSettings();
+    refreshArticleBrandSelects();
+    renderArt();
+    toast('Brand eliminato');
+  },'Elimina brand');
+}
+function getBrandPresetList(){
+  return articleBrandOptions(loadDB());
+}
+
+
 const ART_ICONS={
   'borse':'👜','borsa':'👜','portafogli':'👛','portafoglio':'👛','cinture':'👔','cintura':'👔','scarpe':'👠','scarpa':'👠',
   'gioielli':'💍','orologi':'⌚','occhiali':'🕶️','accessori':'✨'
 };
 const artBrowseState={level:'categorie',categoria:'',brand:''};
+function normalizeCategoryValue(raw){
+  const v=String(raw??'').trim();
+  return (!v || /^senza\s+categoria$/i.test(v)) ? '' : v;
+}
+function displayCategoryValue(raw){
+  return normalizeCategoryValue(raw) || 'Senza categoria';
+}
+function normalizeBrandValue(raw){
+  const v=String(raw??'').trim();
+  return (!v || /^senza\s+brand$/i.test(v)) ? '' : v;
+}
+function displayBrandValue(raw){
+  return normalizeBrandValue(raw) || 'Senza brand';
+}
+function matchesBrowseCategory(articleValue, browseValue){
+  return displayCategoryValue(articleValue)===displayCategoryValue(browseValue);
+}
+function matchesBrowseBrand(articleValue, browseValue){
+  return displayBrandValue(articleValue)===displayBrandValue(browseValue);
+}
 function artIconForCategory(cat){
-  const key=String(cat||'').trim().toLowerCase();
+  const key=normalizeCategoryValue(cat).toLowerCase();
   return ART_ICONS[key] || '🛍️';
 }
-function setArtBrowse(level,categoria='',brand=''){
+function setArtBrowse(level,categoria='',brand='',pushHistory=true){
   artBrowseState.level=level;
   artBrowseState.categoria=categoria||'';
   artBrowseState.brand=brand||'';
+  if(pushHistory && currentHistoryPage()==='articoli'){
+    history.pushState({page:'articoli', artBrowse:{...artBrowseState}},'', '#articoli');
+  }
 }
 function renderArtBreadcrumbs(){
   const box=document.getElementById('artBreadcrumbs');
@@ -1412,9 +1949,11 @@ function renderArt(){
   const q=document.getElementById('qArt').value.trim().toLowerCase();
   const catFilter=String(document.getElementById('qArtCat')?.value||'').trim();
   const items=db.articoli.filter(a=>{
-    const hay=((a.codice||'')+' '+(a.brand||'')+' '+(a.modello||'')+' '+(a.categoria||'')+' '+(a.descrizione||'')+' '+(a.colore||'')+' '+(a.taglia||'')+' '+(a.variante||'')).toLowerCase();
+    const catLabel=displayCategoryValue(a.categoria);
+    const brandLabel=displayBrandValue(a.brand);
+    const hay=((a.codice||'')+' '+brandLabel+' '+(a.modello||'')+' '+catLabel+' '+(a.descrizione||'')+' '+(a.colore||'')+' '+(a.taglia||'')+' '+(a.variante||'')).toLowerCase();
     const okText=!q || hay.includes(q);
-    const okCat=!catFilter || String(a.categoria||'').trim()===catFilter;
+    const okCat=!catFilter || displayCategoryValue(a.categoria)===displayCategoryValue(catFilter);
     return okText && okCat;
   }).sort((a,b)=>Number(b._ts||0)-Number(a._ts||0));
   const el=document.getElementById('listArt');
@@ -1425,7 +1964,7 @@ function renderArt(){
       return `<div class="artCard tight" data-open="art" data-id="${a.id}">
         <img class="artThumbLarge" data-photo-for="${a.id}"/>
         <div class="artPlaceholder" data-placeholder-for="${a.id}">${artIconForCategory(a.categoria)}</div>
-        <div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${esc(a.brand||'Brand non indicato')} • ${esc(a.categoria||'Senza categoria')}</div>${promo}</div>
+        <div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))}</div>${promo}</div>
         <div class="artPrice">${money(currentPrice(a))}</div>
         <div class="artActions"><button class="btn orderAdd small" type="button" data-action="addArtToOrder" data-id="${a.id}">Aggiungi a ordine</button></div>
       </div>`;
@@ -1436,7 +1975,7 @@ function renderArt(){
   }
 
   if(artBrowseState.level==='articoli' && artBrowseState.categoria && artBrowseState.brand){
-    const scoped=items.filter(a=>String(a.categoria||'').trim()===artBrowseState.categoria && String(a.brand||'').trim()===artBrowseState.brand);
+    const scoped=items.filter(a=>matchesBrowseCategory(a.categoria, artBrowseState.categoria) && matchesBrowseBrand(a.brand, artBrowseState.brand));
     const cards=scoped.map(a=>{
       const promo=pseudoPromoBadge(a);
       return `<div class="artCard tight" data-open="art" data-id="${a.id}">
@@ -1453,10 +1992,10 @@ function renderArt(){
   }
 
   if(artBrowseState.level==='brands' && artBrowseState.categoria){
-    const scoped=items.filter(a=>String(a.categoria||'').trim()===artBrowseState.categoria);
+    const scoped=items.filter(a=>matchesBrowseCategory(a.categoria, artBrowseState.categoria));
     const groups=new Map();
     scoped.forEach(a=>{
-      const brand=String(a.brand||'Senza brand').trim()||'Senza brand';
+      const brand=displayBrandValue(a.brand);
       if(!groups.has(brand)) groups.set(brand,{brand,count:0,latest:0});
       const g=groups.get(brand); g.count+=1; g.latest=Math.max(g.latest,Number(a._ts||0));
     });
@@ -1467,9 +2006,9 @@ function renderArt(){
 
   const groups=new Map();
   items.forEach(a=>{
-    const categoria=String(a.categoria||'Senza categoria').trim()||'Senza categoria';
+    const categoria=displayCategoryValue(a.categoria);
     if(!groups.has(categoria)) groups.set(categoria,{categoria,count:0,latest:0,brands:new Set()});
-    const g=groups.get(categoria); g.count+=1; g.latest=Math.max(g.latest,Number(a._ts||0)); if(a.brand) g.brands.add(String(a.brand).trim());
+    const g=groups.get(categoria); g.count+=1; g.latest=Math.max(g.latest,Number(a._ts||0)); if(normalizeBrandValue(a.brand)) g.brands.add(normalizeBrandValue(a.brand));
   });
   const cats=[...groups.values()].sort((a,b)=>b.count-a.count || b.latest-a.latest || a.categoria.localeCompare(b.categoria));
   el.innerHTML=cats.map(g=>`<div class="artCard" data-action="openArtCategory" data-category="${esc(g.categoria)}"><div class="artCardHead"><div class="artMeta"><div class="t">${esc(g.categoria)}</div><div class="s">Categorie articoli</div></div><div class="artIcon">${artIconForCategory(g.categoria)}</div></div><div class="artCount">${g.count} articol${g.count===1?'o':'i'} • ${g.brands.size} brand</div></div>`).join('') || `<div class="card" style="grid-column:1/-1"><div class="small">Nessun articolo</div></div>`;
@@ -1725,11 +2264,12 @@ function renderFinanze(){
   renderStorageInfo();
 }
 
-function renderAll(){ renderHome(); renderArt(); renderCli(); renderOrd(); renderFinanze(); renderCategorySettings(); }
+function renderAll(){ renderHome(); renderArt(); renderCli(); renderOrd(); renderFinanze(); renderCategorySettings(); renderBrandSettings(); refreshArticleCategorySelects(); refreshArticleBrandSelects(); }
 
 /* ====== ART view/edit ====== */
 let currentArtId=null;
 let currentArtExistingPics=[];
+let currentArtDuplicateData=null;
 async function openArtView(id){
   const db=loadDB(); const a=db.articoli.find(x=>x.id===id); if(!a) return;
   currentArtId=id;
@@ -1740,6 +2280,8 @@ async function openArtView(id){
   thumbs.innerHTML=pics.map(src=>`<img src="${src}" onclick="document.getElementById('vArtHero').src='${src}'"/>`).join('');
   document.getElementById('vArtCod').textContent=a.codice||'-';
   document.getElementById('vArtQual').textContent=qualityFromCode(a.codice)||'-';
+  document.getElementById('vArtBrand').textContent=a.brand||'-';
+  document.getElementById('vArtForn').textContent=a.fornitore||'-';
   document.getElementById('vArtPrezzo').textContent=money(a.prezzoVendita||0);
   document.getElementById('vArtPrezzoUse').textContent=money(currentPrice(a));
   const pill=document.getElementById('vArtPromoPill');
@@ -1754,12 +2296,14 @@ async function openArtEdit(id){
   const db=loadDB();
   const a=id?db.articoli.find(x=>x.id===id):null;
   currentArtId=id||null;
+  currentArtDuplicateData=null;
   document.getElementById('artEditTitle').textContent = a?'Modifica articolo':'Nuovo articolo';
   const set=(k,v)=>document.getElementById(k).value=(v===0?0:(v||''));
 
   if(!a){
-    ['a_cod','a_brand','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_mis','a_usd','a_promo_price','a_promo_date','a_note','a_post','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
+    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_mis','a_usd','a_promo_price','a_promo_date','a_note','a_post','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
     .forEach(fid => document.getElementById(fid).value='');
+    syncBrandField('');
     refreshArticleCategorySelects('');
     document.getElementById('a_promo_on').checked=false;
     document.getElementById('a_photo').value='';
@@ -1768,7 +2312,7 @@ async function openArtEdit(id){
     show('mArtEdit');
     return;
   }
-  set('a_cod', a?.codice); set('a_brand', a?.brand); set('a_mod', a?.modello);
+  set('a_cod', a?.codice); syncBrandField(a?.brand); set('a_mod', a?.modello);
   refreshArticleCategorySelects(a?.categoria||'');
   set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
   set('a_taglia', a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore);
@@ -1849,6 +2393,7 @@ function renderArtAutoFields(){
   const hasUsd=usdRaw!=='' && !Number.isNaN(Number(usdRaw));
   const qual=hasCode ? qualityFromCode(code) : '';
   document.getElementById('a_qual').value=qual||'';
+  updateSupplierField(document.getElementById('a_forn')?.value||'');
 
   if(!hasCode && !hasUsd){
     document.getElementById('a_eur').value='';
@@ -1869,7 +2414,7 @@ function renderArtAutoFields(){
     document.getElementById('a_margin_pct').textContent='';
     const draft={
       codice:code,
-      brand:document.getElementById('a_brand').value.trim(),
+      brand:getArticleBrandValue(),
       modello:document.getElementById('a_mod').value.trim(),
       promoAttiva:document.getElementById('a_promo_on').checked,
       prezzoPromo:Number(document.getElementById('a_promo_price').value||0),
@@ -1903,7 +2448,7 @@ function renderArtAutoFields(){
   document.getElementById('a_margin_pct').textContent = (finalPrice && margin) ? ('Margine ' + Math.round((margin/finalPrice)*100) + '%') : '';
   // auto post
   const draft={
-    codice:code, brand:document.getElementById('a_brand').value.trim(),
+    codice:code, brand:getArticleBrandValue(),
     modello:document.getElementById('a_mod').value.trim(),
     promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate,
     prezzoVendita:r.sell,
@@ -1973,7 +2518,7 @@ async function compressImageBlob(file,maxSide=1600,quality=0.78){
   });
 }
 
-function duplicateCurrentArticle(){
+async function duplicateCurrentArticle(){
   if(!currentArtId){ toast('Apri prima un articolo'); return; }
   const db=loadDB();
   const a=db.articoli.find(x=>x.id===currentArtId);
@@ -1982,13 +2527,18 @@ function duplicateCurrentArticle(){
   clone.id='';
   clone.codice='';
   hide('mArtView');
-  openArtEdit(null);
+  await openArtEdit(null);
+  currentArtDuplicateData={
+    foto: Array.isArray(a?.foto) ? a.foto.filter(Boolean).slice(0,6) : [],
+    photoIds: Array.isArray(a?.photoIds) ? a.photoIds.filter(Boolean).slice(0,6) : []
+  };
   document.getElementById('artEditTitle').textContent='Duplica articolo';
-  document.getElementById('a_brand').value=clone.brand||'';
+  document.getElementById('a_cod').value='';
+  syncBrandField(clone.brand||'');
   document.getElementById('a_mod').value=clone.modello||'';
   refreshArticleCategorySelects(clone.categoria||'');
   document.getElementById('a_desc').value=clone.descrizione||'';
-  document.getElementById('a_forn').value=clone.fornitore||'';
+  updateSupplierField(clone.fornitore||'');
   document.getElementById('a_forn_link').value=clone.fornitoreLink||'';
   document.getElementById('a_taglia').value=clone.taglia||'';
   document.getElementById('a_variante').value=clone.variante||'';
@@ -2000,7 +2550,8 @@ function duplicateCurrentArticle(){
   document.getElementById('a_promo_price').value=clone.prezzoPromo||'';
   document.getElementById('a_note').value=clone.note||'';
   document.getElementById('a_post').value=clone.post||'';
-  currentArtExistingPics=(clone.foto||[]).slice(0,6);
+  fitTextarea(document.getElementById('a_post'));
+  currentArtExistingPics=await getArticlePics(a);
   renderArtPhotoPrev(currentArtExistingPics);
   renderArtAutoFields();
   toast('Articolo duplicato: cambia il codice e salva');
@@ -2024,11 +2575,11 @@ async function saveArt(){
     const qual=qualityFromCode(code);
     const usd=Number(document.getElementById('a_usd').value||0);
     const r=calcFromUsd(usd, qual);
-    const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):null;
+    const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
     const obj={
       id: currentArtId||uid(),
       codice: code,
-      brand: document.getElementById('a_brand').value.trim(),
+      brand: getArticleBrandValue(),
       modello: document.getElementById('a_mod').value.trim(),
       categoria: document.getElementById('a_cat').value.trim(),
       descrizione: document.getElementById('a_desc').value.trim(),
@@ -2094,6 +2645,7 @@ async function saveArt(){
       if(newlyUploaded.length){ try{ await deleteArticlePhotosFromSupabase(newlyUploaded); }catch(_e){} }
       return;
     }
+    currentArtDuplicateData=null;
     hide('mArtEdit');
     if(photoUploadWarning) toast('Articolo salvato. '+photoUploadWarning);
     else toast('Articolo salvato');
@@ -2114,18 +2666,33 @@ async function saveArt(){
 }
 async function deleteArt(){
   if(!currentArtId) return hide('mArtEdit');
-  
-  const db=loadDB();
-  const old=db.articoli.find(a=>a.id===currentArtId);
-  for(const pid of (old?.photoIds||[])) await idbDelete(pid);
-  await deleteArticlePhotosFromSupabase(old?.foto||[]);
-  db.articoli=db.articoli.filter(a=>a.id!==currentArtId);
-  currentArtId=null;
-  if(!saveDB(db)) return;
-  if(old && cloudEnabled()) await cloudDeleteOne('art', old);
-  hide('mArtEdit');
-  renderArt();
-  toast(cloudEnabled() ? 'Articolo eliminato anche dal cloud' : 'Articolo eliminato');
+  const artId=currentArtId;
+  askConfirm('Elimino questo articolo?', async ()=>{
+    const db=loadDB();
+    const old=db.articoli.find(a=>a.id===artId);
+    if(!old){ hide('mArtEdit'); hide('mArtView'); currentArtId=null; renderArt(); return; }
+    for(const pid of (old?.photoIds||[])){
+      try{ await idbDelete(pid); }catch(_e){}
+    }
+    try{ await deleteArticlePhotosFromSupabase(old?.foto||[]); }catch(_e){}
+    db.articoli=db.articoli.filter(a=>a.id!==artId);
+    currentArtId=null;
+    if(!saveDB(db)) return;
+    hide('mArtEdit');
+    hide('mArtView');
+    renderAll();
+    if(old && cloudEnabled()){
+      try{
+        await cloudDeleteOne('art', old);
+        toast('Articolo eliminato');
+      }catch(err){
+        console.error('Eliminazione cloud articolo fallita', err);
+        toast('Articolo eliminato, ma cloud non aggiornato');
+      }
+    }else{
+      toast('Articolo eliminato');
+    }
+  },'Elimina articolo');
 }
 
 function openCliView(id){
@@ -2145,7 +2712,52 @@ function openCliView(id){
   show('mCliView');
 }
 
-function openOrdView(id){
+let currentOrdExistingManualPhotos=[];
+
+function mergeUniquePics(){
+  const out=[];
+  Array.from(arguments).flat().forEach(src=>{
+    if(src && !out.includes(src)) out.push(src);
+  });
+  return out.slice(0,12);
+}
+async function getOrderArticleSnapshotPhotos(rows, db){
+  const pics=[];
+  for(const r of (rows||[])) {
+    const art=(db.articoli||[]).find(a=>a.id===r.articoloId || a.codice===r.codice);
+    if(!art) continue;
+    try{
+      const artPics=await getArticlePics(art);
+      for(const src of (artPics||[])) {
+        if(src && !pics.includes(src)) pics.push(src);
+        if(pics.length>=12) return pics;
+      }
+    }catch(err){ console.warn('Lettura foto articolo per ordine fallita', err); }
+  }
+  return pics.slice(0,12);
+}
+async function refreshOrdPhotoPreviewFromState(){
+  const input=document.getElementById('o_photo');
+  const box=document.getElementById('o_photo_prev');
+  if(!box) return;
+  const db=loadDB();
+  const articlePics=await getOrderArticleSnapshotPhotos(ordRows, db);
+  const maxNew=Math.max(0, 12 - mergeUniquePics(articlePics, currentOrdExistingManualPhotos).length);
+  const files=Array.from(input?.files||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
+  if(input && files.length>maxNew){
+    toast(`Puoi aggiungere ancora ${maxNew} foto`);
+    const dt=new DataTransfer();
+    files.slice(0,maxNew).forEach(f=>dt.items.add(f));
+    input.files=dt.files;
+  }
+  const selected=Array.from(input?.files||[]);
+  const blobUrls=await filesToObjectUrls(selected, maxNew);
+  const pics=mergeUniquePics(articlePics, currentOrdExistingManualPhotos, blobUrls);
+  box.innerHTML=pics.map(src=>`<img src="${src}"/>`).join('') || `<div class="small">Nessuna foto ordine</div>`;
+  setTimeout(()=>revokeObjectUrls(blobUrls), 1200);
+}
+
+async function openOrdView(id){
   const db=loadDB(); const o=db.ordini.find(x=>x.id===id);
   if(!o) return;
   currentOrdId=id;
@@ -2159,6 +2771,9 @@ function openOrdView(id){
   document.getElementById('vOrdTot').textContent=money(o.totale||0);
   const rows=document.getElementById('vOrdRows');
   rows.innerHTML=(o.righe||[]).map(r=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(r.codice||'')} • ${esc(r.modello||'')}</div><div class="s">${money(r.prezzo||0)}</div></div><div class="pill">Riga</div></div>`).join('') || `<div class="small">Nessuna riga</div>`;
+  const ordPics=await getOrderPics(o, db);
+  document.getElementById('vOrdPhotos').innerHTML=ordPics.map(src=>`<img src="${src}" onclick="window.open('${src}','_blank','noopener')"/>`).join('');
+  document.getElementById('vOrdPhotosEmpty').style.display=ordPics.length?'none':'block';
   show('mOrdView');
 }
 
@@ -2235,7 +2850,7 @@ async function deleteCli(){
 /* ====== ORDINI ====== */
 let currentOrdId=null;
 let ordRows=[];
-function openOrdEdit(id, prefillArticleId=null){
+async function openOrdEdit(id, prefillArticleId=null){
   const db=loadDB(); const o=id?db.ordini.find(x=>x.id===id):null;
   currentOrdId=id||null;
   document.getElementById('ordEditTitle').textContent=o?'Modifica ordine':'Nuovo ordine';
@@ -2251,6 +2866,8 @@ function openOrdEdit(id, prefillArticleId=null){
   document.getElementById('o_tracking').value=o?.tracking||'';
   document.getElementById('o_art').value='';
   document.getElementById('o_price').value='';
+  document.getElementById('o_photo').value='';
+  currentOrdExistingManualPhotos=o ? await getOrderManualPics(o) : [];
   ordRows=(o?.righe||[]).slice();
   if(prefillArticleId){
     const a=db.articoli.find(x=>x.id===prefillArticleId);
@@ -2260,6 +2877,7 @@ function openOrdEdit(id, prefillArticleId=null){
   }
   renderOrdRows();
   updateOrderPriceFromSelection();
+  await refreshOrdPhotoPreviewFromState();
   show('mOrdEdit');
 }
 function todayStr(){
@@ -2341,6 +2959,7 @@ function renderOrdRows(){
   </div>`).join('') || `<div class="small">Nessuna riga</div>`;
   const tot=ordRows.reduce((s,r)=>s+Number(r.prezzo||0),0);
   document.getElementById('o_tot').textContent=money(tot);
+  refreshOrdPhotoPreviewFromState().catch(err=>console.warn('Preview foto ordine fallita', err));
 }
 async function saveOrd(){
   const db=loadDB();
@@ -2348,6 +2967,35 @@ async function saveOrd(){
   if(!cli){ toast('Seleziona un cliente'); return; }
   if(!ordRows.length){ toast('Aggiungi almeno una riga'); return; }
   const tot=ordRows.reduce((s,r)=>s+Number(r.prezzo||0),0);
+  const old=currentOrdId?db.ordini.find(x=>x.id===currentOrdId):null;
+  const articlePics=await getOrderArticleSnapshotPhotos(ordRows, db);
+  const photoInput=document.getElementById('o_photo');
+  const selectedFiles=Array.from(photoInput?.files||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
+  const existingManualIds=Array.isArray(old?.orderPhotoIds)?old.orderPhotoIds.filter(Boolean).slice(0,12):[];
+  const existingManualLegacy=Array.isArray(old?.fotoManuali)?old.fotoManuali.filter(Boolean).slice(0,12):[];
+  const existingManualCount=Math.max(existingManualIds.length, existingManualLegacy.length, Array.isArray(currentOrdExistingManualPhotos)?currentOrdExistingManualPhotos.length:0);
+  const maxNew=Math.max(0, 12 - mergeUniquePics(articlePics, currentOrdExistingManualPhotos).length);
+  const newManualIds=[];
+  const newManualLegacy=[];
+  for(const file of selectedFiles.slice(0,maxNew)){
+    try{
+      const blob=await compressImageBlob(file);
+      const pid='oph_'+uid();
+      await idbSet(pid, blob);
+      newManualIds.push(pid);
+    }catch(err){
+      console.warn('Compressione foto ordine fallita', err);
+      try{
+        const dataUrl=await compressImageFile(file, 1400, 0.76);
+        const pid='oph_'+uid();
+        await idbSet(pid, dataUrl);
+        newManualIds.push(pid);
+        newManualLegacy.push(dataUrl);
+      }catch(_e){}
+    }
+  }
+  const manualCount=existingManualCount + newManualIds.length;
+  const allOrderPics=mergeUniquePics(articlePics, currentOrdExistingManualPhotos);
   const obj={
     id: currentOrdId||('ORD-'+uid().slice(0,6).toUpperCase()),
     clienteId: cli,
@@ -2357,6 +3005,10 @@ async function saveOrd(){
     mis: document.getElementById('o_mis').value.trim(),
     tracking: document.getElementById('o_tracking').value.trim(),
     righe: ordRows.slice(),
+    fotoArticoli: [],
+    fotoManuali: [...existingManualLegacy, ...newManualLegacy].slice(0,12),
+    orderPhotoIds: [...new Set([...existingManualIds, ...newManualIds])].slice(0,12),
+    foto: [],
     totale: tot,
     _ts: Date.now()
   };
@@ -2364,7 +3016,7 @@ async function saveOrd(){
   if(i>=0) db.ordini[i]=obj; else db.ordini.unshift(obj);
   if(!saveDB(db)) return;
   hide('mOrdEdit');
-  toast('Ordine salvato');
+  toast(manualCount || articlePics.length ? 'Ordine salvato con foto' : 'Ordine salvato');
   if(cloudEnabled()){
     try{
       const saved=await cloudSaveOne('ord', obj, db);
@@ -2382,6 +3034,9 @@ async function deleteOrd(){
   
   const db=loadDB();
   const old=db.ordini.find(o=>o.id===currentOrdId);
+  for(const pid of (old?.orderPhotoIds||[])){
+    try{ await idbDelete(pid); }catch(_e){}
+  }
   db.ordini=db.ordini.filter(o=>o.id!==currentOrdId);
   if(!saveDB(db)) return;
   if(old && cloudEnabled()) await cloudDeleteOne('ord', old);
@@ -2407,13 +3062,15 @@ async function exportDB(mode){
   document.getElementById('importHint').textContent = `Export fatto (${mode}). Database esportato correttamente.`;
 }
 function importDB(file){
+  const mode=(document.getElementById('importMode')?.value||'replace');
   const r=new FileReader();
   r.onload=async()=>{
     try{
-      const o=JSON.parse(r.result);
-      if(!o || !Array.isArray(o.articoli)||!Array.isArray(o.clienti)||!Array.isArray(o.ordini)) throw new Error('JSON non compatibile');
-      for(const art of o.articoli){
-        art.photoIds=[];
+      const parsed=JSON.parse(r.result);
+      const incoming=normalizeDBShape(parsed);
+      if(!incoming || !Array.isArray(incoming.articoli)||!Array.isArray(incoming.clienti)||!Array.isArray(incoming.ordini)) throw new Error('JSON non compatibile');
+      for(const art of incoming.articoli){
+        art.photoIds=Array.isArray(art.photoIds)?art.photoIds.filter(Boolean).slice(0,6):[];
         if(Array.isArray(art.foto) && art.foto.length){
           for(const src of art.foto.slice(0,6)){
             const pid='ph_'+uid();
@@ -2423,10 +3080,24 @@ function importDB(file){
         }
         art.foto=[];
       }
-      localStorage.setItem(KEY, JSON.stringify(o));
+      let nextDb=incoming;
+      if(mode==='merge'){
+        const curr=loadDB();
+        nextDb=normalizeDBShape({
+          version: incoming.version || curr.version || 'v6.2',
+          createdAt: curr.createdAt || incoming.createdAt || new Date().toISOString(),
+          articoli: mergeById(curr.articoli||[], incoming.articoli||[]),
+          clienti: mergeById(curr.clienti||[], incoming.clienti||[]),
+          ordini: mergeById(curr.ordini||[], incoming.ordini||[]),
+          categorie: [...new Set([...(curr.categorie||[]), ...(incoming.categorie||[])])],
+          brands: [...new Set([...(curr.brands||[]), ...(incoming.brands||[])])]
+        });
+      }
+      updateShippingNotifications(nextDb,'json-import');
+      if(!saveDB(nextDb)) throw new Error('Salvataggio locale fallito');
       renderAll();
-      document.getElementById('importHint').textContent = 'Import OK. Database ricaricato.';
-      toast('Import OK');
+      document.getElementById('importHint').textContent = mode==='merge' ? 'Import OK. JSON unito ai dati già presenti.' : 'Import OK. Database sostituito con il JSON.';
+      toast(mode==='merge' ? 'Import unito ai dati attuali' : 'Import sostitutivo completato');
     }catch(e){
       toast('Import fallito'); console.error(e);
     }
@@ -2464,9 +3135,51 @@ document.addEventListener('click',(ev)=>{
     askConfirm('Riparo archivio foto e pulizia riferimenti sporchi?', ()=>repairArchive().then(()=>toast('Archivio riparato')).catch(err=>{toast('Riparazione fallita'); console.error(err);}),'Ripara archivio');
     return;
   }
-  if(a==='hardReset'){ askConfirm('Azzero tutti i dati locali di questa app?', ()=>{ [KEY, ...(typeof LEGACY_KEYS!=='undefined'?LEGACY_KEYS:[])].forEach(k=>localStorage.removeItem(k)); location.reload(); }, 'Reset locale'); return; }
+  if(a==='hardReset'){
+    askConfirm('Azzero tutti i dati locali di questa app? Cancello archivio locale, foto, cache e login cloud locale.', async ()=>{
+      try{
+        const keep=[];
+        try{
+          for(let i=0;i<localStorage.length;i++){
+            const k=localStorage.key(i);
+            if(k) keep.push(k);
+          }
+        }catch(_e){}
+        const appKeys=[KEY, UI_KEY, SHIP_ALERTS_KEY, SHIP_SNAPSHOT_KEY, ...(typeof LEGACY_KEYS!=='undefined'?LEGACY_KEYS:[])];
+        [...new Set([...keep, ...appKeys])].forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
+        try{ sessionStorage.clear(); }catch(_e){}
+        try{
+          if(typeof indexedDB!=='undefined'){
+            await new Promise(res=>{
+              const req=indexedDB.deleteDatabase(PHOTO_DB);
+              req.onsuccess=req.onerror=req.onblocked=()=>res(true);
+            });
+          }
+        }catch(_e){}
+        try{
+          if('serviceWorker' in navigator){
+            const regs=await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(r=>r.unregister()));
+          }
+        }catch(_e){}
+        try{
+          if(window.caches){
+            const ks=await caches.keys();
+            await Promise.all(ks.map(k=>caches.delete(k)));
+          }
+        }catch(_e){}
+        try{ cloudSession=null; cloudClient=null; }catch(_e){}
+      }catch(err){ console.error('Hard reset fallito', err); }
+      location.href='reset.html?ts='+Date.now();
+    }, 'Reset totale');
+    return;
+  }
   if(a==='addCategory') return addCategory();
+  if(a==='renameCategory') return renameCategory(el.dataset.name||'');
   if(a==='deleteCategory') return deleteCategory(el.dataset.name||'');
+  if(a==='addBrand') return addBrand();
+  if(a==='renameBrand') return renameBrand(el.dataset.name||'');
+  if(a==='deleteBrand') return deleteBrand(el.dataset.name||'');
   if(a==='copyPost') return copyTextFrom(document.getElementById('vArtPost'));
   if(a==='downloadArtPhotos') return downloadCurrentArticlePhotos();
   if(a==='openSupplierLink'){ const link=String(document.getElementById('vArtSupplierLink')?.value||'').trim(); if(!link){ toast('Nessun link fornitore'); return; } const safe=/^https?:\/\//i.test(link)?link:'https://'+link; window.open(safe,'_blank'); return; }
@@ -2500,8 +3213,8 @@ document.addEventListener('click',(ev)=>{
   if(a==='addRow') return addRow();
   if(a==='track17') return openTrack17();
   if(a==='openParcel') return openTrackParcel();
-  if(a==='cloudPull'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pullCloudToLocal().catch(err=>{toast('Sync cloud fallita'); console.error(err);}); }
-  if(a==='cloudPush'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pushLocalToCloud().catch(err=>{toast('Sync cloud fallita'); console.error(err);}); }
+  if(a==='cloudPull'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pullCloudToLocal().catch(err=>{toast(err?.message||'Carica cloud fallita'); console.error(err);}); }
+  if(a==='cloudPush'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pushLocalToCloud().catch(err=>{toast(err?.message||'Invia cloud fallita'); console.error(err);}); }
   if(a==='doCloudLogin') return cloudLogin();
   if(a==='closeCloudLogin') return hide('mCloudLogin');
   if(a==='confirmYes') return closeConfirm(true);
@@ -2515,10 +3228,13 @@ document.getElementById('qCli').addEventListener('input', renderCli);
 ['c_nome','c_tel','c_ind','c_cap','c_citta','c_prov'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', refreshClientShipping); if(el) el.addEventListener('change', refreshClientShipping); });
 document.getElementById('qOrd').addEventListener('input', renderOrd);
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
+document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
 
-['a_cod','a_brand','a_mod','a_mis','a_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore'].forEach(id=>{
   const el=document.getElementById(id);
-  el.addEventListener(id==='a_promo_on'?'change':'input', renderArtAutoFields);
+  const evt=(id==='a_promo_on' || id==='a_forn' || id==='a_brand') ? 'change' : 'input';
+  el.addEventListener(evt, renderArtAutoFields);
+  if(id==='a_cod') el.addEventListener('change', renderArtAutoFields);
 });
 
 document.getElementById('o_cli_q').addEventListener('input',()=>fillClientSelect(loadDB(), document.getElementById('o_cli_q').value));
@@ -2533,9 +3249,12 @@ document.getElementById('importFile').addEventListener('change',(e)=>{
   if(f) importDB(f);
   e.target.value='';
 });
+document.getElementById('a_brand')?.addEventListener('change', handleBrandSelectionChange);
 document.getElementById('a_photo')?.addEventListener('change', refreshArtPhotoPreviewFromInput);
 document.getElementById('btnCloudLogin')?.addEventListener('click', ()=>show('mCloudLogin'));
 document.getElementById('btnCloudLogout')?.addEventListener('click', cloudLogout);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) autoCloudPullNow('visible'); });
+window.addEventListener('focus', ()=>autoCloudPullNow('focus'));
 
 // Province select
 const provSel=document.getElementById('c_prov');
@@ -2545,6 +3264,31 @@ provSel.innerHTML='<option value="">Seleziona</option>'+PROVINCE.map(p=>`<option
 let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
+
+const AUTO_CLOUD_PULL_MS=180000;
+let autoCloudPullTimer=null;
+let autoCloudPullRunning=false;
+let autoCloudPullLastAt=0;
+function refreshAutoCloudPull(){
+  if(autoCloudPullTimer){ clearInterval(autoCloudPullTimer); autoCloudPullTimer=null; }
+  if(!cloudEnabled()) return;
+  autoCloudPullTimer=setInterval(()=>{ autoCloudPullNow('timer'); }, AUTO_CLOUD_PULL_MS);
+}
+async function autoCloudPullNow(reason='manual'){
+  if(!cloudEnabled() || autoCloudPullRunning || cloudBusy || document.hidden) return;
+  const now=Date.now();
+  if(reason!=='focus' && reason!=='visible' && (now-autoCloudPullLastAt)<60000) return;
+  autoCloudPullRunning=true;
+  autoCloudPullLastAt=now;
+  try{
+    await pullCloudToLocal({silent:true, background:true});
+    console.log('Auto cloud pull ok', reason);
+  }catch(err){
+    console.warn('Auto cloud pull fallita', reason, err);
+  }finally{
+    autoCloudPullRunning=false;
+  }
+}
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SUPABASE_BUCKET='articoli';
 const isUuid=v=>UUID_RE.test(String(v||''));
@@ -2552,22 +3296,29 @@ function cloudUi(){
   const uiPrefs=loadUiPrefs();
   const s=document.getElementById('cloudState');
   const bIn=document.getElementById('btnCloudLogin');
-  const bSync=document.getElementById('btnCloudSync');
+  const bPull=document.getElementById('btnCloudPull');
+  const bPush=document.getElementById('btnCloudPush');
   const bOut=document.getElementById('btnCloudLogout');
-  if(!s||!bIn||!bSync||!bOut) return;
+  if(!s||!bIn||!bPull||!bPush||!bOut) return;
   const logged=!!cloudSession;
   const hide=(el,on)=>{ el.hidden=!!on; el.style.display=on?'none':''; };
+  const setDisabled=(el,on)=>{ el.disabled=!!on; el.style.opacity=on?'.65':''; };
   if(!window.VG_SUPABASE_READY){
     s.textContent=uiPrefs.cloud||'Cloud';
-    hide(bIn,true); hide(bSync,true); hide(bOut,true);
+    hide(bIn,true); hide(bPull,true); hide(bPush,true); hide(bOut,true);
     return;
   }
   if(cloudBusy){ s.textContent=(uiPrefs.cloud||'Cloud')+': lavoro in corso…'; }
-  else if(cloudSession?.user?.email){ s.textContent=uiPrefs.cloud||'Cloud'; }
+  else if(cloudSession?.user?.email){ s.textContent=`${uiPrefs.cloud||'Cloud'}: ${cloudSession.user.email}`; }
   else { s.textContent=uiPrefs.cloud||'Cloud'; }
   hide(bIn,logged);
-  hide(bSync,!logged);
+  hide(bPull,!logged);
+  hide(bPush,!logged);
   hide(bOut,!logged);
+  setDisabled(bIn,cloudBusy);
+  setDisabled(bPull,cloudBusy||!logged);
+  setDisabled(bPush,cloudBusy||!logged);
+  setDisabled(bOut,cloudBusy||!logged);
 }
 function cloudEnabled(){ return !!(window.VG_SUPABASE_READY && cloudSession); }
 async function cloudSaveOne(type, payload, dbRef){
@@ -2599,12 +3350,12 @@ async function ensureCloud(){
   cloudClient=await window.VG_SUPABASE_READY;
   const {data:{session}}=await cloudClient.auth.getSession();
   cloudSession=session||null;
-  cloudClient.auth.onAuthStateChange((_e,session)=>{ cloudSession=session||null; cloudUi(); });
+  cloudClient.auth.onAuthStateChange((_e,session)=>{ cloudSession=session||null; cloudUi(); refreshAutoCloudPull(); if(cloudSession) setTimeout(()=>autoCloudPullNow('login'), 1500); });
   cloudUi();
   return cloudClient;
 }
 function saveDBLocal(db){
-  try{ localStorage.setItem(KEY, JSON.stringify(db)); }catch(err){ console.error(err); }
+  try{ const raw=JSON.stringify(db); localStorage.setItem(KEY, raw); try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){} }catch(err){ console.error(err); }
 }
 async function ensureCategoryId(nome){
   if(!nome) return null;
@@ -2620,8 +3371,8 @@ async function upsertCloudArticle(art){
   const categoria_id=await ensureCategoryId(art.categoria||'');
   const payload={
     sku: art.codice||null,
-    nome: [art.brand, art.modello].filter(Boolean).join(' ').trim() || art.modello || art.codice || 'Articolo',
-    descrizione: art.descrizione || art.note || null,
+    nome: art.modello || art.codice || [art.brand, art.modello].filter(Boolean).join(' ').trim() || 'Articolo',
+    descrizione: packCloudArticleDescription(art),
     categoria_id,
     marca: art.brand || null,
     colore: art.colore || null,
@@ -2757,10 +3508,14 @@ async function deleteCloudOrder(ord){
   else ({error}=await sb.from('ordini').delete().eq('numero_ordine', String(ord?.id||'')));
   if(error) throw error;
 }
-async function pullCloudToLocal(){
+async function pullCloudToLocal(opts={}){
   const sb=await ensureCloud();
   if(!sb||!cloudSession) throw new Error('Login cloud mancante');
-  cloudBusy=true; cloudUi();
+  const bg=!!opts.background;
+  if(!bg){
+    try{ localStorage.setItem(KEY+'_backup_before_cloud_pull', localStorage.getItem(KEY)||''); }catch(_){ }
+    cloudBusy=true; cloudUi();
+  }
   try{
     const [{data:cats,error:catsErr},{data:prod,error:prodErr},{data:cli,error:cliErr},{data:ord,error:ordErr},{data:righe,error:righeErr},{data:fotos,error:fotosErr}] = await Promise.all([
       sb.from('categorie').select('id,nome'),
@@ -2792,16 +3547,24 @@ async function pullCloudToLocal(){
       arr.push({articoloId:r.prodotto_id,codice:r.prodotti?.sku||prodMap.get(r.prodotto_id)?.sku||'',modello:r.prodotti?.nome||prodMap.get(r.prodotto_id)?.nome||'',prezzo:Number(r.prezzo_unitario||0)});
       righeByOrd.set(r.ordine_id,arr);
     });
+    const localDb=loadDB();
+    const localArtById=new Map((localDb.articoli||[]).map(a=>[a.id,a]));
+    const localArtByCode=new Map((localDb.articoli||[]).map(a=>[safeLower(a.codice),a]));
+    const localOrdById=new Map((localDb.ordini||[]).map(o=>[o.id,o]));
     const db={version:'v6',createdAt:new Date().toISOString(),
-      articoli:(prod||[]).map(p=>({id:p.id,codice:p.sku||'',brand:p.marca||'',modello:p.nome||'',categoria:catMap.get(p.categoria_id)||'',descrizione:p.descrizione||'',fornitore:'',taglia:p.taglia||'',variante:p.materiale||'',colore:p.colore||'',misura:'',costoUsd:0,costoEur:Number(p.prezzo_acquisto||0),prezzoVendita:Number(p.prezzo_vendita||0),promoAttiva:false,prezzoPromo:0,scadenzaPromo:'',post:'',note:'',foto:fotoByProd.get(p.id)||[],photoIds:[],_ts:Date.now(),_cloud:true})),
+      articoli:(prod||[]).map(p=>{
+        const local=localArtById.get(p.id)||localArtByCode.get(safeLower(p.sku));
+        const packed=unpackCloudArticleDescription(p.descrizione||''); const legacy=parseLegacyCloudDescription(packed.plain); const meta=(packed.meta&&typeof packed.meta==='object')?packed.meta:{}; const cleanBrand=p.marca||meta.brand||local?.brand||''; const pulledModel=stripBrandFromText(meta.modello||p.nome||'', cleanBrand) || stripBrandFromText(p.nome||'', cleanBrand) || local?.modello || ''; const pulledDescr=(meta.descrizione||legacy.descrizione||local?.descrizione||'').trim(); const pulledNote=(meta.note||legacy.note||local?.note||'').trim(); const pulledPost=(meta.post||local?.post||'').trim(); const rawSell=Number(p.prezzo_vendita||0); const metaSell=Number(meta.prezzoVendita||0); return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',taglia:meta.taglia||p.taglia||local?.taglia||'',variante:meta.variante||p.materiale||local?.variante||'',colore:meta.colore||p.colore||local?.colore||'',misura:meta.misura||local?.misura||'',costoUsd:Number(meta.costoUsd||local?.costoUsd||0),costoEur:Number(p.prezzo_acquisto||meta.costoEur||local?.costoEur||0),prezzoVendita:Number(rawSell||metaSell||local?.prezzoVendita||0),promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:Number(meta.prezzoPromo||local?.prezzoPromo||0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',post:pulledPost,note:pulledNote,foto:(fotoByProd.get(p.id)||local?.foto||[]).slice(0,6),photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,6):[],_ts:Date.now(),_cloud:true};
+      }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:[c.nome,c.cognome].filter(Boolean).join(' ').trim(),telefono:c.telefono||'',indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
-      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const misMatch=noteRaw.match(/\[MIS:([^\]]+)\]/i); return {id:o.id,numeroOrdine:o.numero_ordine,clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteRaw.replace(/\s*\[MIS:[^\]]+\]\s*/gi,' ').trim(),mis:misMatch?misMatch[1].trim():'',tracking:o.tracking_code||'',righe:righeByOrd.get(o.id)||[],totale:Number(o.totale||0),_ts:Date.now(),_cloud:true}; })
+      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const misMatch=noteRaw.match(/\[MIS:([^\]]+)\]/i); const local=localOrdById.get(o.id); return {id:o.id,numeroOrdine:o.numero_ordine,clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteRaw.replace(/\s*\[MIS:[^\]]+\]\s*/gi,' ').trim(),mis:misMatch?misMatch[1].trim():'',tracking:o.tracking_code||'',righe:righeByOrd.get(o.id)||[],fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,12):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,12):[],foto:[],totale:Number(o.totale||0),_ts:Date.now(),_cloud:true}; })
     };
+    updateShippingNotifications(db, bg?'cloud-auto':'cloud');
     saveDBLocal(db);
     renderAll();
     renderDiagnostics();
-    toast('Dati cloud caricati');
-  } finally { cloudBusy=false; cloudUi(); }
+    if(!opts.silent) toast('Dati cloud caricati');
+  } finally { if(!bg){ cloudBusy=false; cloudUi(); } }
 }
 async function pushLocalToCloud(){
   const sb=await ensureCloud();
@@ -2809,6 +3572,10 @@ async function pushLocalToCloud(){
   cloudBusy=true; cloudUi();
   try{
     const db=loadDB();
+    if(!db.articoli.length && !db.clienti.length && !db.ordini.length){
+      toast('Niente da inviare al cloud');
+      return;
+    }
     const artIdMap=new Map();
     const cliIdMap=new Map();
     for(let i=0;i<db.articoli.length;i++){
@@ -2880,9 +3647,11 @@ renderDiagnostics();
 fillUiEditor();
 applyUiPrefs();
 const initial=location.hash.replace('#','')||'home';
-history.replaceState({page:initial},'', '#'+initial);
+history.replaceState({page:initial, artBrowse:{...artBrowseState}},'', '#'+initial);
 go(initial,false);
 cloudUi();
+refreshAutoCloudPull();
+requestPersistentStorage();
 ensureCloud().catch(err=>console.warn('Cloud init fallita', err));
 </script>
 </body>
