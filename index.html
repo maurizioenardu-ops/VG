@@ -3365,6 +3365,17 @@ async function saveOrd(){
   const cli=document.getElementById('o_cli').value;
   if(!cli){ toast('Seleziona un cliente'); return; }
   if(!ordRows.length){ toast('Aggiungi almeno una riga'); return; }
+  const hasShoesInOrder=ordRows.some(r=>{
+    const art=(db.articoli||[]).find(x=>x.id===r.articoloId || (r.codice && x.codice===r.codice));
+    const cat=normalizeCategoryName(art?.categoria||r?.categoria||'');
+    return cat==='scarpe' || cat==='scarpa';
+  });
+  const misInput=document.getElementById('o_mis');
+  if(hasShoesInOrder && !String(misInput?.value||'').trim()){
+    toast('Per gli ordini di scarpe inserisci la misura');
+    try{ misInput?.focus(); }catch(_e){}
+    return;
+  }
   const totals=updateOrderTotalsPreview();
   const subtotal=totals.subtotal;
   const scontoCliente=totals.discount;
