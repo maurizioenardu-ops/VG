@@ -659,7 +659,7 @@ const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maxi
 const round5=n=>Math.round(n/5)*5;
 
 function defDB(){
-  return {version:'v6.2',articoli:[],clienti:[],ordini:[],categorie:[],brands:[],createdAt:new Date().toISOString()};
+  return {version:'v6.3',articoli:[],clienti:[],ordini:[],categorie:[],brands:[],createdAt:new Date().toISOString()};
 }
 function normalizeDBShape(o){
   if(!o || typeof o!=='object') return defDB();
@@ -1289,24 +1289,50 @@ function emojiQualityForPost(a){
 function escapeRegExp(str){
   return String(str||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 }
+function brandVariants(brand){
+  const clean=String(brand||'').trim();
+  if(!clean) return [];
+  const words=clean.split(/\s+/).map(x=>x.trim()).filter(Boolean);
+  const variants=[clean, ...words];
+  const acronym=words.map(w=>w[0]||'').join('').toUpperCase();
+  if(acronym && acronym.length>=2) variants.push(acronym);
+  const compact=clean.replace(/[^a-z0-9]/gi,'');
+  if(compact && compact.length<=5) variants.push(compact);
+  const uniq=[];
+  for(const part of variants){
+    const key=String(part||'').trim().toLowerCase();
+    if(!key || uniq.some(x=>x.toLowerCase()===key)) continue;
+    uniq.push(String(part).trim());
+  }
+  return uniq.sort((a,b)=>b.length-a.length);
+}
 function stripBrandFromText(text, brand){
   let out=String(text||'').replace(/\s+/g,' ').trim();
-  const cleanBrand=String(brand||'').trim();
-  if(!out || !cleanBrand) return out;
-  const parts=[cleanBrand, ...cleanBrand.split(/\s+/)].map(x=>String(x||'').trim()).filter(Boolean);
-  const uniq=[];
-  for(const part of parts){
-    const key=part.toLowerCase();
-    if(!key || uniq.some(x=>x.toLowerCase()===key)) continue;
-    uniq.push(part);
-  }
-  uniq.sort((a,b)=>b.length-a.length).forEach(part=>{
-    out=out.replace(new RegExp(`\\b${escapeRegExp(part)}\\b`,'gi'),' ');
+  const variants=brandVariants(brand);
+  if(!out || !variants.length) return out;
+  variants.forEach(part=>{
+    const rx=/[a-z0-9]/i.test(part)
+      ? new RegExp(`\\b${escapeRegExp(part)}\\b`,'gi')
+      : new RegExp(escapeRegExp(part),'gi');
+    out=out.replace(rx,' ');
   });
   return out.replace(/\s{2,}/g,' ').replace(/^[-–—:;,\.\s]+|[-–—:;,\.\s]+$/g,'').trim();
 }
 function normalizePostLine(text, brand){
   return stripBrandFromText(text, brand).replace(/\s+/g,' ').trim();
+}
+function uniquePostLines(lines=[]){
+  const out=[];
+  const seen=new Set();
+  for(const raw of lines){
+    const line=String(raw||'').replace(/\s+/g,' ').trim();
+    if(!line) continue;
+    const key=line.toLowerCase();
+    if(seen.has(key)) continue;
+    seen.add(key);
+    out.push(line);
+  }
+  return out;
 }
 function buildPost(a){
   if(!a.codice) return '';
@@ -1334,7 +1360,57 @@ function buildPost(a){
   if(colori) lines.push(colori);
   if(tracolla) lines.push(tracolla);
   lines.push(`cod. ${a.codice}`);
-  return lines.filter(Boolean).join('\n');
+  return uniquePostLines(lines).join('\n');
+}
+function buildCloudArticleMeta(art){
+  return {
+    brand: art?.brand||'',
+    modello: art?.modello||'',
+    categoria: art?.categoria||'',
+    descrizione: art?.descrizione||'',
+    fornitore: art?.fornitore||'',
+    fornitoreLink: art?.fornitoreLink||'',
+    taglia: art?.taglia||'',
+    variante: art?.variante||'',
+    colore: art?.colore||'',
+    misura: art?.misura||'',
+    costoUsd: Number(art?.costoUsd||0),
+    costoEur: Number(art?.costoEur||0),
+    prezzoVendita: Number(art?.prezzoVendita||0),
+    promoAttiva: !!art?.promoAttiva,
+    prezzoPromo: Number(art?.prezzoPromo||0),
+    scadenzaPromo: art?.scadenzaPromo||'',
+    post: art?.post||'',
+    note: art?.note||''
+  };
+}
+function packCloudArticleDescription(art){
+  const plain=[String(art?.descrizione||'').trim(), String(art?.note||'').trim()].filter(Boolean).join('\n\n');
+  let meta='';
+  try{ meta=`\n\n[VGMETA]${JSON.stringify(buildCloudArticleMeta(art))}[/VGMETA]`; }catch(_e){}
+  return (plain + meta).trim() || null;
+}
+function unpackCloudArticleDescription(text){
+  const raw=String(text||'');
+  const match=raw.match(/\[VGMETA\]([\s\S]*?)\[\/VGMETA\]/i);
+  let meta={};
+  if(match?.[1]){
+    try{ meta=JSON.parse(match[1]); }catch(_e){}
+  }
+  const plain=raw.replace(/\s*\[VGMETA\][\s\S]*?\[\/VGMETA\]\s*/gi,' ').replace(/\s{3,}/g,'\n\n').trim();
+  return { plain, meta: (meta && typeof meta==='object') ? meta : {} };
+}
+function parseLegacyCloudDescription(text){
+  const raw=String(text||'').trim();
+  if(!raw) return { descrizione:'', note:'', post:'' };
+  const noteMatch=raw.match(/(?:^|\n\n)Note:\s*([\s\S]*?)(?=(?:\n\nPost:)|$)/i);
+  const postMatch=raw.match(/(?:^|\n\n)Post:\s*([\s\S]*?)$/i);
+  const descrizione=raw
+    .replace(/(?:^|\n\n)Note:\s*[\s\S]*?(?=(?:\n\nPost:)|$)/i,' ')
+    .replace(/(?:^|\n\n)Post:\s*[\s\S]*$/i,' ')
+    .replace(/\s{3,}/g,'\n\n')
+    .trim();
+  return { descrizione, note:(noteMatch?.[1]||'').trim(), post:(postMatch?.[1]||'').trim() };
 }
 
 function withIntlPrefix(tel){
@@ -3295,8 +3371,8 @@ async function upsertCloudArticle(art){
   const categoria_id=await ensureCategoryId(art.categoria||'');
   const payload={
     sku: art.codice||null,
-    nome: [art.brand, art.modello].filter(Boolean).join(' ').trim() || art.modello || art.codice || 'Articolo',
-    descrizione: [art.descrizione||'', art.note?`Note: ${art.note}`:'', art.post?`Post: ${art.post}`:''].filter(Boolean).join('\n\n') || null,
+    nome: art.modello || art.codice || [art.brand, art.modello].filter(Boolean).join(' ').trim() || 'Articolo',
+    descrizione: packCloudArticleDescription(art),
     categoria_id,
     marca: art.brand || null,
     colore: art.colore || null,
@@ -3478,7 +3554,7 @@ async function pullCloudToLocal(opts={}){
     const db={version:'v6',createdAt:new Date().toISOString(),
       articoli:(prod||[]).map(p=>{
         const local=localArtById.get(p.id)||localArtByCode.get(safeLower(p.sku));
-        return {id:p.id,codice:p.sku||'',brand:p.marca||'',modello:p.nome||'',categoria:catMap.get(p.categoria_id)||'',descrizione:p.descrizione||local?.descrizione||'',fornitore:local?.fornitore||'',fornitoreLink:local?.fornitoreLink||'',taglia:p.taglia||'',variante:p.materiale||'',colore:p.colore||'',misura:local?.misura||'',costoUsd:Number(local?.costoUsd||0),costoEur:Number(p.prezzo_acquisto||0),prezzoVendita:Number(p.prezzo_vendita||0),promoAttiva:!!local?.promoAttiva,prezzoPromo:Number(local?.prezzoPromo||0),scadenzaPromo:local?.scadenzaPromo||'',post:local?.post||'',note:local?.note||'',foto:(fotoByProd.get(p.id)||local?.foto||[]).slice(0,6),photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,6):[],_ts:Date.now(),_cloud:true};
+        const packed=unpackCloudArticleDescription(p.descrizione||''); const legacy=parseLegacyCloudDescription(packed.plain); const meta=(packed.meta&&typeof packed.meta==='object')?packed.meta:{}; const cleanBrand=p.marca||meta.brand||local?.brand||''; const pulledModel=stripBrandFromText(meta.modello||p.nome||'', cleanBrand) || stripBrandFromText(p.nome||'', cleanBrand) || local?.modello || ''; const pulledDescr=(meta.descrizione||legacy.descrizione||local?.descrizione||'').trim(); const pulledNote=(meta.note||legacy.note||local?.note||'').trim(); const pulledPost=(meta.post||local?.post||'').trim(); const rawSell=Number(p.prezzo_vendita||0); const metaSell=Number(meta.prezzoVendita||0); return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',taglia:meta.taglia||p.taglia||local?.taglia||'',variante:meta.variante||p.materiale||local?.variante||'',colore:meta.colore||p.colore||local?.colore||'',misura:meta.misura||local?.misura||'',costoUsd:Number(meta.costoUsd||local?.costoUsd||0),costoEur:Number(p.prezzo_acquisto||meta.costoEur||local?.costoEur||0),prezzoVendita:Number(rawSell||metaSell||local?.prezzoVendita||0),promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:Number(meta.prezzoPromo||local?.prezzoPromo||0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',post:pulledPost,note:pulledNote,foto:(fotoByProd.get(p.id)||local?.foto||[]).slice(0,6),photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,6):[],_ts:Date.now(),_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:[c.nome,c.cognome].filter(Boolean).join(' ').trim(),telefono:c.telefono||'',indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const misMatch=noteRaw.match(/\[MIS:([^\]]+)\]/i); const local=localOrdById.get(o.id); return {id:o.id,numeroOrdine:o.numero_ordine,clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteRaw.replace(/\s*\[MIS:[^\]]+\]\s*/gi,' ').trim(),mis:misMatch?misMatch[1].trim():'',tracking:o.tracking_code||'',righe:righeByOrd.get(o.id)||[],fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,12):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,12):[],foto:[],totale:Number(o.totale||0),_ts:Date.now(),_cloud:true}; })
