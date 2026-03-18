@@ -1275,15 +1275,38 @@ function guessPhotoExtension(src, blob){
   if(mime.includes('gif')) return 'gif';
   return 'jpg';
 }
-async function downloadCurrentArticlePhotos(){
-  const db=loadDB();
-  const art=db.articoli.find(x=>x.id===currentArtId);
-  if(!art){ toast('Articolo non trovato'); return; }
-  const pics=await getArticleCloudSyncSources(art);
-  if(!pics.length){ toast('Nessuna foto da scaricare'); return; }
-  const baseName=(art.codice||art.brand||art.modello||'articolo').toString().trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'articolo';
-
-  toast(`Preparo ${pics.length} foto...`);
+let __articlePhotoShareCache = null;
+function canNativeShareFiles(files){
+  try{
+    if(typeof navigator==='undefined' || typeof navigator.share!=='function') return false;
+    if(!files?.length) return false;
+    if(typeof navigator.canShare!=='function') return true;
+    if(navigator.canShare({ files })) return true;
+    if(files.length===1 && navigator.canShare({ files:[files[0]] })) return 'single';
+    return false;
+  }catch(_e){
+    return false;
+  }
+}
+async function tryNativeShareArticleFiles(files, baseName){
+  const mode = canNativeShareFiles(files);
+  if(!mode) return false;
+  if(mode==='single'){
+    await navigator.share({
+      files:[files[0]],
+      title:`Foto ${baseName}`,
+      text:`Salva la foto dell'articolo ${baseName}`
+    });
+    return 'single';
+  }
+  await navigator.share({
+    files,
+    title:`Foto ${baseName}`,
+    text:`Salva ${files.length} foto dell'articolo ${baseName}`
+  });
+  return 'multi';
+}
+async function buildArticlePhotoFiles(art, pics, baseName){
   const files=[];
   for(let i=0;i<pics.length;i++){
     try{
@@ -1297,30 +1320,52 @@ async function downloadCurrentArticlePhotos(){
       console.warn('Preparazione foto articolo fallita', err);
     }
   }
-  if(!files.length){ toast('Download foto fallito'); return; }
+  return files;
+}
+async function downloadCurrentArticlePhotos(){
+  const db=loadDB();
+  const art=db.articoli.find(x=>x.id===currentArtId);
+  if(!art){ toast('Articolo non trovato'); return; }
+  const pics=await getArticleCloudSyncSources(art);
+  if(!pics.length){ toast('Nessuna foto da scaricare'); return; }
+  const baseName=(art.codice||art.brand||art.modello||'articolo').toString().trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'articolo';
+  const cacheKey=`${art.id||''}::${pics.join('|')}`;
 
-  const hasNativeShare = typeof navigator!=='undefined' && typeof navigator.share==='function';
-  const canShareFiles = hasNativeShare && (!navigator.canShare || navigator.canShare({ files }));
-
-  if(hasNativeShare){
+  if(__articlePhotoShareCache && __articlePhotoShareCache.key===cacheKey && Array.isArray(__articlePhotoShareCache.files) && __articlePhotoShareCache.files.length){
     try{
-      if(canShareFiles){
-        await navigator.share({
-          files,
-          title: `Foto ${baseName}`,
-          text: `Salva ${files.length} foto dell'articolo ${baseName}`
-        });
-      }else{
-        await navigator.share({
-          title: `Foto ${baseName}`,
-          text: `Foto ${baseName}`
-        });
+      const shared = await tryNativeShareArticleFiles(__articlePhotoShareCache.files, baseName);
+      if(shared){
+        toast(shared==='single'
+          ? 'Condivisione aperta. Il browser supporta una foto per volta.'
+          : `Seleziona Galleria, Foto o File per salvare ${__articlePhotoShareCache.files.length} foto.`);
+        return;
       }
-      toast(`Seleziona Galleria, Foto o File per salvare ${files.length} foto.`);
-      return;
     }catch(err){
       if(err && err.name==='AbortError') return;
-      console.warn('Condivisione nativa foto fallita', err);
+      console.warn('Condivisione nativa foto da cache fallita', err);
+    }
+  }
+
+  toast(`Preparo ${pics.length} foto...`);
+  const files=await buildArticlePhotoFiles(art, pics, baseName);
+  if(!files.length){ toast('Download foto fallito'); return; }
+  __articlePhotoShareCache = { key: cacheKey, files, at: Date.now() };
+
+  try{
+    const shared = await tryNativeShareArticleFiles(files, baseName);
+    if(shared){
+      toast(shared==='single'
+        ? 'Condivisione aperta. Il browser supporta una foto per volta.'
+        : `Seleziona Galleria, Foto o File per salvare ${files.length} foto.`);
+      return;
+    }
+  }catch(err){
+    if(err && err.name==='AbortError') return;
+    console.warn('Condivisione nativa foto fallita', err);
+    const activationErr = /activation|user gesture|notallowed/i.test(String(err && (err.message||err.name)||''));
+    if(activationErr){
+      toast('Foto pronte. Premi di nuovo “Scarica foto” per aprire la condivisione.');
+      return;
     }
   }
 
@@ -1346,7 +1391,7 @@ async function downloadCurrentArticlePhotos(){
   toast(ok===files.length
     ? `Avviate ${ok} foto. Le trovi nei Download e poi in Galleria.`
     : (ok
-      ? `Avviate ${ok} foto su ${files.length}. Se il browser ne blocca qualcuna, usa Condividi/Salva dal telefono.`
+      ? `Avviate ${ok} foto su ${files.length}. Se il browser ne blocca qualcuna, premi di nuovo Scarica foto per condividere.`
       : 'Download foto fallito'));
 }
 async function uploadArticlePhotoToSupabase(file, codice, slot){
