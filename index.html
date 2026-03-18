@@ -1850,7 +1850,7 @@ function buildPost(a){
     const tipoMateriale=materiale || variante;
     lines.push('⭕️ PROMOZIONE ⭕️');
     if(scadenzaLabel) lines.push(`(fino al ${scadenzaLabel})`);
-    if(modello) lines.push(modello);
+    if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
     if(tipoMateriale) lines.push(tipoMateriale);
     if(colore) lines.push(colore);
     if(misura) lines.push(`Mis. ${misura}`);
