@@ -289,6 +289,10 @@ window.addEventListener('error',e=>{
       <div class="actions">
         <button class="btn" data-action="exportFull">Export DB (tutto)</button>
         <button class="btn" data-action="exportLite">Export DB (senza foto)</button>
+        <select id="importMode" class="btn" style="appearance:auto;min-width:170px">
+          <option value="replace">Importa e sostituisci tutto</option>
+          <option value="merge">Importa e unisci ai dati attuali</option>
+        </select>
         <label class="btn" style="display:inline-block">
           Import JSON<input id="importFile" type="file" accept="application/json" style="display:none"/>
         </label>
@@ -296,7 +300,7 @@ window.addEventListener('error',e=>{
         <button class="btn danger" data-action="repairArchive">Ripara archivio</button>
         <button class="btn danger" data-action="hardReset">Reset totale</button>
       </div>
-      <div class="small" style="margin-top:10px" id="importHint"></div>
+      <div class="small" style="margin-top:10px" id="importHint">Scegli prima se vuoi sostituire tutto il database oppure unire il JSON ai dati già presenti.</div>
     </div>
     
       <div class="card" style="margin-top:12px">
@@ -1510,14 +1514,17 @@ function renderCategorySettings(){
   if(!box) return;
   const cats=articleCategoryOptions(db);
   const savedSet=new Set((Array.isArray(db?.categorie)?db.categorie:[]).map(normalizeCategoryName));
-  box.innerHTML=cats.length?cats.map(c=>`<div class="row" style="grid-template-columns:1fr auto"><div class="main"><div class="t">${esc(c)}</div><div class="small">${savedSet.has(normalizeCategoryName(c))?'Categoria salvata nelle impostazioni':'Categoria rilevata da articoli già esistenti'}</div></div><div><button class="btn danger smallish" type="button" data-action="deleteCategory" data-name="${esc(c)}">Elimina</button></div></div>`).join(''):'<div class="small">Nessuna categoria salvata.</div>';
-  if(hint) hint.textContent='Se elimini una categoria, viene tolta anche dagli articoli che la usavano. Gli articoli restano salvati e finiscono in Senza categoria.';
+  box.innerHTML=cats.length?cats.map(c=>`<div class="row" style="grid-template-columns:1fr auto auto;gap:8px"><div class="main"><div class="t">${esc(c)}</div><div class="small">${savedSet.has(normalizeCategoryName(c))?'Categoria salvata nelle impostazioni':'Categoria rilevata da articoli già esistenti'}</div></div><div><button class="btn smallish" type="button" data-action="renameCategory" data-name="${esc(c)}">Modifica</button></div><div><button class="btn danger smallish" type="button" data-action="deleteCategory" data-name="${esc(c)}">Elimina</button></div></div>`).join(''):'<div class="small">Nessuna categoria salvata.</div>';
+  if(hint) hint.textContent='Puoi aggiungere, rinominare o eliminare le categorie. Se elimini una categoria, viene tolta anche dagli articoli che la usavano e gli articoli restano in Senza categoria.';
 }
 function addCategory(){
   const input=document.getElementById('catName');
-  const nome=String(input?.value||'').trim();
+  const nome=String(input?.value||'').trim().replace(/\s+/g,' ');
   if(!nome){ toast('Scrivi il nome categoria'); return; }
   const db=loadDB();
+  const key=normalizeCategoryName(nome);
+  const exists=(db.categorie||[]).some(c=>normalizeCategoryName(c)===key) || (db.articoli||[]).some(a=>normalizeCategoryName(a?.categoria)===key);
+  if(exists){ toast('Categoria già presente'); return; }
   const next=[...new Set([...(db.categorie||[]), nome])].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
   db.categorie=next;
   if(!saveDB(db)) return;
@@ -1525,6 +1532,33 @@ function addCategory(){
   renderCategorySettings();
   refreshArticleCategorySelects();
   toast('Categoria salvata');
+}
+function renameCategory(oldName){
+  const cleanOld=String(oldName||'').trim().replace(/\s+/g,' ');
+  if(!cleanOld) return;
+  const nuovo=window.prompt('Nuovo nome categoria', cleanOld);
+  if(nuovo===null) return;
+  const cleanNew=String(nuovo||'').trim().replace(/\s+/g,' ');
+  if(!cleanNew){ toast('Nome categoria vuoto'); return; }
+  const oldKey=normalizeCategoryName(cleanOld);
+  const newKey=normalizeCategoryName(cleanNew);
+  const db=loadDB();
+  if(oldKey!==newKey){
+    const exists=(db.categorie||[]).some(c=>normalizeCategoryName(c)===newKey) || (db.articoli||[]).some(a=>normalizeCategoryName(a?.categoria)===newKey);
+    if(exists){ toast('Esiste già una categoria con questo nome'); return; }
+  }
+  db.categorie=(db.categorie||[]).map(c=>normalizeCategoryName(c)===oldKey ? cleanNew : c);
+  if(!(db.categorie||[]).some(c=>normalizeCategoryName(c)===newKey)) db.categorie.push(cleanNew);
+  db.categorie=[...new Set((db.categorie||[]).map(c=>String(c||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.articoli=(db.articoli||[]).map(a=> normalizeCategoryName(a?.categoria)===oldKey ? {...a, categoria: cleanNew, _ts: Date.now()} : a);
+  if(artBrowseState.categoria && normalizeCategoryName(artBrowseState.categoria)===oldKey){
+    setArtBrowse(artBrowseState.level, cleanNew, artBrowseState.brand||'', false);
+  }
+  if(!saveDB(db)) return;
+  renderCategorySettings();
+  refreshArticleCategorySelects(cleanNew);
+  renderArt();
+  toast('Categoria aggiornata');
 }
 function deleteCategory(nome){
   const clean=String(nome||'').trim().replace(/\s+/g,' ');
@@ -2712,13 +2746,15 @@ async function exportDB(mode){
   document.getElementById('importHint').textContent = `Export fatto (${mode}). Database esportato correttamente.`;
 }
 function importDB(file){
+  const mode=(document.getElementById('importMode')?.value||'replace');
   const r=new FileReader();
   r.onload=async()=>{
     try{
-      const o=JSON.parse(r.result);
-      if(!o || !Array.isArray(o.articoli)||!Array.isArray(o.clienti)||!Array.isArray(o.ordini)) throw new Error('JSON non compatibile');
-      for(const art of o.articoli){
-        art.photoIds=[];
+      const parsed=JSON.parse(r.result);
+      const incoming=normalizeDBShape(parsed);
+      if(!incoming || !Array.isArray(incoming.articoli)||!Array.isArray(incoming.clienti)||!Array.isArray(incoming.ordini)) throw new Error('JSON non compatibile');
+      for(const art of incoming.articoli){
+        art.photoIds=Array.isArray(art.photoIds)?art.photoIds.filter(Boolean).slice(0,6):[];
         if(Array.isArray(art.foto) && art.foto.length){
           for(const src of art.foto.slice(0,6)){
             const pid='ph_'+uid();
@@ -2728,11 +2764,23 @@ function importDB(file){
         }
         art.foto=[];
       }
-      updateShippingNotifications(o,'json-import');
-      localStorage.setItem(KEY, JSON.stringify(o));
+      let nextDb=incoming;
+      if(mode==='merge'){
+        const curr=loadDB();
+        nextDb=normalizeDBShape({
+          version: incoming.version || curr.version || 'v6.2',
+          createdAt: curr.createdAt || incoming.createdAt || new Date().toISOString(),
+          articoli: mergeById(curr.articoli||[], incoming.articoli||[]),
+          clienti: mergeById(curr.clienti||[], incoming.clienti||[]),
+          ordini: mergeById(curr.ordini||[], incoming.ordini||[]),
+          categorie: [...new Set([...(curr.categorie||[]), ...(incoming.categorie||[])])]
+        });
+      }
+      updateShippingNotifications(nextDb,'json-import');
+      if(!saveDB(nextDb)) throw new Error('Salvataggio locale fallito');
       renderAll();
-      document.getElementById('importHint').textContent = 'Import OK. Database ricaricato.';
-      toast('Import OK');
+      document.getElementById('importHint').textContent = mode==='merge' ? 'Import OK. JSON unito ai dati già presenti.' : 'Import OK. Database sostituito con il JSON.';
+      toast(mode==='merge' ? 'Import unito ai dati attuali' : 'Import sostitutivo completato');
     }catch(e){
       toast('Import fallito'); console.error(e);
     }
