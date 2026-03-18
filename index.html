@@ -333,6 +333,22 @@ window.addEventListener('error',e=>{
         <div class="small" style="margin-top:8px" id="catHint">Puoi eliminare una categoria dall'elenco. Gli articoli già salvati non vengono cancellati.</div>
       </div>
 
+      <div class="card" style="margin-top:12px">
+        <div class="h2">Brand articoli</div>
+        <div class="small">Li inserisci una volta qui e poi li scegli dal menu negli articoli.</div>
+        <div class="grid2" style="margin-top:10px">
+          <div>
+            <div class="k">Nuovo brand</div>
+            <input id="brandName" placeholder="Es. Gucci" autocomplete="off" autocapitalize="words" spellcheck="false"/>
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <button class="btn primary" type="button" data-action="addBrand">Aggiungi brand</button>
+          </div>
+        </div>
+        <div id="brandList" class="list" style="margin-top:10px"></div>
+        <div class="small" style="margin-top:8px" id="brandHint">Puoi aggiungere, rinominare o eliminare i brand. Gli articoli restano salvati.</div>
+      </div>
+
 <div class="card" style="margin-top:12px">
       <div class="h2">Diagnostica archivio</div>
       <div id="diagBox" class="small">Lettura archivio in corso…</div>
@@ -429,13 +445,6 @@ window.addEventListener('error',e=>{
         <div class="k">Brand</div>
         <select id="a_brand">
           <option value="">Seleziona brand</option>
-          <option value="Louis Vuitton">Louis Vuitton</option>
-          <option value="Gucci">Gucci</option>
-          <option value="Chanel">Chanel</option>
-          <option value="Dior">Dior</option>
-          <option value="Alexander McQueen">Alexander McQueen</option>
-          <option value="Balenciaga">Balenciaga</option>
-          <option value="Versace">Versace</option>
           <option value="__ALTRO__">Altro</option>
         </select>
         <input id="a_brand_custom" placeholder="Scrivi il brand" autocomplete="off" autocapitalize="off" spellcheck="false" style="display:none;margin-top:8px"/>
@@ -1083,7 +1092,6 @@ function supplierRuleFromCode(code){
   if(first==='1' || /[A-Za-z]/.test(first)) return {mode:'choice', options:['Jessica','Daniel'], value:''};
   return {mode:'choice', options:['Jessica','Daniel'], value:''};
 }
-const BRAND_PRESETS=['Louis Vuitton','Gucci','Chanel','Dior','Alexander McQueen','Balenciaga','Versace'];
 function getArticleBrandValue(){
   const sel=document.getElementById('a_brand');
   const custom=document.getElementById('a_brand_custom');
@@ -1096,7 +1104,7 @@ function syncBrandField(value=''){
   const custom=document.getElementById('a_brand_custom');
   if(!sel || !custom) return;
   const clean=String(value||'').trim();
-  const known=BRAND_PRESETS.includes(clean);
+  const known=getBrandPresetList().includes(clean);
   if(clean && !known){
     sel.value='__ALTRO__';
     custom.style.display='block';
@@ -1530,7 +1538,9 @@ function addCategory(){
   if(!saveDB(db)) return;
   if(input) input.value='';
   renderCategorySettings();
+  renderBrandSettings();
   refreshArticleCategorySelects();
+  refreshArticleBrandSelects();
   toast('Categoria salvata');
 }
 function renameCategory(oldName){
@@ -1598,6 +1608,115 @@ function refreshArticleCategorySelects(selectedEdit=''){
     editSel.value=wanted||'';
   }
 }
+
+const DEFAULT_BRANDS=['Louis Vuitton','Gucci','Chanel','Dior','Alexander McQueen','Balenciaga','Versace'];
+function normalizeBrandName(v){
+  return String(v||'').trim().replace(/\s+/g,' ').toLowerCase();
+}
+function articleBrandOptions(db){
+  const seen=new Set();
+  const out=[];
+  const push=(v)=>{
+    const clean=String(v||'').trim().replace(/\s+/g,' ');
+    if(!clean || /^senza\s+brand$/i.test(clean)) return;
+    const key=normalizeBrandName(clean);
+    if(!key || seen.has(key)) return;
+    seen.add(key);
+    out.push(clean);
+  };
+  DEFAULT_BRANDS.forEach(push);
+  (Array.isArray(db?.brands)?db.brands:[]).forEach(push);
+  (Array.isArray(db?.articoli)?db.articoli:[]).forEach(a=>push(a?.brand));
+  return out.sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+}
+function renderBrandSettings(){
+  const db=loadDB();
+  const box=document.getElementById('brandList');
+  const hint=document.getElementById('brandHint');
+  if(!box) return;
+  const brands=articleBrandOptions(db);
+  const savedSet=new Set((Array.isArray(db?.brands)?db.brands:[]).map(normalizeBrandName));
+  box.innerHTML=brands.length?brands.map(b=>`<div class="row" style="grid-template-columns:1fr auto auto;gap:8px"><div class="main"><div class="t">${esc(b)}</div><div class="small">${savedSet.has(normalizeBrandName(b))?'Brand salvato nelle impostazioni':'Brand rilevato da articoli già esistenti'}</div></div><div><button class="btn smallish" type="button" data-action="renameBrand" data-name="${esc(b)}">Modifica</button></div><div><button class="btn danger smallish" type="button" data-action="deleteBrand" data-name="${esc(b)}">Elimina</button></div></div>`).join(''):'<div class="small">Nessun brand salvato.</div>';
+  if(hint) hint.textContent='Puoi aggiungere, rinominare o eliminare i brand. Se elimini un brand, gli articoli restano ma finiscono in Senza brand.';
+}
+function refreshArticleBrandSelects(selected=''){
+  const sel=document.getElementById('a_brand');
+  if(!sel) return;
+  const options=articleBrandOptions(loadDB());
+  const wanted=String(selected||getArticleBrandValue()||'').trim();
+  sel.innerHTML='<option value="">Seleziona brand</option>' + options.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('') + '<option value="__ALTRO__">Altro</option>';
+  if(wanted && options.includes(wanted)){
+    sel.value=wanted;
+  }else if(wanted){
+    sel.value='__ALTRO__';
+  }else{
+    sel.value='';
+  }
+  handleBrandSelectionChange();
+}
+function addBrand(){
+  const input=document.getElementById('brandName');
+  const nome=String(input?.value||'').trim().replace(/\s+/g,' ');
+  if(!nome){ toast('Scrivi il nome brand'); return; }
+  const db=loadDB();
+  const key=normalizeBrandName(nome);
+  const exists=articleBrandOptions(db).some(b=>normalizeBrandName(b)===key);
+  if(exists){ toast('Brand già presente'); return; }
+  db.brands=[...(Array.isArray(db.brands)?db.brands:[]), nome].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  if(!saveDB(db)) return;
+  if(input) input.value='';
+  renderBrandSettings();
+  refreshArticleBrandSelects(nome);
+  toast('Brand salvato');
+}
+function renameBrand(oldName){
+  const cleanOld=String(oldName||'').trim().replace(/\s+/g,' ');
+  if(!cleanOld) return;
+  const nuovo=window.prompt('Nuovo nome brand', cleanOld);
+  if(nuovo===null) return;
+  const cleanNew=String(nuovo||'').trim().replace(/\s+/g,' ');
+  if(!cleanNew){ toast('Nome brand vuoto'); return; }
+  const oldKey=normalizeBrandName(cleanOld);
+  const newKey=normalizeBrandName(cleanNew);
+  const db=loadDB();
+  if(oldKey!==newKey && articleBrandOptions(db).some(b=>normalizeBrandName(b)===newKey)){
+    toast('Esiste già un brand con questo nome'); return;
+  }
+  db.brands=(Array.isArray(db.brands)?db.brands:[]).map(b=>normalizeBrandName(b)===oldKey ? cleanNew : b);
+  if(!(Array.isArray(db.brands)?db.brands:[]).some(b=>normalizeBrandName(b)===newKey)) db.brands.push(cleanNew);
+  db.brands=[...new Set((db.brands||[]).map(b=>String(b||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.articoli=(db.articoli||[]).map(a=> normalizeBrandName(a?.brand)===oldKey ? {...a, brand: cleanNew, _ts: Date.now()} : a);
+  if(artBrowseState.brand && normalizeBrandName(artBrowseState.brand)===oldKey){
+    setArtBrowse(artBrowseState.level, artBrowseState.categoria||'', cleanNew, false);
+  }
+  if(!saveDB(db)) return;
+  renderBrandSettings();
+  refreshArticleBrandSelects(cleanNew);
+  renderArt();
+  toast('Brand aggiornato');
+}
+function deleteBrand(nome){
+  const clean=String(nome||'').trim().replace(/\s+/g,' ');
+  if(!clean) return;
+  askConfirm(`Elimino il brand "${clean}"? Gli articoli restano salvati ma finiscono in "Senza brand".`,()=>{
+    const db=loadDB();
+    const key=normalizeBrandName(clean);
+    db.brands=(db.brands||[]).filter(b=>normalizeBrandName(b)!==key);
+    db.articoli=(db.articoli||[]).map(a=> normalizeBrandName(a?.brand)===key ? {...a, brand:'', _ts: Date.now()} : a);
+    if(artBrowseState.brand && normalizeBrandName(artBrowseState.brand)===key){
+      setArtBrowse('brands', artBrowseState.categoria||'', '', false);
+    }
+    if(!saveDB(db)) return;
+    renderBrandSettings();
+    refreshArticleBrandSelects();
+    renderArt();
+    toast('Brand eliminato');
+  },'Elimina brand');
+}
+function getBrandPresetList(){
+  return articleBrandOptions(loadDB());
+}
+
 
 const ART_ICONS={
   'borse':'👜','borsa':'👜','portafogli':'👛','portafoglio':'👛','cinture':'👔','cintura':'👔','scarpe':'👠','scarpa':'👠',
@@ -1970,7 +2089,7 @@ function renderFinanze(){
   renderStorageInfo();
 }
 
-function renderAll(){ renderHome(); renderArt(); renderCli(); renderOrd(); renderFinanze(); renderCategorySettings(); }
+function renderAll(){ renderHome(); renderArt(); renderCli(); renderOrd(); renderFinanze(); renderCategorySettings(); renderBrandSettings(); }
 
 /* ====== ART view/edit ====== */
 let currentArtId=null;
@@ -2858,7 +2977,11 @@ document.addEventListener('click',(ev)=>{
     return;
   }
   if(a==='addCategory') return addCategory();
+  if(a==='renameCategory') return renameCategory(el.dataset.name||'');
   if(a==='deleteCategory') return deleteCategory(el.dataset.name||'');
+  if(a==='addBrand') return addBrand();
+  if(a==='renameBrand') return renameBrand(el.dataset.name||'');
+  if(a==='deleteBrand') return deleteBrand(el.dataset.name||'');
   if(a==='copyPost') return copyTextFrom(document.getElementById('vArtPost'));
   if(a==='downloadArtPhotos') return downloadCurrentArticlePhotos();
   if(a==='openSupplierLink'){ const link=String(document.getElementById('vArtSupplierLink')?.value||'').trim(); if(!link){ toast('Nessun link fornitore'); return; } const safe=/^https?:\/\//i.test(link)?link:'https://'+link; window.open(safe,'_blank'); return; }
@@ -2907,6 +3030,7 @@ document.getElementById('qCli').addEventListener('input', renderCli);
 ['c_nome','c_tel','c_ind','c_cap','c_citta','c_prov'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', refreshClientShipping); if(el) el.addEventListener('change', refreshClientShipping); });
 document.getElementById('qOrd').addEventListener('input', renderOrd);
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
+document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
 
 ['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore'].forEach(id=>{
   const el=document.getElementById(id);
