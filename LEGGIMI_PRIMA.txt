@@ -1,0 +1,13 @@
+Questa è la versione completa corretta della PWA.
+
+Contiene:
+- accesso Cloud / Supabase
+- dashboard con "Novità in primo piano"
+- fix per duplicazioni clienti / ordini
+- fix per sync immagini da cloud
+
+Per pubblicarla:
+1. usa QUESTI file come root del sito
+2. non mischiarli con altri index.html vecchi o semplificati
+3. esegui anche i file SQL Supabase inclusi
+4. dopo il deploy, fai refresh forzato o reset cache della PWA
