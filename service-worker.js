@@ -1,11 +1,13 @@
-const CACHE_NAME='vg-cache-v9_9';
-const VERSION = 'v9_9';
+const CACHE_NAME='vg-cache-v10_0-iconsfix68';
+const VERSION = 'v10_0';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './reset-cache.html'
+  './reset-cache.html',
+  './assets/categoria-borse.jpg',
+  './assets/categoria-portafogli.jpg'
 ];
 
 self.addEventListener('install', event => {
