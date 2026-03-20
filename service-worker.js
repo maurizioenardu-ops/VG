@@ -1,4 +1,4 @@
-const CACHE_NAME='vg-cache-v10_0-iconsfix68';
+const CACHE_NAME='vg-cache-v10_1-cat4';
 const VERSION = 'v10_0';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [

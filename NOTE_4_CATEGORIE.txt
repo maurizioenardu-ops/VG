@@ -1,0 +1,7 @@
+Ho corretto l'uso delle 4 immagini del file Pins (1).zip cosi:
+- Borse -> borsa
+- Cinture -> cintura
+- Scarpe -> scarpe
+- Accessori -> accessori misti
+
+Le immagini sono state incorporate direttamente nel codice per evitare icone rotte su GitHub Pages.
