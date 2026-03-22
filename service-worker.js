@@ -1,5 +1,5 @@
-const CACHE_NAME='vg-cache-v10_2-portafogli';
-const VERSION = 'v10_2';
+const CACHE_NAME='vg-cache-v10_5-postsocial-quality';
+const VERSION = 'v10_5';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './manifest.json',

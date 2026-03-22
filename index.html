@@ -108,11 +108,12 @@ select[multiple]{min-height:150px}
 
 #mArtView .modal,#mArtEdit .modal{max-width:760px}
 
-#vArtPost,#a_post,#c_ship{overflow:hidden;resize:none;scrollbar-width:none;-ms-overflow-style:none}
+#vArtPost,#vArtPostFb,#vArtPostIg,#a_post,#a_post_fb,#a_post_ig,#c_ship{overflow:hidden;resize:none;scrollbar-width:none;-ms-overflow-style:none}
+#vArtPost,#vArtPostFb,#vArtPostIg,#a_post,#a_post_fb,#a_post_ig{min-height:190px;line-height:1.45}
 .viewBottomSpace{margin-top:22px;padding-bottom:10px}
 .linkRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .linkRow input{flex:1 1 240px}
-#vArtPost::-webkit-scrollbar,#a_post::-webkit-scrollbar,#c_ship::-webkit-scrollbar{display:none}
+#vArtPost::-webkit-scrollbar,#vArtPostFb::-webkit-scrollbar,#vArtPostIg::-webkit-scrollbar,#a_post::-webkit-scrollbar,#a_post_fb::-webkit-scrollbar,#a_post_ig::-webkit-scrollbar,#c_ship::-webkit-scrollbar{display:none}
 @media (max-width:700px){
   #mArtView .modal,#mArtEdit .modal{width:100vw;max-width:none;height:100vh;max-height:none;border-radius:0;padding:14px 14px 96px}
   #mArtView.modalwrap,#mArtEdit.modalwrap{padding:0}
@@ -433,10 +434,11 @@ window.addEventListener('error',e=>{
       <div class="orderAddWrap"><button class="btn orderAdd" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button></div>
     </div>
   </div>
-  <div style="margin-top:10px"><div class="k">Post</div><textarea id="vArtPost" readonly></textarea></div>
+  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
-    <button class="btn primary smallish" type="button" data-action="copyPost">Copia post</button>
     <button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button>
     <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
@@ -504,7 +506,9 @@ window.addEventListener('error',e=>{
   <div class="formBlock postblk inputSoft">
     <div class="blockTitle">Post e contenuti</div>
     <div><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Dettagli utili per il post..."></textarea></div>
-    <div style="margin-top:10px"><div class="k">Post</div><textarea id="a_post" placeholder="Qui il post (auto)"></textarea></div>
+    <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="a_post" placeholder="Qui il post Telegram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostTelegramEdit">Copia Telegram</button></div></div>
+    <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="a_post_fb" readonly placeholder="Qui il post Facebook (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbEdit">Copia FB</button></div></div>
+    <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
     <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple/><div class="small" style="margin-top:6px">Puoi selezionare più foto insieme (massimo 6 totali per articolo).</div></div>
@@ -1852,14 +1856,271 @@ function formatPostMisura(misura){
   return clean ? `Mis. ${clean}` : '';
 }
 function formatPostPrezzoVendita(prezzo){
-  const n=Number(prezzo);
+  return Number(prezzo)>0 ? '💶' : '';
+}
+
+function stableHashSeed(value){
+  const raw=String(value||'');
+  let h=0;
+  for(let i=0;i<raw.length;i++) h=((h<<5)-h)+raw.charCodeAt(i), h|=0;
+  return Math.abs(h||0);
+}
+function pickVariantBySeed(items, seed, shift=0){
+  const list=Array.isArray(items)?items.filter(Boolean):[];
+  if(!list.length) return '';
+  return list[Math.abs(Number(seed||0)+Number(shift||0)) % list.length];
+}
+const postVariantSession={ fb:new Map(), ig:new Map() };
+function pickRandom(items){
+  const list=Array.isArray(items)?items.filter(Boolean):[];
+  if(!list.length) return '';
+  return list[Math.floor(Math.random()*list.length)] || list[0] || '';
+}
+function articlePostSignature(a){
+  return [
+    a?.codice||'', a?.categoria||'', a?.modello||'', a?.descrizione||'', a?.variante||'',
+    a?.materiale||'', a?.colore||'', a?.misura||'', a?.taglia||'', a?.prezzoVendita||''
+  ].join('|');
+}
+function pickSessionVariant(mode, a, builder){
+  const group=postVariantSession[mode];
+  if(!group) return builder();
+  const key=String(a?.codice||articlePostSignature(a)||mode).trim() || mode;
+  const sig=articlePostSignature(a);
+  const cached=group.get(key);
+  if(cached && cached.sig===sig) return cached.value;
+  const value=builder();
+  group.set(key,{sig,value});
+  return value;
+}
+function postFeatureFragments(a){
+  const key=categoryKey(a?.categoria||'');
+  const color=compactPostValue(a?.colore||'');
+  const material=compactPostValue(a?.materiale||a?.variante||'');
+  const size=postSizeValue(a);
+  const desc=compactPostValue(a?.descrizione||'');
+  const fragments=[];
+  if(key.includes('bors')){
+    fragments.push('linea pulita','stile versatile','taglio elegante','uso quotidiano','pratica da portare');
+    if(size) fragments.push('dimensioni comode');
+  }else if(key.includes('scarp') || key.includes('sneaker')){
+    fragments.push('linea curata','presenza decisa','look ordinato','vestibilità interessante','dettagli che si notano');
+    if(size) fragments.push('misure disponibili');
+  }else if(key.includes('cintur')){
+    fragments.push('essenziale ma curata','facile da abbinare','stile pulito','dettaglio semplice ma efficace');
+  }else if(key.includes('portafogl')){
+    fragments.push('compatto e pratico','ordine e praticità','taglio pulito','comodità quotidiana');
+  }else if(key.includes('accessor')){
+    fragments.push('piccolo dettaglio che completa','linea semplice','utile ogni giorno','stile facile');
+  }else{
+    fragments.push('stile pulito','linea curata','dettaglio interessante','presenza ordinata');
+  }
+  if(color) fragments.push(`${color} che si fa notare`, `${color} facile da abbinare`, `tono ${color}`);
+  if(material) fragments.push(`${material} dal look curato`, `${material} con bella resa`, `${material} ben rifinito`);
+  if(desc) fragments.push(desc);
+  return uniquePostLines(fragments);
+}
+function postHeadlinePools(a){
+  const key=categoryKey(a?.categoria||'');
+  const emoji=colorEmojiForPost(a);
+  const label=categoryLabelForPost(a);
+  const features=postFeatureFragments(a);
+  const soft=pickRandom(features) || label.toLowerCase();
+  const named=postNameWithQuality(a);
+  const withNamed=(value)=>[named, value ? `• ${value}` : '', emoji].join(' ').replace(/\s+/g,' ').trim();
+  if(key.includes('bors')) return [
+    withNamed('Borsa dal taglio elegante'),
+    withNamed('Borsa compatta e curata'),
+    withNamed('Borsa con stile pulito'),
+    withNamed(`Borsa ${soft}`)
+  ];
+  if(key.includes('scarp') || key.includes('sneaker')) return [
+    withNamed('Scarpa con linea curata'),
+    withNamed('Scarpa dal carattere deciso'),
+    withNamed('Sneakers con dettagli che si notano'),
+    withNamed(`${label} ${soft}`)
+  ];
+  if(key.includes('cintur')) return [
+    withNamed('Cintura semplice ma d’effetto'),
+    withNamed('Cintura facile da abbinare'),
+    withNamed(`Cintura ${soft}`)
+  ];
+  if(key.includes('portafogl')) return [
+    withNamed('Portafoglio pratico e ordinato'),
+    withNamed('Portafoglio compatto e curato'),
+    withNamed(`Portafoglio ${soft}`)
+  ];
+  if(key.includes('accessor')) return [
+    withNamed('Accessorio che completa il look'),
+    withNamed('Accessorio semplice ma utile'),
+    withNamed(`Accessorio ${soft}`)
+  ];
+  return [
+    withNamed(`${label} con stile pulito`),
+    withNamed(`${label} ${soft}`),
+    withNamed('Dettagli che fanno la differenza')
+  ];
+}
+function categoryKey(value){
+  return normalizeTextKey(value||'').replace(/\s+/g,'');
+}
+function categoryLabelForPost(a){
+  const key=categoryKey(a?.categoria||'');
+  if(key.includes('scarp')) return 'Scarpa';
+  if(key.includes('sneaker')) return 'Sneakers';
+  if(key.includes('bors')) return 'Borsa';
+  if(key.includes('cintur')) return 'Cintura';
+  if(key.includes('portafogl')) return 'Portafoglio';
+  if(key.includes('accessor')) return 'Accessorio';
+  return 'Articolo';
+}
+function categoryEmojiForPost(a){
+  const key=categoryKey(a?.categoria||'');
+  if(key.includes('scarp') || key.includes('sneaker')) return '👟';
+  if(key.includes('bors')) return '👜';
+  if(key.includes('cintur')) return '✨';
+  if(key.includes('portafogl')) return '🖤';
+  if(key.includes('accessor')) return '✨';
+  return '🖤';
+}
+function colorEmojiForPost(a){
+  const color=normalizeTextKey(a?.colore||'');
+  if(color.includes('nero')) return '🖤';
+  if(color.includes('bianc')) return '🤍';
+  if(color.includes('ross')) return '❤️';
+  if(color.includes('blu')) return '💙';
+  if(color.includes('beige') || color.includes('nude')) return '🤎';
+  if(color.includes('rosa')) return '🩷';
+  if(color.includes('argento') || color.includes('silver')) return '✨';
+  if(color.includes('oro') || color.includes('gold')) return '💛';
+  return categoryEmojiForPost(a);
+}
+function formatMoneyCompactEuro(value){
+  const n=Number(value);
   if(!(n>0)) return '';
   const txt=Number.isInteger(n)
     ? String(n)
     : n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
-  return `💶 ${txt}`;
+  return `€${txt}`;
 }
-function buildPost(a){
+function formatFbDetailLine(label, value){
+  const clean=String(value||'').trim();
+  return clean ? `✔️ ${label}: ${clean}` : '';
+}
+function compactPostValue(text){
+  return String(text||'').replace(/\s+/g,' ').trim();
+}
+function postDimensionLabel(a){
+  const key=categoryKey(a?.categoria||'');
+  return (key.includes('scarp') || key.includes('sneaker')) ? 'Misure' : 'Dimensioni';
+}
+function postSizeValue(a){
+  const misura=compactPostValue(a?.misura||'');
+  const taglia=compactPostValue(a?.taglia||'');
+  return misura || taglia || '';
+}
+function postPrimaryName(a){
+  const brand=(a?.brand||'').trim();
+  const modello=normalizePostLine(a?.modello||'', brand);
+  const descrizione=normalizePostLine(a?.descrizione||'', brand);
+  const variante=normalizePostLine(a?.variante||'', brand);
+  const materiale=normalizePostLine(a?.materiale||'', brand);
+  return (modello || descrizione || variante || materiale || categoryLabelForPost(a)).trim();
+}
+function postNameWithQuality(a){
+  const base=postPrimaryName(a);
+  const qemoji=emojiQualityForPost(a);
+  return [base, qemoji].filter(Boolean).join(' ').trim();
+}
+function buildPostHeadline(a, mode='fb'){
+  const base=postPrimaryName(a);
+  const named=postNameWithQuality(a);
+  const seed=stableHashSeed((a?.codice||'') + '|' + mode);
+  const emoji=colorEmojiForPost(a);
+  if(mode==='ig'){
+    const starts=[
+      'Eleganza senza tempo',
+      'Dettagli che fanno la differenza',
+      'Disponibile',
+      'Semplice… ma fa la sua figura',
+      'Dettagli che si notano subito',
+      'Questo dal vivo rende ancora meglio',
+      'Piccola chicca del giorno',
+      'Un modello che si fa guardare',
+      'Minimal fuori, carattere dentro'
+    ];
+    const mood=pickVariantBySeed(starts, seed) || '';
+    return [named, mood ? `• ${mood}` : '', emoji].join(' ').replace(/\s+/g,' ').trim();
+  }
+  const prefixes=[
+    '',
+    'elegante',
+    'compatta',
+    'capiente',
+    'pratica',
+    'raffinata',
+    'versatile',
+    'super comoda'
+  ];
+  const prefix=pickVariantBySeed(prefixes, seed, 2) || '';
+  const raw=(base || categoryLabelForPost(a)).trim();
+  const detail=(prefix && !raw.toLowerCase().includes(prefix.toLowerCase())) ? prefix : '';
+  return [named, detail ? `• ${detail}` : '', emoji].join(' ').replace(/\s+/g,' ').trim();
+}
+function buildPostFacebook(a){
+  if(!a?.codice) return '';
+  return pickSessionVariant('fb', a, ()=>{
+    const lines=[];
+    lines.push(pickRandom(postHeadlinePools(a)) || buildPostHeadline(a,'fb'));
+    lines.push('');
+    lines.push(`✔️ Cod. ${a.codice}`);
+    const detailCandidates=[];
+    const sizeValue=postSizeValue(a);
+    if(sizeValue) detailCandidates.push(formatFbDetailLine(postDimensionLabel(a), sizeValue));
+    const colore=compactPostValue(a?.colore||'');
+    if(colore) detailCandidates.push(formatFbDetailLine('Colore', colore));
+    const materiale=compactPostValue(a?.materiale||a?.variante||'');
+    if(materiale) detailCandidates.push(formatFbDetailLine('Materiale', materiale));
+    const descrizione=compactPostValue(a?.descrizione||'');
+    if(descrizione) detailCandidates.push(`✔️ ${descrizione}`);
+    uniquePostLines(detailCandidates).slice(0,3).forEach(line=>lines.push(line));
+    lines.push('');
+    if(Number(a?.prezzoVendita||0)>0){
+      lines.push('💶');
+      lines.push('');
+    }
+    const closers=[
+      'Per info scrivimi in privato 📩',
+      'Info in privato 📩',
+      'Scrivimi in privato 📩',
+      'Se ti interessa scrivimi in privato 📩'
+    ];
+    lines.push(pickRandom(closers));
+    return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  });
+}
+function buildPostInstagram(a){
+  if(!a?.codice) return '';
+  return pickSessionVariant('ig', a, ()=>{
+    const seed=stableHashSeed((a.codice||'')+'|ig');
+    const lines=[buildPostHeadline(a,'ig'),''];
+    const codeLine=pickRandom([`✔️ Cod. ${a.codice}`, `Cod. ${a.codice}`]) || pickVariantBySeed([`✔️ Cod. ${a.codice}`, `Cod. ${a.codice}`], seed, 1);
+    lines.push(codeLine);
+    const vibe=[];
+    if(Number(a?.prezzoVendita||0)>0) vibe.push('Disponibile ✨','Disponibile 🖤');
+    vibe.push('DM 📩','Scrivimi in DM 📩','Info in DM 📩');
+    lines.push('');
+    const first=pickRandom(vibe) || pickVariantBySeed(vibe, seed, 3);
+    const secondPool=vibe.filter(x=>x!==first);
+    const second=pickRandom(secondPool) || pickVariantBySeed(secondPool, seed, 6);
+    if(first) lines.push(first);
+    if(second && !/DM|privato/i.test(first||'')) lines.push(second);
+    else if(!/DM|privato/i.test(first||'')) lines.push('DM 📩');
+    return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  });
+}
+function buildPostTelegram(a){
+
   if(!a.codice) return '';
   const brand=(a.brand||'').trim();
   const modello=normalizePostLine(a.modello||'', brand);
@@ -2025,8 +2286,29 @@ window.addEventListener('popstate',(e)=>{
 });
 
 /* ====== UI helpers ====== */
-function show(id, push=true){ const el=document.getElementById(id); if(!el) return; el.style.display='flex'; activeModalId=id; if(push) history.pushState({page:location.hash.replace('#','')||'home', modal:id},'', location.href); }
-function hide(id, fromPop=false){ const el=document.getElementById(id); if(!el) return; el.style.display='none'; if(activeModalId===id) activeModalId=null; if(!fromPop && history.state && history.state.modal===id) history.back(); }
+function scheduleModalTextareaFit(id){
+  const root=document.getElementById(id);
+  if(!root) return;
+  const run=()=>root.querySelectorAll('textarea').forEach(el=>fitTextarea(el));
+  requestAnimationFrame(()=>requestAnimationFrame(run));
+  setTimeout(run, 40);
+  setTimeout(run, 160);
+}
+function show(id, push=true){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.style.display='flex';
+  activeModalId=id;
+  scheduleModalTextareaFit(id);
+  if(push) history.pushState({page:location.hash.replace('#','')||'home', modal:id},'', location.href);
+}
+function hide(id, fromPop=false){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.style.display='none';
+  if(activeModalId===id) activeModalId=null;
+  if(!fromPop && history.state && history.state.modal===id) history.back();
+}
 function toast(msg){
   let t=document.getElementById('vg_toast');
   if(!t){ t=document.createElement('div'); t.id='vg_toast';
@@ -3060,11 +3342,16 @@ async function openArtView(id){
   document.getElementById('vArtPrezzoUse').textContent=money(currentPrice(a));
   const pill=document.getElementById('vArtPromoPill');
   pill.innerHTML = promoValid(a)?`<div class="pill promo" style="margin-top:6px"><span class="dot"></span>PROMO attiva</div>`:(a.promoAttiva?`<div class="pill" style="margin-top:6px">PROMO impostata</div>`:'');
-  document.getElementById('vArtPost').value=buildPost(a);
+  document.getElementById('vArtPost').value=buildPostTelegram(a);
   fitTextarea(document.getElementById('vArtPost'));
+  document.getElementById('vArtPostFb').value=buildPostFacebook(a);
+  fitTextarea(document.getElementById('vArtPostFb'));
+  document.getElementById('vArtPostIg').value=buildPostInstagram(a);
+  fitTextarea(document.getElementById('vArtPostIg'));
   const vArtSupplierLink=document.getElementById('vArtSupplierLink');
   if(vArtSupplierLink) vArtSupplierLink.value=(a.fornitoreLink||'').trim();
   show('mArtView');
+  scheduleModalTextareaFit('mArtView');
 }
 async function openArtEdit(id){
   const db=loadDB();
@@ -3076,7 +3363,7 @@ async function openArtEdit(id){
   const set=(k,v)=>document.getElementById(k).value=(v===0?0:(v||''));
 
   if(!a){
-    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_mis','a_usd','a_promo_price','a_promo_date','a_note','a_post','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
+    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_mis','a_usd','a_promo_price','a_promo_date','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
     .forEach(fid => document.getElementById(fid).value='');
     syncBrandField('');
     refreshArticleCategorySelects('');
@@ -3085,6 +3372,7 @@ async function openArtEdit(id){
     currentArtExistingPics=[];
     renderArtPhotoPrev([]);
     show('mArtEdit');
+    scheduleModalTextareaFit('mArtEdit');
     return;
   }
   set('a_cod', a?.codice); syncBrandField(a?.brand); set('a_mod', a?.modello);
@@ -3097,11 +3385,16 @@ async function openArtEdit(id){
   document.getElementById('a_note').value=a?.note||'';
   document.getElementById('a_post').value=a?.post||'';
   fitTextarea(document.getElementById('a_post'));
+  document.getElementById('a_post_fb').value=buildPostFacebook(a||{});
+  fitTextarea(document.getElementById('a_post_fb'));
+  document.getElementById('a_post_ig').value=buildPostInstagram(a||{});
+  fitTextarea(document.getElementById('a_post_ig'));
   document.getElementById('a_photo').value='';
   renderArtAutoFields();
   currentArtExistingPics=await getArticlePics(a);
   renderArtPhotoPrev(currentArtExistingPics);
   show('mArtEdit');
+  scheduleModalTextareaFit('mArtEdit');
 }
 function renderArtPhotoPrev(pics){
   const box=document.getElementById('a_photo_prev');
@@ -3140,8 +3433,20 @@ async function refreshArtPhotoPreviewFromInput(){
 }
 function fitTextarea(el){
   if(!el) return;
-  el.style.height='auto';
-  el.style.height=Math.max(el.scrollHeight,96)+'px';
+  const apply=()=>{
+    const style=getComputedStyle(el);
+    const lineHeight=parseFloat(style.lineHeight)||22;
+    const lineCount=Math.max(String(el.value||el.placeholder||'').split('\n').length, 4);
+    const border=(parseFloat(style.borderTopWidth)||0)+(parseFloat(style.borderBottomWidth)||0);
+    const padding=(parseFloat(style.paddingTop)||0)+(parseFloat(style.paddingBottom)||0);
+    const padded=Math.ceil((lineCount*lineHeight)+padding+border+18);
+    el.style.height='auto';
+    const visibleScroll=el.scrollHeight||0;
+    el.style.height=Math.max(visibleScroll,padded,140)+'px';
+  };
+  apply();
+  requestAnimationFrame(apply);
+  setTimeout(apply, 60);
 }
 function initTextareaAutosize(ids){
   ids.forEach(id=>{
@@ -3161,6 +3466,19 @@ function setArticlePostAuto(text){
   fitTextarea(el);
   el.scrollTop=prevScroll;
 }
+function setReadonlyArticlePost(id,text){
+  const el=document.getElementById(id);
+  if(!el) return;
+  const prevScroll=el.scrollTop;
+  el.value=text;
+  fitTextarea(el);
+  el.scrollTop=prevScroll;
+}
+function setArticleSocialPostsAuto(draft){
+  setArticlePostAuto(buildPostTelegram(draft));
+  setReadonlyArticlePost('a_post_fb', buildPostFacebook(draft));
+  setReadonlyArticlePost('a_post_ig', buildPostInstagram(draft));
+}
 function renderArtAutoFields(){
   const code=document.getElementById('a_cod').value.trim();
   const usdRaw=document.getElementById('a_usd').value.trim();
@@ -3178,6 +3496,8 @@ function renderArtAutoFields(){
     document.getElementById('a_margin_pct').textContent='';
     document.getElementById('a_post').value='';
     fitTextarea(document.getElementById('a_post'));
+    setReadonlyArticlePost('a_post_fb','');
+    setReadonlyArticlePost('a_post_ig','');
     return;
   }
 
@@ -3203,7 +3523,7 @@ function renderArtAutoFields(){
       fornitore:document.getElementById('a_forn').value.trim(),
       materiale:'', colori:'', tracolla:'', scatola:false
     };
-    setArticlePostAuto(buildPost(draft));
+    setArticleSocialPostsAuto(draft);
     return;
   }
 
@@ -3235,7 +3555,7 @@ function renderArtAutoFields(){
     fornitore:document.getElementById('a_forn').value.trim(),
     materiale:'', colori:'', tracolla:'', scatola:false
   };
-  setArticlePostAuto(buildPost(draft));
+  setArticleSocialPostsAuto(draft);
 }
 
 async function fileToDataURL(file){
@@ -3326,11 +3646,16 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_note').value=clone.note||'';
   document.getElementById('a_post').value=clone.post||'';
   fitTextarea(document.getElementById('a_post'));
+  document.getElementById('a_post_fb').value=buildPostFacebook(clone||{});
+  fitTextarea(document.getElementById('a_post_fb'));
+  document.getElementById('a_post_ig').value=buildPostInstagram(clone||{});
+  fitTextarea(document.getElementById('a_post_ig'));
   document.getElementById('a_photo').value='';
   currentArtExistingPics=await getArticlePics(a);
   renderArtPhotoPrev(currentArtExistingPics);
   renderArtAutoFields();
   show('mArtEdit');
+  scheduleModalTextareaFit('mArtEdit');
   toast('Articolo duplicato: cambia il codice e salva');
 }
 
@@ -3461,6 +3786,7 @@ async function deleteArt(){
     hide('mArtEdit');
     hide('mArtView');
     renderAll();
+initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship']);
     if(old && cloudEnabled()){
       try{
         await cloudDeleteOne('art', old);
@@ -4146,6 +4472,11 @@ document.addEventListener('click',(ev)=>{
   if(a==='renameBrand') return renameBrand(el.dataset.name||'');
   if(a==='deleteBrand') return deleteBrand(el.dataset.name||'');
   if(a==='copyPost') return copyTextFrom(document.getElementById('vArtPost'));
+  if(a==='copyPostFb') return copyTextFrom(document.getElementById('vArtPostFb'));
+  if(a==='copyPostIg') return copyTextFrom(document.getElementById('vArtPostIg'));
+  if(a==='copyPostTelegramEdit') return copyTextFrom(document.getElementById('a_post'));
+  if(a==='copyPostFbEdit') return copyTextFrom(document.getElementById('a_post_fb'));
+  if(a==='copyPostIgEdit') return copyTextFrom(document.getElementById('a_post_ig'));
   if(a==='downloadArtPhotos') return downloadCurrentArticlePhotos();
   if(a==='openSupplierLink'){ const link=String(document.getElementById('vArtSupplierLink')?.value||'').trim(); if(!link){ toast('Nessun link fornitore'); return; } const safe=/^https?:\/\//i.test(link)?link:'https://'+link; window.open(safe,'_blank'); return; }
   if(a==='copyCliShip') return copyTextFrom(document.getElementById('c_ship'));
@@ -4665,6 +4996,7 @@ async function cloudLogout(){
 
 /* init */
 renderAll();
+initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship']);
 renderDiagnostics();
 fillUiEditor();
 applyUiPrefs();
