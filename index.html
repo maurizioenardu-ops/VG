@@ -2261,6 +2261,20 @@ function pickFacebookDetailLines(a){
   if(descrizione && descrizione.length<=52) detailCandidates.push(`✔️ ${descrizione}`);
   return uniquePostLines(detailCandidates).slice(0,3);
 }
+function promoPostIntroLines(a){
+  if(!a?.promoAttiva) return [];
+  const lines=['⭕️ PROMOZIONE ⭕️'];
+  const scadenzaRaw=String(a?.scadenzaPromo||'').trim();
+  if(scadenzaRaw){
+    let scadenzaLabel=scadenzaRaw;
+    if(/^\d{4}-\d{2}-\d{2}$/.test(scadenzaRaw)){
+      const [yyyy,mm,dd]=scadenzaRaw.split('-');
+      scadenzaLabel=`${dd}/${mm}/${yyyy}`;
+    }
+    lines.push(`(fino al ${scadenzaLabel})`);
+  }
+  return lines;
+}
 function buildPostFacebook(a){
   if(!a?.codice) return '';
   const modelLine = postNameWithQuality(a,'fb') || postPrimaryName(a,'fb') || categoryLabelForPost(a);
@@ -2268,7 +2282,7 @@ function buildPostFacebook(a){
   const materiale = safePostDetailValue(a?.materiale||'', a);
   const misura = safePostDetailValue(postSizeValue(a), a);
   const colore = safePostDetailValue(a?.colore||'', a);
-  const lines=[];
+  const lines=[...promoPostIntroLines(a)];
   if(modelLine) lines.push(modelLine);
   const seen = new Set();
   const pushUnique = (value)=>{
@@ -2289,7 +2303,9 @@ function buildPostFacebook(a){
 
 function buildPostInstagram(a){
   if(!a?.codice) return '';
-  const lines=[buildPostHeadline(a,'ig'),''];
+  const lines=[...promoPostIntroLines(a)];
+  if(lines.length) lines.push('');
+  lines.push(buildPostHeadline(a,'ig'),'');
   lines.push(pickRandom([`✔️ Cod. ${a.codice}`, `Cod. ${a.codice}`]) || `Cod. ${a.codice}`);
   lines.push('');
   const mids=[
@@ -2313,6 +2329,7 @@ function buildPostInstagram(a){
   if(second) lines.push(second);
   return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
+
 function buildPostTelegram(a){
 
   if(!a.codice) return '';

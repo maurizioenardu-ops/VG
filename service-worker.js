@@ -1,5 +1,5 @@
-const CACHE_NAME='vg-cache-v11_1-fb-model-quality';
-const VERSION = 'v11_1';
+const CACHE_NAME='vg-cache-v11_2-promo-fb-ig';
+const VERSION = 'v11_2';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './manifest.json',
