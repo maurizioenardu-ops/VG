@@ -1430,6 +1430,92 @@ async function shareCurrentArticlePhotos(){
 
   toast(files.length ? 'Condivisione foto non supportata da questo browser.' : 'Condivisione foto fallita');
 }
+const __zipCrcTable = (()=>{
+  const table = new Uint32Array(256);
+  for(let n=0;n<256;n++){
+    let c=n;
+    for(let k=0;k<8;k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    table[n]=c >>> 0;
+  }
+  return table;
+})();
+function crc32Bytes(bytes){
+  let crc = 0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++) crc = __zipCrcTable[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+function writeU16(arr, val){ arr.push(val & 0xFF, (val >>> 8) & 0xFF); }
+function writeU32(arr, val){ arr.push(val & 0xFF, (val >>> 8) & 0xFF, (val >>> 16) & 0xFF, (val >>> 24) & 0xFF); }
+async function buildZipFromFiles(files, zipName){
+  const localParts=[];
+  const central=[];
+  let offset=0;
+  for(const file of files){
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const name = (file.name || 'file').replace(/[\/]+/g, '_');
+    const nameBytes = new TextEncoder().encode(name);
+    const crc = crc32Bytes(bytes);
+    const local=[];
+    writeU32(local, 0x04034b50);
+    writeU16(local, 20);
+    writeU16(local, 0);
+    writeU16(local, 0);
+    writeU16(local, 0);
+    writeU16(local, 0);
+    writeU32(local, crc);
+    writeU32(local, bytes.length);
+    writeU32(local, bytes.length);
+    writeU16(local, nameBytes.length);
+    writeU16(local, 0);
+    localParts.push(new Uint8Array(local), nameBytes, bytes);
+
+    const cent=[];
+    writeU32(cent, 0x02014b50);
+    writeU16(cent, 20);
+    writeU16(cent, 20);
+    writeU16(cent, 0);
+    writeU16(cent, 0);
+    writeU16(cent, 0);
+    writeU16(cent, 0);
+    writeU32(cent, crc);
+    writeU32(cent, bytes.length);
+    writeU32(cent, bytes.length);
+    writeU16(cent, nameBytes.length);
+    writeU16(cent, 0);
+    writeU16(cent, 0);
+    writeU16(cent, 0);
+    writeU16(cent, 0);
+    writeU32(cent, 0);
+    writeU32(cent, offset);
+    central.push(new Uint8Array(cent), nameBytes);
+
+    offset += local.length + nameBytes.length + bytes.length;
+  }
+  let centralSize = 0;
+  for(const part of central) centralSize += part.length;
+  const end=[];
+  writeU32(end, 0x06054b50);
+  writeU16(end, 0);
+  writeU16(end, 0);
+  writeU16(end, files.length);
+  writeU16(end, files.length);
+  writeU32(end, centralSize);
+  writeU32(end, offset);
+  writeU16(end, 0);
+  const blob = new Blob([...localParts, ...central, new Uint8Array(end)], { type:'application/zip' });
+  return new File([blob], zipName, { type:'application/zip' });
+}
+function triggerBlobDownload(blob, filename){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=filename;
+  a.rel='noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 15000);
+}
 async function downloadCurrentArticlePhotos(){
   const ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
@@ -1440,30 +1526,21 @@ async function downloadCurrentArticlePhotos(){
     return;
   }
 
-  let ok=0;
-  for(let i=0;i<files.length;i++){
-    try{
-      const file=files[i];
-      const url=URL.createObjectURL(file);
-      const a=document.createElement('a');
-      a.href=url;
-      a.download=file.name;
-      a.rel='noopener';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url), 12000);
-      ok++;
-      await new Promise(r=>setTimeout(r, 900));
-    }catch(err){
-      console.warn('Download foto articolo fallito', err);
+  try{
+    if(files.length===1){
+      triggerBlobDownload(files[0], files[0].name || `${ctx.baseName}.jpg`);
+      toast('Foto scaricata. La trovi nei Download e poi in Galleria.');
+      return;
     }
+
+    toast(`Preparo ZIP con ${files.length} foto...`);
+    const zipFile = await buildZipFromFiles(files, `${ctx.baseName || 'articolo'}_foto.zip`);
+    triggerBlobDownload(zipFile, zipFile.name);
+    toast(`Scaricate ${files.length} foto in un file ZIP. Lo trovi nei Download.`);
+  }catch(err){
+    console.warn('Download ZIP foto articolo fallito', err);
+    toast('Download foto fallito');
   }
-  toast(ok===files.length
-    ? `Scaricate ${ok} foto. Le trovi nei Download e poi in Galleria.`
-    : (ok
-      ? `Scaricate ${ok} foto su ${files.length}.`
-      : 'Download foto fallito'));
 }
 async function uploadArticlePhotoToSupabase(file, codice, slot){
   const sb=await ensureCloud();
