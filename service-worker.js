@@ -1,5 +1,5 @@
-const CACHE_NAME='vg-cache-v11_4-fb-group-style';
-const VERSION = 'v11_2';
+const CACHE_NAME='vg-cache-v11_5-post-phrases-hundreds';
+const VERSION = 'v11_5';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './manifest.json',

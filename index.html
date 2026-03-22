@@ -2349,8 +2349,40 @@ function promoPostIntroLines(a){
   }
   return lines;
 }
-function facebookGroupOpenings(a){
-  const generic=[
+
+function postTraitFlags(a){
+  const src = [
+    a?.categoria||'', a?.modello||'', a?.descrizione||'', a?.variante||'', a?.materiale||'',
+    a?.colore||'', a?.misura||'', a?.taglia||''
+  ].join(' | ').toLowerCase();
+  const has = (re)=> re.test(src);
+  return {
+    nero: has(/\bnero\b|black|noir/),
+    bianco: has(/\bbianc[oaie]?\b|white/),
+    beige: has(/\bbeige\b|nude|sabbia|ecru/),
+    cuoio: has(/cuoio|camel|cognac|tabacco|marrone|testa di moro/),
+    rosso: has(/rosso|red|bordeaux|rubino/),
+    argento: has(/argento|silver|metal|metallizz/),
+    oro: has(/oro|gold|dorat/),
+    compatto: has(/compat|mini|small|piccol|essenzial/),
+    capiente: has(/capient|maxi|large|grande|shopper|oversize/),
+    oversize: has(/oversize|maxi/),
+    classico: has(/classic|classica|timeless|intramontabile/),
+    elegante: has(/elegant|raffinat|chic|slanciat|pulit/),
+    sportivo: has(/sport|sneaker|runner|street|urban/),
+    tacco: has(/tacco|heel/),
+    tallone: has(/tallone/),
+    suola: has(/suola|platform|plateau/),
+    vitello: has(/vitello|calf/),
+    martellata: has(/martellat|grana|grain/),
+    liscia: has(/liscia|smooth/),
+    impressa: has(/impress|stampat|emboss/),
+    intreccio: has(/intrecc|woven|trecc/),
+    logo: has(/logo|monogram/)
+  };
+}
+function postPhrasePools(mode='fb'){
+  const commonLong = [
     'Non segue il look. Lo definisce.',
     'Ha presenza. E si vede subito.',
     'Il dettaglio giusto cambia tutto.',
@@ -2374,47 +2406,346 @@ function facebookGroupOpenings(a){
     'Qui il carattere si vede senza bisogno di spiegazioni.',
     'Ha quella presenza che resta in testa.',
     'Pulita, decisa, riuscita bene.',
-    'Certe presenze si capiscono al primo sguardo.'
+    'Certe presenze si capiscono al primo sguardo.',
+    'C’è un motivo se certe cose colpiscono subito.',
+    'Il gusto vero non ha bisogno di effetti speciali.',
+    'Ha il passo sicuro delle cose riuscite bene.',
+    'Il colpo d’occhio è forte. Il resto viene da sé.',
+    'Sa farsi ricordare senza alzare il tono.',
+    'Semplice solo per chi guarda in fretta.',
+    'Il tipo di presenza che sistema tutto il resto.',
+    'Più che mostrarsi, si impone nel modo giusto.',
+    'Si fa notare con una calma che vale doppio.',
+    'Ha una pulizia che parla da sola.',
+    'Non riempie il look. Lo mette a fuoco.',
+    'La differenza sta tutta nei particolari fatti bene.',
+    'Certe linee non hanno bisogno di spiegazioni.',
+    'Ha presenza, ma non sente il bisogno di dimostrarlo.',
+    'L’effetto è preciso. Ed è proprio quello che conta.',
+    'Quando c’è equilibrio, si vede immediatamente.',
+    'Cura, carattere e misura. Tutto al posto giusto.',
+    'La prima impressione basta già a capire.',
+    'Ha una firma visiva che resta in mente.',
+    'Fatta bene nel modo che conta davvero.',
+    'Non rincorre il colpo di scena. Lo crea.',
+    'Una scelta con carattere, senza teatralità.',
+    'Ci sono articoli belli. E poi ci sono quelli centrati davvero.',
+    'Il genere di pezzo che non ha bisogno di essere spiegato.',
+    'Non punta sull’eccesso. Vince sulla presenza.',
+    'Ha una calma elegante che si fa notare subito.',
+    'Si sente pensata. E si vede.',
+    'Tutto il resto gira intorno a questo dettaglio.',
+    'Ha il tipo di equilibrio che non si improvvisa.',
+    'La linea è pulita. L’impatto no.',
+    'Resta misurata, ma lascia il segno.',
+    'Il carattere qui non è un accessorio.',
+    'Ha l’evidenza silenziosa delle cose fatte bene.',
+    'Un dettaglio così cambia davvero il tono di tutto.',
+    'Non ha bisogno di rumore per restare impressa.',
+    'La differenza non urla. Si riconosce.'
   ];
-  const key=categoryKey(a?.categoria||'');
-  const extras=[];
-  if(key.includes('bors')) extras.push(
+  const commonShort = [
+    'Ha presenza. Punto.',
+    'Qui il carattere si vede subito.',
+    'Fa scena senza sforzo.',
+    'Pulita, forte, riuscita.',
+    'Dettagli che restano in testa.',
+    'Cura vera, effetto immediato.',
+    'Semplice solo in apparenza.',
+    'Presenza forte, linee pulite.',
+    'Il dettaglio giusto cambia tutto.',
+    'Ha il suo modo di farsi notare.',
+    'Niente eccessi. Solo presenza.',
+    'Dal vivo rende ancora meglio.',
+    'Si nota nel modo giusto.',
+    'Ha una marcia in più.',
+    'Fa il suo effetto. Eccome.',
+    'Ha il dettaglio che conta.',
+    'Qui la differenza si vede.',
+    'Linea pulita, impatto vero.',
+    'Non passa per caso.',
+    'Si fa ricordare subito.',
+    'Ha gusto, e si sente.',
+    'Il carattere è tutto qui.',
+    'Equilibrio molto riuscito.',
+    'Niente da aggiungere.',
+    'Ha presenza vera.',
+    'Dettaglio centrato.',
+    'Più la guardi, più funziona.',
+    'Qui il livello sale.',
+    'Si capisce al primo sguardo.',
+    'Presenza netta.'
+  ];
+  const pools = { commonLong, commonShort };
+  pools.borseLong = [
     'Sta bene nel look, ma si nota anche da sola.',
     'Ha il tipo di presenza che completa tutto senza pesare.',
     'C’è equilibrio, carattere e una linea fatta bene.',
-    'Più la guardi, più ti accorgi di quanto sia centrata.'
-  );
-  else if(key.includes('sneaker')) extras.push(
-    'Ha energia nelle linee e carattere nei dettagli.',
-    'Si capisce subito che non è la solita scelta facile.',
-    'Ha un taglio moderno, ma con presenza vera.',
-    'Qui il dettaglio conta più del rumore.'
-  );
-  else if(key.includes('scarp')) extras.push(
+    'Più la guardi, più ti accorgi di quanto sia centrata.',
+    'Non accompagna soltanto. Firma il risultato.',
+    'Ha quella struttura che mette ordine senza togliere carattere.',
+    'Si porta con facilità, ma lascia un’impressione precisa.',
+    'Certe forme sembrano semplici finché non le vedi fatte bene.',
+    'Ha una presenza solida, ma un effetto molto pulito.',
+    'Riesce a dare tono senza diventare mai ingombrante.',
+    'Il punto forte è come tiene insieme eleganza e personalità.',
+    'Ha una linea che regge il look da sola.',
+    'Il profilo è pulito. L’effetto, tutt’altro che neutro.',
+    'Quando una forma è giusta, si capisce senza spiegazioni.',
+    'Ha il passo sicuro delle cose ben costruite.',
+    'Tiene insieme stile e presenza in un modo rarissimo.',
+    'Cura il dettaglio senza perdere forza.',
+    'La struttura è precisa. Il colpo d’occhio ancora di più.',
+    'Non si limita a completare. Definisce.',
+    'Ha quella presenza che rimette in asse tutto il look.'
+  ];
+  pools.scarpeLong = [
     'Ha una linea che cambia tono a tutto il look.',
     'Certe presenze si sentono ancora prima di provarle.',
     'Ha slancio, misura e quel punto giusto di carattere.',
-    'Non forza nulla. Funziona e basta.'
-  );
-  else if(key.includes('cintur')) extras.push(
+    'Non forza nulla. Funziona e basta.',
+    'Sta in equilibrio perfetto tra presenza e pulizia.',
+    'Il profilo è netto. L’effetto ancora di più.',
+    'Sa allungare il look senza appesantirlo.',
+    'Ha una precisione nelle linee che si nota subito.',
+    'C’è una sicurezza silenziosa in come sta addosso.',
+    'Non è solo questione di forma. È proprio il suo atteggiamento.',
+    'Ha presenza, ma resta misurata nel punto giusto.',
+    'Qui la linea fa già metà del lavoro.',
+    'Una presenza elegante che cambia il passo di tutto.',
+    'Ha il carattere delle cose fatte con criterio.',
+    'Tiene il look alto senza farlo mai sembrare costruito.',
+    'L’effetto è deciso, ma niente è fuori posto.',
+    'Ha slancio, pulizia e un’identità precisa.',
+    'Si impone con una facilità che non ha bisogno di rumore.',
+    'Quando la linea è giusta, il resto segue.',
+    'Sta bene perché è pensata bene. E si sente.'
+  ];
+  pools.sneakerLong = [
+    'Ha energia nelle linee e carattere nei dettagli.',
+    'Si capisce subito che non è la solita scelta facile.',
+    'Ha un taglio moderno, ma con presenza vera.',
+    'Qui il dettaglio conta più del rumore.',
+    'Ha quella pulizia che rende tutto più attuale.',
+    'Tiene il look mosso, ma molto centrato.',
+    'Non cerca di strafare. Colpisce lo stesso.',
+    'Ha una costruzione visiva che si nota subito.',
+    'Sportiva sì, ma con una presenza studiata.',
+    'Riesce a essere fresca senza sembrare improvvisata.',
+    'Il profilo è dinamico, ma la sensazione è molto precisa.',
+    'Ha il tipo di energia che alza tutto il look.',
+    'C’è ritmo nelle linee e ordine nei dettagli.',
+    'Non fa la sportiva qualunque. Lo si vede.',
+    'Ha una forza visiva molto pulita.',
+    'Tiene insieme comfort e presenza in modo serio.',
+    'Ha il passo delle cose contemporanee fatte bene.',
+    'Si nota che non è stata pensata per essere banale.',
+    'Ha grinta senza diventare pesante.',
+    'Il dettaglio tecnico qui diventa stile.'
+  ];
+  pools.cintureLong = [
     'A volte basta un dettaglio giusto per rimettere tutto in ordine.',
     'Piccola presenza, effetto molto preciso.',
     'Il genere di dettaglio che rifinisce davvero.',
-    'Quando il dettaglio è giusto, cambia tutto il resto.'
-  );
-  else if(key.includes('portafogl')) extras.push(
+    'Quando il dettaglio è giusto, cambia tutto il resto.',
+    'Ha la misura delle cose pensate bene.',
+    'Non invade il look. Lo mette a fuoco.',
+    'È quel tipo di scelta che completa senza appesantire.',
+    'Sta al suo posto, ma fa una differenza enorme.',
+    'Il tono giusto spesso passa proprio da qui.',
+    'Non sembra protagonista, ma regge l’insieme.',
+    'Rifinisce con precisione, senza mai essere banale.',
+    'Ha una presenza sottile, ma molto chiara.',
+    'Qui il dettaglio non è secondario. È decisivo.',
+    'Fa ordine nel look con una naturalezza rara.',
+    'Tiene insieme tutto con un gesto preciso.',
+    'Piccola in volume, molto forte nel risultato.',
+    'È il tipo di finitura che cambia davvero il tono finale.',
+    'Una scelta minuta solo in apparenza.',
+    'Quando c’è criterio, si vede anche nei dettagli più piccoli.',
+    'Un dettaglio così non resta sullo sfondo.'
+  ];
+  pools.portafogliLong = [
     'Compatto fuori, curato nel modo che conta.',
     'Ordine, carattere e una linea pulita.',
     'Si nota subito quando una cosa è pensata bene.',
-    'Ha il tipo di cura che si percepisce al primo sguardo.'
-  );
-  else if(key.includes('accessor')) extras.push(
+    'Ha il tipo di cura che si percepisce al primo sguardo.',
+    'Sta bene in mano e ancora meglio nell’insieme.',
+    'Tiene tutto in ordine con una presenza tutt’altro che banale.',
+    'La praticità qui ha preso una piega decisamente elegante.',
+    'Ha una pulizia che fa subito livello alto.',
+    'Ogni dettaglio sembra messo dove deve stare.',
+    'È essenziale, ma non anonimo nemmeno per un secondo.',
+    'Compatto sì, ma con una presenza molto precisa.',
+    'Il profilo è ordinato, l’effetto molto più forte.',
+    'Ha quel tipo di precisione che si apprezza subito.',
+    'Non riempie spazio. Lo organizza con stile.',
+    'La differenza qui sta nella cura, non nel rumore.',
+    'Si sente costruito con testa, non per caso.',
+    'Quando una forma è giusta, tutto il resto torna.',
+    'Tiene insieme praticità e carattere senza fatica.',
+    'Ha una compostezza che colpisce.',
+    'Si nota che non è stato pensato per essere qualsiasi.'
+  ];
+  pools.accessoriLong = [
     'È il dettaglio a spostare davvero il risultato finale.',
     'Piccolo, ma con una presenza molto precisa.',
     'Ha il tocco giusto per farsi ricordare.',
-    'Non invade il look. Lo completa nel modo giusto.'
-  );
-  return uniquePostLines([...extras, ...generic]);
+    'Non invade il look. Lo completa nel modo giusto.',
+    'I dettagli giusti hanno sempre un peso diverso.',
+    'C’è più carattere qui che in tanti pezzi molto più vistosi.',
+    'È una scelta discreta solo in apparenza.',
+    'Rifinisce senza interrompere l’equilibrio.',
+    'Sa stare al suo posto e farsi notare lo stesso.',
+    'Il tipo di dettaglio che lascia il segno senza rumore.',
+    'Ha la misura perfetta del dettaglio riuscito.',
+    'Non serve tanto volume quando c’è questa precisione.',
+    'A volte basta questo per cambiare davvero il tono finale.',
+    'Dettaglio minuto, effetto molto più grande.',
+    'Ha una presenza sottile, ma molto riconoscibile.',
+    'Quando il dettaglio è curato, lo percepisci subito.',
+    'Mette un punto fermo al look con grande naturalezza.',
+    'È il genere di dettaglio che alza il livello senza sforzo.',
+    'Piccolo non vuol dire secondario. Qui si vede.',
+    'La differenza finale, spesso, parte proprio da qui.'
+  ];
+  pools.traits = {
+    nero: [
+      'Il nero qui non riempie. Definisce.',
+      'Quando il nero è fatto bene, il carattere esce da solo.',
+      'Ha la profondità giusta per farsi ricordare.',
+      'Pulito, netto, decisamente presente.',
+      'Il nero tiene tutto in asse. Qui lo fa benissimo.',
+      'Ha quel rigore che rende tutto più forte.'
+    ],
+    bianco: [
+      'Il chiaro qui non alleggerisce soltanto. Illumina.',
+      'Ha una luminosità molto precisa, niente di fragile.',
+      'Pulito, fresco, ma con carattere.',
+      'Il bianco qui è una scelta di presenza, non di timidezza.',
+      'Tiene il look aperto e molto deciso.',
+      'Chiaro fuori, forte nell’effetto.'
+    ],
+    beige: [
+      'Toni chiari, presenza altissima.',
+      'Ha una delicatezza fatta bene, non addomesticata.',
+      'Il beige qui sa di equilibrio alto.',
+      'Pulita, luminosa, molto centrata.',
+      'Ha il tono morbido delle cose riuscite bene.',
+      'Niente eccessi, solo armonia fatta bene.'
+    ],
+    cuoio: [
+      'I toni cuoio qui hanno una profondità che conta.',
+      'C’è calore nel colore e rigore nel risultato.',
+      'Quel tono giusto che dà subito sostanza.',
+      'Sa di materia, carattere e buon gusto.',
+      'Il cuoio quando funziona bene ha un altro passo.',
+      'Tonalità piene, effetto molto solido.'
+    ],
+    tacco: [
+      'Qui lo slancio ha una misura perfetta.',
+      'Ha altezza, ma soprattutto presenza.',
+      'La linea si allunga e il look cambia subito tono.',
+      'Il tacco qui non appesantisce. Rafforza.',
+      'C’è slancio, ma con un equilibrio molto chiaro.',
+      'Il dettaglio verticale fa tutta la differenza.'
+    ],
+    oversize: [
+      'Il volume qui è costruito bene, non messo a caso.',
+      'Più presenza, zero pesantezza.',
+      'L’oversize funziona davvero solo quando è pensato così.',
+      'Ha corpo, ma resta pulita.',
+      'La dimensione si sente. Il peso visivo no.',
+      'Grande sì, ma con un equilibrio notevole.'
+    ],
+    compatto: [
+      'Compatto nelle misure, preciso nell’effetto.',
+      'Piccolo fuori, molto centrato nel risultato.',
+      'Ha il fascino delle cose essenziali fatte bene.',
+      'Ridotto nel volume, pieno di carattere.',
+      'La misura è contenuta. La presenza no.',
+      'Tutto il necessario, niente di superfluo.'
+    ],
+    capiente: [
+      'Spazio pieno, linea ancora più forte.',
+      'Capiente sì, ma con una presenza tenuta benissimo.',
+      'Quando il volume è fatto bene, diventa stile.',
+      'Tiene tanto, ma visivamente resta molto pulita.',
+      'Qui la praticità entra con gran classe.',
+      'Generosa nelle dimensioni, precisa nell’effetto.'
+    ],
+    vitello: [
+      'La pelle di vitello qui alza subito il livello.',
+      'C’è una qualità di materia che si percepisce subito.',
+      'La base giusta si vede già dalla materia.',
+      'Quando la pelle parla bene, il resto la segue.',
+      'Ha una materia che dà sostanza al colpo d’occhio.',
+      'La qualità qui si sente prima ancora di toccarla.'
+    ],
+    impressa: [
+      'La superficie qui aggiunge carattere senza appesantire.',
+      'La texture si nota, ma resta molto elegante.',
+      'Ha un lavoro di superficie che dà subito tono.',
+      'Dettaglio materico preciso, effetto molto pulito.',
+      'La grana qui fa la differenza nel modo giusto.',
+      'C’è texture, ma con una disciplina visiva rara.'
+    ],
+    classico: [
+      'Ha il fascino delle cose che non stancano mai.',
+      'Un classico, ma con nerbo vero.',
+      'Non passa di moda quello che nasce già centrato.',
+      'La linea classica qui è tutt’altro che prevedibile.',
+      'Tradizione pulita, presenza contemporanea.',
+      'Certe linee durano perché funzionano davvero.'
+    ]
+  };
+  return pools;
+}
+function facebookGroupOpenings(a){
+  const pools = postPhrasePools('fb');
+  const flags = postTraitFlags(a);
+  const key = categoryKey(a?.categoria||'');
+  let list = [...pools.commonLong];
+  if(key.includes('sneaker')) list = [...pools.sneakerLong, ...list];
+  else if(key.includes('scarp')) list = [...pools.scarpeLong, ...list];
+  else if(key.includes('bors')) list = [...pools.borseLong, ...list];
+  else if(key.includes('cintur')) list = [...pools.cintureLong, ...list];
+  else if(key.includes('portafogl')) list = [...pools.portafogliLong, ...list];
+  else if(key.includes('accessor')) list = [...pools.accessoriLong, ...list];
+  Object.keys(flags).forEach(k=>{ if(flags[k] && pools.traits[k]) list = [...pools.traits[k], ...list]; });
+  return uniquePostLines(list);
+}
+function instagramCharacterPhrases(a){
+  const pools = postPhrasePools('ig');
+  const flags = postTraitFlags(a);
+  const key = categoryKey(a?.categoria||'');
+  let list = [...pools.commonShort, ...pools.commonLong.map(x=> x.replace(/[.!?]+$/,'') + '.').slice(0,40)];
+  if(key.includes('sneaker')) list = [
+    'Energia pulita.', 'Non è la solita scelta facile.', 'Grinta fatta bene.', 'Profilo forte.', 'Dettagli che spingono il look.',
+    'Sportiva, ma con testa.', 'Ha ritmo e presenza.', 'Si nota senza sforzo.', ...pools.sneakerLong.map(x=>x.replace(/[.!?]+$/,'')) , ...list
+  ];
+  else if(key.includes('scarp')) list = [
+    'Slancio, ma con misura.', 'Ha il passo giusto.', 'Eleganza che si sente.', 'Profilo che cambia tutto.', 'Linea netta.',
+    'Presenza molto chiara.', ...pools.scarpeLong.map(x=>x.replace(/[.!?]+$/,'')), ...list
+  ];
+  else if(key.includes('bors')) list = [
+    'Presenza piena.', 'Sta bene ovunque.', 'Linea che resta.', 'Carattere senza peso.', 'Equilibrio forte.',
+    'Dettaglio che firma il look.', ...pools.borseLong.map(x=>x.replace(/[.!?]+$/,'')), ...list
+  ];
+  else if(key.includes('cintur')) list = [
+    'Il dettaglio fa tutto.', 'Piccola presenza, grande effetto.', 'Rifinisce benissimo.', 'Qui il punto è il dettaglio.',
+    ...pools.cintureLong.map(x=>x.replace(/[.!?]+$/,'')), ...list
+  ];
+  else if(key.includes('portafogl')) list = [
+    'Compatto, ma con carattere.', 'Ordine fatto bene.', 'Pulito e centrato.', 'Dettaglio curato.',
+    ...pools.portafogliLong.map(x=>x.replace(/[.!?]+$/,'')), ...list
+  ];
+  else if(key.includes('accessor')) list = [
+    'Piccolo, ma si sente.', 'Dettaglio che conta.', 'Il tocco giusto.', 'Presenza sottile.',
+    ...pools.accessoriLong.map(x=>x.replace(/[.!?]+$/,'')), ...list
+  ];
+  Object.keys(flags).forEach(k=>{ if(flags[k] && pools.traits[k]) list = [...pools.traits[k].map(x=>x.replace(/[.!?]+$/,'')), ...list]; });
+  return uniquePostLines(list);
 }
 function buildPostFacebook(a){
   if(!a?.codice) return '';
@@ -2431,10 +2762,7 @@ function buildPostFacebook(a){
     'Se ti interessa, privato 📩'
   ]) || 'Per info scrivimi in privato 📩';
   const lines=[...promoPostIntroLines(a)];
-  if(intro){
-    if(lines.length) lines.push('');
-    lines.push(intro,'');
-  }
+  if(lines.length) lines.push('');
   if(modelLine) lines.push(modelLine);
   const seen = new Set();
   const pushUnique = (value)=>{
@@ -2450,6 +2778,7 @@ function buildPostFacebook(a){
   if(misura) lines.push(`Mis. ${misura}`);
   if(colore) lines.push(`Colore: ${colore}`);
   lines.push(`cod. ${a.codice}`);
+  if(intro) lines.push('', intro);
   if(closer) lines.push('', closer);
   return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
@@ -2457,29 +2786,23 @@ function buildPostFacebook(a){
 function buildPostInstagram(a){
   if(!a?.codice) return '';
   const lines=[...promoPostIntroLines(a)];
+  const modelLine = postNameWithQuality(a,'ig') || [postPrimaryName(a,'ig'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
   if(lines.length) lines.push('');
-  lines.push(buildPostHeadline(a,'ig'),'');
-  lines.push(pickRandom([`✔️ Cod. ${a.codice}`, `Cod. ${a.codice}`]) || `Cod. ${a.codice}`);
-  lines.push('');
-  const mids=[
-    'Disponibile ✨',
-    'Disponibile 🖤',
-    'Dettagli che fanno la differenza ✨',
-    'Presenza forte, linee pulite 🖤',
-    'Dal vivo rende ancora meglio ✨',
-    'Ha carattere. Punto 🖤'
-  ];
+  if(modelLine) lines.push(modelLine);
+  lines.push(`Cod. ${a.codice}`);
+  const phrase = pickRandom(instagramCharacterPhrases(a)) || 'Ha presenza. Punto.';
   const closers=[
     'DM 📩',
     'Scrivimi in DM 📩',
     'Info in DM 📩',
     'Se ti interessa, DM 📩',
-    'Dettagli in DM 📩'
+    'Dettagli in DM 📩',
+    'Disponibile. DM 📩',
+    'Disponibile ✨ DM 📩'
   ];
-  const first=pickRandom(mids);
-  const second=pickRandom(closers);
-  if(first) lines.push(first);
-  if(second) lines.push(second);
+  if(phrase) lines.push('', phrase);
+  const closer = pickRandom(closers) || 'DM 📩';
+  if(closer) lines.push('', closer);
   return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
 
