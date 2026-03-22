@@ -171,7 +171,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v10_1-cat4">
+  <meta name="vg-version" content="v10_2-fbgroup">
 </head>
 <body>
 <div class="top">
@@ -439,6 +439,7 @@ window.addEventListener('error',e=>{
   <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
+    <button class="btn smallish" type="button" data-action="shareArtPhotos">Condividi foto</button>
     <button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button>
     <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
@@ -1374,74 +1375,70 @@ async function tryNativeShareArticleLinks(pics, baseName){
     return false;
   }
 }
-async function downloadCurrentArticlePhotos(){
+async function getCurrentArticlePhotoContext(){
   const db=loadDB();
   const art=db.articoli.find(x=>x.id===currentArtId);
-  if(!art){ toast('Articolo non trovato'); return; }
+  if(!art){ toast('Articolo non trovato'); return null; }
   const pics=await getArticleCloudSyncSources(art);
-  if(!pics.length){ toast('Nessuna foto da scaricare'); return; }
+  if(!pics.length){ toast('Nessuna foto disponibile'); return null; }
   const baseName=(art.codice||art.brand||art.modello||'articolo').toString().trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'articolo';
   const cacheKey=`${art.id||''}::${pics.join('|')}`;
+  return { art, pics, baseName, cacheKey };
+}
+async function ensureCurrentArticlePhotoFiles(ctx){
+  if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx.cacheKey && Array.isArray(__articlePhotoShareCache.files) && __articlePhotoShareCache.files.length){
+    return __articlePhotoShareCache.files;
+  }
+  toast(`Preparo ${ctx.pics.length} foto...`);
+  const files=await buildArticlePhotoFiles(ctx.art, ctx.pics, ctx.baseName);
+  if(files.length){
+    __articlePhotoShareCache = { key: ctx.cacheKey, files, at: Date.now() };
+  }
+  return files;
+}
+async function shareCurrentArticlePhotos(){
+  const ctx=await getCurrentArticlePhotoContext();
+  if(!ctx) return;
 
-  if(__articlePhotoShareCache && __articlePhotoShareCache.key===cacheKey && Array.isArray(__articlePhotoShareCache.files) && __articlePhotoShareCache.files.length){
+  const files=await ensureCurrentArticlePhotoFiles(ctx);
+  if(files.length){
     try{
-      const shared = await tryNativeShareArticleFiles(__articlePhotoShareCache.files, baseName);
+      const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
       if(shared){
         toast(shared==='single'
           ? 'Condivisione aperta. Il browser supporta una foto per volta.'
-          : `Seleziona Galleria, Foto o File per salvare ${__articlePhotoShareCache.files.length} foto.`);
+          : `Condivisione aperta per ${files.length} foto.`);
         return;
       }
-      const sharedLinks = await tryNativeShareArticleLinks(pics, baseName);
-      if(sharedLinks===true){
-        toast('Condivisione aperta. Il browser sta inviando i link delle foto.');
-        return;
-      }
-      if(sharedLinks==='abort') return;
     }catch(err){
       if(err && err.name==='AbortError') return;
-      console.warn('Condivisione nativa foto da cache fallita', err);
+      console.warn('Condivisione nativa foto fallita', err);
+      const activationErr = /activation|user gesture|notallowed/i.test(String(err && (err.message||err.name)||''));
+      if(activationErr){
+        toast('Foto pronte. Premi di nuovo “Condividi foto” per aprire la condivisione.');
+        return;
+      }
     }
   }
 
-  toast(`Preparo ${pics.length} foto...`);
-  const files=await buildArticlePhotoFiles(art, pics, baseName);
-  if(!files.length){
-    const sharedLinks = await tryNativeShareArticleLinks(pics, baseName);
-    if(sharedLinks===true){
-      toast('Condivisione aperta. Il browser sta inviando i link delle foto.');
-      return;
-    }
-    if(sharedLinks==='abort') return;
-    toast('Condivisione foto fallita');
-    return;
-  }
-  __articlePhotoShareCache = { key: cacheKey, files, at: Date.now() };
-
-  try{
-    const shared = await tryNativeShareArticleFiles(files, baseName);
-    if(shared){
-      toast(shared==='single'
-        ? 'Condivisione aperta. Il browser supporta una foto per volta.'
-        : `Seleziona Galleria, Foto o File per salvare ${files.length} foto.`);
-      return;
-    }
-  }catch(err){
-    if(err && err.name==='AbortError') return;
-    console.warn('Condivisione nativa foto fallita', err);
-    const activationErr = /activation|user gesture|notallowed/i.test(String(err && (err.message||err.name)||''));
-    if(activationErr){
-      toast('Foto pronte. Premi di nuovo “Scarica foto” per aprire la condivisione.');
-      return;
-    }
-  }
-
-  const sharedLinks = await tryNativeShareArticleLinks(pics, baseName);
+  const sharedLinks = await tryNativeShareArticleLinks(ctx.pics, ctx.baseName);
   if(sharedLinks===true){
     toast('Condivisione aperta. Il browser sta inviando i link delle foto.');
     return;
   }
   if(sharedLinks==='abort') return;
+
+  toast(files.length ? 'Condivisione foto non supportata da questo browser.' : 'Condivisione foto fallita');
+}
+async function downloadCurrentArticlePhotos(){
+  const ctx=await getCurrentArticlePhotoContext();
+  if(!ctx) return;
+
+  const files=await ensureCurrentArticlePhotoFiles(ctx);
+  if(!files.length){
+    toast('Download foto fallito');
+    return;
+  }
 
   let ok=0;
   for(let i=0;i<files.length;i++){
@@ -1457,15 +1454,15 @@ async function downloadCurrentArticlePhotos(){
       a.remove();
       setTimeout(()=>URL.revokeObjectURL(url), 12000);
       ok++;
-      await new Promise(r=>setTimeout(r, 1400));
+      await new Promise(r=>setTimeout(r, 900));
     }catch(err){
       console.warn('Download foto articolo fallito', err);
     }
   }
   toast(ok===files.length
-    ? `Avviate ${ok} foto. Le trovi nei Download e poi in Galleria.`
+    ? `Scaricate ${ok} foto. Le trovi nei Download e poi in Galleria.`
     : (ok
-      ? `Avviate ${ok} foto su ${files.length}. Se il browser ne blocca qualcuna, premi di nuovo Scarica foto per condividere.`
+      ? `Scaricate ${ok} foto su ${files.length}.`
       : 'Download foto fallito'));
 }
 async function uploadArticlePhotoToSupabase(file, codice, slot){
@@ -2275,14 +2272,92 @@ function promoPostIntroLines(a){
   }
   return lines;
 }
+function facebookGroupOpenings(a){
+  const generic=[
+    'Non segue il look. Lo definisce.',
+    'Ha presenza. E si vede subito.',
+    'Il dettaglio giusto cambia tutto.',
+    'Eleganza netta, senza rumore.',
+    'Non chiede attenzione. Se la prende.',
+    'Più la guardi, più capisci perché funziona.',
+    'Pulita nelle linee, forte nell’effetto.',
+    'Quando il gusto si vede, non serve aggiungere altro.',
+    'Fa scena senza alzare la voce.',
+    'Una presenza discreta, ma impossibile da ignorare.',
+    'Ha quel dettaglio che cambia il risultato.',
+    'Si nota nel modo giusto.',
+    'Tiene la scena senza forzare niente.',
+    'Niente di eccessivo. Ed è proprio questo il bello.',
+    'C’è differenza tra bello e memorabile.',
+    'Ha più personalità di tanta roba che si vede in giro.',
+    'Il fascino delle linee fatte bene.',
+    'Essenziale solo in apparenza.',
+    'Non ha bisogno di presentazioni inutili.',
+    'Si riconosce subito quando una cosa è fatta con criterio.',
+    'Qui il carattere si vede senza bisogno di spiegazioni.',
+    'Ha quella presenza che resta in testa.',
+    'Pulita, decisa, riuscita bene.',
+    'Certe presenze si capiscono al primo sguardo.'
+  ];
+  const key=categoryKey(a?.categoria||'');
+  const extras=[];
+  if(key.includes('bors')) extras.push(
+    'Sta bene nel look, ma si nota anche da sola.',
+    'Ha il tipo di presenza che completa tutto senza pesare.',
+    'C’è equilibrio, carattere e una linea fatta bene.',
+    'Più la guardi, più ti accorgi di quanto sia centrata.'
+  );
+  else if(key.includes('sneaker')) extras.push(
+    'Ha energia nelle linee e carattere nei dettagli.',
+    'Si capisce subito che non è la solita scelta facile.',
+    'Ha un taglio moderno, ma con presenza vera.',
+    'Qui il dettaglio conta più del rumore.'
+  );
+  else if(key.includes('scarp')) extras.push(
+    'Ha una linea che cambia tono a tutto il look.',
+    'Certe presenze si sentono ancora prima di provarle.',
+    'Ha slancio, misura e quel punto giusto di carattere.',
+    'Non forza nulla. Funziona e basta.'
+  );
+  else if(key.includes('cintur')) extras.push(
+    'A volte basta un dettaglio giusto per rimettere tutto in ordine.',
+    'Piccola presenza, effetto molto preciso.',
+    'Il genere di dettaglio che rifinisce davvero.',
+    'Quando il dettaglio è giusto, cambia tutto il resto.'
+  );
+  else if(key.includes('portafogl')) extras.push(
+    'Compatto fuori, curato nel modo che conta.',
+    'Ordine, carattere e una linea pulita.',
+    'Si nota subito quando una cosa è pensata bene.',
+    'Ha il tipo di cura che si percepisce al primo sguardo.'
+  );
+  else if(key.includes('accessor')) extras.push(
+    'È il dettaglio a spostare davvero il risultato finale.',
+    'Piccolo, ma con una presenza molto precisa.',
+    'Ha il tocco giusto per farsi ricordare.',
+    'Non invade il look. Lo completa nel modo giusto.'
+  );
+  return uniquePostLines([...extras, ...generic]);
+}
 function buildPostFacebook(a){
   if(!a?.codice) return '';
-  const modelLine = postNameWithQuality(a,'fb') || postPrimaryName(a,'fb') || categoryLabelForPost(a);
+  const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
   const variante = safePostDetailValue(a?.variante||'', a);
   const materiale = safePostDetailValue(a?.materiale||'', a);
   const misura = safePostDetailValue(postSizeValue(a), a);
   const colore = safePostDetailValue(a?.colore||'', a);
+  const intro = pickRandom(facebookGroupOpenings(a)) || 'Ha presenza. E si vede subito.';
+  const closer = pickRandom([
+    'Per info scrivimi in privato 📩',
+    'Info in privato 📩',
+    'Scrivimi in privato 📩',
+    'Se ti interessa, privato 📩'
+  ]) || 'Per info scrivimi in privato 📩';
   const lines=[...promoPostIntroLines(a)];
+  if(intro){
+    if(lines.length) lines.push('');
+    lines.push(intro,'');
+  }
   if(modelLine) lines.push(modelLine);
   const seen = new Set();
   const pushUnique = (value)=>{
@@ -2298,6 +2373,7 @@ function buildPostFacebook(a){
   if(misura) lines.push(`Mis. ${misura}`);
   if(colore) lines.push(`Colore: ${colore}`);
   lines.push(`cod. ${a.codice}`);
+  if(closer) lines.push('', closer);
   return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
 
@@ -4688,6 +4764,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='copyPostTelegramEdit') return copyTextFrom(document.getElementById('a_post'));
   if(a==='copyPostFbEdit') return copyTextFrom(document.getElementById('a_post_fb'));
   if(a==='copyPostIgEdit') return copyTextFrom(document.getElementById('a_post_ig'));
+  if(a==='shareArtPhotos') return shareCurrentArticlePhotos();
   if(a==='downloadArtPhotos') return downloadCurrentArticlePhotos();
   if(a==='openSupplierLink'){ const link=String(document.getElementById('vArtSupplierLink')?.value||'').trim(); if(!link){ toast('Nessun link fornitore'); return; } const safe=/^https?:\/\//i.test(link)?link:'https://'+link; window.open(safe,'_blank'); return; }
   if(a==='copyCliShip') return copyTextFrom(document.getElementById('c_ship'));

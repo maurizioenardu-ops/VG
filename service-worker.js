@@ -1,4 +1,4 @@
-const CACHE_NAME='vg-cache-v11_2-promo-fb-ig';
+const CACHE_NAME='vg-cache-v11_4-fb-group-style';
 const VERSION = 'v11_2';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
