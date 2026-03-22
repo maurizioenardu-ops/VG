@@ -1851,6 +1851,14 @@ function formatPostMisura(misura){
   const clean=String(misura||'').replace(/^mis\.?\s*/i,'').trim();
   return clean ? `Mis. ${clean}` : '';
 }
+function formatPostPrezzoVendita(prezzo){
+  const n=Number(prezzo);
+  if(!(n>0)) return '';
+  const txt=Number.isInteger(n)
+    ? String(n)
+    : n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
+  return `💶 ${txt}`;
+}
 function buildPost(a){
   if(!a.codice) return '';
   const brand=(a.brand||'').trim();
@@ -1879,6 +1887,8 @@ function buildPost(a){
     if(tipoMateriale) lines.push(tipoMateriale);
     if(colore) lines.push(colore);
     if(misura) lines.push(formatPostMisura(misura));
+    const prezzoVenditaPromo=formatPostPrezzoVendita(a.prezzoVendita);
+    if(prezzoVenditaPromo) lines.push(prezzoVenditaPromo);
     lines.push(`cod. ${a.codice}`);
     return uniquePostLines(lines).join('\n');
   }
@@ -1892,6 +1902,8 @@ function buildPost(a){
   if(materiale) lines.push(`🧵 ${materiale}`);
   if(colori) lines.push(colori);
   if(tracolla) lines.push(tracolla);
+  const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita);
+  if(prezzoVendita) lines.push(prezzoVendita);
   lines.push(`cod. ${a.codice}`);
   return uniquePostLines(lines).join('\n');
 }
