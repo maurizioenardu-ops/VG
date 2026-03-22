@@ -234,7 +234,7 @@ window.addEventListener('error',e=>{
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Articoli</div><button class="btn" type="button" data-action="newArt">+ Nuovo</button></div>
       <div class="grid2" style="margin-top:10px">
-        <div class="searchWrap"><input id="qArt" placeholder="Cerca per codice, brand, modello, categoria, colore, taglia, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
+        <div class="searchWrap"><input id="qArt" placeholder="Cerca per codice, brand, modello, categoria, colore, materiale, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
         <div><select id="qArtCat"><option value="">Tutte le categorie</option></select></div>
       </div>
       <div id="artBreadcrumbs" class="artBreadcrumbs" style="display:none"></div>
@@ -453,7 +453,7 @@ window.addEventListener('error',e=>{
   <div class="formBlock dati inputSoft">
     <div class="blockTitle">Dati articolo</div>
     <div class="grid2">
-      <div><div class="k">Codice articolo</div><input id="a_cod" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+      <div><div class="k">Codice articolo</div><input id="a_cod" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="a_cod_hint" class="date" style="margin-top:6px"></div></div>
       <div>
         <div class="k">Brand</div>
         <select id="a_brand">
@@ -473,7 +473,7 @@ window.addEventListener('error',e=>{
   <div class="formBlock varianti inputSoft">
     <div class="blockTitle">Varianti e dettagli</div>
     <div class="grid2">
-      <div><div class="k">Taglia</div><input id="a_taglia" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+      <div><div class="k">Materiale</div><input id="a_taglia" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Es. Pelle di vitello impressa"/></div>
       <div><div class="k">Variante</div><input id="a_variante" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
     </div>
     <div class="grid2" style="margin-top:10px">
@@ -696,6 +696,9 @@ const PHOTO_DB='vg_photos_v1';
 const PHOTO_STORE='photos';
 const PROVINCE=[ "AG","AL","AN","AO","AP","AQ","AR","AT","AV","BA","BG","BI","BL","BN","BO","BR","BS","BT","BZ","CA","CB","CE","CH","CL","CN","CO","CR","CS","CT","CZ","EN","FC","FE","FG","FI","FM","FR","GE","GO","GR","IM","IS","KR","LC","LE","LI","LO","LT","LU","MB","MC","ME","MI","MN","MO","MS","MT","NA","NO","NU","OR","PA","PC","PD","PE","PG","PI","PN","PO","PR","PT","PU","PV","PZ","RA","RC","RE","RG","RI","RM","RN","RO","SA","SI","SO","SP","SR","SS","SU","SV","TA","TE","TN","TO","TP","TR","TS","TV","UD","VA","VB","VC","VE","VI","VR","VT","VV" ];
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+const ART_DRAFT_KEY='vg_draft_art_v1';
+const CLI_DRAFT_KEY='vg_draft_cli_v1';
+const ORD_DRAFT_KEY='vg_draft_ord_v1';
 const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
 const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
 const round5=n=>Math.round(n/5)*5;
@@ -1045,7 +1048,17 @@ function loadDB(){
       if(!raw) return;
       try{ found.push({key:k, db:normalizeDBShape(JSON.parse(raw))}); }catch(_e){}
     });
-    if(!found.length) return defDB();
+    if(!found.length){
+      try{
+        const backupRaw=localStorage.getItem(KEY+'_backup_latest');
+        if(backupRaw){
+          const backupDb=normalizeDBShape(JSON.parse(backupRaw));
+          localStorage.setItem(KEY, JSON.stringify(backupDb));
+          return backupDb;
+        }
+      }catch(_e){}
+      return defDB();
+    }
 
     let merged=defDB();
     found.forEach(({db})=>{
@@ -1090,6 +1103,191 @@ function saveDB(db){
   return true;
 }
 function safeLower(v){ return String(v==null?'':v).trim().toLowerCase(); }
+function isModalVisible(id){
+  const el=document.getElementById(id);
+  return !!el && el.style.display==='flex';
+}
+function saveDraftRaw(key, payload){
+  try{ localStorage.setItem(key, JSON.stringify({...payload, _ts:Date.now()})); }catch(_e){}
+}
+function loadDraftRaw(key){
+  try{ return JSON.parse(localStorage.getItem(key)||'null'); }catch(_e){ return null; }
+}
+function clearDraftRaw(key){
+  try{ localStorage.removeItem(key); }catch(_e){}
+}
+function persistSafetySnapshot(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(raw) localStorage.setItem(KEY+'_backup_latest', raw);
+  }catch(_e){}
+}
+function collectArticleDraft(){
+  return {
+    currentArtId: currentArtId||'',
+    values:{
+      codice:document.getElementById('a_cod')?.value||'',
+      brand:getArticleBrandValue(),
+      modello:document.getElementById('a_mod')?.value||'',
+      categoria:document.getElementById('a_cat')?.value||'',
+      descrizione:document.getElementById('a_desc')?.value||'',
+      fornitore:document.getElementById('a_forn')?.value||'',
+      fornitoreLink:document.getElementById('a_forn_link')?.value||'',
+      materiale:document.getElementById('a_taglia')?.value||'',
+      variante:document.getElementById('a_variante')?.value||'',
+      colore:document.getElementById('a_colore')?.value||'',
+      misura:document.getElementById('a_mis')?.value||'',
+      costoUsd:document.getElementById('a_usd')?.value||'',
+      promoAttiva:!!document.getElementById('a_promo_on')?.checked,
+      prezzoPromo:document.getElementById('a_promo_price')?.value||'',
+      scadenzaPromo:document.getElementById('a_promo_date')?.value||'',
+      note:document.getElementById('a_note')?.value||''
+    }
+  };
+}
+function saveArticleDraft(){
+  if(!isModalVisible('mArtEdit')) return;
+  saveDraftRaw(ART_DRAFT_KEY, collectArticleDraft());
+}
+function restoreArticleDraft(targetId=''){
+  const draft=loadDraftRaw(ART_DRAFT_KEY);
+  if(!draft?.values) return false;
+  const draftId=String(draft.currentArtId||'');
+  const wanted=String(targetId||'');
+  if(wanted && draftId && wanted!==draftId) return false;
+  if(!wanted && draftId) return false;
+  const v=draft.values||{};
+  document.getElementById('a_cod').value=v.codice||'';
+  syncBrandField(v.brand||'');
+  document.getElementById('a_mod').value=v.modello||'';
+  refreshArticleCategorySelects(v.categoria||'');
+  document.getElementById('a_desc').value=v.descrizione||'';
+  updateSupplierField(v.fornitore||'');
+  document.getElementById('a_forn_link').value=v.fornitoreLink||'';
+  document.getElementById('a_taglia').value=v.materiale||'';
+  document.getElementById('a_variante').value=v.variante||'';
+  document.getElementById('a_colore').value=v.colore||'';
+  document.getElementById('a_mis').value=v.misura||'';
+  document.getElementById('a_usd').value=v.costoUsd||'';
+  document.getElementById('a_promo_on').checked=!!v.promoAttiva;
+  document.getElementById('a_promo_price').value=v.prezzoPromo||'';
+  document.getElementById('a_promo_date').value=v.scadenzaPromo||'';
+  document.getElementById('a_note').value=v.note||'';
+  renderArtAutoFields();
+  return true;
+}
+function clearArticleDraft(){ clearDraftRaw(ART_DRAFT_KEY); }
+function collectClientDraft(){
+  return {
+    currentCliId: currentCliId||'',
+    values:{
+      nome:document.getElementById('c_nome')?.value||'',
+      tel:document.getElementById('c_tel')?.value||'',
+      indirizzo:document.getElementById('c_ind')?.value||'',
+      cap:document.getElementById('c_cap')?.value||'',
+      citta:document.getElementById('c_citta')?.value||'',
+      prov:document.getElementById('c_prov')?.value||'',
+      note:document.getElementById('c_note')?.value||''
+    }
+  };
+}
+function saveClientDraft(){ if(!isModalVisible('mCliEdit')) return; saveDraftRaw(CLI_DRAFT_KEY, collectClientDraft()); }
+function restoreClientDraft(targetId=''){
+  const draft=loadDraftRaw(CLI_DRAFT_KEY);
+  if(!draft?.values) return false;
+  const draftId=String(draft.currentCliId||'');
+  const wanted=String(targetId||'');
+  if(wanted && draftId && wanted!==draftId) return false;
+  if(!wanted && draftId) return false;
+  const v=draft.values||{};
+  document.getElementById('c_nome').value=v.nome||'';
+  document.getElementById('c_tel').value=v.tel||'';
+  document.getElementById('c_ind').value=v.indirizzo||'';
+  document.getElementById('c_cap').value=v.cap||'';
+  document.getElementById('c_citta').value=v.citta||'';
+  document.getElementById('c_prov').value=v.prov||'';
+  document.getElementById('c_note').value=v.note||'';
+  refreshClientShipping();
+  return true;
+}
+function clearClientDraft(){ clearDraftRaw(CLI_DRAFT_KEY); }
+function collectOrderDraft(){
+  return {
+    currentOrdId: currentOrdId||'',
+    rows:Array.isArray(ordRows)?JSON.parse(JSON.stringify(ordRows)):[],
+    values:{
+      clienteId:document.getElementById('o_cli')?.value||'',
+      stato:document.getElementById('o_stato')?.value||'',
+      data:document.getElementById('o_data')?.value||'',
+      note:document.getElementById('o_note')?.value||'',
+      mis:document.getElementById('o_mis')?.value||'',
+      tracking:document.getElementById('o_tracking')?.value||'',
+      discount:document.getElementById('o_discount')?.value||''
+    }
+  };
+}
+function saveOrderDraft(){ if(!isModalVisible('mOrdEdit')) return; saveDraftRaw(ORD_DRAFT_KEY, collectOrderDraft()); }
+function restoreOrderDraft(targetId='', prefillArticleId=null){
+  const draft=loadDraftRaw(ORD_DRAFT_KEY);
+  if(!draft?.values) return false;
+  const draftId=String(draft.currentOrdId||'');
+  const wanted=String(targetId||'');
+  if(wanted && draftId && wanted!==draftId) return false;
+  if(!wanted && draftId) return false;
+  const db=loadDB();
+  const v=draft.values||{};
+  ordRows=Array.isArray(draft.rows)?draft.rows:[];
+  if(prefillArticleId){
+    const a=db.articoli.find(x=>x.id===prefillArticleId);
+    if(a && !ordRows.some(r=>r.articoloId===prefillArticleId)) ordRows.push({articoloId:a.id, codice:a?.codice||'', modello:a?.modello||'', prezzo:Number(currentPrice(a)||0)});
+  }
+  document.getElementById('o_cli').value=v.clienteId||'';
+  document.getElementById('o_stato').value=v.stato||'Richiesto';
+  document.getElementById('o_data').value=v.data||todayStr();
+  document.getElementById('o_note').value=v.note||'';
+  ensureOrderSizeOption(v.mis||'');
+  document.getElementById('o_mis').value=v.mis||'';
+  document.getElementById('o_tracking').value=v.tracking||'';
+  document.getElementById('o_discount').value=v.discount||'';
+  renderOrdRows();
+  updateOrderTotalsPreview();
+  updateOrderShoeSizeState();
+  return true;
+}
+function clearOrderDraft(){ clearDraftRaw(ORD_DRAFT_KEY); }
+function flushVisibleDrafts(){
+  persistSafetySnapshot();
+  saveArticleDraft();
+  saveClientDraft();
+  saveOrderDraft();
+}
+function articleCodeExists(code, excludeId=null){
+  const clean=normalizeTextKey(code||'');
+  if(!clean) return null;
+  return (loadDB().articoli||[]).find(a=>normalizeTextKey(a?.codice||'')===clean && String(a?.id||'')!==String(excludeId||'')) || null;
+}
+function updateArticleCodeStatus(){
+  const input=document.getElementById('a_cod');
+  const hint=document.getElementById('a_cod_hint');
+  if(!input || !hint) return;
+  const code=String(input.value||'').trim();
+  if(!code){
+    hint.textContent='';
+    hint.style.color='';
+    input.setCustomValidity('');
+    return;
+  }
+  const exists=articleCodeExists(code, currentArtId);
+  if(exists){
+    hint.textContent=`Codice già presente${exists.modello ? `: ${exists.modello}` : ''}`;
+    hint.style.color='#b91c1c';
+    input.setCustomValidity('Codice articolo già esistente');
+    return;
+  }
+  hint.textContent='Codice disponibile';
+  hint.style.color='#15803d';
+  input.setCustomValidity('');
+}
 
 function openPhotoDB(){
   return new Promise((res,rej)=>{
@@ -2217,8 +2415,7 @@ function postDimensionLabel(a){
 }
 function postSizeValue(a){
   const misura=compactPostValue(a?.misura||'');
-  const taglia=compactPostValue(a?.taglia||'');
-  return misura || taglia || '';
+  return misura || '';
 }
 
 function safePostDetailValue(value, a){
@@ -2352,7 +2549,7 @@ function promoPostIntroLines(a){
 function postTraitFlags(a){
   const src = [
     a?.categoria||'', a?.modello||'', a?.descrizione||'', a?.variante||'', a?.materiale||'',
-    a?.colore||'', a?.misura||'', a?.taglia||''
+    a?.colore||'', a?.misura||'', a?.materiale||a?.taglia||''
   ].join(' | ').toLowerCase();
   const has = (re)=> re.test(src);
   return {
@@ -2817,7 +3014,7 @@ function buildPostTelegram(a){
   const colori=normalizePostLine(a.colori||'', brand);
   const tracolla=normalizePostLine(a.tracolla||'', brand);
   const misura=normalizePostLine(a.misura||'', brand);
-  const taglia=normalizePostLine(a.taglia||'', brand);
+  const materialeCompat=normalizePostLine(a.materiale||a.taglia||'', brand);
   const qemoji=emojiQualityForPost(a);
   const lines=[];
   if(a.promoAttiva){
@@ -2827,7 +3024,7 @@ function buildPostTelegram(a){
       const [yyyy,mm,dd]=scadenzaRaw.split('-');
       scadenzaLabel=`${dd}/${mm}/${yyyy}`;
     }
-    const tipoMateriale=materiale || variante;
+    const tipoMateriale=materiale || materialeCompat || variante;
     lines.push('⭕️ PROMOZIONE ⭕️');
     if(scadenzaLabel) lines.push(`(fino al ${scadenzaLabel})`);
     if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
@@ -2841,12 +3038,11 @@ function buildPostTelegram(a){
   }
   if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
   if(descrizione) lines.push(descrizione);
-  if(taglia) lines.push(`Taglia ${taglia}`);
   if(variante) lines.push(variante);
   if(colore) lines.push(colore);
   if(misura) lines.push(formatPostMisura(misura));
   if(a.scatola) lines.push('Con scatola 🎁');
-  if(materiale) lines.push(`🧵 ${materiale}`);
+  if(materiale || materialeCompat) lines.push(`🧵 ${materiale || materialeCompat}`);
   if(colori) lines.push(colori);
   if(tracolla) lines.push(tracolla);
   const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita);
@@ -2862,6 +3058,7 @@ function buildCloudArticleMeta(art){
     descrizione: art?.descrizione||'',
     fornitore: art?.fornitore||'',
     fornitoreLink: art?.fornitoreLink||'',
+    materiale: art?.materiale||art?.taglia||'',
     taglia: art?.taglia||'',
     variante: art?.variante||'',
     colore: art?.colore||'',
@@ -3683,7 +3880,7 @@ function renderArt(){
   const items=db.articoli.filter(a=>{
     const catLabel=displayCategoryValue(a.categoria);
     const brandLabel=displayBrandValue(a.brand);
-    const hay=((a.codice||'')+' '+brandLabel+' '+(a.modello||'')+' '+catLabel+' '+(a.descrizione||'')+' '+(a.colore||'')+' '+(a.taglia||'')+' '+(a.variante||'')).toLowerCase();
+    const hay=((a.codice||'')+' '+brandLabel+' '+(a.modello||'')+' '+catLabel+' '+(a.descrizione||'')+' '+(a.colore||'')+' '+(a.materiale||a.taglia||'')+' '+(a.variante||'')).toLowerCase();
     const okText=!q || hay.includes(q);
     const okCat=!catFilter || displayCategoryValue(a.categoria)===displayCategoryValue(catFilter);
     return okText && okCat;
@@ -4057,6 +4254,8 @@ async function openArtEdit(id){
     document.getElementById('a_photo').value='';
     currentArtExistingPics=[];
     renderArtPhotoPrev([]);
+    restoreArticleDraft('');
+    updateArticleCodeStatus();
     show('mArtEdit');
     scheduleModalTextareaFit('mArtEdit');
     return;
@@ -4064,7 +4263,7 @@ async function openArtEdit(id){
   set('a_cod', a?.codice); syncBrandField(a?.brand); set('a_mod', a?.modello);
   refreshArticleCategorySelects(a?.categoria||'');
   set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
-  set('a_taglia', a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore);
+  set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore);
   set('a_mis', a?.misura); set('a_usd', a?.costoUsd||'');
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
   set('a_promo_date', a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||'');
@@ -4079,6 +4278,8 @@ async function openArtEdit(id){
   renderArtAutoFields();
   currentArtExistingPics=await getArticlePics(a);
   renderArtPhotoPrev(currentArtExistingPics);
+  restoreArticleDraft(a?.id||'');
+  updateArticleCodeStatus();
   show('mArtEdit');
   scheduleModalTextareaFit('mArtEdit');
 }
@@ -4202,14 +4403,17 @@ function renderArtAutoFields(){
       scadenzaPromo:document.getElementById('a_promo_date').value.trim(),
       prezzoVendita:0,
       misura:document.getElementById('a_mis').value.trim(),
-      taglia:document.getElementById('a_taglia').value.trim(),
+      materiale:document.getElementById('a_taglia').value.trim(),
+      taglia:'',
       variante:document.getElementById('a_variante').value.trim(),
       colore:document.getElementById('a_colore').value.trim(),
       descrizione:document.getElementById('a_desc').value.trim(),
       fornitore:document.getElementById('a_forn').value.trim(),
-      materiale:'', colori:'', tracolla:'', scatola:false
+      colori:'', tracolla:'', scatola:false
     };
     setArticleSocialPostsAuto(draft);
+    updateArticleCodeStatus();
+    saveArticleDraft();
     return;
   }
 
@@ -4234,14 +4438,17 @@ function renderArtAutoFields(){
     promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate,
     prezzoVendita:r.sell,
     misura:document.getElementById('a_mis').value.trim(),
-    taglia:document.getElementById('a_taglia').value.trim(),
+    materiale:document.getElementById('a_taglia').value.trim(),
+    taglia:'',
     variante:document.getElementById('a_variante').value.trim(),
     colore:document.getElementById('a_colore').value.trim(),
     descrizione:document.getElementById('a_desc').value.trim(),
     fornitore:document.getElementById('a_forn').value.trim(),
-    materiale:'', colori:'', tracolla:'', scatola:false
+    colori:'', tracolla:'', scatola:false
   };
   setArticleSocialPostsAuto(draft);
+  updateArticleCodeStatus();
+  saveArticleDraft();
 }
 
 async function fileToDataURL(file){
@@ -4321,7 +4528,7 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_desc').value=clone.descrizione||'';
   updateSupplierField(clone.fornitore||'');
   document.getElementById('a_forn_link').value=clone.fornitoreLink||'';
-  document.getElementById('a_taglia').value=clone.taglia||'';
+  document.getElementById('a_taglia').value=clone.materiale||clone.taglia||'';
   document.getElementById('a_variante').value=clone.variante||'';
   document.getElementById('a_colore').value=clone.colore||'';
   document.getElementById('a_mis').value=clone.misura||'';
@@ -4340,6 +4547,7 @@ async function duplicateCurrentArticle(sourceId=null){
   currentArtExistingPics=await getArticlePics(a);
   renderArtPhotoPrev(currentArtExistingPics);
   renderArtAutoFields();
+  updateArticleCodeStatus();
   show('mArtEdit');
   scheduleModalTextareaFit('mArtEdit');
   toast('Articolo duplicato: cambia il codice e salva');
@@ -4375,7 +4583,8 @@ async function saveArt(){
       descrizione: document.getElementById('a_desc').value.trim(),
       fornitore: document.getElementById('a_forn').value.trim(),
       fornitoreLink: document.getElementById('a_forn_link').value.trim(),
-      taglia: document.getElementById('a_taglia').value.trim(),
+      materiale: document.getElementById('a_taglia').value.trim(),
+      taglia: '',
       variante: document.getElementById('a_variante').value.trim(),
       colore: document.getElementById('a_colore').value.trim(),
       misura: document.getElementById('a_mis').value.trim(),
@@ -4437,6 +4646,7 @@ async function saveArt(){
     }
     currentArtDuplicateData=null;
     currentArtPhotosCleared=false;
+    clearArticleDraft();
     hide('mArtEdit');
     if(photoUploadWarning) toast('Articolo salvato. '+photoUploadWarning);
     else toast('Articolo salvato');
@@ -4469,6 +4679,7 @@ async function deleteArt(){
     db.articoli=db.articoli.filter(a=>a.id!==artId);
     currentArtId=null;
     if(!saveDB(db)) return;
+    clearArticleDraft();
     hide('mArtEdit');
     hide('mArtView');
     renderAll();
@@ -4622,6 +4833,7 @@ function openCliEdit(id){
   document.getElementById('c_citta').value=c?.citta||'';
   document.getElementById('c_prov').value=c?.provincia||'';
   document.getElementById('c_note').value=c?.note||'';
+  restoreClientDraft(c?.id||'');
   refreshClientShipping();
   show('mCliEdit');
 }
@@ -4664,6 +4876,7 @@ async function saveCli(){
   const i=db.clienti.findIndex(x=>x.id===obj.id);
   if(i>=0) db.clienti[i]=obj; else db.clienti.unshift(obj);
   if(!saveDB(db)) return;
+  clearClientDraft();
   hide('mCliEdit');
   toast('Cliente salvato');
   if(cloudEnabled()){
@@ -4687,6 +4900,7 @@ async function deleteCli(){
   db.clienti=db.clienti.filter(c=>c.id!==currentCliId);
   if(!saveDB(db)) return;
   if(old && cloudEnabled()) await cloudDeleteOne('cli', old);
+  clearClientDraft();
   hide('mCliEdit');
   toast(cloudEnabled() ? 'Cliente eliminato anche dal cloud' : 'Cliente eliminato');
 }
@@ -4760,6 +4974,7 @@ async function openOrdEdit(id, prefillArticleId=null){
   updateOrderTotalsPreview();
   updateOrderShoeSizeState();
   await refreshOrdPhotoPreviewFromState();
+  restoreOrderDraft(o?.id||'', prefillArticleId);
   show('mOrdEdit');
 }
 function todayStr(){
@@ -4780,7 +4995,7 @@ function fillArtSelect(db, filter=''){
   const prev=Array.from(sel.selectedOptions||[]).map(o=>o.value);
   const q=filter.toLowerCase();
   const items=db.articoli.filter(a=>{
-    const hay=((a.codice||'')+' '+(a.brand||'')+' '+(a.modello||'')+' '+(a.categoria||'')+' '+(a.descrizione||'')+' '+(a.colore||'')+' '+(a.taglia||'')+' '+(a.variante||'')).toLowerCase();
+    const hay=((a.codice||'')+' '+(a.brand||'')+' '+(a.modello||'')+' '+(a.categoria||'')+' '+(a.descrizione||'')+' '+(a.colore||'')+' '+(a.materiale||a.taglia||'')+' '+(a.variante||'')).toLowerCase();
     return !q || hay.includes(q);
   });
   sel.innerHTML=items.map(a=>`<option value="${a.id}">${esc(a.brand||'')} ${esc(a.modello||'')} • ${esc(a.codice||'')}</option>`).join('');
@@ -4814,6 +5029,7 @@ function addRow(){
   fillArtSelect(db);
   renderOrdRows();
   updateOrderShoeSizeState();
+  saveOrderDraft();
 }
 function getTrackingValue(){
   const editVal=String(document.getElementById('o_tracking')?.value||'').trim();
@@ -4911,6 +5127,7 @@ async function saveOrd(){
   const i=db.ordini.findIndex(x=>x.id===obj.id);
   if(i>=0) db.ordini[i]=obj; else db.ordini.unshift(obj);
   if(!saveDB(db)) return;
+  clearOrderDraft();
   hide('mOrdEdit');
   toast(manualCount || articlePics.length ? 'Ordine salvato con foto' : 'Ordine salvato');
   if(cloudEnabled()){
@@ -4936,6 +5153,7 @@ async function deleteOrd(){
   db.ordini=db.ordini.filter(o=>o.id!==currentOrdId);
   if(!saveDB(db)) return;
   if(old && cloudEnabled()) await cloudDeleteOne('ord', old);
+  clearOrderDraft();
   hide('mOrdEdit');
   toast(cloudEnabled() ? 'Ordine eliminato anche dal cloud' : 'Ordine eliminato');
 }
@@ -5185,15 +5403,15 @@ document.addEventListener('click',(ev)=>{
   if(a==='duplicateArt') return duplicateCurrentArticle(el.dataset.id || null);
   if(a==='editFromView'){ hide('mArtView', true); return openArtEdit(currentArtId); }
   if(a==='closeView') return hide('mArtView');
-  if(a==='closeEdit') return hide('mArtEdit');
-  if(a==='clearArtPhotos'){ currentArtExistingPics=[]; currentArtPhotosCleared=true; document.getElementById('a_photo').value=''; renderArtPhotoPrev([]); toast('Foto attuali rimosse'); return; }
+  if(a==='closeEdit'){ saveArticleDraft(); return hide('mArtEdit'); }
+  if(a==='clearArtPhotos'){ currentArtExistingPics=[]; currentArtPhotosCleared=true; document.getElementById('a_photo').value=''; renderArtPhotoPrev([]); saveArticleDraft(); toast('Foto attuali rimosse'); return; }
   if(a==='saveArt') return saveArt();
   if(a==='deleteArt') return deleteArt();
   if(a==='saveCli') return saveCli();
-  if(a==='closeCli') return hide('mCliEdit');
+  if(a==='closeCli'){ saveClientDraft(); return hide('mCliEdit'); }
   if(a==='deleteCli') return deleteCli();
   if(a==='saveOrd') return saveOrd();
-  if(a==='closeOrd') return hide('mOrdEdit');
+  if(a==='closeOrd'){ saveOrderDraft(); return hide('mOrdEdit'); }
   if(a==='deleteOrd') return deleteOrd();
   if(a==='addRow') return addRow();
   if(a==='track17') return openTrack17();
@@ -5205,13 +5423,13 @@ document.addEventListener('click',(ev)=>{
   if(a==='closeCloudLogin') return hide('mCloudLogin');
   if(a==='confirmYes') return closeConfirm(true);
   if(a==='confirmNo') return closeConfirm(false);
-  if(a==='delRow'){ const i=Number(el.dataset.i); ordRows.splice(i,1); renderOrdRows(); updateOrderShoeSizeState(); return; }
+  if(a==='delRow'){ const i=Number(el.dataset.i); ordRows.splice(i,1); renderOrdRows(); updateOrderShoeSizeState(); saveOrderDraft(); return; }
 });
 
 bindSearchSuggest('qArt','qArtSuggest','art', ()=>renderArt());
 document.getElementById('qArtCat')?.addEventListener('change', renderArt);
 bindSearchSuggest('qCli','qCliSuggest','cli', ()=>renderCli());
-['c_nome','c_tel','c_ind','c_cap','c_citta','c_prov'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', refreshClientShipping); if(el) el.addEventListener('change', refreshClientShipping); });
+['c_nome','c_tel','c_ind','c_cap','c_citta','c_prov','c_note'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', ()=>{ refreshClientShipping(); saveClientDraft(); }); if(el) el.addEventListener('change', ()=>{ refreshClientShipping(); saveClientDraft(); }); });
 bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
@@ -5221,6 +5439,7 @@ document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.k
   const evt=(id==='a_promo_on' || id==='a_forn' || id==='a_brand') ? 'change' : 'input';
   el.addEventListener(evt, renderArtAutoFields);
   if(id==='a_cod') el.addEventListener('change', renderArtAutoFields);
+  if(id==='a_cod') el.addEventListener('input', updateArticleCodeStatus);
 });
 
 bindSearchSuggest('o_cli_q','oCliSuggest','orderCli', value=>fillClientSelect(loadDB(), value));
@@ -5228,19 +5447,22 @@ bindSearchSuggest('o_art_q','oArtSuggest','orderArt', value=>{
   fillArtSelect(loadDB(), value);
   updateOrderPriceFromSelection();
 });
-document.getElementById('o_art').addEventListener('change', updateOrderPriceFromSelection);
-document.getElementById('o_discount').addEventListener('input', updateOrderTotalsPreview);
+document.getElementById('o_art').addEventListener('change', ()=>{ updateOrderPriceFromSelection(); saveOrderDraft(); });
+document.getElementById('o_discount').addEventListener('input', ()=>{ updateOrderTotalsPreview(); saveOrderDraft(); });
+['o_cli','o_stato','o_data','o_note','o_mis','o_tracking','o_price'].forEach(id=>{ const el=document.getElementById(id); if(el) ['input','change'].forEach(evt=>el.addEventListener(evt, saveOrderDraft)); });
 
 document.getElementById('importFile').addEventListener('change',(e)=>{
   const f=e.target.files[0];
   if(f) importDB(f);
   e.target.value='';
 });
-document.getElementById('a_brand')?.addEventListener('change', handleBrandSelectionChange);
-document.getElementById('a_photo')?.addEventListener('change', refreshArtPhotoPreviewFromInput);
+document.getElementById('a_brand')?.addEventListener('change', ()=>{ handleBrandSelectionChange(); saveArticleDraft(); });
+document.getElementById('a_photo')?.addEventListener('change', ()=>{ refreshArtPhotoPreviewFromInput(); saveArticleDraft(); });
 document.getElementById('btnCloudLogin')?.addEventListener('click', ()=>show('mCloudLogin'));
 document.getElementById('btnCloudLogout')?.addEventListener('click', cloudLogout);
-document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) autoCloudPullNow('visible'); });
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) flushVisibleDrafts(); else autoCloudPullNow('visible'); });
+window.addEventListener('pagehide', flushVisibleDrafts);
+window.addEventListener('beforeunload', flushVisibleDrafts);
 window.addEventListener('focus', ()=>autoCloudPullNow('focus'));
 
 // Province select
@@ -5369,8 +5591,8 @@ async function upsertCloudArticle(art){
     categoria_id,
     marca: art.brand || null,
     colore: art.colore || null,
-    taglia: art.taglia || null,
-    materiale: art.variante || art.misura || null,
+    taglia: null,
+    materiale: art.materiale || art.taglia || art.variante || null,
     prezzo_acquisto: Number(art.costoEur || 0),
     prezzo_vendita: Number(art.prezzoVendita || 0),
     giacenza: 0,
@@ -5594,7 +5816,7 @@ async function pullCloudToLocal(opts={}){
         const pulledCostoUsd=firstFiniteNumber(meta.costoUsd, local?.costoUsd, 0);
         const pulledCostoEur=firstFiniteNumber(p.prezzo_acquisto, p.costo, p.costo_eur, meta.costoEur, local?.costoEur, 0);
         const pulledPrezzoVendita=firstFiniteNumber(p.prezzo_vendita, p.prezzo, p.prezzo_vendita_iva, meta.prezzoVendita, meta.prezzo, local?.prezzoVendita, 0);
-        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',taglia:meta.taglia||p.taglia||local?.taglia||'',variante:meta.variante||p.materiale||local?.variante||'',colore:meta.colore||p.colore||local?.colore||'',misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,6):[],_ts:Date.now(),_cloud:true};
+        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:meta.colore||p.colore||local?.colore||'',misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,6):[],_ts:Date.now(),_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(righeOrd); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:righeOrd,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,12):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,12):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(righeOrd, scontoCliente),_ts:Date.now(),_cloud:true}; })

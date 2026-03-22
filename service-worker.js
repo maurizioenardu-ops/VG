@@ -1,5 +1,5 @@
-const CACHE_NAME='vg-cache-v11_5-contextual-phrases';
-const VERSION = 'v11_5';
+const CACHE_NAME='vg-cache-v11_6-materiale-guard';
+const VERSION = 'v11_6';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './manifest.json',
