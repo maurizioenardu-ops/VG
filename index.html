@@ -434,8 +434,8 @@ window.addEventListener('error',e=>{
       <div class="orderAddWrap"><button class="btn orderAdd" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button></div>
     </div>
   </div>
-  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button></div></div>
   <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button></div></div>
   <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
@@ -506,8 +506,8 @@ window.addEventListener('error',e=>{
   <div class="formBlock postblk inputSoft">
     <div class="blockTitle">Post e contenuti</div>
     <div><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Dettagli utili per il post..."></textarea></div>
-    <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="a_post" placeholder="Qui il post Telegram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostTelegramEdit">Copia Telegram</button></div></div>
     <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="a_post_fb" readonly placeholder="Qui il post Facebook (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbEdit">Copia FB</button></div></div>
+    <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="a_post" placeholder="Qui il post Telegram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostTelegramEdit">Copia Telegram</button></div></div>
     <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
@@ -2234,7 +2234,9 @@ function postCategoryDescriptors(a, mode='fb'){
   return uniquePostLines(descriptors);
 }
 function postPrimaryName(a, mode='fb'){
-  return pickRandom(postCategoryDescriptors(a, mode)) || categoryLabelForPost(a);
+  const model=normalizePostLine(a?.modello||'', a?.brand||'');
+  if(mode==='fb' && model) return model;
+  return pickRandom(postCategoryDescriptors(a, mode)) || model || categoryLabelForPost(a);
 }
 function postNameWithQuality(a, mode='fb'){
   const base=postPrimaryName(a, mode);
@@ -2261,22 +2263,30 @@ function pickFacebookDetailLines(a){
 }
 function buildPostFacebook(a){
   if(!a?.codice) return '';
+  const modelLine = postNameWithQuality(a,'fb') || postPrimaryName(a,'fb') || categoryLabelForPost(a);
+  const variante = safePostDetailValue(a?.variante||'', a);
+  const materiale = safePostDetailValue(a?.materiale||'', a);
+  const misura = safePostDetailValue(postSizeValue(a), a);
+  const colore = safePostDetailValue(a?.colore||'', a);
   const lines=[];
-  lines.push(pickRandom(postHeadlinePools(a)) || buildPostHeadline(a,'fb'));
-  lines.push('');
-  lines.push(`✔️ Cod. ${a.codice}`);
-  pickFacebookDetailLines(a).forEach(line=>lines.push(line));
-  lines.push('');
-  const closers=[
-    'Per dettagli scrivimi in privato 📩',
-    'Info in privato 📩',
-    'Scrivimi in privato 📩',
-    'Se desideri dettagli scrivimi in privato 📩',
-    'Per maggiori dettagli, privato 📩'
-  ];
-  lines.push(pickRandom(closers));
+  if(modelLine) lines.push(modelLine);
+  const seen = new Set();
+  const pushUnique = (value)=>{
+    const txt = compactPostValue(value||'');
+    if(!txt) return;
+    const key = normalizeTextKey(txt);
+    if(!key || seen.has(key)) return;
+    seen.add(key);
+    lines.push(txt);
+  };
+  pushUnique(variante);
+  pushUnique(materiale);
+  if(misura) lines.push(`Mis. ${misura}`);
+  if(colore) lines.push(`Colore: ${colore}`);
+  lines.push(`cod. ${a.codice}`);
   return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
+
 function buildPostInstagram(a){
   if(!a?.codice) return '';
   const lines=[buildPostHeadline(a,'ig'),''];
