@@ -1856,7 +1856,12 @@ function formatPostMisura(misura){
   return clean ? `Mis. ${clean}` : '';
 }
 function formatPostPrezzoVendita(prezzo){
-  return Number(prezzo)>0 ? '💶' : '';
+  const n=Number(prezzo);
+  if(!(n>0)) return '';
+  const txt=Number.isInteger(n)
+    ? String(n)
+    : n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
+  return `€ ${txt}`;
 }
 
 function stableHashSeed(value){
@@ -1870,29 +1875,12 @@ function pickVariantBySeed(items, seed, shift=0){
   if(!list.length) return '';
   return list[Math.abs(Number(seed||0)+Number(shift||0)) % list.length];
 }
-const postVariantSession={ fb:new Map(), ig:new Map() };
 function pickRandom(items){
   const list=Array.isArray(items)?items.filter(Boolean):[];
   if(!list.length) return '';
   return list[Math.floor(Math.random()*list.length)] || list[0] || '';
 }
-function articlePostSignature(a){
-  return [
-    a?.codice||'', a?.categoria||'', a?.modello||'', a?.descrizione||'', a?.variante||'',
-    a?.materiale||'', a?.colore||'', a?.misura||'', a?.taglia||'', a?.prezzoVendita||''
-  ].join('|');
-}
-function pickSessionVariant(mode, a, builder){
-  const group=postVariantSession[mode];
-  if(!group) return builder();
-  const key=String(a?.codice||articlePostSignature(a)||mode).trim() || mode;
-  const sig=articlePostSignature(a);
-  const cached=group.get(key);
-  if(cached && cached.sig===sig) return cached.value;
-  const value=builder();
-  group.set(key,{sig,value});
-  return value;
-}
+
 function postFeatureFragments(a){
   const key=categoryKey(a?.categoria||'');
   const color=compactPostValue(a?.colore||'');
@@ -1900,66 +1888,205 @@ function postFeatureFragments(a){
   const size=postSizeValue(a);
   const desc=compactPostValue(a?.descrizione||'');
   const fragments=[];
+  const push=(...items)=>items.filter(Boolean).forEach(v=>fragments.push(v));
+
   if(key.includes('bors')){
-    fragments.push('linea pulita','stile versatile','taglio elegante','uso quotidiano','pratica da portare');
-    if(size) fragments.push('dimensioni comode');
-  }else if(key.includes('scarp') || key.includes('sneaker')){
-    fragments.push('linea curata','presenza decisa','look ordinato','vestibilità interessante','dettagli che si notano');
-    if(size) fragments.push('misure disponibili');
+    push(
+      'presenza calibrata',
+      'linea molto curata',
+      'eleganza ben dosata',
+      'taglio pulito',
+      'carattere discreto ma evidente',
+      'proporzioni ben pensate',
+      'dettaglio che si nota al punto giusto'
+    );
+    if(size) push('formato ben studiato','proporzioni pratiche ma ricercate');
+  }else if(key.includes('sneaker')){
+    push(
+      'profilo contemporaneo',
+      'linea dinamica ma pulita',
+      'presenza forte senza eccessi',
+      'dettagli ben calibrati',
+      'carattere moderno',
+      'look deciso ma ordinato'
+    );
+    if(size) push('misure disponibili','calzata interessante');
+  }else if(key.includes('scarp')){
+    push(
+      'profilo slanciato',
+      'linea elegante',
+      'portamento deciso',
+      'presenza ben definita',
+      'taglio molto curato',
+      'stile essenziale ma forte'
+    );
+    if(size) push('misure disponibili','calzata interessante');
   }else if(key.includes('cintur')){
-    fragments.push('essenziale ma curata','facile da abbinare','stile pulito','dettaglio semplice ma efficace');
+    push(
+      'dettaglio che completa davvero',
+      'linea essenziale',
+      'finitura ordinata',
+      'presenza discreta ma efficace',
+      'equilibrio molto riuscito'
+    );
   }else if(key.includes('portafogl')){
-    fragments.push('compatto e pratico','ordine e praticità','taglio pulito','comodità quotidiana');
+    push(
+      'ordine con stile',
+      'formato compatto e curato',
+      'praticità raffinata',
+      'linea pulita',
+      'eleganza quotidiana',
+      'dettagli ben pensati'
+    );
   }else if(key.includes('accessor')){
-    fragments.push('piccolo dettaglio che completa','linea semplice','utile ogni giorno','stile facile');
+    push(
+      'tocco finale ben riuscito',
+      'dettaglio ben scelto',
+      'presenza discreta ma centrata',
+      'linea curata',
+      'accento di stile ben dosato'
+    );
   }else{
-    fragments.push('stile pulito','linea curata','dettaglio interessante','presenza ordinata');
+    push(
+      'linea curata',
+      'presenza elegante',
+      'stile pulito',
+      'dettaglio ben riuscito',
+      'finitura ordinata'
+    );
   }
-  if(color) fragments.push(`${color} che si fa notare`, `${color} facile da abbinare`, `tono ${color}`);
-  if(material) fragments.push(`${material} dal look curato`, `${material} con bella resa`, `${material} ben rifinito`);
-  if(desc) fragments.push(desc);
+
+  if(color) push(`${color} con grande presenza`, `${color} dal tono raffinato`, `${color} molto facile da portare`);
+  if(material) push(`${material} con resa curata`, `${material} ben rifinito`, `${material} dal look pulito`);
+  if(desc) push(desc);
   return uniquePostLines(fragments);
+}
+function postLuxuryLeadPools(a, mode='fb'){
+  const key=categoryKey(a?.categoria||'');
+  const color=compactPostValue(a?.colore||'');
+  const material=compactPostValue(a?.materiale||a?.variante||'');
+  const size=postSizeValue(a);
+  const base=[
+    'Presenza pulita, effetto forte',
+    'Dettagli scelti bene, stile che si vede',
+    'Essenziale solo in apparenza',
+    'Quando il gusto si nota senza spiegazioni',
+    'Più lo guardi, più convince',
+    'Linea precisa, presenza vera',
+    'Ha il suo modo di farsi notare'
+  ];
+  const push=(arr,...items)=>uniquePostLines([...(arr||[]), ...items.filter(Boolean)]);
+  if(key.includes('bors')) return push(base,
+    'Non passa inosservata. E nemmeno ci prova',
+    'Piccola fuori, presenza enorme addosso',
+    'Fa scena con misura, ed è proprio questo il bello',
+    'Ha quel tipo di presenza che sistema tutto senza appesantire niente',
+    color ? `${color} che si fa notare al punto giusto` : '',
+    material ? `${material} con una resa davvero pulita` : '',
+    size ? 'Proporzioni studiate bene, presenza chic' : ''
+  );
+  if(key.includes('sneaker')) return push(base,
+    'Non è la solita linea sportiva. Si vede subito',
+    'Comoda sì, banale neanche per sbaglio',
+    'Dettagli netti, impatto pulito',
+    'Ha quel tipo di carattere che si nota al primo sguardo',
+    color ? `${color} con un contrasto molto riuscito` : '',
+    size ? 'Misure disponibili, identità ben definita' : ''
+  );
+  if(key.includes('scarp')) return push(base,
+    'Qui il carattere si vede senza bisogno di esagerare',
+    'Linea slanciata, presenza decisa',
+    'Fa la sua figura nel modo giusto',
+    'Ha quell’eleganza che non chiede permesso',
+    color ? `${color} con un impatto molto elegante` : '',
+    size ? 'Misure disponibili, taglio molto ben definito' : ''
+  );
+  if(key.includes('cintur')) return push(base,
+    'Basta un dettaglio giusto per cambiare tutto',
+    'Piccola cosa, grande differenza',
+    'Fa ordine al look senza rubare spazio',
+    material ? `${material} con finitura molto ordinata` : ''
+  );
+  if(key.includes('portafogl')) return push(base,
+    'Compatto fuori, pensato bene dentro',
+    'Ordine e stile nella stessa linea',
+    'Quel tipo di cura che si percepisce subito',
+    material ? `${material} con resa molto pulita` : ''
+  );
+  if(key.includes('accessor')) return push(base,
+    'Il dettaglio giusto cambia davvero l’insieme',
+    'Piccolo, ma con una presenza molto precisa',
+    'Quel tocco che rimette tutto in ordine'
+  );
+  if(mode==='ig') return push(base,
+    'Presenza che si nota subito',
+    'Pulito, forte, riuscito',
+    'Dal vivo rende ancora meglio',
+    'Dettagli che fanno la differenza'
+  );
+  return base;
 }
 function postHeadlinePools(a){
   const key=categoryKey(a?.categoria||'');
-  const emoji=colorEmojiForPost(a);
-  const label=categoryLabelForPost(a);
-  const features=postFeatureFragments(a);
-  const soft=pickRandom(features) || label.toLowerCase();
-  const named=postNameWithQuality(a);
-  const withNamed=(value)=>[named, value ? `• ${value}` : '', emoji].join(' ').replace(/\s+/g,' ').trim();
-  if(key.includes('bors')) return [
-    withNamed('Borsa dal taglio elegante'),
-    withNamed('Borsa compatta e curata'),
-    withNamed('Borsa con stile pulito'),
-    withNamed(`Borsa ${soft}`)
+  const soft=pickRandom(postFeatureFragments(a)) || 'linea curata';
+  const withNamed=(lead)=>[lead, '', `${postNameWithQuality(a,'fb')} ${colorEmojiForPost(a)}`.replace(/\s+/g,' ').trim()].join('\n').trim();
+  const common=[
+    withNamed('Dettagli che si notano subito'),
+    withNamed('Più lo guardi, più convince'),
+    withNamed('Presenza pulita, carattere vero'),
+    withNamed(`Ha quel tipo di ${soft} che resta in mente`)
   ];
-  if(key.includes('scarp') || key.includes('sneaker')) return [
-    withNamed('Scarpa con linea curata'),
-    withNamed('Scarpa dal carattere deciso'),
-    withNamed('Sneakers con dettagli che si notano'),
-    withNamed(`${label} ${soft}`)
-  ];
-  if(key.includes('cintur')) return [
-    withNamed('Cintura semplice ma d’effetto'),
-    withNamed('Cintura facile da abbinare'),
-    withNamed(`Cintura ${soft}`)
-  ];
-  if(key.includes('portafogl')) return [
-    withNamed('Portafoglio pratico e ordinato'),
-    withNamed('Portafoglio compatto e curato'),
-    withNamed(`Portafoglio ${soft}`)
-  ];
-  if(key.includes('accessor')) return [
-    withNamed('Accessorio che completa il look'),
-    withNamed('Accessorio semplice ma utile'),
-    withNamed(`Accessorio ${soft}`)
-  ];
-  return [
-    withNamed(`${label} con stile pulito`),
-    withNamed(`${label} ${soft}`),
-    withNamed('Dettagli che fanno la differenza')
-  ];
+  if(key.includes('bors')) return uniquePostLines([
+    withNamed('Non passa inosservata. E nemmeno ci prova'),
+    withNamed('Piccola fuori, presenza enorme addosso'),
+    withNamed('Ha quel tipo di presenza che completa tutto'),
+    withNamed('Pulita, decisa, fatta per farsi notare con misura'),
+    withNamed(`Borsa dal ${soft}`),
+    ...common
+  ]);
+  if(key.includes('sneaker')) return uniquePostLines([
+    withNamed('Non è la solita linea sportiva. Si vede subito'),
+    withNamed('Comoda sì, banale no'),
+    withNamed('Dettagli netti, impatto pulito'),
+    withNamed('Ha carattere senza bisogno di esagerare'),
+    withNamed(`Sneakers dal ${soft}`),
+    ...common
+  ]);
+  if(key.includes('scarp')) return uniquePostLines([
+    withNamed('Qui il carattere si vede senza bisogno di esagerare'),
+    withNamed('Linea slanciata, presenza decisa'),
+    withNamed('Fa la sua figura nel modo giusto'),
+    withNamed('Eleganza che si nota subito'),
+    withNamed(`Scarpa dal ${soft}`),
+    ...common
+  ]);
+  if(key.includes('cintur')) return uniquePostLines([
+    withNamed('Basta un dettaglio giusto per cambiare tutto'),
+    withNamed('Piccola cosa, grande differenza'),
+    withNamed('Fa ordine al look senza rubare spazio'),
+    withNamed(`Cintura dal ${soft}`),
+    ...common
+  ]);
+  if(key.includes('portafogl')) return uniquePostLines([
+    withNamed('Compatto fuori, pensato bene dentro'),
+    withNamed('Ordine e stile nella stessa linea'),
+    withNamed('Quel tipo di cura che si percepisce subito'),
+    withNamed(`Portafoglio dal ${soft}`),
+    ...common
+  ]);
+  if(key.includes('accessor')) return uniquePostLines([
+    withNamed('Il dettaglio giusto cambia davvero l’insieme'),
+    withNamed('Piccolo, ma con una presenza molto precisa'),
+    withNamed('Quel tocco che rimette tutto in ordine'),
+    withNamed(`Accessorio dal ${soft}`),
+    ...common
+  ]);
+  return uniquePostLines([
+    withNamed('Dettagli scelti bene, stile che si vede'),
+    withNamed('Una linea che resta in mente'),
+    withNamed(`Articolo dal ${soft}`),
+    ...common
+  ]);
 }
 function categoryKey(value){
   return normalizeTextKey(value||'').replace(/\s+/g,'');
@@ -2019,105 +2146,162 @@ function postSizeValue(a){
   const taglia=compactPostValue(a?.taglia||'');
   return misura || taglia || '';
 }
-function postPrimaryName(a){
-  const brand=(a?.brand||'').trim();
-  const modello=normalizePostLine(a?.modello||'', brand);
-  const descrizione=normalizePostLine(a?.descrizione||'', brand);
-  const variante=normalizePostLine(a?.variante||'', brand);
-  const materiale=normalizePostLine(a?.materiale||'', brand);
-  return (modello || descrizione || variante || materiale || categoryLabelForPost(a)).trim();
+
+function safePostDetailValue(value, a){
+  const txt=compactPostValue(value||'');
+  if(!txt) return '';
+  if(/[\n\r#@]/.test(txt)) return '';
+  const norm=normalizeTextKey(txt);
+  const blocked=[a?.brand,a?.modello].map(v=>normalizeTextKey(v||'')).filter(Boolean);
+  if(blocked.some(token=>token && norm.includes(token))) return '';
+  return txt;
 }
-function postNameWithQuality(a){
-  const base=postPrimaryName(a);
+function postCategoryDescriptors(a, mode='fb'){
+  const key=categoryKey(a?.categoria||'');
+  const descriptors=[];
+  const push=(...items)=>items.filter(Boolean).forEach(v=>descriptors.push(v));
+  if(key.includes('bors')){
+    push(
+      'Linea pulita',
+      'Presenza calibrata',
+      'Dettagli scelti bene',
+      'Compatta, ma con carattere',
+      'Eleganza ben dosata',
+      'Profilo molto curato',
+      'Borsa dal taglio preciso'
+    );
+  }else if(key.includes('sneaker')){
+    push(
+      'Profilo contemporaneo',
+      'Taglio pulito',
+      'Carattere moderno',
+      'Dettagli netti',
+      'Presenza dinamica',
+      'Sneakers dal carattere ben definito'
+    );
+  }else if(key.includes('scarp')){
+    push(
+      'Profilo slanciato',
+      'Taglio elegante',
+      'Presenza decisa',
+      'Linea molto curata',
+      'Carattere definito',
+      'Scarpa dal carattere pulito'
+    );
+  }else if(key.includes('cintur')){
+    push(
+      'Dettaglio che cambia tutto',
+      'Linea essenziale',
+      'Finitura ordinata',
+      'Presenza discreta',
+      'Equilibrio molto riuscito',
+      'Cintura dal profilo pulito'
+    );
+  }else if(key.includes('portafogl')){
+    push(
+      'Ordine con stile',
+      'Formato compatto',
+      'Praticità raffinata',
+      'Dettagli ben pensati',
+      'Linea pulita',
+      'Portafoglio dal profilo curato'
+    );
+  }else if(key.includes('accessor')){
+    push(
+      'Tocco finale ben riuscito',
+      'Dettaglio ben scelto',
+      'Presenza discreta',
+      'Linea curata',
+      'Accessorio dal carattere pulito'
+    );
+  }else{
+    push(
+      'Linea curata',
+      'Presenza elegante',
+      'Dettaglio ben riuscito',
+      'Stile pulito',
+      'Articolo dal profilo ordinato'
+    );
+  }
+  if(mode==='ig'){
+    push(
+      'Fa scena senza sforzo',
+      'Dettagli che si notano subito',
+      'Pulito, forte, riuscito',
+      'Dal vivo rende ancora meglio'
+    );
+  }
+  return uniquePostLines(descriptors);
+}
+function postPrimaryName(a, mode='fb'){
+  return pickRandom(postCategoryDescriptors(a, mode)) || categoryLabelForPost(a);
+}
+function postNameWithQuality(a, mode='fb'){
+  const base=postPrimaryName(a, mode);
   const qemoji=emojiQualityForPost(a);
   return [base, qemoji].filter(Boolean).join(' ').trim();
 }
 function buildPostHeadline(a, mode='fb'){
-  const base=postPrimaryName(a);
-  const named=postNameWithQuality(a);
-  const seed=stableHashSeed((a?.codice||'') + '|' + mode);
+  const named=postNameWithQuality(a, mode);
   const emoji=colorEmojiForPost(a);
-  if(mode==='ig'){
-    const starts=[
-      'Eleganza senza tempo',
-      'Dettagli che fanno la differenza',
-      'Disponibile',
-      'Semplice… ma fa la sua figura',
-      'Dettagli che si notano subito',
-      'Questo dal vivo rende ancora meglio',
-      'Piccola chicca del giorno',
-      'Un modello che si fa guardare',
-      'Minimal fuori, carattere dentro'
-    ];
-    const mood=pickVariantBySeed(starts, seed) || '';
-    return [named, mood ? `• ${mood}` : '', emoji].join(' ').replace(/\s+/g,' ').trim();
-  }
-  const prefixes=[
-    '',
-    'elegante',
-    'compatta',
-    'capiente',
-    'pratica',
-    'raffinata',
-    'versatile',
-    'super comoda'
-  ];
-  const prefix=pickVariantBySeed(prefixes, seed, 2) || '';
-  const raw=(base || categoryLabelForPost(a)).trim();
-  const detail=(prefix && !raw.toLowerCase().includes(prefix.toLowerCase())) ? prefix : '';
-  return [named, detail ? `• ${detail}` : '', emoji].join(' ').replace(/\s+/g,' ').trim();
+  const lead=pickRandom(postLuxuryLeadPools(a, mode)) || 'Una linea che resta in mente';
+  return [lead, '', `${named} ${emoji}`.replace(/\s+/g,' ').trim()].join('\n').trim();
+}
+function pickFacebookDetailLines(a){
+  const detailCandidates=[];
+  const sizeValue=postSizeValue(a);
+  if(sizeValue) detailCandidates.push(formatFbDetailLine(postDimensionLabel(a), sizeValue));
+  const colore=safePostDetailValue(a?.colore||'', a);
+  if(colore) detailCandidates.push(formatFbDetailLine('Colore', colore));
+  const materiale=safePostDetailValue(a?.materiale||a?.variante||'', a);
+  if(materiale) detailCandidates.push(formatFbDetailLine('Materiale', materiale));
+  const descrizione=safePostDetailValue(a?.descrizione||'', a);
+  if(descrizione && descrizione.length<=52) detailCandidates.push(`✔️ ${descrizione}`);
+  return uniquePostLines(detailCandidates).slice(0,3);
 }
 function buildPostFacebook(a){
   if(!a?.codice) return '';
-  return pickSessionVariant('fb', a, ()=>{
-    const lines=[];
-    lines.push(pickRandom(postHeadlinePools(a)) || buildPostHeadline(a,'fb'));
-    lines.push('');
-    lines.push(`✔️ Cod. ${a.codice}`);
-    const detailCandidates=[];
-    const sizeValue=postSizeValue(a);
-    if(sizeValue) detailCandidates.push(formatFbDetailLine(postDimensionLabel(a), sizeValue));
-    const colore=compactPostValue(a?.colore||'');
-    if(colore) detailCandidates.push(formatFbDetailLine('Colore', colore));
-    const materiale=compactPostValue(a?.materiale||a?.variante||'');
-    if(materiale) detailCandidates.push(formatFbDetailLine('Materiale', materiale));
-    const descrizione=compactPostValue(a?.descrizione||'');
-    if(descrizione) detailCandidates.push(`✔️ ${descrizione}`);
-    uniquePostLines(detailCandidates).slice(0,3).forEach(line=>lines.push(line));
-    lines.push('');
-    if(Number(a?.prezzoVendita||0)>0){
-      lines.push('💶');
-      lines.push('');
-    }
-    const closers=[
-      'Per info scrivimi in privato 📩',
-      'Info in privato 📩',
-      'Scrivimi in privato 📩',
-      'Se ti interessa scrivimi in privato 📩'
-    ];
-    lines.push(pickRandom(closers));
-    return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
-  });
+  const lines=[];
+  lines.push(pickRandom(postHeadlinePools(a)) || buildPostHeadline(a,'fb'));
+  lines.push('');
+  lines.push(`✔️ Cod. ${a.codice}`);
+  pickFacebookDetailLines(a).forEach(line=>lines.push(line));
+  lines.push('');
+  const closers=[
+    'Per dettagli scrivimi in privato 📩',
+    'Info in privato 📩',
+    'Scrivimi in privato 📩',
+    'Se desideri dettagli scrivimi in privato 📩',
+    'Per maggiori dettagli, privato 📩'
+  ];
+  lines.push(pickRandom(closers));
+  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
 function buildPostInstagram(a){
   if(!a?.codice) return '';
-  return pickSessionVariant('ig', a, ()=>{
-    const seed=stableHashSeed((a.codice||'')+'|ig');
-    const lines=[buildPostHeadline(a,'ig'),''];
-    const codeLine=pickRandom([`✔️ Cod. ${a.codice}`, `Cod. ${a.codice}`]) || pickVariantBySeed([`✔️ Cod. ${a.codice}`, `Cod. ${a.codice}`], seed, 1);
-    lines.push(codeLine);
-    const vibe=[];
-    if(Number(a?.prezzoVendita||0)>0) vibe.push('Disponibile ✨','Disponibile 🖤');
-    vibe.push('DM 📩','Scrivimi in DM 📩','Info in DM 📩');
-    lines.push('');
-    const first=pickRandom(vibe) || pickVariantBySeed(vibe, seed, 3);
-    const secondPool=vibe.filter(x=>x!==first);
-    const second=pickRandom(secondPool) || pickVariantBySeed(secondPool, seed, 6);
-    if(first) lines.push(first);
-    if(second && !/DM|privato/i.test(first||'')) lines.push(second);
-    else if(!/DM|privato/i.test(first||'')) lines.push('DM 📩');
-    return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
-  });
+  const lines=[buildPostHeadline(a,'ig'),''];
+  lines.push(pickRandom([`✔️ Cod. ${a.codice}`, `Cod. ${a.codice}`]) || `Cod. ${a.codice}`);
+  lines.push('');
+  const mids=[
+    'Disponibile ✨',
+    'Disponibile 🖤',
+    'Dettagli che fanno la differenza ✨',
+    'Presenza forte, linee pulite 🖤',
+    'Dal vivo rende ancora meglio ✨',
+    'Ha carattere. Punto 🖤'
+  ];
+  const closers=[
+    'DM 📩',
+    'Scrivimi in DM 📩',
+    'Info in DM 📩',
+    'Se ti interessa, DM 📩',
+    'Dettagli in DM 📩'
+  ];
+  const first=pickRandom(mids);
+  const second=pickRandom(closers);
+  if(first) lines.push(first);
+  if(second) lines.push(second);
+  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
 function buildPostTelegram(a){
 
