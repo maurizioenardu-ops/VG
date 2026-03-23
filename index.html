@@ -2133,7 +2133,7 @@ function formatPostPrezzoVendita(prezzo){
   const txt=Number.isInteger(n)
     ? String(n)
     : n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
-  return `€ ${txt}`;
+  return `💶 ${txt}`;
 }
 
 function stableHashSeed(value){
@@ -2950,7 +2950,6 @@ function buildPostFacebook(a){
   const materiale = safePostDetailValue(a?.materiale||'', a);
   const misura = safePostDetailValue(postSizeValue(a), a);
   const colore = safePostDetailValue(a?.colore||'', a);
-  const intro = pickRandom(facebookGroupOpenings(a)) || 'Ha presenza. E si vede subito.';
   const closer = pickRandom([
     'Per info scrivimi in privato 📩',
     'Info in privato 📩',
@@ -2973,8 +2972,9 @@ function buildPostFacebook(a){
   pushUnique(materiale);
   if(misura) lines.push(`Mis. ${misura}`);
   if(colore) lines.push(`Colore: ${colore}`);
+  const prezzoFacebook = formatPostPrezzoVendita(currentPrice(a));
+  if(prezzoFacebook) lines.push(prezzoFacebook);
   lines.push(`cod. ${a.codice}`);
-  if(intro) lines.push('', intro);
   if(closer) lines.push('', closer);
   return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
