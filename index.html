@@ -2996,11 +2996,7 @@ function buildPostInstagram(a){
   ];
   const closer = pickRandom(closers) || 'DM 📩';
   if(closer) lines.push('', closer);
-  return lines.join('
-').replace(/
-{3,}/g,'
-
-').trim();
+  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
 
 function buildPostTelegram(a){
