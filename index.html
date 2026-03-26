@@ -105,7 +105,7 @@ select[multiple]{min-height:150px}
 .heroSpot .title{font-size:22px;line-height:1.05;font-weight:1000;margin:0 0 6px}
 .heroSpot .desc{font-size:13px;color:#475569;line-height:1.35;margin:0 0 12px}
 .sparkTitle{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px}.sparkTitle span{font-size:11px;text-transform:uppercase;color:#64748b;font-weight:1000}
-.sparkBars{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:end;height:92px}.sparkCol{display:flex;flex-direction:column;align-items:center;gap:6px}.sparkBarWrap{height:68px;width:100%;display:flex;align-items:flex-end}.sparkBarBtn{appearance:none;border:0;background:transparent;padding:0;margin:0;width:100%;height:100%;display:flex;align-items:flex-end;cursor:pointer}.sparkBarBtn:focus-visible{outline:2px solid var(--navy);outline-offset:3px;border-radius:16px}.sparkBar{width:100%;border-radius:14px 14px 8px 8px;background:linear-gradient(180deg,#60a5fa,#1d4ed8)}.sparkBar.soft{background:linear-gradient(180deg,#fbbf24,#f59e0b)}.sparkLbl{font-size:10px;color:#64748b;font-weight:900}.shipAlert{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 12px;cursor:pointer}.shipAlerts{display:flex;flex-direction:column;gap:10px}.shipAlert .meta{font-size:12px;color:#475569;font-weight:900;margin-top:4px}.shipAlertEmpty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:12px;color:var(--muted)}.quickCard .h2{margin-bottom:8px}.substats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.micro{background:#f8fafc;border:1px solid #edf2f7;border-radius:14px;padding:10px 12px}.micro .k{font-size:10px}.micro .v{font-size:16px;margin-top:2px}.stat .v.big{font-size:24px}.stat .sub{margin-top:4px;font-size:11px;color:#64748b;font-weight:800}
+.sparkBars{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:end;height:92px}.sparkCol{display:flex;flex-direction:column;align-items:center;gap:6px}.sparkBarWrap{height:68px;width:100%;display:flex;align-items:flex-end}.sparkBarBtn{appearance:none;border:0;background:transparent;padding:0;margin:0;width:100%;height:100%;display:flex;align-items:flex-end;cursor:pointer}.sparkBarBtn:focus-visible{outline:2px solid var(--navy);outline-offset:3px;border-radius:16px}.sparkBar{width:100%;border-radius:14px 14px 8px 8px;background:linear-gradient(180deg,#60a5fa,#1d4ed8)}.sparkBar.soft{background:linear-gradient(180deg,#fbbf24,#f59e0b)}.sparkLbl{font-size:10px;color:#64748b;font-weight:900}.shipAlert{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 12px;cursor:pointer}.shipAlerts{display:flex;flex-direction:column;gap:10px}.shipAlert .meta{font-size:12px;color:#475569;font-weight:900;margin-top:4px}.shipAlertEmpty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:12px;color:var(--muted)}.quickCard .h2{margin-bottom:8px}.substats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.micro{background:#f8fafc;border:1px solid #edf2f7;border-radius:14px;padding:10px 12px}.micro[data-go],.heroSpot[data-action],#dashList .row[data-action],#dashTips .row[data-action],.stat[data-go]{cursor:pointer}.micro .k{font-size:10px}.micro .v{font-size:16px;margin-top:2px}.stat .v.big{font-size:24px}.stat .sub{margin-top:4px;font-size:11px;color:#64748b;font-weight:800}
 
 #mArtView .modal,#mArtEdit .modal{max-width:760px}
 
@@ -194,7 +194,7 @@ window.addEventListener('error',e=>{
   </div>
 
   <div id="sec_home" class="section active">
-    <div class="heroSpot">
+    <div class="heroSpot" data-action="openDashboardMood" role="button" tabindex="0">
       <div class="eyebrow">Novità in primo piano</div>
       <div id="homeMood" class="title">Si parte bene</div>
       <div id="homeMoodSub" class="desc">Panoramica vendite del momento.</div>
@@ -218,8 +218,8 @@ window.addEventListener('error',e=>{
         <button class="btnBig gray" data-go="impostazioni">Impostazioni</button>
       </div>
       <div class="substats">
-        <div class="micro"><div class="k">Incassato mese</div><div id="c_inc_month" class="v">0</div></div>
-        <div class="micro"><div class="k">Da incassare</div><div id="c_due_total" class="v">0</div></div>
+        <div class="micro" data-go="finanze"><div class="k">Incassato mese</div><div id="c_inc_month" class="v">0</div></div>
+        <div class="micro" data-go="ordini"><div class="k">Da incassare</div><div id="c_due_total" class="v">0</div></div>
       </div>
     </div>
 
@@ -3793,24 +3793,39 @@ function buildDashboardTips(db, salesPerWeek, openOrders, promoCount){
   if(artPick?.article){
     tips.push({
       title:'Cosa pubblicare',
-      text:`${artPick.reason} Prova con ${articleLabelShort(artPick.article)}.`
+      text:`${artPick.reason} Prova con ${articleLabelShort(artPick.article)}.`,
+      action:'openSuggestedArticle',
+      articleId:String(artPick.article.id||'')
     });
   }
   let behavior='';
+  let action='openAllArticles';
   if((salesPerWeek||0) < 1){
-    behavior=promoCount>0
-      ? 'Settimana lenta: pubblica un articolo forte o una promo utile, senza scontare tutto a casaccio.'
-      : 'Settimana lenta: meglio pubblicare almeno un articolo forte oggi e muovere i contatti caldi.';
+    if(promoCount>0){
+      behavior='Settimana lenta: pubblica un articolo forte o una promo utile, senza scontare tutto a casaccio.';
+      action='openPromoArticles';
+    }else{
+      behavior='Settimana lenta: meglio pubblicare almeno un articolo forte oggi e muovere i contatti caldi.';
+      action='openAllArticles';
+    }
   }else if((salesPerWeek||0) < 2){
-    behavior=openOrders>=6
-      ? 'Sei nella media ma hai parecchi ordini aperti: prima sistema consegne e pagamenti, poi spingi altro.'
-      : 'Sei nella media: tieni vivo il ritmo con un post mirato, senza strafare con le promo.';
+    if(openOrders>=6){
+      behavior='Sei nella media ma hai parecchi ordini aperti: prima sistema consegne e pagamenti, poi spingi altro.';
+      action='ordini';
+    }else{
+      behavior='Sei nella media: tieni vivo il ritmo con un post mirato, senza strafare con le promo.';
+      action=promoCount>0 ? 'openPromoArticles' : 'openAllArticles';
+    }
   }else{
-    behavior=openOrders>=6
-      ? 'Stai andando bene, ma hai carico alto: proteggi il margine e chiudi gli ordini aperti prima di spingere troppo.'
-      : 'Stai andando bene: continua sui modelli che girano e non abbassare i prezzi per sport.';
+    if(openOrders>=6){
+      behavior='Stai andando bene, ma hai carico alto: proteggi il margine e chiudi gli ordini aperti prima di spingere troppo.';
+      action='ordini';
+    }else{
+      behavior='Stai andando bene: continua sui modelli che girano e non abbassare i prezzi per sport.';
+      action='openAllArticles';
+    }
   }
-  tips.push({title:'Come comportarti', text:behavior});
+  tips.push({title:'Come comportarti', text:behavior, action});
   return tips.slice(0,2);
 }
 
@@ -3894,7 +3909,7 @@ function renderHome(){
   const tips=buildDashboardTips(db, salesPerWeek, inCorso, promoItems.length);
   const tipsBox=document.getElementById('dashTips');
   if(tipsBox){
-    tipsBox.innerHTML=tips.map(t=>`<div class="row" style="grid-template-columns:1fr"><div class="main"><div class="t">${esc(t.title)}</div><div class="s">${esc(t.text)}</div></div></div>`).join('') || '<div class="small">Nessun consiglio disponibile.</div>';
+    tipsBox.innerHTML=tips.map(t=>`<div class="row" data-action="${esc(t.action||'openAllArticles')}" ${t.articleId?`data-id="${esc(t.articleId)}"`:''} style="grid-template-columns:1fr"><div class="main"><div class="t">${esc(t.title)}</div><div class="s">${esc(t.text)}</div></div></div>`).join('') || '<div class="small">Nessun consiglio disponibile.</div>';
   }
   const lines=[
     {label:last?`Ultimo ordine: ${last.stato} • ${last.data||''}`:'Ultimo ordine: nessuno', action:'ordini'},
@@ -5907,6 +5922,8 @@ document.addEventListener('click',(ev)=>{
     go('articoli');
     return renderArt();
   }
+  if(a==='openDashboardMood'){ go('ordini'); return; }
+  if(a==='openSuggestedArticle'){ const id=String(el.dataset.id||'').trim(); if(id){ go('articoli'); setArtBrowse('tutti'); renderArt(); return openArtView(id); } go('articoli'); setArtBrowse('tutti'); return renderArt(); }
   if(a==='openAllArticles'){
     const qArt=document.getElementById('qArt');
     const qArtCat=document.getElementById('qArtCat');
