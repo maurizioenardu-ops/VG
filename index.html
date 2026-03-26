@@ -4339,9 +4339,9 @@ const CATEGORY_IMAGE_MAP={
 };
 function artIconForCategory(cat){
   const key=normalizeCategoryValue(cat).toLowerCase();
-  if(['borsa','borse'].includes(key)) return customCategoryArtwork('borsa');
-  if(['cintura','cinture'].includes(key)) return customCategoryArtwork('cintura');
-  if(['accessori','accessorio'].includes(key)) return customCategoryArtwork('accessori');
+  if(['borsa','borse'].includes(key)) return 'cat-borse.jpg';
+  if(['cintura','cinture'].includes(key)) return 'cat-cinture.jpg';
+  if(['accessori','accessorio'].includes(key)) return 'cat-accessori.jpg';
   if(CATEGORY_IMAGE_MAP[key]) return CATEGORY_IMAGE_MAP[key];
   return categoryClipArtDataUri(cat);
 }
