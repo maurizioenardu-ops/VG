@@ -230,13 +230,18 @@ window.addEventListener('error',e=>{
       <div class="h2">Info rapide</div>
       <div id="dashList" class="list"></div>
     </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="h2">Consigli del momento</div>
+      <div id="dashTips" class="list"></div>
+    </div>
   </div>
 
   <div id="sec_articoli" class="section">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Articoli</div><button class="btn" type="button" data-action="newArt">+ Nuovo</button></div>
       <div class="grid2" style="margin-top:10px">
-        <div class="searchWrap"><input id="qArt" placeholder="Cerca per codice, brand, modello, categoria, colore, materiale, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
+        <div class="searchWrap"><input id="qArt" placeholder="Cerca per codice, brand, modello, categoria, qualità, colore, materiale, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
         <div><select id="qArtCat"><option value="">Tutte le categorie</option></select></div>
       </div>
       <div id="artBreadcrumbs" class="artBreadcrumbs" style="display:none"></div>
@@ -665,7 +670,7 @@ window.addEventListener('error',e=>{
   <div class="hr"></div>
   <div class="h2">Righe ordine</div>
   <div class="grid2">
-    <div><div class="k">Articoli (cerca e seleziona anche più articoli)</div><div class="searchWrap"><input id="o_art_q" placeholder="Cerca articolo..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="oArtSuggest" class="searchSuggest"></div></div><select id="o_art" multiple></select><div class="helper">Puoi selezionare più articoli insieme.</div></div>
+    <div><div class="k">Articoli (cerca e seleziona anche più articoli)</div><div class="searchWrap"><input id="o_art_q" placeholder="Cerca articolo anche per qualità..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="oArtSuggest" class="searchSuggest"></div></div><select id="o_art" multiple></select><div class="helper">Puoi selezionare più articoli insieme.</div></div>
     <div><div class="k">Prezzo manuale (solo se selezioni 1 articolo)</div><input id="o_price" inputmode="decimal" autocomplete="off"/><div class="helper">Se selezioni più articoli usa i prezzi degli articoli.</div></div>
   </div>
   <div class="actions bottomMini">
@@ -3568,6 +3573,87 @@ function dashboardMood(salesPerWeek, openOrders, totalOrders){
     sub:moodPick(seed+7,["Più di una vendita a settimana: andamento buono, stai spingendo bene.","Il ritmo è sopra la media: numeri vivi e banco acceso.","Settimane buone: più vendite della media, e si vede eccome."])
   };
 }
+function articleLabelShort(a){
+  if(!a) return 'articolo';
+  return [displayCategoryValue(a.categoria), displayBrandValue(a.brand), a.modello].filter(Boolean).join(' • ') || a.codice || 'articolo';
+}
+function soldArticleStats(db){
+  const artMap=new Map((db?.articoli||[]).map(a=>[String(a.id), a]));
+  const stats={byQuality:{}, byCategory:{}, byArticle:{}};
+  (db?.ordini||[]).forEach(o=>{
+    const righe=Array.isArray(o?.righe)?o.righe:[];
+    righe.forEach(r=>{
+      const art=artMap.get(String(r?.articoloId||'')) || (db?.articoli||[]).find(a=>r?.codice && a.codice===r.codice);
+      if(!art) return;
+      const q=articleQualityLabel(art)||'';
+      const c=displayCategoryValue(art.categoria)||'';
+      if(q) stats.byQuality[q]=(stats.byQuality[q]||0)+1;
+      if(c) stats.byCategory[c]=(stats.byCategory[c]||0)+1;
+      stats.byArticle[String(art.id)]=(stats.byArticle[String(art.id)]||0)+1;
+    });
+  });
+  return stats;
+}
+function pickArticleToSuggest(db, salesPerWeek){
+  const items=(db?.articoli||[]).slice();
+  if(!items.length) return null;
+  const stats=soldArticleStats(db);
+  const neverSold=items.filter(a=>!(stats.byArticle[String(a.id)]||0));
+  const promo=items.filter(a=>promoValid(a));
+  const originals=items.filter(a=>articleQualityLabel(a).toLowerCase()==='originale');
+  const standards=items.filter(a=>articleQualityLabel(a).toLowerCase()==='standard');
+  const sortedByAge=items.slice().sort((a,b)=>Number(a._ts||0)-Number(b._ts||0));
+  let pool=[];
+  let reason='';
+  if((salesPerWeek||0) < 1 && promo.length){
+    pool=promo;
+    reason='Oggi conviene spingere una promo attiva.';
+  }else if((salesPerWeek||0) < 1 && neverSold.length){
+    pool=neverSold;
+    reason='Meglio dare visibilità a un articolo ancora fermo.';
+  }else if((salesPerWeek||0) >= 2 && originals.length){
+    pool=originals;
+    reason='Il ritmo è buono: puoi puntare su un Originale.';
+  }else if((salesPerWeek||0) >= 1 && standards.length){
+    pool=standards;
+    reason='Settimana regolare: uno Standard tiene il banco pulito.';
+  }else if(sortedByAge.length){
+    pool=sortedByAge.slice(0, Math.min(8, sortedByAge.length));
+    reason='Questo articolo merita di tornare in vetrina.';
+  }else{
+    pool=items;
+    reason='Puoi rimettere in giro questo articolo.';
+  }
+  const daySeed=(new Date().getDate()) + (new Date().getMonth()*31) + items.length;
+  const pick=pool[Math.abs(daySeed) % pool.length] || items[0];
+  return {article:pick, reason};
+}
+function buildDashboardTips(db, salesPerWeek, openOrders, promoCount){
+  const tips=[];
+  const artPick=pickArticleToSuggest(db, salesPerWeek);
+  if(artPick?.article){
+    tips.push({
+      title:'Cosa pubblicare',
+      text:`${artPick.reason} Prova con ${articleLabelShort(artPick.article)}.`
+    });
+  }
+  let behavior='';
+  if((salesPerWeek||0) < 1){
+    behavior=promoCount>0
+      ? 'Settimana lenta: pubblica un articolo forte o una promo utile, senza scontare tutto a casaccio.'
+      : 'Settimana lenta: meglio pubblicare almeno un articolo forte oggi e muovere i contatti caldi.';
+  }else if((salesPerWeek||0) < 2){
+    behavior=openOrders>=6
+      ? 'Sei nella media ma hai parecchi ordini aperti: prima sistema consegne e pagamenti, poi spingi altro.'
+      : 'Sei nella media: tieni vivo il ritmo con un post mirato, senza strafare con le promo.';
+  }else{
+    behavior=openOrders>=6
+      ? 'Stai andando bene, ma hai carico alto: proteggi il margine e chiudi gli ordini aperti prima di spingere troppo.'
+      : 'Stai andando bene: continua sui modelli che girano e non abbassare i prezzi per sport.';
+  }
+  tips.push({title:'Come comportarti', text:behavior});
+  return tips.slice(0,2);
+}
 
 function monthSalesDetails(db, year, month){
   const items=(db?.ordini||[]).filter(o=>{
@@ -3646,6 +3732,11 @@ function renderHome(){
   const last=ordini.slice().sort((a,b)=>(b._ts||0)-(a._ts||0))[0];
   const promoItems=db.articoli.filter(promoValid).sort((a,b)=>String(a.scadenzaPromo).localeCompare(String(b.scadenzaPromo)));
   const exp=promoItems[0];
+  const tips=buildDashboardTips(db, salesPerWeek, inCorso, promoItems.length);
+  const tipsBox=document.getElementById('dashTips');
+  if(tipsBox){
+    tipsBox.innerHTML=tips.map(t=>`<div class="row" style="grid-template-columns:1fr"><div class="main"><div class="t">${esc(t.title)}</div><div class="s">${esc(t.text)}</div></div></div>`).join('') || '<div class="small">Nessun consiglio disponibile.</div>';
+  }
   const lines=[
     {label:last?`Ultimo ordine: ${last.stato} • ${last.data||''}`:'Ultimo ordine: nessuno', action:'ordini'},
     {label:`Promozioni: ${promoItems.length}${exp?` attive • ${[exp.brand,exp.modello].filter(Boolean).join(' ')}`:' attive'}`, action:'openPromoArticles'},
@@ -4069,6 +4160,26 @@ function renderArtBreadcrumbs(){
   box.innerHTML='';
   box.style.display='none';
 }
+function articleQualityLabel(a){
+  return normalizeSpaceText(a?.qualita||a?.qualità||qualityFromCode(a?.codice)||'');
+}
+function articleSearchHay(a){
+  const catLabel=displayCategoryValue(a?.categoria);
+  const brandLabel=displayBrandValue(a?.brand);
+  const quality=articleQualityLabel(a);
+  return [
+    a?.codice,
+    brandLabel,
+    a?.modello,
+    catLabel,
+    a?.descrizione,
+    a?.colore,
+    a?.materiale||a?.taglia||'',
+    a?.variante,
+    quality,
+    quality ? `qualità ${quality}` : ''
+  ].filter(Boolean).join(' ').toLowerCase();
+}
 function renderArt(){
   const db=loadDB();
   refreshArticleCategorySelects();
@@ -4076,9 +4187,7 @@ function renderArt(){
   const catFilter=String(document.getElementById('qArtCat')?.value||'').trim();
   const promoOnly=artBrowseState.level==='promo';
   const items=db.articoli.filter(a=>{
-    const catLabel=displayCategoryValue(a.categoria);
-    const brandLabel=displayBrandValue(a.brand);
-    const hay=((a.codice||'')+' '+brandLabel+' '+(a.modello||'')+' '+catLabel+' '+(a.descrizione||'')+' '+(a.colore||'')+' '+(a.materiale||a.taglia||'')+' '+(a.variante||'')).toLowerCase();
+    const hay=articleSearchHay(a);
     const okText=!q || hay.includes(q);
     const okCat=!catFilter || displayCategoryValue(a.categoria)===displayCategoryValue(catFilter);
     const okPromo=!promoOnly || promoValid(a);
@@ -5168,7 +5277,7 @@ function fillArtSelect(db, filter=''){
   const prev=Array.from(sel.selectedOptions||[]).map(o=>o.value);
   const q=filter.toLowerCase();
   const items=db.articoli.filter(a=>{
-    const hay=((a.codice||'')+' '+(a.brand||'')+' '+(a.modello||'')+' '+(a.categoria||'')+' '+(a.descrizione||'')+' '+(a.colore||'')+' '+(a.materiale||a.taglia||'')+' '+(a.variante||'')).toLowerCase();
+    const hay=articleSearchHay(a);
     return !q || hay.includes(q);
   });
   sel.innerHTML=items.map(a=>`<option value="${a.id}">${esc(a.brand||'')} ${esc(a.modello||'')} • ${esc(a.codice||'')}</option>`).join('');
@@ -5438,6 +5547,10 @@ function getSearchSuggestions(kind, query){
       add(a.codice);
       add(a.modello);
       add(a.brand);
+      add(displayCategoryValue(a.categoria));
+      add(articleQualityLabel(a));
+      const quality=articleQualityLabel(a);
+      add(quality ? `Qualità ${quality}` : '');
     });
   }
   if(kind==='cli' || kind==='orderCli'){
