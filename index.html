@@ -777,7 +777,7 @@ function normalizeDBShape(o){
     scadenzaPromo:normalizeSpaceText(x?.scadenzaPromo||x?.promoScadenza||x?.promo_date||''),
     foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,6):[],
     photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,6):[]
-  })).map(x=>({ ...x, colorMode:(x.colorMode==='multiple' && x.colorCount>1)?'multiple':'single' }));
+  })).map(x=>({ ...x, colorMode:(x.colorMode==='multiple' && x.colorCount>0)?'multiple':'single' }));
   db.clienti=db.clienti.map(x=>({
     ...x,
     nome:normalizeSpaceText(x?.nome||x?.name||''),
@@ -958,7 +958,7 @@ function updateCityDatalistOptions(query=''){
   list.innerHTML=names.map(name=>`<option value="${esc(name)}"></option>`).join('');
 }
 function getArticleColorMode(article){
-  return (String(article?.colorMode||article?.colorType||'').toLowerCase()==='multiple' || String(article?.colorMode||'').toLowerCase()==='numbered' || Number(article?.colorCount||0)>1) ? 'multiple' : 'single';
+  return (String(article?.colorMode||article?.colorType||'').toLowerCase()==='multiple' || String(article?.colorMode||'').toLowerCase()==='numbered' || Number(article?.colorCount||0)>0) ? 'multiple' : 'single';
 }
 function getArticleColorCount(article){
   return Math.max(0, parseInt(article?.colorCount||0,10) || 0);
@@ -1538,7 +1538,7 @@ function restoreArticleDraft(targetId=''){
   document.getElementById('a_taglia').value=v.materiale||'';
   document.getElementById('a_variante').value=v.variante||'';
   document.getElementById('a_colore').value=v.colore||'';
-  document.getElementById('a_color_mode').value=(String(v.colorMode||'').toLowerCase()==='multiple' || String(v.colorMode||'').toLowerCase()==='numbered' || Number(v.colorCount||0)>1)?'multiple':'single';
+  document.getElementById('a_color_mode').value=(String(v.colorMode||'').toLowerCase()==='multiple' || String(v.colorMode||'').toLowerCase()==='numbered' || Number(v.colorCount||0)>0)?'multiple':'single';
   document.getElementById('a_color_count').value=v.colorCount||'';
   document.getElementById('a_color_labels').value=v.colorLabels||'';
   updateArticleColorModeUI();
@@ -6074,10 +6074,11 @@ document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.k
 
 ['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels'].forEach(id=>{
   const el=document.getElementById(id);
-  const evt=(id==='a_promo_on' || id==='a_forn' || id==='a_brand') ? 'change' : 'input';
-  el.addEventListener(evt, renderArtAutoFields);
-  if(id==='a_cod') el.addEventListener('change', renderArtAutoFields);
+  if(!el) return;
+  ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));
   if(id==='a_cod') el.addEventListener('input', updateArticleCodeStatus);
+  if(id==='a_color_mode') el.addEventListener('change', ()=>{ updateArticleColorModeUI(); saveArticleDraft(); });
+  if(id==='a_color_count' || id==='a_color_labels' || id==='a_colore') el.addEventListener('change', saveArticleDraft);
 });
 
 bindSearchSuggest('o_cli_q','oCliSuggest','orderCli', value=>fillClientSelect(loadDB(), value, true));
