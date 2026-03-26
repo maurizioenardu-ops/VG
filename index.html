@@ -439,6 +439,7 @@ window.addEventListener('error',e=>{
     <div><div class="k">Marca</div><div id="vArtBrand" class="t">-</div></div>
     <div><div class="k">Fornitore</div><div id="vArtForn" class="t">-</div></div>
   </div>
+  <div style="margin-top:10px"><div class="k" id="vArtColorsLabel">Colori disponibili</div><div id="vArtColors" class="t">-</div></div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">Prezzo vendita</div><div id="vArtPrezzo" class="t">-</div></div>
     <div>
@@ -4741,6 +4742,24 @@ async function openArtView(id){
   document.getElementById('vArtQual').textContent=articleQualityLabel(a)||'-';
   document.getElementById('vArtBrand').textContent=a.brand||'-';
   document.getElementById('vArtForn').textContent=a.fornitore||'-';
+  const colorMode=getArticleColorMode(a);
+  const colorCount=getArticleColorCount(a);
+  const colorLabels=getArticleColorLabels(a);
+  const colorsLabelEl=document.getElementById('vArtColorsLabel');
+  const colorsValueEl=document.getElementById('vArtColors');
+  if(colorsLabelEl && colorsValueEl){
+    if(colorMode==='multiple' && colorCount>0){
+      colorsLabelEl.textContent='Colori disponibili';
+      const lines=Array.from({length:colorCount}, (_,i)=>{
+        const note=normalizeSpaceText(colorLabels[i]||'');
+        return note ? `${i+1} - ${note}` : `Colore ${i+1}`;
+      });
+      colorsValueEl.textContent=lines.join(' • ');
+    }else{
+      colorsLabelEl.textContent='Colore';
+      colorsValueEl.textContent=normalizeSpaceText(a.colore||'') || '-';
+    }
+  }
   document.getElementById('vArtPrezzo').textContent=money(a.prezzoVendita||0);
   document.getElementById('vArtPrezzoUse').textContent=money(currentPrice(a));
   const pill=document.getElementById('vArtPromoPill');
