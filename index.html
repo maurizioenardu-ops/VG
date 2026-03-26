@@ -90,6 +90,7 @@ body{-webkit-tap-highlight-color:transparent}
 .btn.orderAdd.small{padding:10px 12px;border-radius:14px;font-size:13px;min-height:46px;line-height:1.15}
 .orderAddWrap{margin-top:10px;display:flex;justify-content:flex-start}.orderAddWrap .btn{width:100%}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.artFilterGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;font-weight:700;font-size:14px;background:#fff}
 textarea{min-height:90px;resize:none;overflow:hidden}
 select[multiple]{min-height:150px}
@@ -122,6 +123,7 @@ select[multiple]{min-height:150px}
 }
 @media (max-width:520px){
   .smallGrid,.cards,.btnGrid,.grid2{grid-template-columns:1fr}
+  .artFilterGrid{grid-template-columns:1fr 1fr}
   .artGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   .artCard{padding:10px;border-radius:16px}
   .artIcon{width:54px;height:54px;font-size:48px;border-radius:16px;padding:0}
@@ -240,10 +242,15 @@ window.addEventListener('error',e=>{
   <div id="sec_articoli" class="section">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Articoli</div><button class="btn" type="button" data-action="newArt">+ Nuovo</button></div>
-      <div class="grid2" style="margin-top:10px">
+      <div style="margin-top:10px">
         <div class="searchWrap"><input id="qArt" placeholder="Cerca per codice, marca, modello, categoria, qualità, colore, materiale, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
-        <div><select id="qArtCat"><option value="">Tutte le categorie</option></select></div>
       </div>
+      <div class="grid2 artFilterGrid" style="margin-top:10px">
+        <div><select id="qArtCat"><option value="">Tutte le categorie</option></select></div>
+        <div><select id="qArtBrand"><option value="">Tutte le marche</option></select></div>
+        <div><select id="qArtQuality"><option value="">Tutte le qualità</option></select></div>
+      </div>
+      <div style="margin-top:10px"><button class="btn" type="button" data-action="clearArtFilters">Anteprime complete</button></div>
       <div id="artBreadcrumbs" class="artBreadcrumbs" style="display:none"></div>
     </div>
     <div style="height:10px"></div>
@@ -4011,6 +4018,38 @@ function refreshArticleCategorySelects(selectedEdit=''){
     editSel.value=wanted||'';
   }
 }
+function articleQualityOptions(db){
+  const out=[];
+  const seen=new Set();
+  const push=(v)=>{
+    const clean=normalizeSpaceText(v||'');
+    const key=clean.toLowerCase();
+    if(!clean || seen.has(key)) return;
+    seen.add(key);
+    out.push(clean);
+  };
+  ['Standard','Originale'].forEach(push);
+  (Array.isArray(db?.articoli)?db.articoli:[]).forEach(a=>push(articleQualityLabel(a)));
+  return out.sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+}
+function refreshArticlePreviewFilters(){
+  const db=loadDB();
+  refreshArticleCategorySelects();
+  const brandSel=document.getElementById('qArtBrand');
+  if(brandSel){
+    const prev=String(brandSel.value||'').trim();
+    const options=articleBrandOptions(db);
+    brandSel.innerHTML='<option value="">Tutte le marche</option>'+options.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('');
+    brandSel.value=options.includes(prev)?prev:'';
+  }
+  const qualitySel=document.getElementById('qArtQuality');
+  if(qualitySel){
+    const prev=String(qualitySel.value||'').trim();
+    const options=articleQualityOptions(db);
+    qualitySel.innerHTML='<option value="">Tutte le qualità</option>'+options.map(q=>`<option value="${esc(q)}">${esc(q)}</option>`).join('');
+    qualitySel.value=options.includes(prev)?prev:'';
+  }
+}
 
 const DEFAULT_BRANDS=['Louis Vuitton','Gucci','Chanel','Dior','Alexander McQueen','Balenciaga','Versace'];
 function normalizeBrandName(v){
@@ -4312,8 +4351,17 @@ function renderArtBreadcrumbs(){
   box.innerHTML='';
   box.style.display='none';
 }
+function normalizeQualityValue(v){
+  const raw=normalizeSpaceText(v||'');
+  if(!raw) return '';
+  const key=raw.toLowerCase().replace(/[^a-zàèéìòóù0-9]+/g,'');
+  if(['originale','orig','or'].includes(key)) return 'Originale';
+  if(['standard','std','top100','top','100'].includes(key)) return 'Standard';
+  if(/[🔝💯]/.test(raw)) return 'Standard';
+  return raw.charAt(0).toUpperCase()+raw.slice(1).toLowerCase();
+}
 function articleQualityLabel(a){
-  return normalizeSpaceText(a?.qualita||a?.qualità||qualityFromCode(a?.codice)||'');
+  return normalizeQualityValue(a?.qualita||a?.qualità||qualityFromCode(a?.codice)||'');
 }
 function articleSearchHay(a){
   const catLabel=displayCategoryValue(a?.categoria);
@@ -4334,19 +4382,46 @@ function articleSearchHay(a){
 }
 function renderArt(){
   const db=loadDB();
-  refreshArticleCategorySelects();
+  refreshArticlePreviewFilters();
   const q=document.getElementById('qArt').value.trim().toLowerCase();
   const catFilter=String(document.getElementById('qArtCat')?.value||'').trim();
+  const brandFilter=String(document.getElementById('qArtBrand')?.value||'').trim();
+  const qualityFilter=String(document.getElementById('qArtQuality')?.value||'').trim();
   const promoOnly=artBrowseState.level==='promo';
   const items=db.articoli.filter(a=>{
     const hay=articleSearchHay(a);
     const okText=!q || hay.includes(q);
     const okCat=!catFilter || displayCategoryValue(a.categoria)===displayCategoryValue(catFilter);
+    const okBrand=!brandFilter || displayBrandValue(a.brand)===displayBrandValue(brandFilter);
+    const okQuality=!qualityFilter || articleQualityLabel(a)===qualityFilter;
     const okPromo=!promoOnly || promoValid(a);
-    return okText && okCat && okPromo;
+    return okText && okCat && okBrand && okQuality && okPromo;
   }).sort((a,b)=>Number(b._ts||0)-Number(a._ts||0));
   const el=document.getElementById('listArt');
   renderArtBreadcrumbs();
+  const showCategoryOverview=!promoOnly && !q && !catFilter && !brandFilter && !qualityFilter;
+  if(showCategoryOverview){
+    const groups=new Map();
+    items.forEach(a=>{
+      const label=displayCategoryValue(a.categoria);
+      if(!groups.has(label)) groups.set(label, []);
+      groups.get(label).push(a);
+    });
+    const ordered=[...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0],'it',{sensitivity:'base'}));
+    const cards=ordered.map(([label,list])=>{
+      const brandCount=new Set(list.map(x=>displayBrandValue(x.brand))).size;
+      const itemCount=list.length;
+      const itemLabel=itemCount===1?'articolo':'articoli';
+      const brandLabel=brandCount===1?'brand':'brand';
+      return `<div class="artCard tight" data-action="applyArtCategoryFilter" data-category="${esc(label)}">
+        <div class="artMeta"><div class="t">${esc(label)}</div><div class="s">Categorie articoli</div></div>
+        <div class="artPlaceholder" style="position:relative;inset:auto;height:160px;display:flex"><img class="artPlaceholderImg" alt="Categoria ${esc(label)}" src="${artIconForCategory(label)}"/></div>
+        <div class="artMeta"><div class="s">${itemCount} ${itemLabel} • ${brandCount} ${brandLabel}</div></div>
+      </div>`;
+    }).join('');
+    el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">Nessun articolo trovato.</div></div>`;
+    return;
+  }
   const cards=items.map(a=>{
     const promo=pseudoPromoBadge(a);
     const metaLine=promoOnly
@@ -4640,7 +4715,7 @@ async function openArtView(id){
   hero.src=pics[0]||''; hero.style.display=pics[0]?'block':'none';
   thumbs.innerHTML=pics.map(src=>`<img src="${src}" onclick="document.getElementById('vArtHero').src='${src}'"/>`).join('');
   document.getElementById('vArtCod').textContent=a.codice||'-';
-  document.getElementById('vArtQual').textContent=qualityFromCode(a.codice)||'-';
+  document.getElementById('vArtQual').textContent=articleQualityLabel(a)||'-';
   document.getElementById('vArtBrand').textContent=a.brand||'-';
   document.getElementById('vArtForn').textContent=a.fornitore||'-';
   document.getElementById('vArtPrezzo').textContent=money(a.prezzoVendita||0);
@@ -5814,8 +5889,12 @@ document.addEventListener('click',(ev)=>{
   if(a==='openPromoArticles'){
     const qArt=document.getElementById('qArt');
     const qArtCat=document.getElementById('qArtCat');
+    const qArtBrand=document.getElementById('qArtBrand');
+    const qArtQuality=document.getElementById('qArtQuality');
     if(qArt) qArt.value='';
     if(qArtCat) qArtCat.value='';
+    if(qArtBrand) qArtBrand.value='';
+    if(qArtQuality) qArtQuality.value='';
     setArtBrowse('promo');
     go('articoli');
     return renderArt();
@@ -5823,12 +5902,29 @@ document.addEventListener('click',(ev)=>{
   if(a==='openAllArticles'){
     const qArt=document.getElementById('qArt');
     const qArtCat=document.getElementById('qArtCat');
+    const qArtBrand=document.getElementById('qArtBrand');
+    const qArtQuality=document.getElementById('qArtQuality');
     if(qArt) qArt.value='';
     if(qArtCat) qArtCat.value='';
+    if(qArtBrand) qArtBrand.value='';
+    if(qArtQuality) qArtQuality.value='';
     setArtBrowse('tutti');
     go('articoli');
     return renderArt();
   }
+  if(a==='clearArtFilters'){
+    const qArt=document.getElementById('qArt');
+    const qArtCat=document.getElementById('qArtCat');
+    const qArtBrand=document.getElementById('qArtBrand');
+    const qArtQuality=document.getElementById('qArtQuality');
+    if(qArt) qArt.value='';
+    if(qArtCat) qArtCat.value='';
+    if(qArtBrand) qArtBrand.value='';
+    if(qArtQuality) qArtQuality.value='';
+    setArtBrowse(artBrowseState.level==='promo'?'promo':'tutti');
+    return renderArt();
+  }
+  if(a==='applyArtCategoryFilter'){ const qArtCat=document.getElementById('qArtCat'); if(qArtCat) qArtCat.value=el.dataset.category||''; setArtBrowse('tutti'); return renderArt(); }
   if(a==='openArtCategory'){ setArtBrowse('tutti'); return renderArt(); }
   if(a==='openArtBrand'){ setArtBrowse('tutti'); return renderArt(); }
   if(a==='artBackToCategories'){ setArtBrowse('tutti'); return renderArt(); }
@@ -5943,6 +6039,8 @@ document.addEventListener('click',(ev)=>{
 
 bindSearchSuggest('qArt','qArtSuggest','art', ()=>renderArt());
 document.getElementById('qArtCat')?.addEventListener('change', renderArt);
+document.getElementById('qArtBrand')?.addEventListener('change', renderArt);
+document.getElementById('qArtQuality')?.addEventListener('change', renderArt);
 bindSearchSuggest('qCli','qCliSuggest','cli', ()=>renderCli());
 ['c_nome','c_tel','c_ind','c_cap','c_citta','c_prov','c_note'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', ()=>{ if(id==='c_citta'){ updateCityDatalistOptions(el.value||''); suggestCapFromCity(false); } if(id==='c_prov') suggestCapFromCity(false); refreshClientShipping(); saveClientDraft(); }); if(el) el.addEventListener('change', ()=>{ if(id==='c_citta'){ updateCityDatalistOptions(el.value||''); suggestCapFromCity(true); } if(id==='c_prov') suggestCapFromCity(true); refreshClientShipping(); saveClientDraft(); }); });
 bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
