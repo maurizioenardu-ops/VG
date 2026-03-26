@@ -485,24 +485,33 @@ window.addEventListener('error',e=>{
     </div>
     <div class="grid2" style="margin-top:10px">
       <div>
-        <div class="k">Gestione colore</div>
+        <div class="k">Tipo colore</div>
         <select id="a_color_mode">
-          <option value="text">Colore a testo libero</option>
-          <option value="numbered">Colori numerati</option>
+          <option value="single">Colore unico</option>
+          <option value="multiple">Più colori</option>
         </select>
       </div>
       <div><div class="k">Misura</div><input id="a_mis" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
     </div>
     <div class="grid2" style="margin-top:10px">
       <div>
-        <div class="k">Colore / nota colore</div>
+        <div class="k" id="a_colore_label">Colore</div>
         <input id="a_colore" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Es. Nero, Beige, Testa di moro"/>
         <div id="a_colore_hint" class="helper">Scrivi il colore normalmente.</div>
       </div>
       <div>
         <div class="k">Colori disponibili</div>
-        <input id="a_color_count" inputmode="numeric" autocomplete="off" placeholder="Es. 6"/>
-        <div id="a_color_count_hint" class="helper" style="display:none">Se usi colori numerati, negli ordini il numero colore sarà obbligatorio.</div>
+        <input id="a_color_count" inputmode="numeric" autocomplete="off" placeholder="Es. 5"/>
+        <div id="a_color_count_hint" class="helper" style="display:none">Se scegli Più colori, negli ordini il numero colore sarà obbligatorio.</div>
+      </div>
+    </div>
+    <div id="a_color_labels_wrap" style="margin-top:10px;display:none">
+      <div class="k">Abbinamento numero / colore</div>
+      <textarea id="a_color_labels" rows="4" placeholder="1 - Rosa&#10;2 - Beige&#10;3 - Argento"></textarea>
+      <div class="helper">Facoltativo. L'app può provare a suggerire i colori dalla prima foto dell'articolo, ma il risultato va controllato.</div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn secondary" id="a_color_suggest_btn">Suggerisci da foto</button>
+        <button type="button" class="btn ghost" id="a_color_labels_clear_btn">Pulisci abbinamenti</button>
       </div>
     </div>
   </div>
@@ -750,8 +759,9 @@ function normalizeDBShape(o){
     brand:normalizeSpaceText(x?.brand||x?.marca||''),
     categoria:normalizeSpaceText(x?.categoria||''),
     colore:normalizeSpaceText(x?.colore||''),
-    colorMode:(String(x?.colorMode||'').toLowerCase()==='numbered' || Number(x?.colorCount||x?.coloriNumerati||0)>0) ? 'numbered' : 'text',
+    colorMode:(String(x?.colorMode||'').toLowerCase()==='multiple' || String(x?.colorType||'').toLowerCase()==='multiple' || String(x?.colorMode||'').toLowerCase()==='numbered' || Number(x?.colorCount||x?.coloriNumerati||0)>0) ? 'multiple' : 'single',
     colorCount:Math.max(0, parseInt(x?.colorCount||x?.coloriNumerati||0,10) || 0),
+    colorLabels:Array.isArray(x?.colorLabels)?x.colorLabels.map(v=>normalizeSpaceText(v||'')).filter(Boolean):[],
     costoUsd:firstFiniteNumber(x?.costoUsd, x?.costoUSD, x?.usd, 0),
     costoEur:firstFiniteNumber(x?.costoEur, x?.costoEUR, x?.prezzo_acquisto, x?.costo, x?.costo_eur, 0),
     prezzoVendita:firstFiniteNumber(x?.prezzoVendita, x?.prezzo_vendita, x?.prezzo, x?.prezzo_vendita_iva, 0),
@@ -760,7 +770,7 @@ function normalizeDBShape(o){
     scadenzaPromo:normalizeSpaceText(x?.scadenzaPromo||x?.promoScadenza||x?.promo_date||''),
     foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,6):[],
     photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,6):[]
-  })).map(x=>({ ...x, colorMode:(x.colorMode==='numbered' && x.colorCount>0)?'numbered':'text' }));
+  })).map(x=>({ ...x, colorMode:(x.colorMode==='multiple' && x.colorCount>1)?'multiple':'single' }));
   db.clienti=db.clienti.map(x=>({
     ...x,
     nome:normalizeSpaceText(x?.nome||x?.name||''),
@@ -784,6 +794,7 @@ function normalizeDBShape(o){
       richiedeNumeroColore: !!r?.richiedeNumeroColore,
       numeroColore: normalizeSpaceText(r?.numeroColore||r?.coloreNumero||''),
       colorCount: Math.max(0, parseInt(r?.colorCount||0,10) || 0),
+      colorLabels: Array.isArray(r?.colorLabels)?r.colorLabels.map(v=>normalizeSpaceText(v||'')).filter(Boolean):[],
       colore: normalizeSpaceText(r?.colore||'')
     })):[];
     const scontoCliente=calcOrderDiscount(x);
@@ -940,26 +951,150 @@ function updateCityDatalistOptions(query=''){
   list.innerHTML=names.map(name=>`<option value="${esc(name)}"></option>`).join('');
 }
 function getArticleColorMode(article){
-  return (String(article?.colorMode||'').toLowerCase()==='numbered' && Number(article?.colorCount||0)>0) ? 'numbered' : 'text';
+  return (String(article?.colorMode||article?.colorType||'').toLowerCase()==='multiple' || String(article?.colorMode||'').toLowerCase()==='numbered' || Number(article?.colorCount||0)>1) ? 'multiple' : 'single';
 }
 function getArticleColorCount(article){
   return Math.max(0, parseInt(article?.colorCount||0,10) || 0);
 }
+function getArticleColorLabels(article){
+  if(Array.isArray(article?.colorLabels)) return article.colorLabels.map(v=>normalizeSpaceText(v||'')).filter(Boolean);
+  return [];
+}
+function parseColorLabelsInput(raw='', count=0){
+  const safeCount=Math.max(0, parseInt(count||0,10) || 0);
+  const lines=String(raw||'').split(/\r?\n/).map(v=>normalizeSpaceText(v)).filter(Boolean);
+  const out=new Array(safeCount).fill('');
+  for(const line of lines){
+    const m=line.match(/^(\d{1,2})\s*[-.:)]\s*(.+)$/);
+    if(m){
+      const idx=Math.max(1, parseInt(m[1],10)||0);
+      if(idx>=1 && idx<=safeCount) out[idx-1]=normalizeSpaceText(m[2]||'');
+      continue;
+    }
+    const firstEmpty=out.findIndex(v=>!v);
+    if(firstEmpty>=0) out[firstEmpty]=line;
+  }
+  return out.map(v=>normalizeSpaceText(v||''));
+}
+function formatColorLabelsInput(labels=[], count=0){
+  const safeCount=Math.max(0, parseInt(count||0,10) || 0);
+  return Array.from({length:safeCount}, (_,i)=>{
+    const note=normalizeSpaceText(Array.isArray(labels)?(labels[i]||''):'');
+    return note ? `${i+1} - ${note}` : '';
+  }).filter(Boolean).join('\n');
+}
 function updateArticleColorModeUI(){
-  const mode=String(document.getElementById('a_color_mode')?.value||'text');
+  const mode=String(document.getElementById('a_color_mode')?.value||'single');
   const countWrap=document.getElementById('a_color_count')?.parentElement;
   const countHint=document.getElementById('a_color_count_hint');
   const colorHint=document.getElementById('a_colore_hint');
-  if(countWrap) countWrap.style.opacity=mode==='numbered' ? '1' : '.72';
-  if(countHint) countHint.style.display=mode==='numbered' ? 'block' : 'none';
-  if(colorHint) colorHint.textContent=mode==='numbered' ? 'Puoi scrivere una nota facoltativa, tipo Nero o Beige. Il numero colore sarà gestito negli ordini.' : 'Scrivi il colore normalmente.';
+  const colorLabel=document.getElementById('a_colore_label');
+  const labelsWrap=document.getElementById('a_color_labels_wrap');
+  const countInput=document.getElementById('a_color_count');
+  if(countWrap) countWrap.style.opacity=mode==='multiple' ? '1' : '.72';
+  if(countHint) countHint.style.display=mode==='multiple' ? 'block' : 'none';
+  if(labelsWrap) labelsWrap.style.display=mode==='multiple' ? 'block' : 'none';
+  if(countInput && mode!=='multiple') countInput.value='';
+  if(colorLabel) colorLabel.textContent=mode==='multiple' ? 'Nota colore generale' : 'Colore';
+  if(colorHint) colorHint.textContent=mode==='multiple'
+    ? 'Se l’articolo ha più colori, qui puoi scrivere una nota generale. Il numero colore verrà scelto negli ordini.'
+    : 'Scrivi il colore normalmente.';
 }
-function buildOrderColorOptions(count, selected=''){
+function buildOrderColorOptions(count, selected='', labels=[]){
   const safe=Math.max(0, parseInt(count||0,10) || 0);
   const current=String(selected||'').trim();
   let html='<option value="">Seleziona numero colore</option>';
-  for(let i=1;i<=safe;i++) html += `<option value="${i}" ${String(i)===current?'selected':''}>Colore ${i}</option>`;
+  for(let i=1;i<=safe;i++){
+    const note=normalizeSpaceText(Array.isArray(labels)?(labels[i-1]||''):'');
+    const label=note ? `Colore ${i} - ${esc(note)}` : `Colore ${i}`;
+    html += `<option value="${i}" ${String(i)===current?'selected':''}>${label}</option>`;
+  }
   return html;
+}
+function rgbToColorName(r,g,b){
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  const delta=max-min;
+  const light=(max+min)/2;
+  if(max < 52) return 'Nero';
+  if(light > 232 && delta < 20) return 'Bianco';
+  if(delta < 16){
+    if(light < 95) return 'Grigio scuro';
+    if(light < 170) return 'Grigio';
+    return 'Grigio chiaro';
+  }
+  let h=0;
+  if(delta){
+    if(max===r) h=((g-b)/delta)%6;
+    else if(max===g) h=(b-r)/delta+2;
+    else h=(r-g)/delta+4;
+    h=Math.round(h*60);
+    if(h<0) h+=360;
+  }
+  const sat=max===0?0:(delta/max);
+  if(light > 205 && sat < 0.35){
+    if(h>=35 && h<65) return 'Beige';
+    if(h>=0 && h<20) return 'Rosa chiaro';
+    return 'Bianco';
+  }
+  if((h>=0 && h<18) || h>=345) return light > 170 ? 'Rosa' : 'Rosso';
+  if(h>=18 && h<42) return light > 165 ? 'Beige' : 'Marrone';
+  if(h>=42 && h<68) return 'Giallo';
+  if(h>=68 && h<165) return 'Verde';
+  if(h>=165 && h<250) return sat < 0.22 ? 'Argento' : 'Azzurro';
+  if(h>=250 && h<290) return 'Blu';
+  if(h>=290 && h<345) return light > 170 ? 'Rosa' : 'Viola';
+  return 'Multicolor';
+}
+async function suggestArticleColorLabelsFromImage(){
+  const mode=String(document.getElementById('a_color_mode')?.value||'single');
+  const count=Math.max(0, parseInt(document.getElementById('a_color_count')?.value||0,10) || 0);
+  if(mode!=='multiple' || count<2){ toast('Prima scegli Più colori e indica quante varianti ci sono'); return; }
+  let src='';
+  const file=document.getElementById('a_photo')?.files?.[0];
+  if(file){
+    src=await fileToDataURL(file);
+  }else if(Array.isArray(currentArtExistingPics) && currentArtExistingPics[0]){
+    src=currentArtExistingPics[0];
+  }
+  if(!src){ toast('Carica almeno una foto articolo'); return; }
+  const img=await new Promise((resolve,reject)=>{
+    const im=new Image();
+    im.onload=()=>resolve(im);
+    im.onerror=()=>reject(new Error('Immagine non leggibile'));
+    im.src=src;
+  });
+  const canvas=document.createElement('canvas');
+  const ctx=canvas.getContext('2d', {willReadFrequently:true});
+  canvas.width=img.width; canvas.height=img.height;
+  ctx.drawImage(img,0,0);
+  const cols=Math.max(1, Math.ceil(Math.sqrt(count)));
+  const rows=Math.max(1, Math.ceil(count/cols));
+  const cellW=img.width/cols;
+  const cellH=img.height/rows;
+  const labels=[];
+  for(let i=0;i<count;i++){
+    const col=i%cols;
+    const row=Math.floor(i/cols);
+    const x=Math.max(0, Math.round(col*cellW + cellW*0.18));
+    const y=Math.max(0, Math.round(row*cellH + cellH*0.20));
+    const w=Math.max(12, Math.round(cellW*0.64));
+    const h=Math.max(12, Math.round(cellH*0.52));
+    const data=ctx.getImageData(x,y,Math.min(w, canvas.width-x),Math.min(h, canvas.height-y)).data;
+    let rs=0,gs=0,bs=0,n=0;
+    for(let p=0;p<data.length;p+=16){
+      const a=data[p+3];
+      if(a<20) continue;
+      const r=data[p], g=data[p+1], b=data[p+2];
+      const max=Math.max(r,g,b), min=Math.min(r,g,b);
+      if(max>235 && min>235) continue;
+      rs+=r; gs+=g; bs+=b; n++;
+    }
+    if(!n){ labels.push(''); continue; }
+    labels.push(rgbToColorName(Math.round(rs/n), Math.round(gs/n), Math.round(bs/n)));
+  }
+  document.getElementById('a_color_labels').value=formatColorLabelsInput(labels, count);
+  saveArticleDraft();
+  toast('Suggerimenti colore inseriti. Controllali, perché la foto può fregare anche lei.');
 }
 function getCapSuggestionsByCity(city='', province=''){
   const db=loadDB();
@@ -1349,6 +1484,9 @@ function collectArticleDraft(){
       materiale:document.getElementById('a_taglia')?.value||'',
       variante:document.getElementById('a_variante')?.value||'',
       colore:document.getElementById('a_colore')?.value||'',
+      colorMode:document.getElementById('a_color_mode')?.value||'single',
+      colorCount:document.getElementById('a_color_count')?.value||'',
+      colorLabels:document.getElementById('a_color_labels')?.value||'',
       misura:document.getElementById('a_mis')?.value||'',
       costoUsd:document.getElementById('a_usd')?.value||'',
       promoAttiva:!!document.getElementById('a_promo_on')?.checked,
@@ -1380,8 +1518,9 @@ function restoreArticleDraft(targetId=''){
   document.getElementById('a_taglia').value=v.materiale||'';
   document.getElementById('a_variante').value=v.variante||'';
   document.getElementById('a_colore').value=v.colore||'';
-  document.getElementById('a_color_mode').value=(String(v.colorMode||'').toLowerCase()==='numbered' || Number(v.colorCount||0)>0)?'numbered':'text';
+  document.getElementById('a_color_mode').value=(String(v.colorMode||'').toLowerCase()==='multiple' || String(v.colorMode||'').toLowerCase()==='numbered' || Number(v.colorCount||0)>1)?'multiple':'single';
   document.getElementById('a_color_count').value=v.colorCount||'';
+  document.getElementById('a_color_labels').value=v.colorLabels||'';
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=v.misura||'';
   document.getElementById('a_usd').value=v.costoUsd||'';
@@ -1455,7 +1594,7 @@ function restoreOrderDraft(targetId='', prefillArticleId=null){
   ordRows=Array.isArray(draft.rows)?draft.rows:[];
   if(prefillArticleId){
     const a=db.articoli.find(x=>x.id===prefillArticleId);
-    if(a && !ordRows.some(r=>r.articoloId===prefillArticleId)) ordRows.push({articoloId:a.id, codice:a?.codice||'', modello:a?.modello||'', prezzo:Number(currentPrice(a)||0), richiedeNumeroColore:getArticleColorMode(a)==='numbered', colorCount:getArticleColorCount(a), numeroColore:'', colore:a?.colore||''});
+    if(a && !ordRows.some(r=>r.articoloId===prefillArticleId)) ordRows.push({articoloId:a.id, codice:a?.codice||'', modello:a?.modello||'', prezzo:Number(currentPrice(a)||0), richiedeNumeroColore:getArticleColorMode(a)==='multiple', colorCount:getArticleColorCount(a), colorLabels:getArticleColorLabels(a), numeroColore:'', colore:a?.colore||''});
   }
   document.getElementById('o_cli').value=v.clienteId||'';
   document.getElementById('o_stato').value=v.stato||'Richiesto';
@@ -4518,7 +4657,9 @@ async function openArtEdit(id){
   if(!a){
     ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_usd','a_promo_price','a_promo_date','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
     .forEach(fid => document.getElementById(fid).value='');
-    document.getElementById('a_color_mode').value='text';
+    document.getElementById('a_color_mode').value='single';
+    document.getElementById('a_color_count').value='';
+    document.getElementById('a_color_labels').value='';
     updateArticleColorModeUI();
     syncBrandField('');
     refreshArticleCategorySelects('');
@@ -4535,7 +4676,7 @@ async function openArtEdit(id){
   set('a_cod', a?.codice); syncBrandField(a?.brand); set('a_mod', a?.modello);
   refreshArticleCategorySelects(a?.categoria||'');
   set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
-  set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); updateArticleColorModeUI();
+  set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); updateArticleColorModeUI();
   set('a_mis', a?.misura); set('a_usd', a?.costoUsd||'');
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
   set('a_promo_date', a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||'');
@@ -4714,6 +4855,9 @@ function renderArtAutoFields(){
     taglia:'',
     variante:document.getElementById('a_variante').value.trim(),
     colore:document.getElementById('a_colore').value.trim(),
+    colorMode:document.getElementById('a_color_mode').value==='multiple' ? 'multiple' : 'single',
+    colorCount:Math.max(0, parseInt(document.getElementById('a_color_count').value||0,10)||0),
+    colorLabels:parseColorLabelsInput(document.getElementById('a_color_labels').value||'', document.getElementById('a_color_count').value||0),
     descrizione:document.getElementById('a_desc').value.trim(),
     fornitore:document.getElementById('a_forn').value.trim(),
     colori:'', tracolla:'', scatola:false
@@ -4805,6 +4949,7 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_colore').value=clone.colore||'';
   document.getElementById('a_color_mode').value=getArticleColorMode(clone);
   document.getElementById('a_color_count').value=getArticleColorCount(clone)||'';
+  document.getElementById('a_color_labels').value=formatColorLabelsInput(getArticleColorLabels(clone), getArticleColorCount(clone));
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=clone.misura||'';
   document.getElementById('a_usd').value=clone.costoUsd||'';
@@ -4832,10 +4977,11 @@ async function saveArt(){
   try{
     const db=loadDB();
     const code=document.getElementById('a_cod').value.trim();
-    const colorMode=document.getElementById('a_color_mode').value==='numbered' ? 'numbered' : 'text';
+    const colorMode=document.getElementById('a_color_mode').value==='multiple' ? 'multiple' : 'single';
     const colorCount=Math.max(0, parseInt(document.getElementById('a_color_count').value||0,10)||0);
+    const colorLabels=parseColorLabelsInput(document.getElementById('a_color_labels').value||'', colorCount);
     if(!code){ toast('Codice articolo obbligatorio'); return; }
-    if(colorMode==='numbered' && colorCount<1){ toast('Se usi colori numerati devi indicare quanti colori sono disponibili'); return; }
+    if(colorMode==='multiple' && colorCount<2){ toast('Se scegli Più colori devi indicare almeno 2 varianti'); return; }
 
     const codeLower=safeLower(code);
     const exists = db.articoli.find(a => 
@@ -4866,7 +5012,9 @@ async function saveArt(){
       variante: document.getElementById('a_variante').value.trim(),
       colore: document.getElementById('a_colore').value.trim(),
       colorMode,
-      colorCount: colorMode==='numbered' ? colorCount : 0,
+      colorType: colorMode,
+      colorCount: colorMode==='multiple' ? colorCount : 0,
+      colorLabels: colorMode==='multiple' ? colorLabels : [],
       misura: document.getElementById('a_mis').value.trim(),
       costoUsd: usd,
       costoEur: r.costo,
@@ -5248,7 +5396,7 @@ async function openOrdEdit(id, prefillArticleId=null){
   if(prefillArticleId){
     const a=db.articoli.find(x=>x.id===prefillArticleId);
     if(a && !ordRows.some(r=>r.articoloId===prefillArticleId)){
-      ordRows.push({articoloId:a.id, codice:a?.codice||'', modello:a?.modello||'', prezzo:Number(currentPrice(a)||0), richiedeNumeroColore:getArticleColorMode(a)==='numbered', colorCount:getArticleColorCount(a), numeroColore:'', colore:a?.colore||''});
+      ordRows.push({articoloId:a.id, codice:a?.codice||'', modello:a?.modello||'', prezzo:Number(currentPrice(a)||0), richiedeNumeroColore:getArticleColorMode(a)==='multiple', colorCount:getArticleColorCount(a), colorLabels:getArticleColorLabels(a), numeroColore:'', colore:a?.colore||''});
     }
   }
   renderOrdRows();
@@ -5303,7 +5451,7 @@ function addRow(){
     if(!a) return;
     if(ordRows.some(r=>r.articoloId===artId)) return;
     const prezzo=(ids.length===1 && manual>0) ? manual : Number(currentPrice(a)||0);
-    ordRows.push({articoloId:artId, codice:a?.codice||'', modello:a?.modello||'', prezzo, richiedeNumeroColore:getArticleColorMode(a)==='numbered', colorCount:getArticleColorCount(a), numeroColore:'', colore:a?.colore||''});
+    ordRows.push({articoloId:artId, codice:a?.codice||'', modello:a?.modello||'', prezzo, richiedeNumeroColore:getArticleColorMode(a)==='multiple', colorCount:getArticleColorCount(a), colorLabels:getArticleColorLabels(a), numeroColore:'', colore:a?.colore||''});
   });
   Array.from(document.getElementById('o_art').options).forEach(o=>o.selected=false);
   document.getElementById('o_art_q').value='';
@@ -5335,7 +5483,7 @@ function renderOrdRows(){
   const box=document.getElementById('o_rows');
   box.innerHTML=ordRows.map((r,i)=>{
     const needsColor=!!r?.richiedeNumeroColore && Number(r?.colorCount||0)>0;
-    const colorUi=needsColor ? `<div class="helper" style="margin-top:8px">Numero colore obbligatorio</div><select data-role="rowColorNum" data-i="${i}" style="margin-top:6px">${buildOrderColorOptions(r.colorCount, r.numeroColore||'')}</select>` : (r?.colore ? `<div class="helper" style="margin-top:8px">Colore: ${esc(r.colore)}</div>` : '');
+    const colorUi=needsColor ? `<div class="helper" style="margin-top:8px">Numero colore obbligatorio</div><select data-role="rowColorNum" data-i="${i}" style="margin-top:6px">${buildOrderColorOptions(r.colorCount, r.numeroColore||'', r.colorLabels||[])}</select>` : (r?.colore ? `<div class="helper" style="margin-top:8px">Colore: ${esc(r.colore)}</div>` : '');
     const priceLine=needsColor && r?.numeroColore ? `${money(r.prezzo||0)} • Colore ${esc(r.numeroColore)}` : money(r.prezzo||0);
     return `<div class="row" style="grid-template-columns:1fr auto">
       <div><div class="t">${esc(r.codice)} • ${esc(r.modello)}</div><div class="s">${priceLine}</div>${colorUi}</div>
@@ -5759,7 +5907,7 @@ bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels'].forEach(id=>{
   const el=document.getElementById(id);
   const evt=(id==='a_promo_on' || id==='a_forn' || id==='a_brand') ? 'change' : 'input';
   el.addEventListener(evt, renderArtAutoFields);
@@ -6238,6 +6386,8 @@ async function cloudLogout(){
 renderAll();
 initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship']);
 updateArticleColorModeUI();
+document.getElementById('a_color_suggest_btn')?.addEventListener('click', async ()=>{ try{ await suggestArticleColorLabelsFromImage(); }catch(err){ console.warn('Suggerimento colori fallito', err); toast('Non sono riuscita a leggere bene la foto'); } });
+document.getElementById('a_color_labels_clear_btn')?.addEventListener('click', ()=>{ const el=document.getElementById('a_color_labels'); if(el){ el.value=''; saveArticleDraft(); toast('Abbinamenti colore puliti'); } });
 renderDiagnostics();
 fillUiEditor();
 applyUiPrefs();
