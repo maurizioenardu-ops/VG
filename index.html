@@ -500,7 +500,7 @@ window.addEventListener('error',e=>{
         <div id="a_colore_hint" class="helper">Scrivi il colore normalmente.</div>
       </div>
       <div id="a_color_count_wrap">
-        <div class="k">Colori disponibili</div>
+        <div class="k" id="a_color_count_label">Colori disponibili</div>
         <input id="a_color_count" inputmode="numeric" autocomplete="off" placeholder="Es. 5"/>
         <div id="a_color_count_hint" class="helper" style="display:none">Se scegli Più colori, negli ordini il numero colore sarà obbligatorio.</div>
       </div>
@@ -987,14 +987,20 @@ function updateArticleColorModeUI(){
   const mode=String(document.getElementById('a_color_mode')?.value||'single');
   const singleWrap=document.getElementById('a_color_single_wrap');
   const countWrap=document.getElementById('a_color_count_wrap');
+  const countLabel=document.getElementById('a_color_count_label');
   const countHint=document.getElementById('a_color_count_hint');
   const colorHint=document.getElementById('a_colore_hint');
   const colorLabel=document.getElementById('a_colore_label');
   const labelsWrap=document.getElementById('a_color_labels_wrap');
   const countInput=document.getElementById('a_color_count');
   const colorInput=document.getElementById('a_colore');
+  const countValue=Math.max(0, parseInt(countInput?.value||0,10) || 0);
   if(singleWrap) singleWrap.style.display=mode==='multiple' ? 'none' : 'block';
-  if(countWrap) countWrap.style.gridColumn=mode==='multiple' ? '1 / -1' : '';
+  if(countWrap){
+    countWrap.style.display=mode==='multiple' ? 'block' : 'none';
+    countWrap.style.gridColumn=mode==='multiple' ? '1 / -1' : '';
+  }
+  if(countLabel) countLabel.textContent=mode==='multiple' ? `Disponibile in ${countValue>0 ? countValue : '...'} colori` : 'Colori disponibili';
   if(countHint) countHint.style.display=mode==='multiple' ? 'block' : 'none';
   if(labelsWrap) labelsWrap.style.display=mode==='multiple' ? 'block' : 'none';
   if(colorLabel) colorLabel.textContent='Colore';
@@ -4787,6 +4793,7 @@ function setArticleSocialPostsAuto(draft){
   setReadonlyArticlePost('a_post_ig', buildPostInstagram(draft));
 }
 function renderArtAutoFields(){
+  updateArticleColorModeUI();
   const code=document.getElementById('a_cod').value.trim();
   const usdRaw=document.getElementById('a_usd').value.trim();
   const hasCode=code!=='';
