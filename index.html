@@ -966,6 +966,7 @@ function getArticleColorCount(article){
 }
 function getArticleColorLabels(article){
   if(Array.isArray(article?.colorLabels)) return article.colorLabels.map(v=>normalizeSpaceText(v||'')).filter(Boolean);
+  if(typeof article?.colorLabels==='string') return parseColorLabelsInput(article.colorLabels, article?.colorCount||0);
   return [];
 }
 function parseColorLabelsInput(raw='', count=0){
@@ -3557,6 +3558,8 @@ function show(id, push=true){
   const el=document.getElementById(id);
   if(!el) return;
   el.style.display='flex';
+  const modal=el.querySelector('.modal');
+  if(modal) modal.scrollTop=0;
   activeModalId=id;
   scheduleModalTextareaFit(id);
   if(push) history.pushState({page:location.hash.replace('#','')||'home', modal:id},'', location.href);
@@ -5543,6 +5546,8 @@ async function openOrdEdit(id, prefillArticleId=null){
   await refreshOrdPhotoPreviewFromState();
   restoreOrderDraft(o?.id||'', prefillArticleId);
   show('mOrdEdit');
+  const ordModal=document.querySelector('#mOrdEdit .modal');
+  if(ordModal) ordModal.scrollTop=0;
 }
 function todayStr(){
   const d=new Date();
@@ -5647,8 +5652,7 @@ function renderOrdRows(){
   box.innerHTML=ordRows.map((r,i)=>{
     const needsColor=!!r?.richiedeNumeroColore && Number(r?.colorCount||0)>0;
     const colorUi=needsColor ? `<div class="helper" style="margin-top:8px">Numero colore obbligatorio</div><select data-role="rowColorNum" data-i="${i}" style="margin-top:6px">${buildOrderColorOptions(r.colorCount, r.numeroColore||'', r.colorLabels||[])}</select>` : (r?.colore ? `<div class="helper" style="margin-top:8px">Colore: ${esc(r.colore)}</div>` : '');
-    const selectedColorNote=(needsColor && r?.numeroColore && Array.isArray(r?.colorLabels)) ? normalizeSpaceText(r.colorLabels[Number(r.numeroColore)-1]||'') : '';
-    const priceLine=needsColor && r?.numeroColore ? `${money(r.prezzo||0)} • Colore ${esc(r.numeroColore)}${selectedColorNote ? ' - '+esc(selectedColorNote) : ''}` : money(r.prezzo||0);
+    const priceLine=needsColor && r?.numeroColore ? `${money(r.prezzo||0)} • Colore ${esc(r.numeroColore)}` : money(r.prezzo||0);
     return `<div class="row" style="grid-template-columns:1fr auto">
       <div><div class="t">${esc(r.codice)} • ${esc(r.modello)}</div><div class="s">${priceLine}</div>${colorUi}</div>
       <button class="btn danger" data-action="delRow" data-i="${i}">X</button>
@@ -6053,16 +6057,10 @@ document.addEventListener('click',(ev)=>{
   if(a==='track17View') return openTrack17();
   if(a==='openParcelView') return openTrackParcel();
   if(a==='openMonthSales') return openMonthSales(Number(el.dataset.year), Number(el.dataset.month), el.dataset.label||'');
-  if(a==='addArtToOrder'){
-    const id=el.dataset.id;
-    if(!id) return;
-    go('ordini');
-    return requestAnimationFrame(()=>openOrdEdit(null, id));
-  }
+  if(a==='addArtToOrder'){ const id=el.dataset.id; if(id) return openOrdEdit(null, id); return; }
   if(a==='addArtToOrderFromView'){
     if(!currentArtId){ toast('Articolo non trovato'); return; }
-    hide('mArtView');
-    go('ordini');
+    hide('mArtView', true);
     requestAnimationFrame(()=>openOrdEdit(null, currentArtId));
     return;
   }
@@ -6492,7 +6490,7 @@ async function pullCloudToLocal(opts={}){
         const pulledCostoUsd=firstFiniteNumber(meta.costoUsd, local?.costoUsd, 0);
         const pulledCostoEur=firstFiniteNumber(p.prezzo_acquisto, p.costo, p.costo_eur, meta.costoEur, local?.costoEur, 0);
         const pulledPrezzoVendita=firstFiniteNumber(p.prezzo_vendita, p.prezzo, p.prezzo_vendita_iva, meta.prezzoVendita, meta.prezzo, local?.prezzoVendita, 0);
-        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:meta.colore||p.colore||local?.colore||'',colorMode:(String(meta.colorMode||meta.colorType||local?.colorMode||'').toLowerCase()==='multiple' || Number(meta.colorCount||local?.colorCount||0)>0) ? 'multiple' : 'single',colorType:(String(meta.colorMode||meta.colorType||local?.colorMode||'').toLowerCase()==='multiple' || Number(meta.colorCount||local?.colorCount||0)>0) ? 'multiple' : 'single',colorCount:Math.max(0, parseInt(meta.colorCount||local?.colorCount||0,10) || 0),colorLabels:Array.isArray(meta.colorLabels)?meta.colorLabels.map(v=>normalizeSpaceText(v||'')).filter(Boolean):(Array.isArray(local?.colorLabels)?local.colorLabels.map(v=>normalizeSpaceText(v||'')).filter(Boolean):[]),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,6):[],_ts:Date.now(),_cloud:true};
+        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:meta.colore||p.colore||local?.colore||'',colorMode:(String(meta.colorMode||meta.colorType||'').toLowerCase()==='multiple' || Number(meta.colorCount||0)>0) ? 'multiple' : getArticleColorMode(local||{}),colorType:(String(meta.colorMode||meta.colorType||'').toLowerCase()==='multiple' || Number(meta.colorCount||0)>0) ? 'multiple' : getArticleColorMode(local||{}),colorCount:Math.max(0, parseInt(meta.colorCount||local?.colorCount||0,10)||0),colorLabels:Array.isArray(meta.colorLabels)?meta.colorLabels.map(v=>normalizeSpaceText(v||'')).filter(Boolean):getArticleColorLabels(local||{}),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,6):[],_ts:Date.now(),_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(righeOrd); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:righeOrd,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,12):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,12):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(righeOrd, scontoCliente),_ts:Date.now(),_cloud:true}; })
