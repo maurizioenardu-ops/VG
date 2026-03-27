@@ -554,7 +554,7 @@ window.addEventListener('error',e=>{
     <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple/><div class="small" style="margin-top:6px">Puoi selezionare più foto insieme (massimo 6 totali per articolo).</div></div>
+    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple/><div class="small" style="margin-top:6px">Puoi selezionare più foto insieme (massimo 12 totali per articolo).</div></div>
     <div class="actions compact" style="margin-top:8px"><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div>
     <div id="a_photo_prev" class="thumbs"></div>
   </div>
@@ -776,8 +776,8 @@ function normalizeDBShape(o){
     promoAttiva:(typeof x?.promoAttiva==='boolean') ? x.promoAttiva : !!x?.promo_on,
     prezzoPromo:firstFiniteNumber(x?.prezzoPromo, x?.promoPrezzo, x?.promo_price, 0),
     scadenzaPromo:normalizeSpaceText(x?.scadenzaPromo||x?.promoScadenza||x?.promo_date||''),
-    foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,6):[],
-    photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,6):[]
+    foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,12):[],
+    photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,12):[]
   })).map(x=>({ ...x, colorMode:(x.colorMode==='multiple' && x.colorCount>0)?'multiple':'single' }));
   db.clienti=db.clienti.map(x=>({
     ...x,
@@ -1310,8 +1310,8 @@ function mergeArticleRecords(prev,item){
     codice:normalizeSpaceText(item?.codice||item?.sku||''),
     brand:normalizeSpaceText(item?.brand||item?.marca||''),
     categoria:normalizeSpaceText(item?.categoria||''),
-    foto:Array.isArray(item?.foto)?item.foto.filter(Boolean).slice(0,6):[],
-    photoIds:Array.isArray(item?.photoIds)?item.photoIds.filter(Boolean).slice(0,6):[]
+    foto:Array.isArray(item?.foto)?item.foto.filter(Boolean).slice(0,12):[],
+    photoIds:Array.isArray(item?.photoIds)?item.photoIds.filter(Boolean).slice(0,12):[]
   };
   const nextWins=recordRichnessScore(item) >= recordRichnessScore(prev);
   const merged=nextWins ? {...prev, ...item} : {...item, ...prev};
@@ -1325,8 +1325,8 @@ function mergeArticleRecords(prev,item){
   merged.promoAttiva=(typeof merged?.promoAttiva==='boolean') ? merged.promoAttiva : ((typeof item?.promoAttiva==='boolean') ? item.promoAttiva : ((typeof prev?.promoAttiva==='boolean') ? prev.promoAttiva : false));
   merged.prezzoPromo=firstFiniteNumber(merged?.prezzoPromo, merged?.promoPrezzo, item?.prezzoPromo, item?.promoPrezzo, prev?.prezzoPromo, prev?.promoPrezzo, 0);
   merged.scadenzaPromo=normalizeSpaceText(merged?.scadenzaPromo||merged?.promoScadenza||item?.scadenzaPromo||item?.promoScadenza||prev?.scadenzaPromo||prev?.promoScadenza||'');
-  merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]).slice(0,6);
-  merged.photoIds=[...new Set([...(prev?.photoIds||[]), ...(item?.photoIds||[])].filter(Boolean).map(String))].slice(0,6);
+  merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]).slice(0,12);
+  merged.photoIds=[...new Set([...(prev?.photoIds||[]), ...(item?.photoIds||[])].filter(Boolean).map(String))].slice(0,12);
   return merged;
 }
 function dedupeArticoliWithMap(list=[]){ return dedupeSemanticList(list, normalizeArticleDedupKey, mergeArticleRecords); }
@@ -1774,7 +1774,7 @@ async function getArticlePics(a){
     out.push(clean);
   };
   if(Array.isArray(a.foto) && a.foto.length){
-    for(const path of a.foto.slice(0,6)){
+    for(const path of a.foto.slice(0,12)){
       const url=await getPublicFotoUrl(path);
       if(url) pushPic(url);
       if(out.length>=6) return out.slice(0,6);
@@ -1800,7 +1800,7 @@ async function getArticleCloudSyncSources(a){
     out.push(clean);
   };
   if(Array.isArray(a.foto) && a.foto.length){
-    for(const src of a.foto.slice(0,6)){
+    for(const src of a.foto.slice(0,12)){
       const clean=String(src||'').trim();
       if(!clean) continue;
       if(/^data:|^https?:\/\//i.test(clean)) pushRef(clean);
@@ -2213,7 +2213,7 @@ async function migratePhotosToIndexedDB(){
   for(const a of db.articoli||[]){
     if(Array.isArray(a.foto) && a.foto.length && (!Array.isArray(a.photoIds) || !a.photoIds.length)){
       a.photoIds=[];
-      for(const src of a.foto.slice(0,6)){
+      for(const src of a.foto.slice(0,12)){
         const pid='ph_'+uid();
         await idbSet(pid,src);
         a.photoIds.push(pid);
@@ -2485,6 +2485,15 @@ function stripBrandFromText(text, brand){
 }
 function normalizePostLine(text, brand){
   return stripBrandFromText(text, brand).replace(/\s+/g,' ').trim();
+}
+function smartSentenceCase(text){
+  const raw=String(text||'').replace(/\s+/g,' ').trim();
+  if(!raw) return '';
+  const tokenized=raw.replace(/[A-Za-zÀ-ÖØ-öø-ÿ0-9]+/g, token=>{
+    if(/^[A-Z0-9]{2,4}$/.test(token)) return token;
+    return token.toLowerCase();
+  });
+  return tokenized.replace(/^([\s"'“”‘’(\[]*)([A-Za-zÀ-ÖØ-öø-ÿ])/, (m,p1,p2)=>p1+p2.toUpperCase());
 }
 function uniquePostLines(lines=[]){
   const out=[];
@@ -3342,7 +3351,7 @@ function buildPostFacebook(a){
   ]) || 'Per info scrivimi in privato 📩';
   const lines=[...promoPostIntroLines(a)];
   if(lines.length) lines.push('');
-  if(modelLine) lines.push(modelLine);
+  if(modelLine) lines.push(smartSentenceCase(modelLine));
   const seen = new Set();
   const pushUnique = (value)=>{
     const txt = compactPostValue(value||'');
@@ -3352,10 +3361,10 @@ function buildPostFacebook(a){
     seen.add(key);
     lines.push(txt);
   };
-  pushUnique(variante);
-  pushUnique(materiale);
-  if(misura) lines.push(`Mis. ${misura}`);
-  if(colore) lines.push(`Colore: ${colore}`);
+  pushUnique(smartSentenceCase(variante));
+  pushUnique(smartSentenceCase(materiale));
+  if(misura) lines.push(`Mis. ${smartSentenceCase(misura)}`);
+  if(colore) lines.push(`Colore: ${smartSentenceCase(colore)}`);
   const prezzoFacebook = formatPostPrezzoVendita(currentPrice(a));
   if(prezzoFacebook) lines.push(prezzoFacebook);
   lines.push(`cod. ${a.codice}`);
@@ -4626,7 +4635,7 @@ async function repairArchive(){
   for(const a of db.articoli||[]){
     if(Array.isArray(a.foto) && a.foto.length){
       if(!Array.isArray(a.photoIds)) a.photoIds=[];
-      for(const src of a.foto.slice(0,6)){
+      for(const src of a.foto.slice(0,12)){
         const pid='ph_'+uid();
         await idbSet(pid,src);
         a.photoIds.push(pid);
@@ -4641,7 +4650,7 @@ async function repairArchive(){
       seen.add(id);
       uniq.push(id);
     }
-    a.photoIds=uniq.slice(0,6);
+    a.photoIds=uniq.slice(0,12);
     a.photoIds.forEach(id=>referenced.add(String(id)));
   }
   const keys=await idbListKeys().catch(()=>[]);
@@ -4856,7 +4865,7 @@ function revokeObjectUrls(urls){
 async function refreshArtPhotoPreviewFromInput(){
   const input=document.getElementById('a_photo');
   if(!input) return;
-  const maxNew=Math.max(0, 6 - (Array.isArray(currentArtExistingPics)?currentArtExistingPics.length:0));
+  const maxNew=Math.max(0, 12 - (Array.isArray(currentArtExistingPics)?currentArtExistingPics.length:0));
   const files=Array.from(input.files||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
   if(files.length>maxNew){
     toast(`Puoi aggiungere ancora ${maxNew} foto`);
@@ -5071,8 +5080,8 @@ async function duplicateCurrentArticle(sourceId=null){
   currentArtId=null;
   currentArtPhotosCleared=false;
   currentArtDuplicateData={
-    foto: Array.isArray(clone?.foto) ? clone.foto.filter(Boolean).slice(0,6) : [],
-    photoIds: Array.isArray(clone?.photoIds) ? clone.photoIds.filter(Boolean).slice(0,6) : []
+    foto: Array.isArray(clone?.foto) ? clone.foto.filter(Boolean).slice(0,12) : [],
+    photoIds: Array.isArray(clone?.photoIds) ? clone.photoIds.filter(Boolean).slice(0,12) : []
   };
   hide('mArtView', true);
   document.getElementById('artEditTitle').textContent='Duplica articolo';
@@ -5173,7 +5182,7 @@ async function saveArt(){
       obj.foto = Array.isArray(obj.foto) ? obj.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')) : [];
       obj.photoIds = Array.isArray(obj.photoIds) ? obj.photoIds.filter(Boolean) : [];
       const existingCount=Math.max((obj.foto||[]).length, (obj.photoIds||[]).length);
-      const maxNew=Math.max(0, 6 - existingCount);
+      const maxNew=Math.max(0, 12 - existingCount);
       const filesToSave=selectedFiles.slice(0,maxNew);
       if(selectedFiles.length>maxNew) photoUploadWarning=`Caricate ${maxNew} foto, limite massimo raggiunto`;
 
@@ -5199,7 +5208,7 @@ async function saveArt(){
             }
           }
         }
-        obj.photoIds=[...new Set([...(obj.photoIds||[]), ...localPhotoIds])].slice(0,6);
+        obj.photoIds=[...new Set([...(obj.photoIds||[]), ...localPhotoIds])].slice(0,12);
       }
     }
     obj._ts=Date.now();
