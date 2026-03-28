@@ -4021,7 +4021,7 @@ function renderDashboardAgenda(){
   const today=agendaDayOffset(0);
   box.innerHTML=items.slice(0,8).map(item=>{
     const stateClass=item.fatto ? 'done' : (String(item.data||'')<today ? 'overdue' : '');
-    return `<div class="agendaItem ${stateClass}"><div class="agendaDot"></div><div><div class="agendaTitle">${esc(item.testo)}</div><div class="agendaMeta">${esc(agendaDateLabel(item.data))}</div></div><div class="agendaActions"><button class="agendaBtn" type="button" data-action="toggleAgendaDone" data-id="${esc(item.id)}">${item.fatto?'Riapri':'Fatto'}</button><button class="agendaBtn" type="button" data-action="deleteAgenda" data-id="${esc(item.id)}">Elimina</button></div></div>`;
+    return `<div class="agendaItem ${stateClass}"><div class="agendaDot"></div><div><div class="agendaTitle">${esc(item.testo)}</div><div class="agendaMeta">${esc(agendaDateLabel(item.data))}</div></div><div class="agendaActions"><button class="agendaBtn" type="button" onclick="agendaToggleById('${esc(item.id)}')">${item.fatto?'Riapri':'Fatto'}</button><button class="agendaBtn" type="button" onclick="agendaDeleteById('${esc(item.id)}')">Elimina</button></div></div>`;
   }).join('');
 }
 function renderDashboardUrgent(){
@@ -4044,6 +4044,36 @@ function renderDashboardUrgent(){
     return;
   }
   box.innerHTML=urgent.slice(0,6).map(item=>`<div class="urgentItem"><div class="urgentDot"></div><div><div class="urgentTitle">${esc(item.title)}</div><div class="urgentMeta">${esc(item.meta)}</div></div><div class="agendaMeta">Scadenza</div></div>`).join('');
+}
+
+function persistAgendaOnly(db){
+  try{ localStorage.setItem(AGENDA_KEY, JSON.stringify(Array.isArray(db?.agenda)?db.agenda:[])); }catch(_e){}
+}
+function agendaToggleById(id){
+  const key=String(id||'').trim();
+  if(!key) return;
+  const db=loadDB();
+  const item=(Array.isArray(db.agenda)?db.agenda:[]).find(x=>String(x.id)===key);
+  if(!item) return;
+  item.fatto=!item.fatto;
+  persistAgendaOnly(db);
+  if(saveDB(db)){
+    renderHome();
+    renderDashboardUrgent();
+    renderDashboardAgenda();
+  }
+}
+function agendaDeleteById(id){
+  const key=String(id||'').trim();
+  if(!key) return;
+  const db=loadDB();
+  db.agenda=(Array.isArray(db.agenda)?db.agenda:[]).filter(x=>String(x.id)!==key);
+  persistAgendaOnly(db);
+  if(saveDB(db)){
+    renderHome();
+    renderDashboardUrgent();
+    renderDashboardAgenda();
+  }
 }
 
 function buildDashboardTips(db, salesPerWeek, openOrders, promoCount){
@@ -6507,22 +6537,8 @@ document.addEventListener('click',(ev)=>{
   if(a==='openParcelView') return openTrackParcel();
   if(a==='openMonthSales') return openMonthSales(Number(el.dataset.year), Number(el.dataset.month), el.dataset.label||'');
   if(a==='addAgenda') return saveAgendaQuick(document.getElementById('agendaText')?.value||'', document.getElementById('agendaDate')?.value||'');
-  if(a==='toggleAgendaDone'){
-    const id=String(el.dataset.id||'');
-    const db=loadDB();
-    const item=(db.agenda||[]).find(x=>String(x.id)===id);
-    if(!item) return;
-    item.fatto=!item.fatto;
-    if(saveDB(db)) renderHome();
-    return;
-  }
-  if(a==='deleteAgenda'){
-    const id=String(el.dataset.id||'');
-    const db=loadDB();
-    db.agenda=(db.agenda||[]).filter(x=>String(x.id)!==id);
-    if(saveDB(db)) renderHome();
-    return;
-  }
+  if(a==='toggleAgendaDone') return agendaToggleById(el.dataset.id||'');
+  if(a==='deleteAgenda') return agendaDeleteById(el.dataset.id||'');
   if(a==='addArtToOrder'){ const id=el.dataset.id; if(id) return openOrdEdit(currentOrdId||null, id); return; }
   if(a==='addArtToOrderFromView'){
     const targetId=currentArtId || String(document.getElementById('vCod')?.textContent||'').trim();
