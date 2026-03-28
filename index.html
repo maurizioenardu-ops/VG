@@ -105,7 +105,7 @@ select[multiple]{min-height:150px}
 .heroSpot .title{font-size:22px;line-height:1.05;font-weight:1000;margin:0 0 6px}
 .heroSpot .desc{font-size:13px;color:#475569;line-height:1.35;margin:0 0 12px}
 .sparkTitle{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px}.sparkTitle span{font-size:11px;text-transform:uppercase;color:#64748b;font-weight:1000}
-.sparkBars{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:end;height:92px}.sparkCol{display:flex;flex-direction:column;align-items:center;gap:6px}.sparkBarWrap{height:68px;width:100%;display:flex;align-items:flex-end}.sparkBarBtn{appearance:none;border:0;background:transparent;padding:0;margin:0;width:100%;height:100%;display:flex;align-items:flex-end;cursor:pointer}.sparkBarBtn:focus-visible{outline:2px solid var(--navy);outline-offset:3px;border-radius:16px}.sparkBar{width:100%;border-radius:14px 14px 8px 8px;background:linear-gradient(180deg,#60a5fa,#1d4ed8)}.sparkBar.soft{background:linear-gradient(180deg,#fbbf24,#f59e0b)}.sparkLbl{font-size:10px;color:#64748b;font-weight:900}.shipAlert{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 12px;cursor:pointer}.shipAlerts{display:flex;flex-direction:column;gap:10px}.shipAlert .meta{font-size:12px;color:#475569;font-weight:900;margin-top:4px}.shipAlertEmpty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:12px;color:var(--muted)}.quickCard .h2{margin-bottom:8px}.substats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.micro{background:#f8fafc;border:1px solid #edf2f7;border-radius:14px;padding:10px 12px}.micro[data-go],.heroSpot[data-action],#dashList .row[data-action],#dashTips .row[data-action],.stat[data-go]{cursor:pointer}.micro .k{font-size:10px}.micro .v{font-size:16px;margin-top:2px}.stat .v.big{font-size:24px}.stat .sub{margin-top:4px;font-size:11px;color:#64748b;font-weight:800}
+.sparkBars{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:end;height:92px}.sparkCol{display:flex;flex-direction:column;align-items:center;gap:6px}.sparkBarWrap{height:68px;width:100%;display:flex;align-items:flex-end}.sparkBarBtn{appearance:none;border:0;background:transparent;padding:0;margin:0;width:100%;height:100%;display:flex;align-items:flex-end;cursor:pointer}.sparkBarBtn:focus-visible{outline:2px solid var(--navy);outline-offset:3px;border-radius:16px}.sparkBar{width:100%;border-radius:14px 14px 8px 8px;background:linear-gradient(180deg,#60a5fa,#1d4ed8)}.sparkBar.soft{background:linear-gradient(180deg,#fbbf24,#f59e0b)}.sparkLbl{font-size:10px;color:#64748b;font-weight:900}.shipAlert{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 12px;cursor:pointer}.shipAlerts{display:flex;flex-direction:column;gap:10px}.shipAlert .meta{font-size:12px;color:#475569;font-weight:900;margin-top:4px}.shipAlertEmpty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:12px;color:var(--muted)}.quickCard .h2{margin-bottom:8px}.substats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.micro{background:#f8fafc;border:1px solid #edf2f7;border-radius:14px;padding:10px 12px}.micro[data-go],.heroSpot[data-action],#dashList .row[data-action],#dashTips .row[data-action],.stat[data-go]{cursor:pointer}.micro .k{font-size:10px}.micro .v{font-size:16px;margin-top:2px}.stat .v.big{font-size:24px}.stat .sub{margin-top:4px;font-size:11px;color:#64748b;font-weight:800}.agendaComposer{display:grid;grid-template-columns:1fr 140px auto auto;gap:8px;align-items:center}.agendaMiniBtn{padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:#fff;font-weight:900}.agendaList{display:flex;flex-direction:column;gap:8px}.agendaItem{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:16px;background:#fff}.agendaDot{width:12px;height:12px;border-radius:999px;background:#f59e0b;margin-top:6px}.agendaItem.done .agendaDot{background:#16a34a}.agendaItem.overdue .agendaDot{background:#dc2626}.agendaTitle{font-weight:900;color:#0f172a}.agendaMeta{font-size:12px;color:#64748b;font-weight:800;margin-top:2px}.agendaActions{display:flex;gap:6px;align-items:center}.agendaBtn{padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:900}.agendaEmpty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:12px;color:var(--muted)}@media (max-width:760px){.agendaComposer{grid-template-columns:1fr 1fr}.agendaComposer .full{grid-column:1/-1}}
 
 #mArtView .modal,#mArtEdit .modal{max-width:760px}
 
@@ -278,8 +278,14 @@ window.addEventListener('error',e=>{
     </div>
 
     <div class="card" style="margin-top:12px">
-      <div class="h2">Consigli del momento</div>
-      <div id="dashTips" class="list"></div>
+      <div class="h2">Agenda e scadenze</div>
+      <div class="agendaComposer" style="margin-top:8px">
+        <input id="agendaText" class="full" placeholder="Scrivi cosa devi fare..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
+        <input id="agendaDate" type="date" autocomplete="off"/>
+        <button class="agendaMiniBtn" type="button" data-action="agendaPlus10">+10g</button>
+        <button class="agendaMiniBtn" type="button" data-action="addAgenda">Aggiungi</button>
+      </div>
+      <div id="dashAgenda" class="agendaList" style="margin-top:10px"></div>
     </div>
   </div>
 
@@ -742,11 +748,11 @@ window.addEventListener('error',e=>{
         <div class="k" style="margin-top:10px">Aggiungi articoli</div>
         <select id="o_art_pick"><option value="">Seleziona articolo</option></select>
         <select id="o_art" multiple hidden></select>
-        <div class="helper">Cerca sopra per codice, nome o qualità e scegli dalla tendina.</div>
-        <div id="o_art_selected_summary" class="orderSelectedSummary empty">Scegli un articolo dalla tendina.</div>
+        <div class="helper">Cerca per codice, nome, qualità o colore e scegli dalla tendina.</div>
+        <div id="o_art_selected_summary" class="orderSelectedSummary empty">Cerca e scegli un articolo dalla tendina.</div>
       </div>
       <div>
-        <div><div class="k">Misura scarpe</div><select id="o_mis" autocomplete="off"><option value="">Non necessaria</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option></select><div id="o_mis_hint" class="helper">Se ci sono scarpe, imposta qui la misura per tutte.</div></div>
+        <div><div class="k">Misura</div><select id="o_mis" autocomplete="off"><option value="">Non necessaria</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option></select><div id="o_mis_hint" class="helper">Usala solo se nell'ordine ci sono scarpe.</div></div>
       </div>
     </div>
     <div style="margin-top:10px;display:none" id="o_color_global_wrap"><div class="k">Numero colore</div><select id="o_color_num"></select><div id="o_color_hint" class="helper">Obbligatorio quando l'articolo usa colori numerati.</div></div>
@@ -757,7 +763,7 @@ window.addEventListener('error',e=>{
 
   <div class="orderSection">
     <div class="h3">Foto ordine</div>
-    <div><div class="k">Aggiungi foto</div><input id="o_photo" type="file" accept="image/*" multiple/><div class="small" style="margin-top:6px">Le foto degli articoli collegati vengono copiate in automatico. Se l'articolo non c'è o è una variante, puoi aggiungerle a mano.</div><div id="o_photo_prev" class="orderPhotoGrid"></div></div>
+    <div><div class="k">Aggiungi foto</div><input id="o_photo" type="file" accept="image/*"/><div class="small" style="margin-top:6px">Per ogni articolo viene copiata una sola foto, cercando quella del colore scelto. Se serve, puoi aggiungerne una manuale.</div><div id="o_photo_prev" class="orderPhotoGrid"></div></div>
   </div>
 
   <div class="actions bottomMini">
@@ -813,7 +819,7 @@ const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maxi
 const round5=n=>Math.round(n/5)*5;
 
 function defDB(){
-  return {version:'v6.6',articoli:[],clienti:[],ordini:[],categorie:[],brands:[],createdAt:new Date().toISOString()};
+  return {version:'v6.7',articoli:[],clienti:[],ordini:[],categorie:[],brands:[],agenda:[],createdAt:new Date().toISOString()};
 }
 function normalizeDBShape(o){
   if(!o || typeof o!=='object') return defDB();
@@ -824,6 +830,7 @@ function normalizeDBShape(o){
     ordini:Array.isArray(o.ordini)?o.ordini:[],
     categorie:Array.isArray(o.categorie)?o.categorie:[],
     brands:Array.isArray(o.brands)?o.brands:[],
+    agenda:Array.isArray(o.agenda)?o.agenda:[],
     createdAt:o.createdAt||new Date().toISOString()
   };
   db.articoli=db.articoli.map(x=>({
@@ -856,6 +863,13 @@ function normalizeDBShape(o){
     provincia:normalizeSpaceText(x?.provincia||x?.province||''),
     note:typeof x?.note==='string'?x.note:(x?.note||'')
   }));
+  db.agenda=db.agenda.map(x=>({
+    id:String(x?.id||uid()),
+    testo:normalizeSpaceText(x?.testo||x?.title||''),
+    data:normalizeSpaceText(x?.data||x?.date||''),
+    fatto:!!x?.fatto,
+    createdAt:x?.createdAt||new Date().toISOString()
+  })).filter(x=>x.testo && x.data);
   db.ordini=db.ordini.map(x=>{
     const righe=Array.isArray(x?.righe)?x.righe.map(r=>({
       ...r,
@@ -3870,6 +3884,64 @@ function pickArticleToSuggest(db, salesPerWeek){
   const pick=pool[Math.abs(daySeed) % pool.length] || items[0];
   return {article:pick, reason};
 }
+function agendaDayOffset(days){
+  const d=new Date();
+  d.setDate(d.getDate()+Number(days||0));
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function formatAgendaDate(v){
+  if(!v) return '-';
+  const d=new Date(String(v)+'T12:00:00');
+  if(isNaN(d)) return v;
+  return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+function agendaDateLabel(v){
+  const today=agendaDayOffset(0);
+  const tomorrow=agendaDayOffset(1);
+  if(v===today) return 'Oggi';
+  if(v===tomorrow) return 'Domani';
+  const d=new Date(String(v)+'T12:00:00');
+  const diff=Math.round((d - new Date(today+'T12:00:00'))/86400000);
+  if(diff>1 && diff<=14) return `Tra ${diff} giorni`;
+  if(diff<0) return `Scaduta il ${formatAgendaDate(v)}`;
+  return formatAgendaDate(v);
+}
+function saveAgendaQuick(textValue, dateValue){
+  const testo=normalizeSpaceText(textValue||'');
+  const data=normalizeSpaceText(dateValue||'');
+  if(!testo){ toast('Scrivi cosa devi fare'); return false; }
+  if(!data){ toast('Scegli una data'); return false; }
+  const db=loadDB();
+  db.agenda=Array.isArray(db.agenda)?db.agenda:[];
+  db.agenda.unshift({id:uid(), testo, data, fatto:false, createdAt:new Date().toISOString()});
+  if(!saveDB(db)) return false;
+  const textEl=document.getElementById('agendaText');
+  if(textEl) textEl.value='';
+  renderHome();
+  toast('Scadenza aggiunta');
+  return true;
+}
+function renderDashboardAgenda(){
+  const db=loadDB();
+  const box=document.getElementById('dashAgenda');
+  const dateEl=document.getElementById('agendaDate');
+  if(dateEl && !dateEl.value) dateEl.value=agendaDayOffset(0);
+  if(!box) return;
+  const items=(Array.isArray(db.agenda)?db.agenda:[]).slice().sort((a,b)=>{
+    if(!!a.fatto!==!!b.fatto) return a.fatto?1:-1;
+    return String(a.data||'').localeCompare(String(b.data||'')) || String(b.createdAt||'').localeCompare(String(a.createdAt||''));
+  });
+  if(!items.length){
+    box.innerHTML='<div class="agendaEmpty">Nessuna scadenza. Puoi segnarti cose da fare, richiami clienti o promemoria tra 10 giorni.</div>';
+    return;
+  }
+  const today=agendaDayOffset(0);
+  box.innerHTML=items.slice(0,8).map(item=>{
+    const stateClass=item.fatto ? 'done' : (String(item.data||'')<today ? 'overdue' : '');
+    return `<div class="agendaItem ${stateClass}"><div class="agendaDot"></div><div><div class="agendaTitle">${esc(item.testo)}</div><div class="agendaMeta">${esc(agendaDateLabel(item.data))}</div></div><div class="agendaActions"><button class="agendaBtn" type="button" data-action="toggleAgendaDone" data-id="${esc(item.id)}">${item.fatto?'Riapri':'Fatto'}</button><button class="agendaBtn" type="button" data-action="deleteAgenda" data-id="${esc(item.id)}">X</button></div></div>`;
+  }).join('');
+}
+
 function buildDashboardTips(db, salesPerWeek, openOrders, promoCount){
   const tips=[];
   const artPick=pickArticleToSuggest(db, salesPerWeek);
@@ -3989,11 +4061,7 @@ function renderHome(){
   const last=ordini.slice().sort((a,b)=>(b._ts||0)-(a._ts||0))[0];
   const promoItems=db.articoli.filter(promoValid).sort((a,b)=>String(a.scadenzaPromo).localeCompare(String(b.scadenzaPromo)));
   const exp=promoItems[0];
-  const tips=buildDashboardTips(db, salesPerWeek, inCorso, promoItems.length);
-  const tipsBox=document.getElementById('dashTips');
-  if(tipsBox){
-    tipsBox.innerHTML=tips.map(t=>`<div class="row" data-action="${esc(t.action||'openAllArticles')}" ${t.articleId?`data-id="${esc(t.articleId)}"`:''} style="grid-template-columns:1fr"><div class="main"><div class="t">${esc(t.title)}</div><div class="s">${esc(t.text)}</div></div></div>`).join('') || '<div class="small">Nessun consiglio disponibile.</div>';
-  }
+  renderDashboardAgenda();
   const lines=[
     {label:last?`Ultimo ordine: ${last.stato} • ${last.data||''}`:'Ultimo ordine: nessuno', action:'ordini'},
     {label:`Promozioni: ${promoItems.length}${exp?` attive • ${[exp.brand,exp.modello].filter(Boolean).join(' ')}`:' attive'}`, action:'openPromoArticles'},
@@ -4933,7 +5001,7 @@ async function refreshArtPhotoPreviewFromInput(){
   const maxNew=Math.max(0, 12 - (Array.isArray(currentArtExistingPics)?currentArtExistingPics.length:0));
   const files=Array.from(input.files||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
   if(files.length>maxNew){
-    toast(`Puoi aggiungere ancora ${maxNew} foto`);
+    toast(`Puoi aggiungere ancora ${maxNew} foto manuale`);
     const dt=new DataTransfer();
     files.slice(0,maxNew).forEach(f=>dt.items.add(f));
     input.files=dt.files;
@@ -5387,6 +5455,13 @@ function mergeUniquePics(){
   });
   return out.slice(0,12);
 }
+function pickOrderRowPhoto(art, row, artPics){
+  const pics=Array.isArray(artPics)?artPics.filter(Boolean):[];
+  if(!pics.length) return '';
+  const colorIndex=Math.max(0, (parseInt(row?.numeroColore||'0',10) || 1) - 1);
+  if(!!row?.richiedeNumeroColore && pics[colorIndex]) return pics[colorIndex];
+  return pics[0] || '';
+}
 async function getOrderArticleSnapshotPhotos(rows, db){
   const pics=[];
   for(const r of (rows||[])) {
@@ -5394,10 +5469,9 @@ async function getOrderArticleSnapshotPhotos(rows, db){
     if(!art) continue;
     try{
       const artPics=await getArticlePics(art);
-      for(const src of (artPics||[])) {
-        if(src && !pics.includes(src)) pics.push(src);
-        if(pics.length>=12) return pics;
-      }
+      const picked=pickOrderRowPhoto(art, r, artPics);
+      if(picked && !pics.includes(picked)) pics.push(picked);
+      if(pics.length>=12) return pics;
     }catch(err){ console.warn('Lettura foto articolo per ordine fallita', err); }
   }
   return pics.slice(0,12);
@@ -5408,10 +5482,10 @@ async function refreshOrdPhotoPreviewFromState(){
   if(!box) return;
   const db=loadDB();
   const articlePics=await getOrderArticleSnapshotPhotos(ordRows, db);
-  const maxNew=Math.max(0, 12 - mergeUniquePics(articlePics, currentOrdExistingManualPhotos).length);
+  const maxNew=Math.max(0, 1 - currentOrdExistingManualPhotos.length);
   const files=Array.from(input?.files||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
   if(input && files.length>maxNew){
-    toast(`Puoi aggiungere ancora ${maxNew} foto`);
+    toast(`Puoi aggiungere ancora ${maxNew} foto manuale`);
     const dt=new DataTransfer();
     files.slice(0,maxNew).forEach(f=>dt.items.add(f));
     input.files=dt.files;
@@ -5582,7 +5656,7 @@ function updateOrderShoeSizeState(){
   const firstOpt=sel.querySelector('option[value=""]');
   if(firstOpt) firstOpt.textContent=needed ? 'Seleziona misura' : 'Non necessaria';
   if(!needed && !ORDER_SHOE_SIZES.includes(String(sel.value||''))) sel.value='';
-  if(hint) hint.textContent=needed ? 'Nelle righe con scarpe la misura è obbligatoria. Puoi impostarla sopra o direttamente nella riga articolo.' : 'Se ci sono scarpe, la misura vale per tutte le righe scarpe dell\'ordine.';
+  if(hint) hint.textContent=needed ? 'Se ci sono scarpe, scegli qui una sola misura valida per tutte le righe scarpe.' : 'Misura non necessaria se non ci sono scarpe.';
   return needed;
 }
 async function openOrdEdit(id, prefillArticleId=null){
@@ -5665,7 +5739,7 @@ function renderSelectedOrderArticlesSummary(){
   const a=(db.articoli||[]).find(x=>String(x.id)===id);
   if(!a){
     box.className='orderSelectedSummary empty';
-    box.textContent='Scegli un articolo dalla tendina.';
+    box.textContent='Cerca e scegli un articolo dalla tendina.';
     return;
   }
   const model=((a.modello||a.brand||'').trim() || 'Articolo');
@@ -5787,14 +5861,14 @@ function renderOrdRows(){
     if(isShoe) badges.push(`<span class="orderBadge">Misura ${esc(globalSize||'da scegliere')}</span>`);
     if(!needsColor && r?.colore) badges.push(`<span class="orderBadge">Colore ${esc(r.colore)}</span>`);
     const colorUi=needsColor ? `<div class="orderInlineField"><label>Colore</label><select data-role="rowColorNum" data-i="${i}">${buildOrderColorOptions(r.colorCount, r.numeroColore||'', r.colorLabels||[])}</select></div>` : '';
-    const sizeUi=isShoe ? `<div class="orderInlineField"><label>Misura</label><select data-role="rowSizeSync" data-i="${i}">${buildOrderSizeOptions(globalSize)}</select><div class="helper" style="margin:4px 0 0">Vale per tutte le scarpe.</div></div>` : '';
+    const sizeUi='';
     const meta=[art?.brand, displayCategoryValue(art?.categoria||r?.categoria||''), art?.qualita].filter(Boolean).map(v=>esc(v)).join(' • ');
     return `<div class="orderCard">
       <div>
         <div class="title">${esc(r.modello||art?.modello||'Articolo selezionato')}</div>
         <div class="meta">${meta || 'Riga ordine'}</div>
         <div class="orderBadges">${badges.join('')}</div>
-        <div class="orderRowControls">${colorUi}${sizeUi}</div>
+        <div class="orderRowControls">${colorUi}</div>
       </div>
       <button class="orderRemoveBtn" type="button" aria-label="Rimuovi articolo" title="Rimuovi articolo" data-action="delRow" data-i="${i}">Rimuovi</button>
     </div>`;
@@ -5821,16 +5895,6 @@ function renderOrdRows(){
         updateOrderTotalsPreview();
         saveOrderDraft();
       }
-    });
-  });
-  box.querySelectorAll('[data-role="rowSizeSync"]').forEach(sel=>{
-    sel.addEventListener('change',()=>{
-      const val=String(sel.value||'').trim();
-      ensureOrderSizeOption(val);
-      const main=document.getElementById('o_mis');
-      if(main) main.value=val;
-      renderOrdRows();
-      saveOrderDraft();
     });
   });
   updateOrderTotalsPreview();
@@ -5866,7 +5930,7 @@ async function saveOrd(){
   const existingManualIds=Array.isArray(old?.orderPhotoIds)?old.orderPhotoIds.filter(Boolean).slice(0,12):[];
   const existingManualLegacy=Array.isArray(old?.fotoManuali)?old.fotoManuali.filter(Boolean).slice(0,12):[];
   const existingManualCount=Math.max(existingManualIds.length, existingManualLegacy.length, Array.isArray(currentOrdExistingManualPhotos)?currentOrdExistingManualPhotos.length:0);
-  const maxNew=Math.max(0, 12 - mergeUniquePics(articlePics, currentOrdExistingManualPhotos).length);
+  const maxNew=Math.max(0, 1 - currentOrdExistingManualPhotos.length);
   const newManualIds=[];
   const newManualLegacy=[];
   for(const file of selectedFiles.slice(0,maxNew)){
@@ -5887,7 +5951,7 @@ async function saveOrd(){
     }
   }
   const manualCount=existingManualCount + newManualIds.length;
-  const allOrderPics=mergeUniquePics(articlePics, currentOrdExistingManualPhotos);
+  const allOrderPics=mergeUniquePics(articlePics, currentOrdExistingManualPhotos).slice(0, articlePics.length + 1);
   const newOrderId=currentOrdId||('ORD-'+uid().slice(0,6).toUpperCase());
   const obj={
     id: newOrderId,
@@ -5900,8 +5964,8 @@ async function saveOrd(){
     tracking: document.getElementById('o_tracking').value.trim(),
     righe: ordRows.slice(),
     fotoArticoli: [],
-    fotoManuali: [...existingManualLegacy, ...newManualLegacy].slice(0,12),
-    orderPhotoIds: [...new Set([...existingManualIds, ...newManualIds])].slice(0,12),
+    fotoManuali: [...existingManualLegacy, ...newManualLegacy].slice(0,1),
+    orderPhotoIds: [...new Set([...existingManualIds, ...newManualIds])].slice(0,1),
     foto: [],
     subTotale: subtotal,
     scontoCliente,
@@ -6222,11 +6286,36 @@ document.addEventListener('click',(ev)=>{
   if(a==='track17View') return openTrack17();
   if(a==='openParcelView') return openTrackParcel();
   if(a==='openMonthSales') return openMonthSales(Number(el.dataset.year), Number(el.dataset.month), el.dataset.label||'');
+  if(a==='agendaPlus10'){
+    const d=document.getElementById('agendaDate');
+    if(d) d.value=agendaDayOffset(10);
+    return;
+  }
+  if(a==='addAgenda') return saveAgendaQuick(document.getElementById('agendaText')?.value||'', document.getElementById('agendaDate')?.value||'');
+  if(a==='toggleAgendaDone'){
+    const id=String(el.dataset.id||'');
+    const db=loadDB();
+    const item=(db.agenda||[]).find(x=>String(x.id)===id);
+    if(!item) return;
+    item.fatto=!item.fatto;
+    if(saveDB(db)) renderHome();
+    return;
+  }
+  if(a==='deleteAgenda'){
+    const id=String(el.dataset.id||'');
+    const db=loadDB();
+    db.agenda=(db.agenda||[]).filter(x=>String(x.id)!==id);
+    if(saveDB(db)) renderHome();
+    return;
+  }
   if(a==='addArtToOrder'){ const id=el.dataset.id; if(id) return openOrdEdit(null, id); return; }
   if(a==='addArtToOrderFromView'){
-    if(!currentArtId){ toast('Articolo non trovato'); return; }
-    hide('mArtView');
-    requestAnimationFrame(()=>openOrdEdit(null, currentArtId));
+    const targetId=currentArtId || String(document.getElementById('vCod')?.textContent||'').trim();
+    const db=loadDB();
+    const art=(db.articoli||[]).find(x=>String(x.id)===String(targetId) || String(x.codice||'')===String(targetId));
+    if(!art){ toast('Articolo non trovato'); return; }
+    hide('mArtView', true);
+    setTimeout(()=>openOrdEdit(null, art.id), 30);
     return;
   }
   if(a==='duplicateArt') return duplicateCurrentArticle(el.dataset.id || null);
