@@ -255,7 +255,7 @@ window.addEventListener('error',e=>{
 
     <div class="card" style="margin-top:12px">
       <div class="h2">Attenzione subito</div>
-      <div id="dashUrgent" class="urgentBoard"><div class="urgentEmpty">Nessuna urgenza in evidenza.</div></div>
+      <div id="dashUrgent" class="urgentBoard"></div>
     </div>
 
     <div class="card quickCard">
@@ -283,7 +283,7 @@ window.addEventListener('error',e=>{
     </div>
 
     <div class="card" style="margin-top:12px">
-      <div class="h2">Agenda e scadenze</div>
+      <div class="h2">Tutte le scadenze</div>
       <div class="agendaComposer" style="margin-top:8px">
         <input id="agendaText" class="full" placeholder="Scrivi cosa devi fare..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
         <input id="agendaDate" type="date" autocomplete="off"/>
@@ -849,7 +849,9 @@ function normalizeDBShape(o){
     brand:normalizeSpaceText(x?.brand||x?.marca||''),
     categoria:normalizeSpaceText(x?.categoria||''),
     colore:normalizeSpaceText(x?.colore||''),
-    ...deriveColorShape(x),
+    colorMode:(String(x?.colorMode||'').toLowerCase()==='multiple' || String(x?.colorType||'').toLowerCase()==='multiple' || String(x?.colorMode||'').toLowerCase()==='numbered' || Number(x?.colorCount||x?.coloriNumerati||0)>0) ? 'multiple' : 'single',
+    colorCount:Math.max(0, parseInt(x?.colorCount||x?.coloriNumerati||0,10) || 0),
+    colorLabels:Array.isArray(x?.colorLabels)?x.colorLabels.map(v=>normalizeSpaceText(v||'')).filter(Boolean):[],
     costoUsd:firstFiniteNumber(x?.costoUsd, x?.costoUSD, x?.usd, 0),
     costoEur:firstFiniteNumber(x?.costoEur, x?.costoEUR, x?.prezzo_acquisto, x?.costo, x?.costo_eur, 0),
     prezzoVendita:firstFiniteNumber(x?.prezzoVendita, x?.prezzo_vendita, x?.prezzo, x?.prezzo_vendita_iva, 0),
@@ -858,10 +860,7 @@ function normalizeDBShape(o){
     scadenzaPromo:normalizeSpaceText(x?.scadenzaPromo||x?.promoScadenza||x?.promo_date||''),
     foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,12):[],
     photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,12):[]
-  })).map(x=>{
-    const shape=deriveColorShape(x);
-    return { ...x, ...shape, colore:shape.colorMode==='multiple' ? '' : normalizeSpaceText(x?.colore||'') };
-  });
+  })).map(x=>({ ...x, colorMode:(x.colorMode==='multiple' && x.colorCount>0)?'multiple':'single' }));
   db.clienti=db.clienti.map(x=>({
     ...x,
     nome:normalizeSpaceText(x?.nome||x?.name||''),
@@ -889,10 +888,10 @@ function normalizeDBShape(o){
       modello:normalizeSpaceText(r?.modello||r?.nome||''),
       prezzo:Number(r?.prezzo||r?.prezzo_unitario||0),
       sconto:Number(r?.sconto||0),
-      richiedeNumeroColore: deriveColorShape(r).colorMode==='multiple' || !!r?.richiedeNumeroColore,
+      richiedeNumeroColore: !!r?.richiedeNumeroColore,
       numeroColore: normalizeSpaceText(r?.numeroColore||r?.coloreNumero||''),
-      colorCount: deriveColorShape(r).colorCount,
-      colorLabels: deriveColorShape(r).colorLabels,
+      colorCount: Math.max(0, parseInt(r?.colorCount||0,10) || 0),
+      colorLabels: Array.isArray(r?.colorLabels)?r.colorLabels.map(v=>normalizeSpaceText(v||'')).filter(Boolean):[],
       colore: normalizeSpaceText(r?.colore||'')
     })):[];
     const scontoCliente=calcOrderDiscount(x);
@@ -946,32 +945,6 @@ function normalizeDBShape(o){
 }
 
 function normalizeSpaceText(v){ return String(v==null?'':v).trim().replace(/\s+/g,' '); }
-function normalizeStoredColorLabels(raw, count=0){
-  const safeCount=Math.max(0, parseInt(count||0,10) || 0);
-  const base=Array.isArray(raw)
-    ? raw
-    : (typeof raw==='string'
-        ? raw.split(/\r?\n|\s*[;,|]\s*/g)
-        : (raw && typeof raw==='object' ? Object.values(raw) : []));
-  const cleaned=base.map(v=>normalizeSpaceText(v||'')).filter(Boolean);
-  if(!safeCount) return cleaned;
-  const out=new Array(safeCount).fill('');
-  cleaned.slice(0, safeCount).forEach((v,i)=>{ out[i]=v; });
-  return out.map(v=>normalizeSpaceText(v||''));
-}
-function deriveColorShape(item={}){
-  const labels=normalizeStoredColorLabels(item?.colorLabels, item?.colorCount||item?.coloriNumerati||0);
-  const explicitCount=Math.max(0, parseInt(item?.colorCount||item?.coloriNumerati||0,10) || 0);
-  const count=Math.max(explicitCount, labels.length);
-  const wantsMultiple=String(item?.colorMode||item?.colorType||'').toLowerCase()==='multiple'
-    || String(item?.colorMode||'').toLowerCase()==='numbered'
-    || count>1;
-  return {
-    colorMode: wantsMultiple ? 'multiple' : 'single',
-    colorCount: wantsMultiple ? count : 0,
-    colorLabels: wantsMultiple ? normalizeStoredColorLabels(labels, count) : []
-  };
-}
 function normalizeTextKey(v){ return normalizeSpaceText(v).toLowerCase(); }
 function normalizeLookupKey(v){
   return normalizeSpaceText(v)
@@ -1081,7 +1054,8 @@ function getArticleColorCount(article){
   return Math.max(0, parseInt(article?.colorCount||0,10) || 0);
 }
 function getArticleColorLabels(article){
-  return normalizeStoredColorLabels(article?.colorLabels, article?.colorCount||0);
+  if(Array.isArray(article?.colorLabels)) return article.colorLabels.map(v=>normalizeSpaceText(v||'')).filter(Boolean);
+  return [];
 }
 function parseColorLabelsInput(raw='', count=0){
   const safeCount=Math.max(0, parseInt(count||0,10) || 0);
@@ -1656,7 +1630,7 @@ function restoreArticleDraft(targetId=''){
   document.getElementById('a_colore').value=v.colore||'';
   document.getElementById('a_color_mode').value=(String(v.colorMode||'').toLowerCase()==='multiple' || String(v.colorMode||'').toLowerCase()==='numbered' || Number(v.colorCount||0)>0)?'multiple':'single';
   document.getElementById('a_color_count').value=v.colorCount||'';
-  document.getElementById('a_color_labels').value=Array.isArray(v.colorLabels) ? formatColorLabelsInput(v.colorLabels, v.colorCount||0) : (v.colorLabels||'');
+  document.getElementById('a_color_labels').value=v.colorLabels||'';
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=v.misura||'';
   document.getElementById('a_usd').value=v.costoUsd||'';
@@ -3566,9 +3540,6 @@ function buildCloudArticleMeta(art){
     taglia: art?.taglia||'',
     variante: art?.variante||'',
     colore: art?.colore||'',
-    colorMode: deriveColorShape(art).colorMode,
-    colorCount: deriveColorShape(art).colorCount,
-    colorLabels: deriveColorShape(art).colorLabels,
     misura: art?.misura||'',
     costoUsd: Number(art?.costoUsd||0),
     costoEur: Number(art?.costoEur||0),
@@ -3972,6 +3943,38 @@ function saveAgendaQuick(textValue, dateValue){
   toast('Scadenza aggiunta');
   return true;
 }
+function collectDashboardDeadlines(db){
+  const out=[];
+  const agendaItems=(Array.isArray(db?.agenda)?db.agenda:[]).filter(item=>!item?.fatto && item?.data);
+  agendaItems.forEach(item=>{
+    out.push({
+      kind:'agenda',
+      id:String(item.id||uid()),
+      data:String(item.data||''),
+      testo:normalizeSpaceText(item.testo||'Scadenza'),
+      meta:'Da fare',
+      createdAt:String(item.createdAt||''),
+      raw:item
+    });
+  });
+  const promoItems=(Array.isArray(db?.articoli)?db.articoli:[]).filter(a=>a?.promoAttiva && String(a?.scadenzaPromo||'').trim());
+  promoItems.forEach(art=>{
+    const data=String(art.scadenzaPromo||'').trim();
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(data)) return;
+    const titolo=[String(art.brand||'').trim(), String(art.modello||'').trim()].filter(Boolean).join(' ').trim() || String(art.codice||'Promo').trim() || 'Promo';
+    out.push({
+      kind:'promo',
+      id:`promo_${String(art.id||art.codice||uid())}`,
+      data,
+      testo:`Promo in scadenza: ${titolo}`,
+      meta:(String(art.codice||'').trim()?`Cod. ${String(art.codice).trim()}`:'Promo articolo'),
+      createdAt:'',
+      raw:art
+    });
+  });
+  out.sort((a,b)=>String(a.data||'').localeCompare(String(b.data||'')) || String(a.testo||'').localeCompare(String(b.testo||''),'it',{sensitivity:'base'}));
+  return out;
+}
 function renderDashboardAgenda(){
   const db=loadDB();
   const box=document.getElementById('dashAgenda');
@@ -3980,40 +3983,45 @@ function renderDashboardAgenda(){
   if(dateEl && !dateEl.value) dateEl.value=agendaDayOffset(0);
   if(presetEl && !presetEl.value) presetEl.value='0';
   if(!box) return;
-  const items=(Array.isArray(db.agenda)?db.agenda:[]).slice().sort((a,b)=>{
-    if(!!a.fatto!==!!b.fatto) return a.fatto?1:-1;
-    return String(a.data||'').localeCompare(String(b.data||'')) || String(b.createdAt||'').localeCompare(String(a.createdAt||''));
-  });
+  const items=collectDashboardDeadlines(db);
   if(!items.length){
-    box.innerHTML='<div class="agendaEmpty">Nessuna scadenza. Puoi segnarti richiami clienti, consegne o cose da fare con un periodo rapido.</div>';
+    box.innerHTML='<div class="agendaEmpty">Nessuna scadenza salvata. Qui vedrai richiami, cose da fare e promo con data.</div>';
     return;
   }
   const today=agendaDayOffset(0);
-  box.innerHTML=items.slice(0,8).map(item=>{
-    const stateClass=item.fatto ? 'done' : (String(item.data||'')<today ? 'overdue' : '');
-    return `<div class="agendaItem ${stateClass}"><div class="agendaDot"></div><div><div class="agendaTitle">${esc(item.testo)}</div><div class="agendaMeta">${esc(agendaDateLabel(item.data))}</div></div><div class="agendaActions"><button class="agendaBtn" type="button" data-action="toggleAgendaDone" data-id="${esc(item.id)}">${item.fatto?'Riapri':'Fatto'}</button><button class="agendaBtn" type="button" data-action="deleteAgenda" data-id="${esc(item.id)}">Elimina</button></div></div>`;
+  box.innerHTML=items.slice(0,12).map(item=>{
+    const stateClass=String(item.data||'')<today ? 'overdue' : '';
+    const badge=item.kind==='promo' ? 'Promo' : 'Da fare';
+    const actionHtml=item.kind==='agenda'
+      ? `<div class="agendaActions"><button class="agendaBtn" type="button" data-action="toggleAgendaDone" data-id="${esc(item.raw?.id||item.id)}">Fatto</button><button class="agendaBtn" type="button" data-action="deleteAgenda" data-id="${esc(item.raw?.id||item.id)}">Elimina</button></div>`
+      : `<div class="agendaActions"><button class="agendaBtn" type="button" data-go="articoli">Apri</button></div>`;
+    return `<div class="agendaItem ${stateClass}"><div class="agendaDot"></div><div><div class="agendaTitle">${esc(item.testo)}</div><div class="agendaMeta">${esc(agendaDateLabel(item.data))} • ${esc(item.meta||badge)}</div></div>${actionHtml}</div>`;
   }).join('');
 }
 function renderDashboardUrgent(){
   const db=loadDB();
   const box=document.getElementById('dashUrgent');
   if(!box) return;
+  const card=box.closest('.card');
   const today=new Date(agendaDayOffset(0)+'T12:00:00');
-  const urgent=[];
-  (Array.isArray(db.agenda)?db.agenda:[]).filter(item=>!item?.fatto && item?.data).forEach(item=>{
+  const urgent=collectDashboardDeadlines(db).map(item=>{
     const d=new Date(String(item.data)+'T12:00:00');
-    if(isNaN(d)) return;
+    if(isNaN(d)) return null;
     const diff=Math.round((d-today)/86400000);
-    if(diff<=1){
-      urgent.push({type:'agenda', title:item.testo||'Scadenza vicina', meta:diff<0 ? `Scaduta ${formatAgendaDate(item.data)}` : (diff===0 ? 'Scade oggi' : 'Scade domani'), score:diff});
-    }
-  });
-  urgent.sort((a,b)=>a.score-b.score || String(a.title||'').localeCompare(String(b.title||''),'it',{sensitivity:'base'}));
+    return {item,diff};
+  }).filter(Boolean).filter(x=>x.diff<=1);
+  urgent.sort((a,b)=>a.diff-b.diff || String(a.item.testo||'').localeCompare(String(b.item.testo||''),'it',{sensitivity:'base'}));
   if(!urgent.length){
-    box.innerHTML='<div class="urgentEmpty">Nessuna scadenza imminente.</div>';
+    box.innerHTML='';
+    if(card) card.style.display='none';
     return;
   }
-  box.innerHTML=urgent.slice(0,6).map(item=>`<div class="urgentItem"><div class="urgentDot"></div><div><div class="urgentTitle">${esc(item.title)}</div><div class="urgentMeta">${esc(item.meta)}</div></div><div class="agendaMeta">Scadenza</div></div>`).join('');
+  if(card) card.style.display='';
+  box.innerHTML=urgent.slice(0,6).map(({item,diff})=>{
+    const meta=diff<0 ? `Scaduta ${formatAgendaDate(item.data)}` : (diff===0 ? 'Scade oggi' : 'Scade domani');
+    const kind=item.kind==='promo' ? 'Promo' : 'Scadenza';
+    return `<div class="urgentItem"><div class="urgentDot"></div><div><div class="urgentTitle">${esc(item.testo)}</div><div class="urgentMeta">${esc(meta)}</div></div><div class="agendaMeta">${esc(kind)}</div></div>`;
+  }).join('');
 }
 
 function buildDashboardTips(db, salesPerWeek, openOrders, promoCount){
@@ -5604,48 +5612,7 @@ async function openOrdView(id){
   }
   const righeOrd=Array.isArray(o.righe)?o.righe:[];
   const rows=document.getElementById('vOrdRows');
-  rows.innerHTML=righeOrd.map((r,i)=>{
-    const art=(db.articoli||[]).find(a=>a.id===r?.articoloId || (r?.codice && a.codice===r.codice));
-    const labels=Array.isArray(r?.colorLabels) && r.colorLabels.length ? r.colorLabels : getArticleColorLabels(art);
-    const needsColor=!!r?.richiedeNumeroColore && Number(r?.colorCount||labels.length||0)>0;
-    const colorText=r?.colore ? `Colore ${esc(r.colore)}` : (r?.numeroColore ? `Colore ${esc(r.numeroColore)}` : '');
-    const metaParts=[`Prezzo ${money(r.prezzo||0)}`];
-    if(colorText) metaParts.push(colorText);
-    const colorUi=needsColor
-      ? `<div style="margin-top:8px"><div class="k">Colore</div><select data-role="viewRowColorNum" data-i="${i}">${buildOrderColorOptions(r.colorCount||labels.length||0, r.numeroColore||'', labels||[])}</select></div>`
-      : (r?.colore ? `<div class="s" style="margin-top:6px">Colore: ${esc(r.colore)}</div>` : '');
-    return `<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(r.codice||'')} • ${esc(r.modello||'')}</div><div class="s">${metaParts.join(' • ')}</div>${colorUi}</div><div class="pill">Riga</div></div>`;
-  }).join('') || `<div class="small">Nessuna riga</div>`;
-  rows.querySelectorAll('[data-role="viewRowColorNum"]').forEach(sel=>{
-    sel.addEventListener('change', async ()=>{
-      const idx=Number(sel.dataset.i);
-      const dbNow=loadDB();
-      const ord=dbNow.ordini.find(x=>x.id===currentOrdId);
-      if(!ord || !Array.isArray(ord.righe) || !ord.righe[idx]) return;
-      const row={...(ord.righe[idx]||{})};
-      const art=(dbNow.articoli||[]).find(a=>a.id===row?.articoloId || (row?.codice && a.codice===row.codice));
-      const labels=Array.isArray(row?.colorLabels) && row.colorLabels.length ? row.colorLabels : getArticleColorLabels(art);
-      const colorCount=Math.max(0, parseInt(row?.colorCount||labels.length||0,10) || 0);
-      const val=String(sel.value||'').trim();
-      row.richiedeNumeroColore=colorCount>0;
-      row.colorCount=colorCount;
-      row.colorLabels=labels.slice();
-      row.numeroColore=val;
-      row.colore=(parseInt(val,10)>0 && labels[parseInt(val,10)-1]) ? labels[parseInt(val,10)-1] : '';
-      ord.righe[idx]=row;
-      ord.fotoArticoli=await getOrderArticleSnapshotPhotos(ord.righe, dbNow);
-      if(!saveDB(dbNow)) return;
-      if(cloudEnabled()){
-        try{
-          await cloudSaveOne('ord', ord, dbNow);
-        }catch(err){
-          console.error('Sync cloud colore ordine fallita', err);
-        }
-      }
-      toast('Colore ordine aggiornato');
-      await openOrdView(ord.id);
-    });
-  });
+  rows.innerHTML=righeOrd.map(r=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(r.codice||'')} • ${esc(r.modello||'')}</div><div class="s">Prezzo ${money(r.prezzo||0)}${r?.numeroColore?` • Colore ${esc(r.numeroColore)}`:''}</div></div><div class="pill">Riga</div></div>`).join('') || `<div class="small">Nessuna riga</div>`;
   const ordPics=await getOrderPics(o, db);
   document.getElementById('vOrdPhotos').innerHTML=ordPics.map(src=>`<img src="${src}" onclick="window.open('${src}','_blank','noopener')"/>`).join('');
   document.getElementById('vOrdPhotosEmpty').style.display=ordPics.length?'none':'block';
@@ -6137,18 +6104,7 @@ async function saveOrd(){
     note: document.getElementById('o_note').value.trim(),
     mis: misuraValue,
     tracking: document.getElementById('o_tracking').value.trim(),
-    righe: ordRows.map(r=>({
-      ...r,
-      articoloId:String(r?.articoloId||''),
-      codice:normalizeSpaceText(r?.codice||''),
-      modello:normalizeSpaceText(r?.modello||''),
-      prezzo:Number(r?.prezzo||0),
-      richiedeNumeroColore:!!r?.richiedeNumeroColore,
-      colorCount:Math.max(0, parseInt(r?.colorCount||0,10) || 0),
-      colorLabels:Array.isArray(r?.colorLabels)?r.colorLabels.map(v=>normalizeSpaceText(v||'')).filter(Boolean):[],
-      numeroColore:normalizeSpaceText(r?.numeroColore||''),
-      colore:normalizeSpaceText(r?.colore||'')
-    })),
+    righe: ordRows.slice(),
     fotoArticoli: [],
     fotoManuali: [...existingManualLegacy, ...newManualLegacy].slice(0,1),
     orderPhotoIds: [...new Set([...existingManualIds, ...newManualIds])].slice(0,1),
@@ -6928,11 +6884,10 @@ async function pullCloudToLocal(opts={}){
         const pulledCostoUsd=firstFiniteNumber(meta.costoUsd, local?.costoUsd, 0);
         const pulledCostoEur=firstFiniteNumber(p.prezzo_acquisto, p.costo, p.costo_eur, meta.costoEur, local?.costoEur, 0);
         const pulledPrezzoVendita=firstFiniteNumber(p.prezzo_vendita, p.prezzo, p.prezzo_vendita_iva, meta.prezzoVendita, meta.prezzo, local?.prezzoVendita, 0);
-        const colorShape=deriveColorShape({ colorMode:meta.colorMode||local?.colorMode, colorType:meta.colorType||local?.colorType, colorCount:meta.colorCount||local?.colorCount, colorLabels:meta.colorLabels||local?.colorLabels });
-        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,6):[],_ts:Date.now(),_cloud:true};
+        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:meta.colore||p.colore||local?.colore||'',misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,6):[],_ts:Date.now(),_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
-      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,12):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,12):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:Date.now(),_cloud:true}; })
+      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(righeOrd); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:righeOrd,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,12):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,12):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(righeOrd, scontoCliente),_ts:Date.now(),_cloud:true}; })
     };
     updateShippingNotifications(db, bg?'cloud-auto':'cloud');
     saveDBLocal(db);
