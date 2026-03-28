@@ -512,7 +512,7 @@ window.addEventListener('error',e=>{
       <div class="k">Prezzo in uso</div>
       <div id="vArtPrezzoUse" class="priceHot">-</div>
       <div id="vArtPromoPill"></div>
-      <div class="orderAddWrap"><button class="btn orderAdd" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button></div>
+      
     </div>
   </div>
   <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button></div></div>
@@ -524,6 +524,7 @@ window.addEventListener('error',e=>{
     <button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button>
     <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
+    <button class="btn smallish" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button>
     <button class="btn smallish" type="button" data-action="closeView">Chiudi</button>
   </div>
 </div></div>
@@ -752,19 +753,19 @@ window.addEventListener('error',e=>{
     <div class="h3">Articoli ordine</div>
     <div class="orderPrimaryRow">
       <div>
-        <div class="k">Aggiungi articoli</div>
+        <div class="k">Articolo</div>
         <div class="searchWrap"><input id="o_art_q" placeholder="Cerca per codice, nome, qualità o colore" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="oArtSuggest" class="searchSuggest"></div></div>
         <select id="o_art_pick"><option value="">Seleziona articolo</option></select>
         <select id="o_art" multiple hidden></select>
-        <div class="helper">Scrivi codice, nome o colore e scegli dalla tendina.</div>
-        <div id="o_art_selected_summary" class="orderSelectedSummary empty">Cerca e scegli un articolo dalla tendina.</div>
+        <div class="helper">Cerca per codice o nome e scegli dalla tendina.</div>
+        <div id="o_art_selected_summary" class="orderSelectedSummary empty">Cerca un articolo e poi aggiungilo.</div>
       </div>
       <aside>
-        <div><div class="k">Misura</div><select id="o_mis" autocomplete="off"><option value="">Non necessaria</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option></select><div id="o_mis_hint" class="helper">Usala solo se nell'ordine ci sono scarpe.</div></div>
-        <div id="o_pick_color_wrap" style="display:none"><div class="k">Colore</div><select id="o_pick_color"></select><div id="o_pick_color_hint" class="orderHintSoft">Scegli il colore prima di aggiungere l'articolo.</div></div>
+        <div id="o_pick_color_wrap" style="display:none"><div class="k">Colore</div><select id="o_pick_color"></select><div id="o_pick_color_hint" class="orderHintSoft">Scegli il colore e poi aggiungi l'articolo.</div></div>
+        <div><div class="k">Misura</div><select id="o_mis" autocomplete="off"><option value="">Non necessaria</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option></select><div id="o_mis_hint" class="helper">Usala solo per scarpe.</div></div>
       </aside>
     </div>
-    <div class="actions bottomMini"><button class="btn" type="button" data-action="addRow">Aggiungi articolo</button></div>
+    <div class="actions bottomMini"><button class="btn" type="button" data-action="addRow">Aggiungi</button></div>
     <div id="o_rows_summary" class="orderRowsSummary">Ancora nessun articolo nell'ordine.</div>
     <div id="o_rows" class="list"></div>
   </div>
@@ -3974,29 +3975,16 @@ function renderDashboardUrgent(){
     const d=new Date(String(item.data)+'T12:00:00');
     if(isNaN(d)) return;
     const diff=Math.round((d-today)/86400000);
-    if(diff<=2){
-      urgent.push({type:'agenda', title:item.testo||'Scadenza vicina', meta:diff<0 ? `Scaduta ${formatAgendaDate(item.data)}` : (diff===0 ? 'Scade oggi' : (diff===1 ? 'Scade domani' : `Scade tra ${diff} giorni`)), score:diff});
-    }
-  });
-  (Array.isArray(db.ordini)?db.ordini:[]).forEach(ord=>{
-    const stato=normalizeTextKey(ord?.stato||'');
-    const dataRaw=String(ord?.data||'').trim();
-    const d=dataRaw ? new Date(dataRaw+'T12:00:00') : null;
-    const diff=d && !isNaN(d) ? Math.round((today-d)/86400000) : 0;
-    if(stato==='spedito' && !String(ord?.tracking||'').trim()){
-      urgent.push({type:'ordine', title:`Ordine ${ord.numeroOrdine||ord.id||''} senza tracking`, meta:'Spedito ma tracking mancante', score:-2, orderId:ord.id});
-    }else if((stato==='richiesto' || stato==='inattesadipagamento') && diff>=3){
-      urgent.push({type:'ordine', title:`Controlla ordine ${ord.numeroOrdine||ord.id||''}`, meta:`Aperto da ${diff} giorni`, score:-1, orderId:ord.id});
-    }else if(stato==='inlavorazione' && diff>=7){
-      urgent.push({type:'ordine', title:`Ordine ${ord.numeroOrdine||ord.id||''} da verificare`, meta:`In lavorazione da ${diff} giorni`, score:0, orderId:ord.id});
+    if(diff<=1){
+      urgent.push({type:'agenda', title:item.testo||'Scadenza vicina', meta:diff<0 ? `Scaduta ${formatAgendaDate(item.data)}` : (diff===0 ? 'Scade oggi' : 'Scade domani'), score:diff});
     }
   });
   urgent.sort((a,b)=>a.score-b.score || String(a.title||'').localeCompare(String(b.title||''),'it',{sensitivity:'base'}));
   if(!urgent.length){
-    box.innerHTML='<div class="urgentEmpty">Nessuna urgenza in evidenza.</div>';
+    box.innerHTML='<div class="urgentEmpty">Nessuna scadenza imminente.</div>';
     return;
   }
-  box.innerHTML=urgent.slice(0,6).map(item=>`<div class="urgentItem"${item.orderId?` data-open="ord" data-id="${esc(item.orderId)}"`:''}><div class="urgentDot"></div><div><div class="urgentTitle">${esc(item.title)}</div><div class="urgentMeta">${esc(item.meta)}</div></div><div class="agendaMeta">${item.type==='ordine'?'Ordine':'Scadenza'}</div></div>`).join('');
+  box.innerHTML=urgent.slice(0,6).map(item=>`<div class="urgentItem"><div class="urgentDot"></div><div><div class="urgentTitle">${esc(item.title)}</div><div class="urgentMeta">${esc(item.meta)}</div></div><div class="agendaMeta">Scadenza</div></div>`).join('');
 }
 
 function buildDashboardTips(db, salesPerWeek, openOrders, promoCount){
@@ -5718,33 +5706,56 @@ function updateOrderShoeSizeState(){
   return needed;
 }
 async function openOrdEdit(id, prefillArticleId=null){
-  const db=loadDB(); const o=id?db.ordini.find(x=>x.id===id):null;
-  currentOrdId=id||null;
-  document.getElementById('ordEditTitle').textContent=o?'Modifica ordine':'Nuovo ordine';
+  const db=loadDB();
+  const o=id?db.ordini.find(x=>x.id===id):null;
+  const isEditing=!!o;
+  currentOrdId=isEditing ? id : null;
+  document.getElementById('ordEditTitle').textContent=isEditing?'Modifica ordine':'Nuovo ordine';
   document.getElementById('o_cli_q').value='';
   document.getElementById('o_art_q').value='';
   const pickColorEl=document.getElementById('o_pick_color');
-  if(pickColorEl) pickColorEl.value='';
+  if(pickColorEl){
+    pickColorEl.innerHTML='<option value="">Seleziona colore</option>';
+    pickColorEl.value='';
+  }
   fillClientSelect(db);
   fillArtSelect(db);
-  document.getElementById('o_cli').value=o?.clienteId||'';
-  const orderCli=(db.clienti||[]).find(c=>String(c.id)===String(o?.clienteId||''));
+  document.getElementById('o_cli').value=isEditing?(o?.clienteId||''):'';
+  const orderCli=isEditing ? (db.clienti||[]).find(c=>String(c.id)===String(o?.clienteId||'')) : null;
   document.getElementById('o_cli_q').value=orderCli?.nome||'';
-  document.getElementById('o_stato').value=o?.stato||'Richiesto';
-  document.getElementById('o_data').value=o?.data||todayStr();
-  document.getElementById('o_note').value=o?.note||'';
-  ensureOrderSizeOption(o?.mis||'');
-  document.getElementById('o_mis').value=o?.mis||'';
-  document.getElementById('o_tracking').value=o?.tracking||'';
-  document.getElementById('o_discount').value=calcOrderDiscount(o) ? String(calcOrderDiscount(o)).replace('.', ',') : '';
+  document.getElementById('o_stato').value=isEditing?(o?.stato||'Richiesto'):'Richiesto';
+  document.getElementById('o_data').value=isEditing?(o?.data||todayStr()):todayStr();
+  document.getElementById('o_note').value=isEditing?(o?.note||''):'';
+  ensureOrderSizeOption(isEditing?(o?.mis||''):'' );
+  document.getElementById('o_mis').value=isEditing?(o?.mis||''):'';
+  document.getElementById('o_tracking').value=isEditing?(o?.tracking||''):'';
+  document.getElementById('o_discount').value=isEditing && calcOrderDiscount(o) ? String(calcOrderDiscount(o)).replace('.', ',') : '';
   document.getElementById('o_art').value='';
+  document.getElementById('o_art_pick').value='';
   document.getElementById('o_photo').value='';
-  currentOrdExistingManualPhotos=o ? await getOrderManualPics(o) : [];
-  ordRows=(o?.righe||[]).slice();
+  currentOrdExistingManualPhotos=isEditing ? await getOrderManualPics(o) : [];
+  ordRows=isEditing ? (o?.righe||[]).slice() : [];
+  if(isEditing){
+    restoreOrderDraft(o?.id||'', null);
+  }else{
+    clearOrderDraft();
+  }
   if(prefillArticleId){
-    const a=db.articoli.find(x=>x.id===prefillArticleId);
-    if(a && !ordRows.some(r=>r.articoloId===prefillArticleId)){
-      ordRows.push({articoloId:a.id, codice:a?.codice||'', modello:a?.modello||'', prezzo:Number(currentPrice(a)||0), richiedeNumeroColore:getArticleColorMode(a)==='multiple', colorCount:getArticleColorCount(a), colorLabels:getArticleColorLabels(a), numeroColore:'', colore:a?.colore||''});
+    const a=db.articoli.find(x=>String(x.id)===String(prefillArticleId));
+    if(a && !ordRows.some(r=>String(r.articoloId)===String(prefillArticleId))){
+      const labels=getArticleColorLabels(a);
+      const defaultColor=(getArticleColorMode(a)==='single') ? normalizeSpaceText(a?.colore||labels[0]||'') : '';
+      ordRows.push({
+        articoloId:a.id,
+        codice:a?.codice||'',
+        modello:a?.modello||'',
+        prezzo:Number(currentPrice(a)||0),
+        richiedeNumeroColore:getArticleColorMode(a)==='multiple',
+        colorCount:getArticleColorCount(a),
+        colorLabels:labels,
+        numeroColore:'',
+        colore:defaultColor
+      });
     }
   }
   renderOrdRows();
@@ -5754,7 +5765,6 @@ async function openOrdEdit(id, prefillArticleId=null){
   updateOrderTotalsPreview();
   updateOrderShoeSizeState();
   await refreshOrdPhotoPreviewFromState();
-  restoreOrderDraft(o?.id||'', prefillArticleId);
   show('mOrdEdit');
 }
 function todayStr(){
@@ -5799,7 +5809,7 @@ function renderSelectedOrderArticlesSummary(){
   const a=(db.articoli||[]).find(x=>String(x.id)===id);
   if(!a){
     box.className='orderSelectedSummary empty';
-    box.textContent='Cerca e scegli un articolo dalla tendina.';
+    box.textContent='Cerca un articolo e poi aggiungilo.';
     renderSelectedOrderColorPicker(null);
     return;
   }
@@ -5807,7 +5817,7 @@ function renderSelectedOrderArticlesSummary(){
   const code=(a.codice||'').trim();
   const meta=[a.brand, displayCategoryValue(a.categoria), a.qualita, '€ '+money(currentPrice(a)||0)].filter(Boolean).join(' • ');
   box.className='orderSelectedSummary';
-  box.innerHTML=`<div class="title"><span>Articolo da aggiungere</span></div><div class="orderChoiceList"><span class="orderChoiceChip">${esc(model)}${code?`<span class="orderChoiceMeta">Cod. ${esc(code)}${meta?` • ${esc(meta)}`:''}</span>`:''}</span></div>`;
+  box.innerHTML=`<div class="title"><span>Da aggiungere</span></div><div class="orderChoiceList"><span class="orderChoiceChip">${esc(model)}${code?`<span class="orderChoiceMeta">Cod. ${esc(code)}${meta?` • ${esc(meta)}`:''}</span>`:''}</span></div>`;
   renderSelectedOrderColorPicker(a);
 }
 function renderSelectedOrderColorPicker(article){
@@ -5815,15 +5825,30 @@ function renderSelectedOrderColorPicker(article){
   const sel=document.getElementById('o_pick_color');
   const hint=document.getElementById('o_pick_color_hint');
   if(!wrap || !sel) return;
-  if(!article || getArticleColorMode(article)!=='multiple' || Number(getArticleColorCount(article)||0)<=0){
+  if(!article){
     wrap.style.display='none';
     sel.innerHTML='';
     sel.value='';
     return;
   }
-  wrap.style.display='block';
-  sel.innerHTML=buildOrderColorOptions(getArticleColorCount(article), sel.value||'', getArticleColorLabels(article));
-  if(hint) hint.textContent="Scegli il colore prima di aggiungere l'articolo.";
+  const labels=getArticleColorLabels(article);
+  const singleColor=normalizeSpaceText(article?.colore||labels[0]||'');
+  if(getArticleColorMode(article)==='multiple' && Number(getArticleColorCount(article)||0)>0){
+    wrap.style.display='block';
+    sel.innerHTML=buildOrderColorOptions(getArticleColorCount(article), sel.value||'', labels);
+    if(hint) hint.textContent="Scegli il colore e poi aggiungi l'articolo.";
+    return;
+  }
+  if(singleColor){
+    wrap.style.display='block';
+    sel.innerHTML=`<option value="${esc(singleColor)}">${esc(singleColor)}</option>`;
+    sel.value=singleColor;
+    if(hint) hint.textContent='Colore già impostato per questo articolo.';
+    return;
+  }
+  wrap.style.display='none';
+  sel.innerHTML='';
+  sel.value='';
 }
 function fillClientSelect(db, filter='', autoPick=false){
   const sel=document.getElementById('o_cli');
@@ -5883,16 +5908,24 @@ function addRow(){
   const db=loadDB();
   const ids=selectedOrderArticleIds();
   if(!ids.length){ toast('Seleziona almeno un articolo'); return; }
-  ids.forEach((artId,idx)=>{
-    const a=db.articoli.find(x=>x.id===artId);
+  ids.forEach((artId)=>{
+    const a=db.articoli.find(x=>String(x.id)===String(artId));
     if(!a) return;
-    if(ordRows.some(r=>r.articoloId===artId)) return;
+    if(ordRows.some(r=>String(r.articoloId)===String(artId))){
+      toast("Articolo già presente nell'ordine");
+      return;
+    }
     const prezzo=Number(currentPrice(a)||0);
+    const labels=getArticleColorLabels(a);
     const pickColor=String(document.getElementById('o_pick_color')?.value||'').trim();
-    ordRows.push({articoloId:artId, codice:a?.codice||'', modello:a?.modello||'', prezzo, richiedeNumeroColore:getArticleColorMode(a)==='multiple', colorCount:getArticleColorCount(a), colorLabels:getArticleColorLabels(a), numeroColore:pickColor, colore:a?.colore||''});
+    const isMultiple=getArticleColorMode(a)==='multiple' && Number(getArticleColorCount(a)||0)>0;
+    const colorLabel=isMultiple ? ((parseInt(pickColor,10)>0 && labels[parseInt(pickColor,10)-1]) ? labels[parseInt(pickColor,10)-1] : '') : normalizeSpaceText(pickColor || a?.colore || labels[0] || '');
+    ordRows.push({articoloId:artId,codice:a?.codice||'',modello:a?.modello||'',prezzo,richiedeNumeroColore:isMultiple,colorCount:getArticleColorCount(a),colorLabels:labels,numeroColore:isMultiple ? pickColor : '',colore:colorLabel});
   });
   const pick=document.getElementById('o_art_pick');
+  const colorPick=document.getElementById('o_pick_color');
   if(pick) pick.value='';
+  if(colorPick){ colorPick.innerHTML=''; colorPick.value=''; }
   document.getElementById('o_art_q').value='';
   fillArtSelect(db);
   renderSelectedOrderArticlesSummary();
@@ -5936,27 +5969,18 @@ function renderOrdRows(){
     const badges=[];
     if(r?.codice) badges.push(`<span class="orderBadge">Cod. ${esc(r.codice)}</span>`);
     badges.push(`<span class="orderBadge">€ ${money(r.prezzo||0)}</span>`);
+    if(r?.colore) badges.push(`<span class="orderBadge">Colore ${esc(r.colore)}</span>`);
     if(isShoe) badges.push(`<span class="orderBadge">Misura ${esc(globalSize||'da scegliere')}</span>`);
-    if(!needsColor && r?.colore) badges.push(`<span class="orderBadge">Colore ${esc(r.colore)}</span>`);
     const colorUi=needsColor ? `<div class="orderInlineField"><label>Colore</label><select data-role="rowColorNum" data-i="${i}">${buildOrderColorOptions(r.colorCount, r.numeroColore||'', r.colorLabels||[])}</select></div>` : '';
-    const sizeUi='';
     const meta=[art?.brand, displayCategoryValue(art?.categoria||r?.categoria||''), art?.qualita].filter(Boolean).map(v=>esc(v)).join(' • ');
-    return `<div class="orderCard">
-      <div>
-        <div class="title">${esc(r.modello||art?.modello||'Articolo selezionato')}</div>
-        <div class="meta">${meta || 'Riga ordine'}</div>
-        <div class="orderBadges">${badges.join('')}</div>
-        <div class="orderRowControls">${colorUi}</div>
-      </div>
-      <button class="orderRemoveBtn" type="button" aria-label="Rimuovi articolo" title="Rimuovi articolo" data-action="delRow" data-i="${i}">Rimuovi</button>
-    </div>`;
+    return `<div class="orderCard"><div><div class="title">${esc(r.modello||art?.modello||'Articolo selezionato')}</div><div class="meta">${meta || 'Riga ordine'}</div><div class="orderBadges">${badges.join('')}</div><div class="orderRowControls">${colorUi}</div></div><button class="orderRemoveBtn" type="button" aria-label="Rimuovi articolo" title="Rimuovi articolo" data-action="delRow" data-i="${i}">Rimuovi</button></div>`;
   }).join('') || `<div class="orderSelectedSummary empty">Nessun articolo aggiunto.</div>`;
   const sum=document.getElementById('o_rows_summary');
   if(sum){
     const shoeCount=ordRows.filter(r=>orderRowNeedsShoeSize(r, db)).length;
     const colorCount=ordRows.filter(r=>!!r?.richiedeNumeroColore && Number(r?.colorCount||0)>0).length;
     if(!ordRows.length){
-      sum.innerHTML='Ancora nessun articolo nell\'ordine.';
+      sum.innerHTML="Ancora nessun articolo nell'ordine.";
     }else{
       const parts=[`<strong>Articoli:</strong> ${ordRows.length}`];
       if(shoeCount) parts.push(`<strong>Scarpe:</strong> ${shoeCount}${globalSize?` • misura ${esc(globalSize)}`:''}`);
@@ -5968,7 +5992,10 @@ function renderOrdRows(){
     sel.addEventListener('change',()=>{
       const idx=Number(sel.dataset.i);
       if(Number.isInteger(idx) && ordRows[idx]){
-        ordRows[idx].numeroColore=String(sel.value||'').trim();
+        const labels=Array.isArray(ordRows[idx].colorLabels)?ordRows[idx].colorLabels:[];
+        const val=String(sel.value||'').trim();
+        ordRows[idx].numeroColore=val;
+        ordRows[idx].colore=(parseInt(val,10)>0 && labels[parseInt(val,10)-1]) ? labels[parseInt(val,10)-1] : '';
         renderOrdRows();
         updateOrderTotalsPreview();
         saveOrderDraft();
@@ -6381,15 +6408,14 @@ document.addEventListener('click',(ev)=>{
     if(saveDB(db)) renderHome();
     return;
   }
-  if(a==='addArtToOrder'){ const id=el.dataset.id; if(id) return openOrdEdit(null, id); return; }
+  if(a==='addArtToOrder'){ const id=el.dataset.id; if(id) return openOrdEdit(currentOrdId||null, id); return; }
   if(a==='addArtToOrderFromView'){
     const targetId=currentArtId || String(document.getElementById('vCod')?.textContent||'').trim();
     const db=loadDB();
     const art=(db.articoli||[]).find(x=>String(x.id)===String(targetId) || String(x.codice||'')===String(targetId));
     if(!art){ toast('Articolo non trovato'); return; }
     hide('mArtView', true);
-    requestAnimationFrame(()=>requestAnimationFrame(()=>openOrdEdit(null, art.id)));
-    return;
+    return openOrdEdit(currentOrdId||null, art.id);
   }
   if(a==='duplicateArt') return duplicateCurrentArticle(el.dataset.id || null);
   if(a==='editFromView'){ hide('mArtView', true); return openArtEdit(currentArtId); }
