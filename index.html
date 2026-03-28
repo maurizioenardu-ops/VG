@@ -254,7 +254,7 @@ window.addEventListener('error',e=>{
     </div>
 
     <div class="card" style="margin-top:12px">
-      <div class="h2">Attenzione subito</div>
+      <div class="h2">Da fare</div>
       <div id="dashUrgent" class="urgentBoard"><div class="urgentEmpty">Nessuna urgenza in evidenza.</div></div>
     </div>
 
@@ -4028,6 +4028,7 @@ function renderDashboardUrgent(){
   const db=loadDB();
   const box=document.getElementById('dashUrgent');
   if(!box) return;
+  const card=box.closest('.card');
   const today=new Date(agendaDayOffset(0)+'T12:00:00');
   const urgent=[];
   (Array.isArray(db.agenda)?db.agenda:[]).filter(item=>!item?.fatto && item?.data).forEach(item=>{
@@ -4040,9 +4041,11 @@ function renderDashboardUrgent(){
   });
   urgent.sort((a,b)=>a.score-b.score || String(a.title||'').localeCompare(String(b.title||''),'it',{sensitivity:'base'}));
   if(!urgent.length){
-    box.innerHTML='<div class="urgentEmpty">Nessuna scadenza imminente.</div>';
+    box.innerHTML='';
+    if(card) card.style.display='none';
     return;
   }
+  if(card) card.style.display='';
   box.innerHTML=urgent.slice(0,6).map(item=>`<div class="urgentItem"><div class="urgentDot"></div><div><div class="urgentTitle">${esc(item.title)}</div><div class="urgentMeta">${esc(item.meta)}</div></div><div class="agendaMeta">Scadenza</div></div>`).join('');
 }
 
