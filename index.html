@@ -164,6 +164,50 @@ select[multiple]{min-height:150px}
 .searchSuggest{display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;background:#fff;border:1px solid #dbe3f0;border-radius:14px;box-shadow:0 10px 24px rgba(15,23,42,.12);max-height:220px;overflow:auto}
 .searchSuggest.show{display:block}
 .searchSuggest button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:10px 12px;font:inherit;color:#111827;cursor:pointer}
+.orderSection{background:#fff;border:1px solid var(--line);border-radius:20px;padding:14px;margin-top:12px;box-shadow:0 8px 22px rgba(15,23,42,.04)}
+.orderSection:first-of-type{margin-top:10px}
+.orderSection .h3{font-size:15px;font-weight:1000;margin:0 0 10px;color:#0f172a}
+.orderSection .helper{line-height:1.35}
+.orderClientSummary,.orderSelectedSummary{margin-top:8px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:16px;padding:10px 12px}
+.orderClientSummary.empty,.orderSelectedSummary.empty{color:#64748b}
+.orderClientSummary .title,.orderSelectedSummary .title{font-weight:1000;color:#0f172a}
+.orderClientSummary .meta,.orderSelectedSummary .meta{font-size:12px;color:#64748b;margin-top:4px;line-height:1.35}
+.orderChoiceList{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.orderChoiceChip{background:#eef2ff;border:1px solid #c7d2fe;color:#1e3a8a;border-radius:16px;padding:8px 10px;font-size:12px;font-weight:900;line-height:1.25;display:block}
+.orderPickList{display:grid;gap:8px;max-height:220px;overflow:auto;padding:10px;border:1px solid #e5e7eb;border-radius:18px;background:#fff}
+.orderPickList.empty{display:none}
+.orderPickItem{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:14px;background:#fff;cursor:pointer}
+.orderPickItem.active{border-color:#c89b14;background:#fffaf0;box-shadow:0 0 0 1px rgba(200,155,20,.15) inset}
+.orderPickCheck{width:20px;height:20px;border:2px solid #cbd5e1;border-radius:6px;flex:0 0 20px;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;background:#fff}
+.orderPickItem.active .orderPickCheck{background:#c89b14;border-color:#c89b14}
+.orderPickText{min-width:0;flex:1}
+.orderPickTitle{font-size:15px;font-weight:1000;line-height:1.15;color:#0f172a;display:block}
+.orderPickMeta{font-size:12px;color:#64748b;font-weight:800;margin-top:4px;line-height:1.25;display:block}
+.orderChoiceList{display:grid;gap:8px}
+.orderChoiceMeta{display:block;font-size:11px;font-weight:800;color:#475569;margin-top:4px}
+.orderCard{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;padding:14px;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+.orderCard + .orderCard{margin-top:10px}
+.orderCard .title{font-size:16px;font-weight:1000;line-height:1.2;color:#0f172a}
+.orderCard .meta{font-size:12px;color:#64748b;margin-top:4px;font-weight:800}
+.orderBadges{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.orderRemoveBtn{min-width:44px;height:36px;border-radius:12px;border:1px solid #dbe3ef;background:#fff;color:#334155;font-size:15px;font-weight:900;line-height:1;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(15,23,42,.06);padding:0 12px;cursor:pointer}
+.orderRemoveBtn:hover{background:#f8fafc;border-color:#cbd5e1;color:#0f172a}
+.orderRemoveBtn:active{transform:scale(.98)}
+.orderBadge{display:inline-flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;color:#334155}
+.orderRowControls{display:grid;gap:8px;margin-top:10px}
+.orderInlineField label{display:block;font-size:11px;font-weight:900;color:#64748b;text-transform:uppercase;margin-bottom:4px}
+.orderInlineField select,.orderInlineField input{margin:0}
+.orderRowControls{display:grid;gap:10px;margin-top:10px}
+.orderSection select[multiple]{min-height:96px;max-height:140px;background:#fbfdff;font-size:15px}
+.orderSection select[multiple] option{padding:8px 10px;border-bottom:1px solid #eef2f7}
+.orderSection select[multiple] option:checked{background:#e8f0ff;color:#0f172a}
+#o_art_selected_summary .title{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#o_art_selected_summary .countBadge{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 10px;border-radius:999px;background:#e8f0ff;color:#1d4ed8;font-weight:1000}
+#o_rows_summary{padding:8px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px}
+.orderPrimaryRow{display:grid;gap:10px}
+.orderRowsSummary{margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:10px 12px;font-size:12px;color:#475569;font-weight:800}
+.orderRowsSummary strong{color:#0f172a}
+@media(min-width:760px){.orderPrimaryRow{grid-template-columns:1.3fr .7fr}.orderRowControls{grid-template-columns:1fr 1fr}}
 .searchSuggest button+button{border-top:1px solid #eef2f7}
 .searchSuggest button:hover{background:#f8fafc}
 
@@ -653,48 +697,69 @@ window.addEventListener('error',e=>{
 
 <div id="mOrdEdit" class="modalwrap"><div class="modal">
   <div class="h2" id="ordEditTitle">Nuovo ordine</div>
-  <div class="grid2">
-    <div><div class="k">Cliente (cerca)</div><div class="searchWrap"><input id="o_cli_q" placeholder="Cerca cliente..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="oCliSuggest" class="searchSuggest"></div></div><select id="o_cli"></select></div>
-    <div><div class="k">Stato</div>
-      <select id="o_stato">
-        <option>Richiesto</option>
-        <option>In attesa di pagamento</option>
-        <option>Pagato</option>
-        <option>In lavorazione</option>
-        <option>Spedito</option>
-        <option>Consegnato</option>
-        <option>Annullato</option>
-      </select>
+
+  <div class="orderSection">
+    <div class="h3">Cliente</div>
+    <div><div class="k">Cerca e seleziona cliente</div><div class="searchWrap"><input id="o_cli_q" placeholder="Cerca cliente per nome, telefono o città..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="oCliSuggest" class="searchSuggest"></div></div><select id="o_cli"></select><div id="o_cli_summary" class="orderClientSummary empty">Seleziona un cliente per vedere subito nome, telefono e città.</div></div>
+  </div>
+
+  <div class="orderSection">
+    <div class="h3">Dati ordine</div>
+    <div class="grid2">
+      <div><div class="k">Stato</div>
+        <select id="o_stato">
+          <option>Richiesto</option>
+          <option>In attesa di pagamento</option>
+          <option>Pagato</option>
+          <option>In lavorazione</option>
+          <option>Spedito</option>
+          <option>Consegnato</option>
+          <option>Annullato</option>
+        </select>
+      </div>
+      <div><div class="k">Data</div><input id="o_data" type="date" autocomplete="off"/></div>
+    </div>
+    <div class="grid2" style="margin-top:10px">
+      <div><div class="k">Tracking</div><input id="o_tracking" placeholder="Inserisci tracking" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+      <div><div class="k">Sconto cliente (€)</div><input id="o_discount" inputmode="decimal" placeholder="0" autocomplete="off"/></div>
+    </div>
+    <div style="margin-top:10px"><div class="k">Note</div><input id="o_note" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Aggiungi una nota utile per questo ordine"/></div>
+    <div class="grid2" style="margin-top:10px">
+      <div class="card" style="margin-top:0"><div class="k">Riepilogo ordine</div><div id="o_tot" class="priceHot">0</div><div id="o_tot_meta" class="small" style="margin-top:6px">Subtotale €0,00 • Sconto €0,00</div></div>
+      <div class="actions bottomMini" style="margin-top:0;align-content:start">
+        <button class="btn smallish" type="button" data-action="track17">Traccia spedizione</button>
+        <button class="btn smallish" type="button" data-action="openParcel">Apri Parcel</button>
+      </div>
     </div>
   </div>
-  <div class="grid2" style="margin-top:10px">
-    <div><div class="k">Data</div><input id="o_data" type="date" autocomplete="off"/></div>
-    <div><div class="k">Note</div><input id="o_note" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+
+  <div class="orderSection">
+    <div class="h3">Articoli ordine</div>
+    <div class="orderPrimaryRow">
+      <div>
+        <div class="k">Cerca articolo</div>
+        <div class="searchWrap"><input id="o_art_q" placeholder="Cerca per codice, modello o qualità" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="oArtSuggest" class="searchSuggest"></div></div>
+        <div class="k" style="margin-top:10px">Aggiungi articoli</div>
+        <select id="o_art_pick"><option value="">Seleziona articolo</option></select>
+        <select id="o_art" multiple hidden></select>
+        <div class="helper">Cerca sopra per codice, nome o qualità e scegli dalla tendina.</div>
+        <div id="o_art_selected_summary" class="orderSelectedSummary empty">Scegli un articolo dalla tendina.</div>
+      </div>
+      <div>
+        <div><div class="k">Misura scarpe</div><select id="o_mis" autocomplete="off"><option value="">Non necessaria</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option></select><div id="o_mis_hint" class="helper">Se ci sono scarpe, imposta qui la misura per tutte.</div></div>
+      </div>
+    </div>
+    <div style="margin-top:10px;display:none" id="o_color_global_wrap"><div class="k">Numero colore</div><select id="o_color_num"></select><div id="o_color_hint" class="helper">Obbligatorio quando l'articolo usa colori numerati.</div></div>
+    <div class="actions bottomMini"><button class="btn" type="button" data-action="addRow">Aggiungi articolo</button></div>
+    <div id="o_rows_summary" class="orderRowsSummary">Ancora nessun articolo nell'ordine.</div>
+    <div id="o_rows" class="list"></div>
   </div>
-  <div class="grid2" style="margin-top:10px">
-    <div><div class="k">Mis.</div><select id="o_mis" autocomplete="off"><option value="">Non necessaria</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option></select><div id="o_mis_hint" class="helper">Obbligatoria solo per ordini con scarpe.</div></div>
-    <div><div class="k">Tracking</div><input id="o_tracking" placeholder="Inserisci tracking" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+
+  <div class="orderSection">
+    <div class="h3">Foto ordine</div>
+    <div><div class="k">Aggiungi foto</div><input id="o_photo" type="file" accept="image/*" multiple/><div class="small" style="margin-top:6px">Le foto degli articoli collegati vengono copiate in automatico. Se l'articolo non c'è o è una variante, puoi aggiungerle a mano.</div><div id="o_photo_prev" class="orderPhotoGrid"></div></div>
   </div>
-  <div style="margin-top:10px;display:none" id="o_color_global_wrap"><div class="k">Numero colore</div><select id="o_color_num"></select><div id="o_color_hint" class="helper">Obbligatorio quando l'articolo usa colori numerati.</div></div>
-  <div class="grid2" style="margin-top:10px">
-    <div><div class="k">Sconto cliente (€)</div><input id="o_discount" inputmode="decimal" placeholder="0" autocomplete="off"/></div>
-    <div class="card" style="margin-top:0"><div class="k">Riepilogo ordine</div><div id="o_tot" class="priceHot">0</div><div id="o_tot_meta" class="small" style="margin-top:6px">Subtotale €0,00 • Sconto €0,00</div></div>
-  </div>
-  <div class="actions bottomMini" style="margin-top:8px">
-    <button class="btn smallish" type="button" data-action="track17">Traccia spedizione</button>
-    <button class="btn smallish" type="button" data-action="openParcel">Apri Parcel</button>
-  </div>
-  <div class="hr"></div>
-  <div class="h2">Righe ordine</div>
-  <div class="grid2">
-    <div><div class="k">Articoli (cerca e seleziona anche più articoli)</div><div class="searchWrap"><input id="o_art_q" placeholder="Cerca articolo anche per qualità..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="oArtSuggest" class="searchSuggest"></div></div><select id="o_art" multiple></select><div class="helper">Puoi selezionare più articoli insieme.</div></div>
-    <div><div class="k">Prezzo manuale (solo se selezioni 1 articolo)</div><input id="o_price" inputmode="decimal" autocomplete="off"/><div class="helper">Se selezioni più articoli usa i prezzi degli articoli.</div></div>
-  </div>
-  <div class="actions bottomMini">
-    <button class="btn" type="button" data-action="addRow">Aggiungi selezionati</button>
-  </div>
-  <div id="o_rows" class="list"></div>
-  <div style="margin-top:10px"><div class="k">Foto ordine</div><input id="o_photo" type="file" accept="image/*" multiple/><div class="small" style="margin-top:6px">Le foto degli articoli collegati vengono copiate in automatico. Se l'articolo non c'è o è una variante, puoi aggiungerle a mano.</div><div id="o_photo_prev" class="orderPhotoGrid"></div></div>
+
   <div class="actions bottomMini">
     <button class="btn primary" type="button" data-action="saveOrd">Salva</button>
     <button class="btn" type="button" data-action="closeOrd">Annulla</button>
@@ -5517,7 +5582,7 @@ function updateOrderShoeSizeState(){
   const firstOpt=sel.querySelector('option[value=""]');
   if(firstOpt) firstOpt.textContent=needed ? 'Seleziona misura' : 'Non necessaria';
   if(!needed && !ORDER_SHOE_SIZES.includes(String(sel.value||''))) sel.value='';
-  if(hint) hint.textContent=needed ? 'Per le scarpe la misura è obbligatoria.' : 'Obbligatoria solo per ordini con scarpe.';
+  if(hint) hint.textContent=needed ? 'Nelle righe con scarpe la misura è obbligatoria. Puoi impostarla sopra o direttamente nella riga articolo.' : 'Se ci sono scarpe, la misura vale per tutte le righe scarpe dell\'ordine.';
   return needed;
 }
 async function openOrdEdit(id, prefillArticleId=null){
@@ -5539,7 +5604,6 @@ async function openOrdEdit(id, prefillArticleId=null){
   document.getElementById('o_tracking').value=o?.tracking||'';
   document.getElementById('o_discount').value=calcOrderDiscount(o) ? String(calcOrderDiscount(o)).replace('.', ',') : '';
   document.getElementById('o_art').value='';
-  document.getElementById('o_price').value='';
   document.getElementById('o_photo').value='';
   currentOrdExistingManualPhotos=o ? await getOrderManualPics(o) : [];
   ordRows=(o?.righe||[]).slice();
@@ -5550,6 +5614,8 @@ async function openOrdEdit(id, prefillArticleId=null){
     }
   }
   renderOrdRows();
+  renderOrderClientSummary();
+  renderSelectedOrderArticlesSummary();
   updateOrderPriceFromSelection();
   updateOrderTotalsPreview();
   updateOrderShoeSizeState();
@@ -5575,6 +5641,39 @@ function findClientAutoMatch(items, raw=''){
   const starts=items.filter(c=>searchStartsWith(c?.nome||'', raw) || searchStartsWith(c?.telefono||'', raw) || searchStartsWith(c?.citta||'', raw));
   return starts.length===1 ? starts[0] : null;
 }
+function renderOrderClientSummary(){
+  const box=document.getElementById('o_cli_summary');
+  const sel=document.getElementById('o_cli');
+  const db=loadDB();
+  if(!box || !sel) return;
+  const cli=(db.clienti||[]).find(c=>String(c.id)===String(sel.value||''));
+  if(!cli){
+    box.className='orderClientSummary empty';
+    box.textContent='Seleziona un cliente per vedere subito nome, telefono e città.';
+    return;
+  }
+  const meta=[cli.telefono, [cli.citta, cli.provincia].filter(Boolean).join(' • '), cli.indirizzo].filter(Boolean);
+  box.className='orderClientSummary';
+  box.innerHTML=`<div class="title">${esc(cli.nome||'Cliente selezionato')}</div><div class="meta">${meta.length?esc(meta.join(' • ')):'Nessun dettaglio aggiuntivo'}</div>`;
+}
+function renderSelectedOrderArticlesSummary(){
+  const box=document.getElementById('o_art_selected_summary');
+  const pick=document.getElementById('o_art_pick');
+  const db=loadDB();
+  if(!box || !pick) return;
+  const id=String(pick.value||'').trim();
+  const a=(db.articoli||[]).find(x=>String(x.id)===id);
+  if(!a){
+    box.className='orderSelectedSummary empty';
+    box.textContent='Scegli un articolo dalla tendina.';
+    return;
+  }
+  const model=((a.modello||a.brand||'').trim() || 'Articolo');
+  const code=(a.codice||'').trim();
+  const meta=[a.brand, displayCategoryValue(a.categoria), a.qualita, '€ '+money(currentPrice(a)||0)].filter(Boolean).join(' • ');
+  box.className='orderSelectedSummary';
+  box.innerHTML=`<div class="title"><span>Articolo da aggiungere</span></div><div class="orderChoiceList"><span class="orderChoiceChip">${esc(model)}${code?`<span class="orderChoiceMeta">Cod. ${esc(code)}${meta?` • ${esc(meta)}`:''}</span>`:''}</span></div>`;
+}
 function fillClientSelect(db, filter='', autoPick=false){
   const sel=document.getElementById('o_cli');
   const searchInput=document.getElementById('o_cli_q');
@@ -5594,45 +5693,57 @@ function fillClientSelect(db, filter='', autoPick=false){
   }else if(prev && Array.from(sel.options).some(o=>o.value===prev)){
     sel.value=prev;
   }
+  renderOrderClientSummary();
   return items;
 }
 function fillArtSelect(db, filter=''){
-  const sel=document.getElementById('o_art');
-  const prev=Array.from(sel.selectedOptions||[]).map(o=>o.value);
-  const q=filter.toLowerCase();
-  const items=db.articoli.filter(a=>{
+  const sel=document.getElementById('o_art_pick');
+  const hidden=document.getElementById('o_art');
+  const q=String(filter||'').toLowerCase();
+  const prev=String(sel?.value||'').trim();
+  const items=(db.articoli||[]).filter(a=>{
     const hay=articleSearchHay(a);
     return !q || hay.includes(q);
   });
-  sel.innerHTML=items.map(a=>`<option value="${a.id}">${esc(a.brand||'')} ${esc(a.modello||'')} • ${esc(a.codice||'')}</option>`).join('');
-  prev.forEach(v=>{ const opt=Array.from(sel.options).find(o=>o.value===v); if(opt) opt.selected=true; });
+  if(sel){
+    sel.innerHTML='<option value="">Seleziona articolo</option>'+items.map(a=>{
+      const model=(a.modello||a.brand||'Articolo').trim();
+      const code=(a.codice||'').trim();
+      const cat=displayCategoryValue(a.categoria);
+      const price='€ '+money(currentPrice(a)||0);
+      const label=[model, code, cat, price].filter(Boolean).join(' • ');
+      return `<option value="${a.id}">${esc(label)}</option>`;
+    }).join('');
+    if(prev && Array.from(sel.options).some(o=>o.value===prev)) sel.value=prev;
+  }
+  if(hidden) hidden.innerHTML='';
+  renderSelectedOrderArticlesSummary();
 }
-function selectedOrderArticleIds(){ return Array.from(document.getElementById('o_art').selectedOptions||[]).map(o=>o.value).filter(Boolean); }
+function selectedOrderArticleIds(){
+  const pick=document.getElementById('o_art_pick');
+  return pick && pick.value ? [pick.value] : [];
+}
 function updateOrderPriceFromSelection(){
   const db=loadDB();
   const ids=selectedOrderArticleIds();
-  const priceInput=document.getElementById('o_price');
-  if(ids.length!==1){ if(ids.length===0) priceInput.value=''; return; }
-  const a=db.articoli.find(x=>x.id===ids[0]);
-  const price=currentPrice(a);
-  priceInput.value = price ? String(price) : ''; 
+  return;
 }
 function addRow(){
   const db=loadDB();
   const ids=selectedOrderArticleIds();
   if(!ids.length){ toast('Seleziona almeno un articolo'); return; }
-  const manual=Number(document.getElementById('o_price').value||0);
   ids.forEach((artId,idx)=>{
     const a=db.articoli.find(x=>x.id===artId);
     if(!a) return;
     if(ordRows.some(r=>r.articoloId===artId)) return;
-    const prezzo=(ids.length===1 && manual>0) ? manual : Number(currentPrice(a)||0);
+    const prezzo=Number(currentPrice(a)||0);
     ordRows.push({articoloId:artId, codice:a?.codice||'', modello:a?.modello||'', prezzo, richiedeNumeroColore:getArticleColorMode(a)==='multiple', colorCount:getArticleColorCount(a), colorLabels:getArticleColorLabels(a), numeroColore:'', colore:a?.colore||''});
   });
-  Array.from(document.getElementById('o_art').options).forEach(o=>o.selected=false);
+  const pick=document.getElementById('o_art_pick');
+  if(pick) pick.value='';
   document.getElementById('o_art_q').value='';
-  document.getElementById('o_price').value='';
   fillArtSelect(db);
+  renderSelectedOrderArticlesSummary();
   renderOrdRows();
   updateOrderShoeSizeState();
   saveOrderDraft();
@@ -5655,25 +5766,71 @@ function openTrackParcel(){
   const win=window.open(webUrl,'_blank','noopener');
   if(!win) window.location.href=webUrl;
 }
+function buildOrderSizeOptions(selected=''){
+  const current=String(selected||'').trim();
+  const values=current && !ORDER_SHOE_SIZES.includes(current) ? [current, ...ORDER_SHOE_SIZES] : ORDER_SHOE_SIZES.slice();
+  const uniq=[...new Set(values)];
+  return `<option value="">Seleziona misura</option>` + uniq.map(v=>`<option value="${esc(v)}" ${String(v)===current?'selected':''}>${esc(v)}</option>`).join('');
+}
+
 function renderOrdRows(){
   const box=document.getElementById('o_rows');
+  const db=loadDB();
+  const globalSize=String(document.getElementById('o_mis')?.value||'').trim();
   box.innerHTML=ordRows.map((r,i)=>{
+    const art=(db.articoli||[]).find(a=>a.id===r?.articoloId || (r?.codice && a.codice===r.codice));
     const needsColor=!!r?.richiedeNumeroColore && Number(r?.colorCount||0)>0;
-    const colorUi=needsColor ? `<div class="helper" style="margin-top:8px">Numero colore obbligatorio</div><select data-role="rowColorNum" data-i="${i}" style="margin-top:6px">${buildOrderColorOptions(r.colorCount, r.numeroColore||'', r.colorLabels||[])}</select>` : (r?.colore ? `<div class="helper" style="margin-top:8px">Colore: ${esc(r.colore)}</div>` : '');
-    const priceLine=needsColor && r?.numeroColore ? `${money(r.prezzo||0)} • Colore ${esc(r.numeroColore)}` : money(r.prezzo||0);
-    return `<div class="row" style="grid-template-columns:1fr auto">
-      <div><div class="t">${esc(r.codice)} • ${esc(r.modello)}</div><div class="s">${priceLine}</div>${colorUi}</div>
-      <button class="btn danger" data-action="delRow" data-i="${i}">X</button>
+    const isShoe=orderRowNeedsShoeSize(r, db);
+    const badges=[];
+    if(r?.codice) badges.push(`<span class="orderBadge">Cod. ${esc(r.codice)}</span>`);
+    badges.push(`<span class="orderBadge">€ ${money(r.prezzo||0)}</span>`);
+    if(isShoe) badges.push(`<span class="orderBadge">Misura ${esc(globalSize||'da scegliere')}</span>`);
+    if(!needsColor && r?.colore) badges.push(`<span class="orderBadge">Colore ${esc(r.colore)}</span>`);
+    const colorUi=needsColor ? `<div class="orderInlineField"><label>Colore</label><select data-role="rowColorNum" data-i="${i}">${buildOrderColorOptions(r.colorCount, r.numeroColore||'', r.colorLabels||[])}</select></div>` : '';
+    const sizeUi=isShoe ? `<div class="orderInlineField"><label>Misura</label><select data-role="rowSizeSync" data-i="${i}">${buildOrderSizeOptions(globalSize)}</select><div class="helper" style="margin:4px 0 0">Vale per tutte le scarpe.</div></div>` : '';
+    const meta=[art?.brand, displayCategoryValue(art?.categoria||r?.categoria||''), art?.qualita].filter(Boolean).map(v=>esc(v)).join(' • ');
+    return `<div class="orderCard">
+      <div>
+        <div class="title">${esc(r.modello||art?.modello||'Articolo selezionato')}</div>
+        <div class="meta">${meta || 'Riga ordine'}</div>
+        <div class="orderBadges">${badges.join('')}</div>
+        <div class="orderRowControls">${colorUi}${sizeUi}</div>
+      </div>
+      <button class="orderRemoveBtn" type="button" aria-label="Rimuovi articolo" title="Rimuovi articolo" data-action="delRow" data-i="${i}">Rimuovi</button>
     </div>`;
-  }).join('') || `<div class="small">Nessuna riga</div>`;
+  }).join('') || `<div class="orderSelectedSummary empty">Nessun articolo aggiunto.</div>`;
+  const sum=document.getElementById('o_rows_summary');
+  if(sum){
+    const shoeCount=ordRows.filter(r=>orderRowNeedsShoeSize(r, db)).length;
+    const colorCount=ordRows.filter(r=>!!r?.richiedeNumeroColore && Number(r?.colorCount||0)>0).length;
+    if(!ordRows.length){
+      sum.innerHTML='Ancora nessun articolo nell\'ordine.';
+    }else{
+      const parts=[`<strong>Articoli:</strong> ${ordRows.length}`];
+      if(shoeCount) parts.push(`<strong>Scarpe:</strong> ${shoeCount}${globalSize?` • misura ${esc(globalSize)}`:''}`);
+      if(colorCount) parts.push(`<strong>Colore da scegliere:</strong> ${colorCount}`);
+      sum.innerHTML=parts.join(' &nbsp;•&nbsp; ');
+    }
+  }
   box.querySelectorAll('[data-role="rowColorNum"]').forEach(sel=>{
     sel.addEventListener('change',()=>{
       const idx=Number(sel.dataset.i);
       if(Number.isInteger(idx) && ordRows[idx]){
         ordRows[idx].numeroColore=String(sel.value||'').trim();
+        renderOrdRows();
         updateOrderTotalsPreview();
         saveOrderDraft();
       }
+    });
+  });
+  box.querySelectorAll('[data-role="rowSizeSync"]').forEach(sel=>{
+    sel.addEventListener('change',()=>{
+      const val=String(sel.value||'').trim();
+      ensureOrderSizeOption(val);
+      const main=document.getElementById('o_mis');
+      if(main) main.value=val;
+      renderOrdRows();
+      saveOrderDraft();
     });
   });
   updateOrderTotalsPreview();
@@ -6118,14 +6275,16 @@ document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.k
 });
 
 bindSearchSuggest('o_cli_q','oCliSuggest','orderCli', value=>fillClientSelect(loadDB(), value, true));
+document.getElementById('o_art_pick')?.addEventListener('change', ()=>{ renderSelectedOrderArticlesSummary(); saveOrderDraft(); });
 bindSearchSuggest('o_art_q','oArtSuggest','orderArt', value=>{
   fillArtSelect(loadDB(), value);
   updateOrderPriceFromSelection();
 });
-document.getElementById('o_art').addEventListener('change', ()=>{ updateOrderPriceFromSelection(); saveOrderDraft(); });
+document.getElementById('o_art').addEventListener('change', ()=>{ renderSelectedOrderArticlesSummary(); updateOrderPriceFromSelection(); saveOrderDraft(); });
 document.getElementById('o_discount').addEventListener('input', ()=>{ updateOrderTotalsPreview(); saveOrderDraft(); });
-['o_cli','o_stato','o_data','o_note','o_mis','o_tracking','o_price'].forEach(id=>{ const el=document.getElementById(id); if(el) ['input','change'].forEach(evt=>el.addEventListener(evt, saveOrderDraft)); });
-document.getElementById('o_cli')?.addEventListener('change', ()=>{ const db=loadDB(); const cli=(db.clienti||[]).find(c=>String(c.id)===String(document.getElementById('o_cli').value||'')); if(cli) document.getElementById('o_cli_q').value=cli.nome||''; saveOrderDraft(); });
+['o_cli','o_stato','o_data','o_note','o_tracking'].forEach(id=>{ const el=document.getElementById(id); if(el) ['input','change'].forEach(evt=>el.addEventListener(evt, saveOrderDraft)); });
+document.getElementById('o_mis')?.addEventListener('change', ()=>{ renderOrdRows(); saveOrderDraft(); });
+document.getElementById('o_cli')?.addEventListener('change', ()=>{ const db=loadDB(); const cli=(db.clienti||[]).find(c=>String(c.id)===String(document.getElementById('o_cli').value||'')); if(cli) document.getElementById('o_cli_q').value=cli.nome||''; renderOrderClientSummary(); saveOrderDraft(); });
 
 document.getElementById('importFile').addEventListener('change',(e)=>{
   const f=e.target.files[0];
