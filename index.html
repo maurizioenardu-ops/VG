@@ -5575,7 +5575,37 @@ async function openOrdView(id){
   }
   const righeOrd=Array.isArray(o.righe)?o.righe:[];
   const rows=document.getElementById('vOrdRows');
-  rows.innerHTML=righeOrd.map(r=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(r.codice||'')} • ${esc(r.modello||'')}</div><div class="s">Prezzo ${money(r.prezzo||0)}${r?.numeroColore?` • Colore ${esc(r.numeroColore)}`:''}</div></div><div class="pill">Riga</div></div>`).join('') || `<div class="small">Nessuna riga</div>`;
+  rows.innerHTML=righeOrd.map((r,i)=>{
+    const art=(db.articoli||[]).find(a=>a.id===r?.articoloId || (r?.codice && a.codice===r.codice));
+    const labels=Array.isArray(r?.colorLabels) && r.colorLabels.length ? r.colorLabels : getArticleColorLabels(art);
+    const needsColor=!!r?.richiedeNumeroColore && Number(r?.colorCount||labels.length||0)>0;
+    const colorText=r?.colore ? `Colore ${esc(r.colore)}` : (r?.numeroColore ? `Colore ${esc(r.numeroColore)}` : '');
+    const metaParts=[`Prezzo ${money(r.prezzo||0)}`];
+    if(colorText) metaParts.push(colorText);
+    const colorUi=needsColor
+      ? `<div style="margin-top:8px"><div class="k">Colore</div><select data-role="viewRowColorNum" data-i="${i}">${buildOrderColorOptions(r.colorCount||labels.length||0, r.numeroColore||'', labels||[])}</select></div>`
+      : (r?.colore ? `<div class="s" style="margin-top:6px">Colore: ${esc(r.colore)}</div>` : '');
+    return `<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(r.codice||'')} • ${esc(r.modello||'')}</div><div class="s">${metaParts.join(' • ')}</div>${colorUi}</div><div class="pill">Riga</div></div>`;
+  }).join('') || `<div class="small">Nessuna riga</div>`;
+  rows.querySelectorAll('[data-role="viewRowColorNum"]').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      const idx=Number(sel.dataset.i);
+      const dbNow=loadDB();
+      const ord=dbNow.ordini.find(x=>x.id===currentOrdId);
+      if(!ord || !Array.isArray(ord.righe) || !ord.righe[idx]) return;
+      const row=ord.righe[idx];
+      const art=(dbNow.articoli||[]).find(a=>a.id===row?.articoloId || (row?.codice && a.codice===row.codice));
+      const labels=Array.isArray(row?.colorLabels) && row.colorLabels.length ? row.colorLabels : getArticleColorLabels(art);
+      const val=String(sel.value||'').trim();
+      row.numeroColore=val;
+      row.colore=(parseInt(val,10)>0 && labels[parseInt(val,10)-1]) ? labels[parseInt(val,10)-1] : '';
+      ord.righe[idx]=row;
+      ord.articlePhotoIds=await getOrderArticleSnapshotPhotos(ord.righe, dbNow);
+      saveDB(dbNow);
+      toast('Colore ordine aggiornato');
+      await openOrdView(ord.id);
+    });
+  });
   const ordPics=await getOrderPics(o, db);
   document.getElementById('vOrdPhotos').innerHTML=ordPics.map(src=>`<img src="${src}" onclick="window.open('${src}','_blank','noopener')"/>`).join('');
   document.getElementById('vOrdPhotosEmpty').style.display=ordPics.length?'none':'block';
