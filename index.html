@@ -2189,6 +2189,24 @@ async function shareCurrentArticlePhotos(){
   if(!ctx) return;
 
   let files=getCachedArticlePhotoFilesForCtx(ctx) || [];
+  const tryAutoDownload = async ()=>{
+    if(!files.length) return false;
+    try{
+      if(files.length===1){
+        triggerBlobDownload(files[0], files[0].name || `${ctx.baseName}.jpg`);
+        toast('Condivisione diretta bloccata. Ti ho scaricato la foto.');
+        return true;
+      }
+      const zipFile = await buildZipFromFiles(files, `${ctx.baseName || 'articolo'}_foto.zip`);
+      triggerBlobDownload(zipFile, zipFile.name);
+      toast(`Condivisione diretta bloccata. Ti ho scaricato uno ZIP con ${files.length} foto.`);
+      return true;
+    }catch(err){
+      console.warn('Fallback download foto fallito', err);
+      return false;
+    }
+  };
+
   if(files.length){
     try{
       const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
@@ -2201,6 +2219,16 @@ async function shareCurrentArticlePhotos(){
     }catch(err){
       if(err && err.name==='AbortError') return;
       console.warn('Condivisione nativa foto fallita', err);
+      const activationErr = /activation|user gesture|notallowed/i.test(String(err && (err.message||err.name)||''));
+      if(activationErr){
+        const sharedLinks = await tryNativeShareArticleLinks(ctx.pics, ctx.baseName);
+        if(sharedLinks===true){
+          toast('Condivisione aperta con i link delle foto.');
+          return;
+        }
+        if(sharedLinks==='abort') return;
+        if(await tryAutoDownload()) return;
+      }
     }
   }
 
@@ -2222,19 +2250,25 @@ async function shareCurrentArticlePhotos(){
       console.warn('Condivisione nativa foto fallita dopo preparazione', err);
       const activationErr = /activation|user gesture|notallowed/i.test(String(err && (err.message||err.name)||''));
       if(activationErr){
-        toast('Il browser ha bloccato la condivisione diretta. Usa Scarica foto.');
-        return;
+        const sharedLinks = await tryNativeShareArticleLinks(ctx.pics, ctx.baseName);
+        if(sharedLinks===true){
+          toast('Condivisione aperta con i link delle foto.');
+          return;
+        }
+        if(sharedLinks==='abort') return;
+        if(await tryAutoDownload()) return;
       }
     }
   }
 
   const sharedLinks = await tryNativeShareArticleLinks(ctx.pics, ctx.baseName);
   if(sharedLinks===true){
-    toast('Condivisione aperta. Il browser sta inviando i link delle foto.');
+    toast('Condivisione aperta con i link delle foto.');
     return;
   }
   if(sharedLinks==='abort') return;
 
+  if(await tryAutoDownload()) return;
   toast(files.length ? 'Condivisione foto non supportata da questo browser.' : 'Condivisione foto fallita');
 }
 const __zipCrcTable = (()=>{
