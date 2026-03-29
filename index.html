@@ -828,6 +828,7 @@ const ART_DRAFT_KEY='vg_draft_art_v1';
 const CLI_DRAFT_KEY='vg_draft_cli_v1';
 const ORD_DRAFT_KEY='vg_draft_ord_v1';
 const AGENDA_KEY='vg_dashboard_agenda_v1';
+const SETTINGS_META_KEY='vg_settings_meta_v1';
 const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
 const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
 const round5=n=>Math.round(n/5)*5;
@@ -850,8 +851,8 @@ function normalizeDBShape(o){
   db.articoli=db.articoli.map(x=>({
     ...x,
     codice:normalizeSpaceText(x?.codice||x?.sku||''),
-    brand:normalizeSpaceText(x?.brand||x?.marca||''),
-    categoria:normalizeSpaceText(x?.categoria||''),
+    brand:normalizeStoredBrandValue(x?.brand||x?.marca||''),
+    categoria:normalizeStoredCategoryValue(x?.categoria||''),
     colore:normalizeSpaceText(x?.colore||''),
     ...deriveColorShape(x),
     costoUsd:firstFiniteNumber(x?.costoUsd, x?.costoUSD, x?.usd, 0),
@@ -949,12 +950,30 @@ function normalizeDBShape(o){
     righe:Array.isArray(o?.righe)?o.righe:[]
   }));
 
-  db.categorie=[...new Set((db.categorie||[]).map(x=>normalizeSpaceText(x)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
-  db.brands=[...new Set((db.brands||[]).map(x=>normalizeSpaceText(x)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.categorie=[...new Set((db.categorie||[]).map(x=>normalizeStoredCategoryValue(x)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.brands=[...new Set((db.brands||[]).map(x=>normalizeStoredBrandValue(x)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
   return db;
 }
 
 function normalizeSpaceText(v){ return String(v==null?'':v).trim().replace(/\s+/g,' '); }
+function isPlaceholderCategoryName(v){ return /^senza\s+categoria$/i.test(String(v||'').trim()); }
+function isPlaceholderBrandName(v){ return /^senza\s+brand$/i.test(String(v||'').trim()); }
+function normalizeStoredCategoryValue(v){ const clean=normalizeSpaceText(v||''); return isPlaceholderCategoryName(clean) ? '' : clean; }
+function normalizeStoredBrandValue(v){ const clean=normalizeSpaceText(v||''); return isPlaceholderBrandName(clean) ? '' : clean; }
+function normalizeSettingsMetaShape(o){
+  const src=(o&&typeof o==='object')?o:{};
+  return {
+    categories:[...new Set((Array.isArray(src.categories)?src.categories:[]).map(normalizeStoredCategoryValue).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'})),
+    brands:[...new Set((Array.isArray(src.brands)?src.brands:[]).map(normalizeStoredBrandValue).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'})),
+    uiPrefs:(src.uiPrefs && typeof src.uiPrefs==='object') ? src.uiPrefs : null
+  };
+}
+function loadSettingsMeta(){
+  try{ return normalizeSettingsMetaShape(JSON.parse(localStorage.getItem(SETTINGS_META_KEY)||'{}')); }catch(_e){ return normalizeSettingsMetaShape({}); }
+}
+function saveSettingsMeta(meta){
+  try{ localStorage.setItem(SETTINGS_META_KEY, JSON.stringify(normalizeSettingsMetaShape(meta))); }catch(_e){}
+}
 function readStableColorData(item={}){
   const raw=item?.colorData ?? item?.multiColorData ?? item?.colorMeta ?? null;
   if(!raw) return null;
@@ -1589,6 +1608,9 @@ function loadDB(){
     });
 
     merged=normalizeDBShape(merged);
+    const settingsMeta=loadSettingsMeta();
+    merged.categorie=[...new Set([...(merged.categorie||[]), ...((settingsMeta?.categories)||[])].map(normalizeStoredCategoryValue).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+    merged.brands=[...new Set([...(merged.brands||[]), ...((settingsMeta?.brands)||[])].map(normalizeStoredBrandValue).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
 
     const mergedRaw = JSON.stringify(merged);
     const rawMain=localStorage.getItem(KEY);
@@ -1605,6 +1627,10 @@ function saveDB(db){
     const raw=JSON.stringify(cleanDb);
     localStorage.setItem(KEY, raw);
     try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
+    try{
+      const meta=loadSettingsMeta();
+      saveSettingsMeta({ ...meta, categories: cleanDb.categorie||[], brands: cleanDb.brands||[] });
+    }catch(_e){}
     try{ localStorage.setItem(AGENDA_KEY, JSON.stringify(Array.isArray(cleanDb.agenda)?cleanDb.agenda:[])); }catch(_e){}
     const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
     legacyKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
@@ -3853,8 +3879,26 @@ function normalizeUiPrefs(v){
     css:String(o.css||'')
   };
 }
-function loadUiPrefs(){ try{ return normalizeUiPrefs(JSON.parse(localStorage.getItem(UI_KEY)||'{}')); }catch(e){ return defaultUiPrefs(); } }
-function saveUiPrefsData(prefs){ localStorage.setItem(UI_KEY, JSON.stringify(normalizeUiPrefs(prefs))); }
+function loadUiPrefs(){
+  try{
+    const raw=localStorage.getItem(UI_KEY);
+    if(raw){
+      const parsed=normalizeUiPrefs(JSON.parse(raw));
+      try{ const meta=loadSettingsMeta(); saveSettingsMeta({ ...meta, uiPrefs: parsed }); }catch(_e){}
+      return parsed;
+    }
+  }catch(_e){}
+  try{
+    const meta=loadSettingsMeta();
+    if(meta?.uiPrefs) return normalizeUiPrefs(meta.uiPrefs);
+  }catch(_e){}
+  return defaultUiPrefs();
+}
+function saveUiPrefsData(prefs){
+  const clean=normalizeUiPrefs(prefs);
+  localStorage.setItem(UI_KEY, JSON.stringify(clean));
+  try{ const meta=loadSettingsMeta(); saveSettingsMeta({ ...meta, uiPrefs: clean }); }catch(_e){}
+}
 function fillUiEditor(){
   const p=loadUiPrefs();
   const set=(id,val)=>{ const el=document.getElementById(id); if(el) el.value=val||''; };
@@ -4300,7 +4344,7 @@ function renderHome(){
 }
 
 function normalizeCategoryName(v){
-  return String(v||'').trim().replace(/\s+/g,' ').toLowerCase();
+  return normalizeStoredCategoryValue(v).toLowerCase();
 }
 function articleCategoryOptions(db){
   const saved=Array.isArray(db?.categorie)?db.categorie:[];
@@ -4308,7 +4352,7 @@ function articleCategoryOptions(db){
   const out=[];
   const seen=new Set();
   for(const name of [...saved, ...found]){
-    const clean=String(name||'').trim().replace(/\s+/g,' ');
+    const clean=normalizeStoredCategoryValue(name||'');
     const key=normalizeCategoryName(clean);
     if(!clean || seen.has(key)) continue;
     seen.add(key);
@@ -4332,6 +4376,7 @@ function addCategory(){
   if(!nome){ toast('Scrivi il nome categoria'); return; }
   const db=loadDB();
   const key=normalizeCategoryName(nome);
+  if(!key){ toast('Nome categoria non valido'); return; }
   const exists=(db.categorie||[]).some(c=>normalizeCategoryName(c)===key) || (db.articoli||[]).some(a=>normalizeCategoryName(a?.categoria)===key);
   if(exists){ toast('Categoria già presente'); return; }
   const next=[...new Set([...(db.categorie||[]), nome])].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
@@ -4353,15 +4398,16 @@ function renameCategory(oldName){
   if(!cleanNew){ toast('Nome categoria vuoto'); return; }
   const oldKey=normalizeCategoryName(cleanOld);
   const newKey=normalizeCategoryName(cleanNew);
+  if(!newKey){ toast('Nome categoria non valido'); return; }
   const db=loadDB();
   if(oldKey!==newKey){
     const exists=(db.categorie||[]).some(c=>normalizeCategoryName(c)===newKey) || (db.articoli||[]).some(a=>normalizeCategoryName(a?.categoria)===newKey);
     if(exists){ toast('Esiste già una categoria con questo nome'); return; }
   }
-  db.categorie=(db.categorie||[]).map(c=>normalizeCategoryName(c)===oldKey ? cleanNew : c);
-  if(!(db.categorie||[]).some(c=>normalizeCategoryName(c)===newKey)) db.categorie.push(cleanNew);
-  db.categorie=[...new Set((db.categorie||[]).map(c=>String(c||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
-  db.articoli=(db.articoli||[]).map(a=> normalizeCategoryName(a?.categoria)===oldKey ? {...a, categoria: cleanNew, _ts: Date.now()} : a);
+  db.categorie=(db.categorie||[]).map(c=>normalizeCategoryName(c)===oldKey ? normalizeStoredCategoryValue(cleanNew) : normalizeStoredCategoryValue(c));
+  if(!(db.categorie||[]).some(c=>normalizeCategoryName(c)===newKey)) db.categorie.push(normalizeStoredCategoryValue(cleanNew));
+  db.categorie=[...new Set((db.categorie||[]).map(normalizeStoredCategoryValue).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.articoli=(db.articoli||[]).map(a=> normalizeCategoryName(a?.categoria)===oldKey ? {...a, categoria: normalizeStoredCategoryValue(cleanNew), _ts: Date.now()} : a);
   if(artBrowseState.categoria && normalizeCategoryName(artBrowseState.categoria)===oldKey){
     setArtBrowse(artBrowseState.level, cleanNew, artBrowseState.brand||'', false);
   }
@@ -4377,7 +4423,7 @@ function deleteCategory(nome){
   askConfirm(`Elimino la categoria "${clean}"? Gli articoli restano salvati ma finiscono in "Senza categoria".`,()=>{
     const db=loadDB();
     const key=normalizeCategoryName(clean);
-    db.categorie=(db.categorie||[]).filter(c=>normalizeCategoryName(c)!==key);
+    db.categorie=(db.categorie||[]).filter(c=>normalizeCategoryName(c)!==key).map(normalizeStoredCategoryValue).filter(Boolean);
     db.articoli=(db.articoli||[]).map(a=>{
       if(normalizeCategoryName(a?.categoria)!==key) return a;
       return {...a, categoria:'', _ts: Date.now()};
@@ -4444,14 +4490,14 @@ function refreshArticlePreviewFilters(){
 
 const DEFAULT_BRANDS=['Louis Vuitton','Gucci','Chanel','Dior','Alexander McQueen','Balenciaga','Versace'];
 function normalizeBrandName(v){
-  return String(v||'').trim().replace(/\s+/g,' ').toLowerCase();
+  return normalizeStoredBrandValue(v).toLowerCase();
 }
 function articleBrandOptions(db){
   const seen=new Set();
   const out=[];
   const push=(v)=>{
-    const clean=String(v||'').trim().replace(/\s+/g,' ');
-    if(!clean || /^senza\s+brand$/i.test(clean)) return;
+    const clean=normalizeStoredBrandValue(v||'');
+    if(!clean) return;
     const key=normalizeBrandName(clean);
     if(!key || seen.has(key)) return;
     seen.add(key);
@@ -4493,9 +4539,10 @@ function addBrand(){
   if(!nome){ toast('Scrivi il nome brand'); return; }
   const db=loadDB();
   const key=normalizeBrandName(nome);
+  if(!key){ toast('Nome brand non valido'); return; }
   const exists=articleBrandOptions(db).some(b=>normalizeBrandName(b)===key);
   if(exists){ toast('Brand già presente'); return; }
-  db.brands=[...(Array.isArray(db.brands)?db.brands:[]), nome].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.brands=[...(Array.isArray(db.brands)?db.brands:[]), normalizeStoredBrandValue(nome)].filter(Boolean).sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
   if(!saveDB(db)) return;
   if(input) input.value='';
   renderBrandSettings();
@@ -4511,14 +4558,15 @@ function renameBrand(oldName){
   if(!cleanNew){ toast('Nome brand vuoto'); return; }
   const oldKey=normalizeBrandName(cleanOld);
   const newKey=normalizeBrandName(cleanNew);
+  if(!newKey){ toast('Nome brand non valido'); return; }
   const db=loadDB();
   if(oldKey!==newKey && articleBrandOptions(db).some(b=>normalizeBrandName(b)===newKey)){
     toast('Esiste già un brand con questo nome'); return;
   }
-  db.brands=(Array.isArray(db.brands)?db.brands:[]).map(b=>normalizeBrandName(b)===oldKey ? cleanNew : b);
-  if(!(Array.isArray(db.brands)?db.brands:[]).some(b=>normalizeBrandName(b)===newKey)) db.brands.push(cleanNew);
-  db.brands=[...new Set((db.brands||[]).map(b=>String(b||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
-  db.articoli=(db.articoli||[]).map(a=> normalizeBrandName(a?.brand)===oldKey ? {...a, brand: cleanNew, _ts: Date.now()} : a);
+  db.brands=(Array.isArray(db.brands)?db.brands:[]).map(b=>normalizeBrandName(b)===oldKey ? normalizeStoredBrandValue(cleanNew) : normalizeStoredBrandValue(b));
+  if(!(Array.isArray(db.brands)?db.brands:[]).some(b=>normalizeBrandName(b)===newKey)) db.brands.push(normalizeStoredBrandValue(cleanNew));
+  db.brands=[...new Set((db.brands||[]).map(normalizeStoredBrandValue).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.articoli=(db.articoli||[]).map(a=> normalizeBrandName(a?.brand)===oldKey ? {...a, brand: normalizeStoredBrandValue(cleanNew), _ts: Date.now()} : a);
   if(artBrowseState.brand && normalizeBrandName(artBrowseState.brand)===oldKey){
     setArtBrowse(artBrowseState.level, artBrowseState.categoria||'', cleanNew, false);
   }
@@ -4534,7 +4582,7 @@ function deleteBrand(nome){
   askConfirm(`Elimino il brand "${clean}"? Gli articoli restano salvati ma finiscono in "Senza brand".`,()=>{
     const db=loadDB();
     const key=normalizeBrandName(clean);
-    db.brands=(db.brands||[]).filter(b=>normalizeBrandName(b)!==key);
+    db.brands=(db.brands||[]).filter(b=>normalizeBrandName(b)!==key).map(normalizeStoredBrandValue).filter(Boolean);
     db.articoli=(db.articoli||[]).map(a=> normalizeBrandName(a?.brand)===key ? {...a, brand:'', _ts: Date.now()} : a);
     if(artBrowseState.brand && normalizeBrandName(artBrowseState.brand)===key){
       setArtBrowse('brands', artBrowseState.categoria||'', '', false);
@@ -6626,7 +6674,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='refreshDiag'){ renderDiagnostics(); toast('Diagnostica aggiornata'); return; }
   if(a==='saveUiPrefs'){ saveUiPrefsData(readUiEditor()); applyUiPrefs(); toast('Interfaccia aggiornata'); return; }
   if(a==='loadUiPrefs'){ fillUiEditor(); applyUiPrefs(); toast('Editor ricaricato'); return; }
-  if(a==='resetUiPrefs'){ localStorage.removeItem(UI_KEY); fillUiEditor(); applyUiPrefs(); toast('Editor ripristinato'); return; }
+  if(a==='resetUiPrefs'){ localStorage.removeItem(UI_KEY); try{ const meta=loadSettingsMeta(); saveSettingsMeta({ ...meta, uiPrefs: null }); }catch(_e){} fillUiEditor(); applyUiPrefs(); toast('Editor ripristinato'); return; }
   if(a==='repairArchive'){
     askConfirm('Riparo archivio foto e pulizia riferimenti sporchi?', ()=>repairArchive().then(()=>toast('Archivio riparato')).catch(err=>{toast('Riparazione fallita'); console.error(err);}),'Ripara archivio');
     return;
@@ -6641,7 +6689,7 @@ document.addEventListener('click',(ev)=>{
             if(k) keep.push(k);
           }
         }catch(_e){}
-        const appKeys=[KEY, UI_KEY, SHIP_ALERTS_KEY, SHIP_SNAPSHOT_KEY, ...(typeof LEGACY_KEYS!=='undefined'?LEGACY_KEYS:[])];
+        const appKeys=[KEY, UI_KEY, SETTINGS_META_KEY, SHIP_ALERTS_KEY, SHIP_SNAPSHOT_KEY, ...(typeof LEGACY_KEYS!=='undefined'?LEGACY_KEYS:[])];
         [...new Set([...keep, ...appKeys])].forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
         try{ sessionStorage.clear(); }catch(_e){}
         try{
@@ -6892,6 +6940,10 @@ function saveDBLocal(db){
     const raw=JSON.stringify(cleanDb);
     localStorage.setItem(KEY, raw);
     try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
+    try{
+      const meta=loadSettingsMeta();
+      saveSettingsMeta({ ...meta, categories: cleanDb.categorie||[], brands: cleanDb.brands||[] });
+    }catch(_e){}
   }catch(err){ console.error(err); }
 }
 async function ensureCategoryId(nome){
@@ -7181,6 +7233,11 @@ async function pushLocalToCloud(){
     }
     const artIdMap=new Map();
     const cliIdMap=new Map();
+    for(const cat of (db.categorie||[])){
+      const cleanCat=normalizeStoredCategoryValue(cat);
+      if(!cleanCat) continue;
+      try{ await ensureCategoryId(cleanCat); }catch(err){ console.warn('Categoria cloud standalone non salvata', cleanCat, err); }
+    }
     for(let i=0;i<db.articoli.length;i++){
       const oldId=db.articoli[i]?.id;
       const saved=await upsertCloudArticle(db.articoli[i]);
