@@ -4754,6 +4754,13 @@ function normalizeQualityValue(v){
 function articleQualityLabel(a){
   return normalizeQualityValue(a?.qualita||a?.qualità||qualityFromCode(a?.codice)||'');
 }
+function isArticleUnavailable(a){
+  return !!(a && (a.nonDisponibile===true || a.disponibile===false || a.attivo===false));
+}
+function articleAvailabilityBadge(a){
+  if(!isArticleUnavailable(a)) return '';
+  return '<div class="pill unavailable" style="margin-top:6px">NON DISPONIBILE</div>';
+}
 function articleSearchHay(a){
   const catLabel=displayCategoryValue(a?.categoria);
   const brandLabel=displayBrandValue(a?.brand);
