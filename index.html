@@ -5136,7 +5136,7 @@ function revokeObjectUrls(urls){
 async function refreshArtPhotoPreviewFromInput(){
   const input=document.getElementById('a_photo');
   if(!input) return;
-  const maxNew=Math.max(0, 12 - (Array.isArray(currentArtExistingPics)?currentArtExistingPics.length:0));
+  const maxNew=Math.max(0, 15 - (Array.isArray(currentArtExistingPics)?currentArtExistingPics.length:0));
   const files=Array.from(input.files||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
   if(files.length>maxNew){
     toast(`Puoi aggiungere ancora ${maxNew} foto manuale`);
@@ -5455,7 +5455,7 @@ async function saveArt(){
       obj.foto = Array.isArray(obj.foto) ? obj.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')) : [];
       obj.photoIds = Array.isArray(obj.photoIds) ? obj.photoIds.filter(Boolean) : [];
       const existingCount=Math.max((obj.foto||[]).length, (obj.photoIds||[]).length);
-      const maxNew=Math.max(0, 12 - existingCount);
+      const maxNew=Math.max(0, 15 - existingCount);
       const filesToSave=selectedFiles.slice(0,maxNew);
       if(selectedFiles.length>maxNew) photoUploadWarning=`Caricate ${maxNew} foto, limite massimo raggiunto`;
 
