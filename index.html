@@ -2079,23 +2079,49 @@ function canNativeShareFiles(files){
     return false;
   }
 }
+function isShareAbortError(err){
+  return !!(err && err.name==='AbortError');
+}
+function isShareActivationError(err){
+  const name=String(err?.name||'');
+  const msg=String(err?.message||'').toLowerCase();
+  return name==='NotAllowedError'
+    || msg.includes('user activation')
+    || msg.includes('user gesture')
+    || msg.includes('requires transient activation')
+    || msg.includes('must be handling a user gesture');
+}
 async function tryNativeShareArticleFiles(files, baseName){
   const mode = canNativeShareFiles(files);
   if(!mode) return false;
+
+  const attempts=[];
   if(mode==='single'){
-    await navigator.share({
-      files:[files[0]],
-      title:`Foto ${baseName}`,
-      text:`Salva la foto dell'articolo ${baseName}`
-    });
-    return 'single';
+    attempts.push({ kind:'single', files:[files[0]] });
+  }else{
+    attempts.push({ kind:'multi', files:[...files] });
+    if(files.length>1) attempts.push({ kind:'single', files:[files[0]] });
   }
-  await navigator.share({
-    files,
-    title:`Foto ${baseName}`,
-    text:`Salva ${files.length} foto dell'articolo ${baseName}`
-  });
-  return 'multi';
+
+  let lastErr=null;
+  for(const attempt of attempts){
+    try{
+      await navigator.share({
+        files:attempt.files,
+        title:`Foto ${baseName}`,
+        text:attempt.kind==='single'
+          ? `Salva la foto dell'articolo ${baseName}`
+          : `Salva ${attempt.files.length} foto dell'articolo ${baseName}`
+      });
+      return attempt.kind;
+    }catch(err){
+      if(isShareAbortError(err)) throw err;
+      lastErr=err;
+      if(isShareActivationError(err)) throw err;
+    }
+  }
+  if(lastErr) throw lastErr;
+  return false;
 }
 async function buildArticlePhotoFiles(art, pics, baseName){
   const files=[];
@@ -2166,27 +2192,29 @@ async function shareCurrentArticlePhotos(){
   if(!ctx) ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
 
-  let files=getCachedArticlePhotoFilesForCtx(ctx) || [];
-  if(!files.length){
-    files=await ensureCurrentArticlePhotoFiles(ctx);
-    if(files.length){
-      __articlePhotoShareCache = { key: ctx.cacheKey, files, at: Date.now() };
-    }
+  const cachedFiles=getCachedArticlePhotoFilesForCtx(ctx) || [];
+  if(!cachedFiles.length){
+    warmCurrentArticlePhotoShare(ctx).catch(err=>console.warn('Warmup foto articolo fallito', err));
+    toast('Sto preparando le foto. Tocca di nuovo “Condividi foto” tra un attimo.');
+    return;
   }
 
-  if(files.length){
-    try{
-      const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
-      if(shared){
-        toast(shared==='single'
-          ? 'Condivisione aperta. Il browser supporta una foto per volta.'
-          : `Condivisione aperta per ${files.length} foto.`);
-        return;
-      }
-    }catch(err){
-      if(err && err.name==='AbortError') return;
-      console.warn('Condivisione nativa foto fallita', err);
+  try{
+    const shared = await tryNativeShareArticleFiles(cachedFiles, ctx.baseName);
+    if(shared){
+      toast(shared==='single'
+        ? 'Condivisione aperta. Il browser supporta una foto per volta.'
+        : `Condivisione aperta per ${cachedFiles.length} foto.`);
+      return;
     }
+  }catch(err){
+    if(isShareAbortError(err)) return;
+    if(isShareActivationError(err)){
+      warmCurrentArticlePhotoShare(ctx).catch(()=>{});
+      toast('La condivisione non è partita al primo tocco. Riprova subito “Condividi foto”.');
+      return;
+    }
+    console.warn('Condivisione nativa foto fallita', err);
   }
 
   const sharedLinks = await tryNativeShareArticleLinks(ctx.pics, ctx.baseName);
@@ -2196,7 +2224,7 @@ async function shareCurrentArticlePhotos(){
   }
   if(sharedLinks==='abort') return;
 
-  await downloadCurrentArticlePhotos();
+  toast('Da questo browser la condivisione diretta delle foto non parte. “Scarica foto” resta separato e non si apre da solo.');
 }
 const __zipCrcTable = (()=>{
   const table = new Uint32Array(256);
@@ -7165,6 +7193,7 @@ initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','
 updateArticleColorModeUI();
 document.getElementById('a_color_suggest_btn')?.addEventListener('click', async ()=>{ try{ await suggestArticleColorLabelsFromImage(); }catch(err){ console.warn('Suggerimento colori fallito', err); toast('Non sono riuscita a leggere bene la foto'); } });
 document.getElementById('a_color_labels_clear_btn')?.addEventListener('click', ()=>{ const el=document.getElementById('a_color_labels'); if(el){ el.value=''; saveArticleDraft(); toast('Abbinamenti colore puliti'); } });
+document.addEventListener('pointerdown', ev=>{ const btn=ev.target?.closest?.('[data-action="shareArtPhotos"]'); if(!btn) return; const ctx=getPreparedCurrentArticlePhotoContext(); if(ctx) warmCurrentArticlePhotoShare(ctx).catch(()=>{}); }, { passive:true });
 renderDiagnostics();
 fillUiEditor();
 applyUiPrefs();
