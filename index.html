@@ -522,7 +522,7 @@ window.addEventListener('error',e=>{
   <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
-    <button class="btn smallish" type="button" data-action="shareArtPhotos">Condividi foto</button>
+    <button class="btn smallish" id="vArtSharePhotosBtn" type="button" data-action="shareArtPhotos">Condividi foto</button>
     <button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button>
     <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
@@ -2067,6 +2067,23 @@ async function warmCurrentArticlePhotoShare(ctx=null){
     .finally(()=>{ __articlePhotoShareWarmPromise = null; });
   return __articlePhotoShareWarmPromise;
 }
+
+function setArticleShareButtonState(mode='ready'){
+  const btn=document.getElementById('vArtSharePhotosBtn');
+  if(!btn) return;
+  if(mode==='loading'){
+    btn.disabled = true;
+    btn.textContent = 'Preparo foto...';
+    btn.style.opacity = '0.72';
+    btn.dataset.ready = '0';
+    return;
+  }
+  btn.disabled = false;
+  btn.textContent = 'Condividi foto';
+  btn.style.opacity = '';
+  btn.dataset.ready = '1';
+}
+
 function canNativeShareFiles(files){
   try{
     if(typeof navigator==='undefined' || typeof navigator.share!=='function') return false;
@@ -2162,6 +2179,11 @@ async function ensureCurrentArticlePhotoFiles(ctx){
   return files;
 }
 async function shareCurrentArticlePhotos(){
+  const shareBtn=document.getElementById('vArtSharePhotosBtn');
+  if(shareBtn && shareBtn.disabled){
+    toast('Aspetta un attimo, sto preparando le foto...');
+    return;
+  }
   let ctx=getPreparedCurrentArticlePhotoContext();
   if(!ctx) ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
@@ -2200,7 +2222,7 @@ async function shareCurrentArticlePhotos(){
       console.warn('Condivisione nativa foto fallita dopo preparazione', err);
       const activationErr = /activation|user gesture|notallowed/i.test(String(err && (err.message||err.name)||''));
       if(activationErr){
-        toast('Foto pronte. Premi di nuovo “Condividi foto” per aprire la condivisione.');
+        toast('Il browser ha bloccato la condivisione diretta. Usa Scarica foto.');
         return;
       }
     }
@@ -5152,9 +5174,14 @@ async function openArtView(id){
   fitTextarea(document.getElementById('vArtPostIg'));
   const vArtSupplierLink=document.getElementById('vArtSupplierLink');
   if(vArtSupplierLink) vArtSupplierLink.value=(a.fornitoreLink||'').trim();
-  prepareArticlePhotoShareContext(a).then(ctx=>{
-    if(ctx) warmCurrentArticlePhotoShare(ctx).catch(()=>{});
-  }).catch(()=>{});
+  setArticleShareButtonState('loading');
+  prepareArticlePhotoShareContext(a).then(async ctx=>{
+    if(ctx){
+      await warmCurrentArticlePhotoShare(ctx).catch(()=>{});
+    }
+  }).finally(()=>{
+    setArticleShareButtonState('ready');
+  });
   show('mArtView');
   scheduleModalTextareaFit('mArtView');
 }
