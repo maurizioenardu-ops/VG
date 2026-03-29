@@ -857,8 +857,8 @@ function normalizeDBShape(o){
     promoAttiva:(typeof x?.promoAttiva==='boolean') ? x.promoAttiva : !!x?.promo_on,
     prezzoPromo:firstFiniteNumber(x?.prezzoPromo, x?.promoPrezzo, x?.promo_price, 0),
     scadenzaPromo:normalizeSpaceText(x?.scadenzaPromo||x?.promoScadenza||x?.promo_date||''),
-    foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,12):[],
-    photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,12):[]
+    foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,15):[],
+    photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,15):[]
   })).map(x=>{
     const shape=deriveColorShape(x);
     return { ...x, ...shape, colorData:makeStableColorData(shape), colore:shape.colorMode==='multiple' ? '' : normalizeSpaceText(x?.colore||'') };
@@ -907,10 +907,10 @@ function normalizeDBShape(o){
       numeroOrdine:ensureOrderNumber(x),
       clienteId:String(x?.clienteId||''),
       righe,
-      foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,12):[],
-      fotoManuali:Array.isArray(x?.fotoManuali)?x.fotoManuali.filter(Boolean).slice(0,12):[],
-      fotoArticoli:Array.isArray(x?.fotoArticoli)?x.fotoArticoli.filter(Boolean).slice(0,12):[],
-      orderPhotoIds:Array.isArray(x?.orderPhotoIds)?x.orderPhotoIds.filter(Boolean).slice(0,12):[],
+      foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,15):[],
+      fotoManuali:Array.isArray(x?.fotoManuali)?x.fotoManuali.filter(Boolean).slice(0,15):[],
+      fotoArticoli:Array.isArray(x?.fotoArticoli)?x.fotoArticoli.filter(Boolean).slice(0,15):[],
+      orderPhotoIds:Array.isArray(x?.orderPhotoIds)?x.orderPhotoIds.filter(Boolean).slice(0,15):[],
       scontoCliente,
       subTotale,
       totale:(totalValue>0 || subTotale===0) ? totalValue : calcOrderNetTotal(righe, scontoCliente),
@@ -1451,8 +1451,8 @@ function mergeArticleRecords(prev,item){
     codice:normalizeSpaceText(item?.codice||item?.sku||''),
     brand:normalizeSpaceText(item?.brand||item?.marca||''),
     categoria:normalizeSpaceText(item?.categoria||''),
-    foto:Array.isArray(item?.foto)?item.foto.filter(Boolean).slice(0,12):[],
-    photoIds:Array.isArray(item?.photoIds)?item.photoIds.filter(Boolean).slice(0,12):[]
+    foto:Array.isArray(item?.foto)?item.foto.filter(Boolean).slice(0,15):[],
+    photoIds:Array.isArray(item?.photoIds)?item.photoIds.filter(Boolean).slice(0,15):[]
   };
   const nextWins=recordRichnessScore(item) >= recordRichnessScore(prev);
   const merged=nextWins ? {...prev, ...item} : {...item, ...prev};
@@ -1466,8 +1466,8 @@ function mergeArticleRecords(prev,item){
   merged.promoAttiva=(typeof merged?.promoAttiva==='boolean') ? merged.promoAttiva : ((typeof item?.promoAttiva==='boolean') ? item.promoAttiva : ((typeof prev?.promoAttiva==='boolean') ? prev.promoAttiva : false));
   merged.prezzoPromo=firstFiniteNumber(merged?.prezzoPromo, merged?.promoPrezzo, item?.prezzoPromo, item?.promoPrezzo, prev?.prezzoPromo, prev?.promoPrezzo, 0);
   merged.scadenzaPromo=normalizeSpaceText(merged?.scadenzaPromo||merged?.promoScadenza||item?.scadenzaPromo||item?.promoScadenza||prev?.scadenzaPromo||prev?.promoScadenza||'');
-  merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]).slice(0,12);
-  merged.photoIds=[...new Set([...(prev?.photoIds||[]), ...(item?.photoIds||[])].filter(Boolean).map(String))].slice(0,12);
+  merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]).slice(0,15);
+  merged.photoIds=[...new Set([...(prev?.photoIds||[]), ...(item?.photoIds||[])].filter(Boolean).map(String))].slice(0,15);
   return merged;
 }
 function dedupeArticoliWithMap(list=[]){ return dedupeSemanticList(list, normalizeArticleDedupKey, mergeArticleRecords); }
@@ -1506,10 +1506,10 @@ function mergeOrderRecords(prev,item){
       id:choosePreferredId(item?.id),
       numeroOrdine:ensureOrderNumber(item),
       righe,
-      foto:Array.isArray(item?.foto)?item.foto.filter(Boolean).slice(0,12):[],
-      fotoManuali:Array.isArray(item?.fotoManuali)?item.fotoManuali.filter(Boolean).slice(0,12):[],
-      fotoArticoli:Array.isArray(item?.fotoArticoli)?item.fotoArticoli.filter(Boolean).slice(0,12):[],
-      orderPhotoIds:Array.isArray(item?.orderPhotoIds)?item.orderPhotoIds.filter(Boolean).slice(0,12):[],
+      foto:Array.isArray(item?.foto)?item.foto.filter(Boolean).slice(0,15):[],
+      fotoManuali:Array.isArray(item?.fotoManuali)?item.fotoManuali.filter(Boolean).slice(0,15):[],
+      fotoArticoli:Array.isArray(item?.fotoArticoli)?item.fotoArticoli.filter(Boolean).slice(0,15):[],
+      orderPhotoIds:Array.isArray(item?.orderPhotoIds)?item.orderPhotoIds.filter(Boolean).slice(0,15):[],
       scontoCliente,
       subTotale,
       totale:(totalValue>0 || subTotale===0) ? totalValue : calcOrderNetTotal(righe, scontoCliente),
@@ -1523,10 +1523,10 @@ function mergeOrderRecords(prev,item){
   merged.id=choosePreferredId(prev?.id, item?.id) || merged.id;
   merged.numeroOrdine=ensureOrderNumber(merged);
   merged.righe=(Array.isArray(primary?.righe) && primary.righe.length) ? primary.righe : (Array.isArray(secondary?.righe) ? secondary.righe : []);
-  merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]).slice(0,12);
-  merged.fotoManuali=mergeUniquePics(prev?.fotoManuali||[], item?.fotoManuali||[]).slice(0,12);
-  merged.fotoArticoli=mergeUniquePics(prev?.fotoArticoli||[], item?.fotoArticoli||[]).slice(0,12);
-  merged.orderPhotoIds=[...new Set([...(prev?.orderPhotoIds||[]), ...(item?.orderPhotoIds||[])].filter(Boolean).map(String))].slice(0,12);
+  merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]).slice(0,15);
+  merged.fotoManuali=mergeUniquePics(prev?.fotoManuali||[], item?.fotoManuali||[]).slice(0,15);
+  merged.fotoArticoli=mergeUniquePics(prev?.fotoArticoli||[], item?.fotoArticoli||[]).slice(0,15);
+  merged.orderPhotoIds=[...new Set([...(prev?.orderPhotoIds||[]), ...(item?.orderPhotoIds||[])].filter(Boolean).map(String))].slice(0,15);
   merged.scontoCliente=calcOrderDiscount(primary) || calcOrderDiscount(secondary) || 0;
   merged.subTotale=calcOrderSubtotal(merged.righe);
   const totalValue=Number(merged?.totale);
@@ -1916,7 +1916,7 @@ async function getArticlePics(a){
     out.push(clean);
   };
   if(Array.isArray(a.foto) && a.foto.length){
-    for(const path of a.foto.slice(0,12)){
+    for(const path of a.foto.slice(0,15)){
       const url=await getPublicFotoUrl(path);
       if(url) pushPic(url);
       if(out.length>=6) return out.slice(0,6);
@@ -1942,7 +1942,7 @@ async function getArticleCloudSyncSources(a){
     out.push(clean);
   };
   if(Array.isArray(a.foto) && a.foto.length){
-    for(const src of a.foto.slice(0,12)){
+    for(const src of a.foto.slice(0,15)){
       const clean=String(src||'').trim();
       if(!clean) continue;
       if(/^data:|^https?:\/\//i.test(clean)) pushRef(clean);
@@ -1974,14 +1974,14 @@ async function getStoredPhotoSources(ids=[]){
   return out;
 }
 async function getOrderManualPics(ord){
-  const legacy=Array.isArray(ord?.fotoManuali)?ord.fotoManuali.filter(Boolean).slice(0,12):[];
-  const stored=await getStoredPhotoSources(Array.isArray(ord?.orderPhotoIds)?ord.orderPhotoIds.filter(Boolean).slice(0,12):[]);
-  return mergeUniquePics(legacy, stored).slice(0,12);
+  const legacy=Array.isArray(ord?.fotoManuali)?ord.fotoManuali.filter(Boolean).slice(0,15):[];
+  const stored=await getStoredPhotoSources(Array.isArray(ord?.orderPhotoIds)?ord.orderPhotoIds.filter(Boolean).slice(0,15):[]);
+  return mergeUniquePics(legacy, stored).slice(0,15);
 }
 async function getOrderPics(ord, db){
   const articlePics=await getOrderArticleSnapshotPhotos(ord?.righe||[], db||loadDB());
   const manualPics=await getOrderManualPics(ord||{});
-  return mergeUniquePics(articlePics, manualPics).slice(0,12);
+  return mergeUniquePics(articlePics, manualPics).slice(0,15);
 }
 async function blobToDataUrl(blob){
   return await new Promise((res,rej)=>{
@@ -2355,7 +2355,7 @@ async function migratePhotosToIndexedDB(){
   for(const a of db.articoli||[]){
     if(Array.isArray(a.foto) && a.foto.length && (!Array.isArray(a.photoIds) || !a.photoIds.length)){
       a.photoIds=[];
-      for(const src of a.foto.slice(0,12)){
+      for(const src of a.foto.slice(0,15)){
         const pid='ph_'+uid();
         await idbSet(pid,src);
         a.photoIds.push(pid);
@@ -4906,7 +4906,7 @@ async function repairArchive(){
   for(const a of db.articoli||[]){
     if(Array.isArray(a.foto) && a.foto.length){
       if(!Array.isArray(a.photoIds)) a.photoIds=[];
-      for(const src of a.foto.slice(0,12)){
+      for(const src of a.foto.slice(0,15)){
         const pid='ph_'+uid();
         await idbSet(pid,src);
         a.photoIds.push(pid);
@@ -4921,7 +4921,7 @@ async function repairArchive(){
       seen.add(id);
       uniq.push(id);
     }
-    a.photoIds=uniq.slice(0,12);
+    a.photoIds=uniq.slice(0,15);
     a.photoIds.forEach(id=>referenced.add(String(id)));
   }
   const keys=await idbListKeys().catch(()=>[]);
@@ -5136,7 +5136,7 @@ function revokeObjectUrls(urls){
 async function refreshArtPhotoPreviewFromInput(){
   const input=document.getElementById('a_photo');
   if(!input) return;
-  const maxNew=Math.max(0, 12 - (Array.isArray(currentArtExistingPics)?currentArtExistingPics.length:0));
+  const maxNew=Math.max(0, 15 - (Array.isArray(currentArtExistingPics)?currentArtExistingPics.length:0));
   const files=Array.from(input.files||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
   if(files.length>maxNew){
     toast(`Puoi aggiungere ancora ${maxNew} foto manuale`);
@@ -5352,8 +5352,8 @@ async function duplicateCurrentArticle(sourceId=null){
   currentArtId=null;
   currentArtPhotosCleared=false;
   currentArtDuplicateData={
-    foto: Array.isArray(clone?.foto) ? clone.foto.filter(Boolean).slice(0,12) : [],
-    photoIds: Array.isArray(clone?.photoIds) ? clone.photoIds.filter(Boolean).slice(0,12) : []
+    foto: Array.isArray(clone?.foto) ? clone.foto.filter(Boolean).slice(0,15) : [],
+    photoIds: Array.isArray(clone?.photoIds) ? clone.photoIds.filter(Boolean).slice(0,15) : []
   };
   hide('mArtView', true);
   document.getElementById('artEditTitle').textContent='Duplica articolo';
@@ -5455,7 +5455,7 @@ async function saveArt(){
       obj.foto = Array.isArray(obj.foto) ? obj.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')) : [];
       obj.photoIds = Array.isArray(obj.photoIds) ? obj.photoIds.filter(Boolean) : [];
       const existingCount=Math.max((obj.foto||[]).length, (obj.photoIds||[]).length);
-      const maxNew=Math.max(0, 12 - existingCount);
+      const maxNew=Math.max(0, 15 - existingCount);
       const filesToSave=selectedFiles.slice(0,maxNew);
       if(selectedFiles.length>maxNew) photoUploadWarning=`Caricate ${maxNew} foto, limite massimo raggiunto`;
 
@@ -5481,7 +5481,7 @@ async function saveArt(){
             }
           }
         }
-        obj.photoIds=[...new Set([...(obj.photoIds||[]), ...localPhotoIds])].slice(0,12);
+        obj.photoIds=[...new Set([...(obj.photoIds||[]), ...localPhotoIds])].slice(0,15);
       }
     }
     obj._ts=Date.now();
@@ -5593,7 +5593,7 @@ function mergeUniquePics(){
   Array.from(arguments).flat().forEach(src=>{
     if(src && !out.includes(src)) out.push(src);
   });
-  return out.slice(0,12);
+  return out.slice(0,15);
 }
 function pickOrderRowPhoto(art, row, artPics){
   const pics=Array.isArray(artPics)?artPics.filter(Boolean):[];
@@ -5611,10 +5611,10 @@ async function getOrderArticleSnapshotPhotos(rows, db){
       const artPics=await getArticlePics(art);
       const picked=pickOrderRowPhoto(art, r, artPics);
       if(picked && !pics.includes(picked)) pics.push(picked);
-      if(pics.length>=12) return pics;
+      if(pics.length>=15) return pics;
     }catch(err){ console.warn('Lettura foto articolo per ordine fallita', err); }
   }
-  return pics.slice(0,12);
+  return pics.slice(0,15);
 }
 async function refreshOrdPhotoPreviewFromState(){
   const input=document.getElementById('o_photo');
@@ -6168,8 +6168,8 @@ async function saveOrd(){
   const articlePics=await getOrderArticleSnapshotPhotos(ordRows, db);
   const photoInput=document.getElementById('o_photo');
   const selectedFiles=Array.from(photoInput?.files||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
-  const existingManualIds=Array.isArray(old?.orderPhotoIds)?old.orderPhotoIds.filter(Boolean).slice(0,12):[];
-  const existingManualLegacy=Array.isArray(old?.fotoManuali)?old.fotoManuali.filter(Boolean).slice(0,12):[];
+  const existingManualIds=Array.isArray(old?.orderPhotoIds)?old.orderPhotoIds.filter(Boolean).slice(0,15):[];
+  const existingManualLegacy=Array.isArray(old?.fotoManuali)?old.fotoManuali.filter(Boolean).slice(0,15):[];
   const existingManualCount=Math.max(existingManualIds.length, existingManualLegacy.length, Array.isArray(currentOrdExistingManualPhotos)?currentOrdExistingManualPhotos.length:0);
   const maxNew=Math.max(0, 1 - currentOrdExistingManualPhotos.length);
   const newManualIds=[];
@@ -6985,7 +6985,7 @@ async function pullCloudToLocal(opts={}){
         return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,6):[],_ts:Date.now(),_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
-      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,12):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,12):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:Date.now(),_cloud:true}; })
+      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:Date.now(),_cloud:true}; })
     };
     updateShippingNotifications(db, bg?'cloud-auto':'cloud');
     saveDBLocal(db);
