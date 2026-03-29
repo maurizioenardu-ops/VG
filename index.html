@@ -42,6 +42,7 @@ body{-webkit-tap-highlight-color:transparent}
 .artGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .artCard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;box-shadow:0 10px 24px rgba(15,23,42,.05);min-height:152px;display:flex;flex-direction:column;gap:10px;cursor:pointer}
 .artCard.tight{min-height:unset}
+.artCard.is-unavailable{border-color:#ef4444;background:linear-gradient(180deg,#fff5f5 0%,#ffffff 100%);box-shadow:0 10px 24px rgba(239,68,68,.12)}
 .artCardHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .artIcon{width:62px;height:62px;border-radius:18px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:56px;line-height:1;background:linear-gradient(135deg,#fff8ef 0%, #eef4ff 100%);overflow:hidden}
 .artMeta{display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -63,12 +64,13 @@ body{-webkit-tap-highlight-color:transparent}
 .t{font-weight:1000}
 .s{font-size:12px;color:var(--muted);margin-top:2px}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:1000;border:1px solid var(--line);background:#fff}
+.pill.unavailable{background:#fff1f2;border-color:#ef4444;color:#b91c1c;font-weight:1200;letter-spacing:.3px;box-shadow:0 6px 14px rgba(239,68,68,.14);padding:8px 12px}
 .pill.cloudBtn{padding:9px 14px;border-radius:14px;font-size:13px;min-height:42px;box-shadow:0 5px 12px rgba(15,23,42,.08);background:rgba(255,255,255,.98)}
 .cloudBtn.mini{padding:7px 12px;min-height:36px;font-size:12px;border-radius:12px}
 .pill.cloudBtn.primary{background:#e0ecff;border-color:#93c5fd;color:#0f172a}
 .pill.cloudBtn.secondary{background:#fff;border-color:#cbd5e1;color:#0f172a}
 .pricePaid{color:#16a34a!important;font-weight:1000}
-.pill.promo{border-color:#fecaca;background:#fff1f2;color:#991b1b}
+.pill.promo{border-color:#86efac;background:#f0fdf4;color:#166534;box-shadow:0 6px 14px rgba(34,197,94,.12)}
 .dot{width:10px;height:10px;border-radius:999px;background:#16a34a;display:inline-block}
 .priceHot{color:var(--red);font-weight:1000}
 .navBottom{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:8px 10px;z-index:20}
@@ -549,6 +551,7 @@ window.addEventListener('error',e=>{
       <div><div class="k">Modello</div><input id="a_mod" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
       <div><div class="k">Categoria</div><select id="a_cat"><option value="">Seleziona categoria</option></select></div>
     </div>
+    <div style="margin-top:10px"><div class="k">Disponibilità</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_unavailable" type="checkbox" style="width:auto;margin-right:8px"/>Segna come NON DISPONIBILE</label><div class="helper" style="margin-top:6px">L'articolo resta visibile in lista, ma viene segnato come non disponibile e non si può aggiungere agli ordini.</div></div>
     <div style="margin-top:10px"><div class="k">Fornitore</div><select id="a_forn"></select><div id="a_forn_hint" class="date" style="margin-top:6px">Scelta automatica dal codice articolo.</div></div>
   </div>
 
@@ -857,6 +860,8 @@ function normalizeDBShape(o){
     promoAttiva:(typeof x?.promoAttiva==='boolean') ? x.promoAttiva : !!x?.promo_on,
     prezzoPromo:firstFiniteNumber(x?.prezzoPromo, x?.promoPrezzo, x?.promo_price, 0),
     scadenzaPromo:normalizeSpaceText(x?.scadenzaPromo||x?.promoScadenza||x?.promo_date||''),
+    nonDisponibile:(typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.disponibile===false || x?.attivo===false),
+    disponibile:(typeof x?.disponibile==='boolean') ? x.disponibile : !((typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.attivo===false)),
     foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,15):[],
     photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,15):[]
   })).map(x=>{
@@ -1650,6 +1655,7 @@ function collectArticleDraft(){
       colorMode:document.getElementById('a_color_mode')?.value||'single',
       colorCount:document.getElementById('a_color_count')?.value||'',
       colorLabels:document.getElementById('a_color_labels')?.value||'',
+      nonDisponibile:!!document.getElementById('a_unavailable')?.checked,
       misura:document.getElementById('a_mis')?.value||'',
       costoUsd:document.getElementById('a_usd')?.value||'',
       promoAttiva:!!document.getElementById('a_promo_on')?.checked,
@@ -1684,6 +1690,7 @@ function restoreArticleDraft(targetId=''){
   document.getElementById('a_color_mode').value=(String(v.colorMode||'').toLowerCase()==='multiple' || String(v.colorMode||'').toLowerCase()==='numbered' || Number(v.colorCount||0)>0)?'multiple':'single';
   document.getElementById('a_color_count').value=v.colorCount||'';
   document.getElementById('a_color_labels').value=Array.isArray(v.colorLabels) ? formatColorLabelsInput(v.colorLabels, v.colorCount||0) : (v.colorLabels||'');
+  document.getElementById('a_unavailable').checked=!!v.nonDisponibile;
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=v.misura||'';
   document.getElementById('a_usd').value=v.costoUsd||'';
@@ -3667,6 +3674,8 @@ function buildCloudArticleMeta(art){
     promoAttiva: !!art?.promoAttiva,
     prezzoPromo: Number(art?.prezzoPromo||0),
     scadenzaPromo: art?.scadenzaPromo||'',
+    nonDisponibile: !!art?.nonDisponibile,
+    disponibile: art?.disponibile===false ? false : !art?.nonDisponibile,
     post: art?.post||'',
     note: art?.note||'',
     foto: normalizeCloudPhotoPathList(art?.foto||[])
@@ -4808,8 +4817,10 @@ function renderArt(){
   }
   const cards=items.map(a=>{
     const promo=pseudoPromoBadge(a);
+    const unavailable=articleAvailabilityBadge(a);
+    const blocked=isArticleUnavailable(a);
     const metaLine=promoOnly ? `${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}` : `${esc(a.codice||'Senza codice')} • ${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
-    return `<div class="artCard tight" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${promo}</div><div class="artPrice">${money(currentPrice(a))}</div><div class="artActions"><button class="btn orderAdd small" type="button" data-action="addArtToOrder" data-id="${a.id}">Aggiungi a ordine</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
+    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${unavailable}${promo}</div><div class="artPrice">${money(currentPrice(a))}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
   }).join('');
   const emptyText=promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.';
   el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
@@ -5094,6 +5105,16 @@ async function openArtView(id){
   document.getElementById('vArtQual').textContent=articleQualityLabel(a)||'-';
   document.getElementById('vArtBrand').textContent=a.brand||'-';
   document.getElementById('vArtForn').textContent=a.fornitore||'-';
+  const availabilityEl=document.getElementById('vArtAvailability');
+  if(availabilityEl) availabilityEl.innerHTML=isArticleUnavailable(a) ? '<span class="pill unavailable">NON DISPONIBILE</span>' : 'Disponibile';
+  const addFromViewBtn=document.querySelector('[data-action="addArtToOrderFromView"]');
+  if(addFromViewBtn){
+    const blocked=isArticleUnavailable(a);
+    addFromViewBtn.disabled=blocked;
+    addFromViewBtn.classList.toggle('is-disabled', blocked);
+    addFromViewBtn.textContent=blocked ? 'Non disponibile' : 'Aggiungi a ordine';
+    addFromViewBtn.title=blocked ? 'Articolo non disponibile per nuovi ordini' : 'Aggiungi a ordine';
+  }
   const colorMode=getArticleColorMode(a);
   const colorCount=getArticleColorCount(a);
   const colorLabels=getArticleColorLabels(a);
@@ -5146,6 +5167,7 @@ async function openArtEdit(id){
     document.getElementById('a_color_mode').value='single';
     document.getElementById('a_color_count').value='';
     document.getElementById('a_color_labels').value='';
+    document.getElementById('a_unavailable').checked=false;
     updateArticleColorModeUI();
     syncBrandField('');
     refreshArticleCategorySelects('');
@@ -5162,7 +5184,7 @@ async function openArtEdit(id){
   set('a_cod', a?.codice); syncBrandField(a?.brand); set('a_mod', a?.modello);
   refreshArticleCategorySelects(a?.categoria||'');
   set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
-  set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); updateArticleColorModeUI();
+  set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
   set('a_mis', a?.misura); set('a_usd', a?.costoUsd||'');
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
   set('a_promo_date', a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||'');
@@ -5438,6 +5460,7 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_color_mode').value=getArticleColorMode(clone);
   document.getElementById('a_color_count').value=getArticleColorCount(clone)||'';
   document.getElementById('a_color_labels').value=formatColorLabelsInput(getArticleColorLabels(clone), getArticleColorCount(clone));
+  document.getElementById('a_unavailable').checked=isArticleUnavailable(clone);
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=clone.misura||'';
   document.getElementById('a_usd').value=clone.costoUsd||'';
@@ -5499,6 +5522,8 @@ async function saveArt(){
       taglia: '',
       variante: document.getElementById('a_variante').value.trim(),
       colore: colorMode==='single' ? document.getElementById('a_colore').value.trim() : '',
+      nonDisponibile: !!document.getElementById('a_unavailable').checked,
+      disponibile: !document.getElementById('a_unavailable').checked,
       colorMode,
       colorType: colorMode,
       colorCount: colorMode==='multiple' ? colorCount : 0,
@@ -6091,10 +6116,11 @@ function fillArtSelect(db, filter=''){
       const code=(a.codice||'').trim();
       const cat=displayCategoryValue(a.categoria);
       const price='€ '+money(currentPrice(a)||0);
-      const label=[model, code, cat, price].filter(Boolean).join(' • ');
-      return `<option value="${a.id}">${esc(label)}</option>`;
+      const blocked=isArticleUnavailable(a);
+      const label=[model, code, cat, price, blocked ? 'NON DISPONIBILE' : ''].filter(Boolean).join(' • ');
+      return `<option value="${a.id}" ${blocked ? 'disabled' : ''}>${esc(label)}</option>`;
     }).join('');
-    if(prev && Array.from(sel.options).some(o=>o.value===prev)) sel.value=prev;
+    if(prev && Array.from(sel.options).some(o=>o.value===prev && !o.disabled)) sel.value=prev;
   }
   if(hidden) hidden.innerHTML='';
   renderSelectedOrderArticlesSummary();
@@ -6115,6 +6141,10 @@ function addRow(){
   ids.forEach((artId)=>{
     const a=db.articoli.find(x=>String(x.id)===String(artId));
     if(!a) return;
+    if(isArticleUnavailable(a)){
+      toast('Articolo segnato come non disponibile');
+      return;
+    }
     if(ordRows.some(r=>String(r.articoloId)===String(artId))){
       toast("Articolo già presente nell'ordine");
       return;
@@ -6610,12 +6640,13 @@ document.addEventListener('click',(ev)=>{
   if(a==='addAgenda') return saveAgendaQuick(document.getElementById('agendaText')?.value||'', document.getElementById('agendaDate')?.value||'');
   if(a==='toggleAgendaDone') return agendaToggleById(el.dataset.id||'');
   if(a==='deleteAgenda') return agendaDeleteById(el.dataset.id||'');
-  if(a==='addArtToOrder'){ const id=el.dataset.id; if(id) return openOrdEdit(currentOrdId||null, id); return; }
+  if(a==='addArtToOrder'){ const id=el.dataset.id; if(id){ const db=loadDB(); const art=(db.articoli||[]).find(x=>String(x.id)===String(id)); if(art && isArticleUnavailable(art)){ toast('Articolo non disponibile'); return; } return openOrdEdit(currentOrdId||null, id); } return; }
   if(a==='addArtToOrderFromView'){
     const targetId=currentArtId || String(document.getElementById('vCod')?.textContent||'').trim();
     const db=loadDB();
     const art=(db.articoli||[]).find(x=>String(x.id)===String(targetId) || String(x.codice||'')===String(targetId));
     if(!art){ toast('Articolo non trovato'); return; }
+    if(isArticleUnavailable(art)){ toast('Articolo non disponibile'); return; }
     hide('mArtView', true);
     return openOrdEdit(currentOrdId||null, art.id);
   }
@@ -6655,7 +6686,7 @@ bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
   ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));
@@ -6829,7 +6860,7 @@ async function upsertCloudArticle(art){
     prezzo_acquisto: Number(art.costoEur || 0),
     prezzo_vendita: Number(art.prezzoVendita || 0),
     giacenza: 0,
-    attivo: true
+    attivo: !(art?.nonDisponibile===true || art?.disponibile===false)
   };
   if(isUuid(art.id)) payload.id=art.id;
   const {data,error}=await sb.from('prodotti').upsert(payload,{onConflict:'sku'}).select('*').single();
@@ -7050,7 +7081,8 @@ async function pullCloudToLocal(opts={}){
         const pulledCostoEur=firstFiniteNumber(p.prezzo_acquisto, p.costo, p.costo_eur, meta.costoEur, local?.costoEur, 0);
         const pulledPrezzoVendita=firstFiniteNumber(p.prezzo_vendita, p.prezzo, p.prezzo_vendita_iva, meta.prezzoVendita, meta.prezzo, local?.prezzoVendita, 0);
         const colorShape=deriveColorShape({ colorMode:meta.colorMode||local?.colorMode, colorType:meta.colorType||local?.colorType, colorCount:meta.colorCount||local?.colorCount, colorLabels:meta.colorLabels||local?.colorLabels });
-        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,15):[],_ts:Date.now(),_cloud:true};
+        const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
+        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,15):[],_ts:Date.now(),_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:Date.now(),_cloud:true}; })
