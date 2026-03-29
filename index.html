@@ -569,7 +569,7 @@ window.addEventListener('error',e=>{
           <option value="multiple">Più colori</option>
         </select>
       </div>
-      <div><div class="k">Misura</div><input id="a_mis" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+      <div><div class="k">Misura</div><input id="a_mis" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="a_mis_hint" class="helper"></div></div>
     </div>
     <div class="grid2" style="margin-top:10px">
       <div id="a_color_single_wrap">
@@ -2067,89 +2067,64 @@ async function warmCurrentArticlePhotoShare(ctx=null){
     .finally(()=>{ __articlePhotoShareWarmPromise = null; });
   return __articlePhotoShareWarmPromise;
 }
-function getNativeShareFilePlan(files){
+function normalizeArticleShareFile(file, idx=0){
   try{
-    if(typeof navigator==='undefined' || typeof navigator.share!=='function') return null;
-    const cleanFiles=(Array.isArray(files)?files:[]).filter(f=>f instanceof File && Number(f.size||0)>0);
-    if(!cleanFiles.length) return null;
-
-    if(typeof navigator.canShare!=='function'){
-      return {
-        files: cleanFiles,
-        total: cleanFiles.length,
-        mode: cleanFiles.length===1 ? 'single' : 'multi'
-      };
+    if(!(file instanceof File)) return null;
+    const name=String(file.name||`foto_${idx+1}.jpg`).trim() || `foto_${idx+1}.jpg`;
+    let type=String(file.type||'').trim().toLowerCase();
+    if(type==='image/jpg') type='image/jpeg';
+    if(!type || type==='application/octet-stream' || !type.startsWith('image/')){
+      const lower=name.toLowerCase();
+      if(lower.endsWith('.png')) type='image/png';
+      else if(lower.endsWith('.webp')) type='image/webp';
+      else if(lower.endsWith('.gif')) type='image/gif';
+      else if(lower.endsWith('.avif')) type='image/avif';
+      else type='image/jpeg';
     }
-
-    const individuallyShareable=cleanFiles.filter(file=>{
-      try{ return navigator.canShare({ files:[file] }); }
-      catch(_e){ return false; }
-    });
-    if(!individuallyShareable.length) return null;
-
-    for(let size=individuallyShareable.length; size>=2; size--){
-      const subset=individuallyShareable.slice(0,size);
-      try{
-        if(navigator.canShare({ files: subset })){
-          return {
-            files: subset,
-            total: cleanFiles.length,
-            mode: size===cleanFiles.length ? 'multi' : 'partial'
-          };
-        }
-      }catch(_e){}
-    }
-
-    return {
-      files:[individuallyShareable[0]],
-      total: cleanFiles.length,
-      mode:'single'
-    };
+    return (file.type===type)
+      ? file
+      : new File([file], name, { type, lastModified:file.lastModified||Date.now() });
   }catch(_e){
     return null;
   }
 }
-async function tryNativeShareArticleFiles(files, baseName){
-  const plan = getNativeShareFilePlan(files);
-  if(!plan?.files?.length) return false;
-
-  const shareSubset = async(subset, mode, totalCount)=>{
-    await navigator.share({
-      files: subset,
-      title:`Foto ${baseName}`,
-      text: subset.length===1
-        ? `Salva la foto dell'articolo ${baseName}`
-        : `Salva ${subset.length} foto dell'articolo ${baseName}`
+function pickNativeShareFileBatch(files){
+  try{
+    if(typeof navigator==='undefined' || typeof navigator.share!=='function') return [];
+    const normalized=(files||[]).map((file,idx)=>normalizeArticleShareFile(file, idx)).filter(Boolean);
+    if(!normalized.length) return [];
+    if(typeof navigator.canShare!=='function') return normalized;
+    const singles=normalized.filter(file=>{
+      try{ return navigator.canShare({ files:[file] }); }catch(_e){ return false; }
     });
-    return { mode, count: subset.length, total: totalCount||subset.length };
-  };
-
-  try{
-    return await shareSubset(plan.files, plan.mode, plan.total);
-  }catch(err){
-    if(err && err.name==='AbortError') throw err;
-    console.warn('Condivisione nativa foto fallita sul batch previsto', err);
-  }
-
-  const cleanFiles=(Array.isArray(files)?files:[]).filter(f=>f instanceof File && Number(f.size||0)>0);
-  const fallbackFile=cleanFiles[0];
-  if(!fallbackFile) return false;
-
-  if(typeof navigator.canShare==='function'){
-    try{
-      if(!navigator.canShare({ files:[fallbackFile] })) return false;
-    }catch(_e){
-      return false;
+    if(!singles.length) return [];
+    for(let size=singles.length; size>=1; size--){
+      const batch=singles.slice(0,size);
+      try{
+        if(navigator.canShare({ files:batch })) return batch;
+      }catch(_e){}
     }
+    return singles.slice(0,1);
+  }catch(_e){
+    return [];
   }
-
-  try{
-    return await shareSubset([fallbackFile], 'single', cleanFiles.length);
-  }catch(err){
-    if(err && err.name==='AbortError') throw err;
-    console.warn('Condivisione nativa foto fallita anche su singolo file', err);
-    return false;
-  }
+}
+async function tryNativeShareArticleFiles(files, baseName){
+  const shareFiles = pickNativeShareFileBatch(files);
+  if(!shareFiles.length) return { ok:false, reason:'unsupported', count:0, total:(files||[]).length||0 };
+  await navigator.share({
+    files:shareFiles,
+    title:`Foto ${baseName}`,
+    text:shareFiles.length===1
+      ? `Salva la foto dell'articolo ${baseName}`
+      : `Salva ${shareFiles.length} foto dell'articolo ${baseName}`
+  });
+  return {
+    ok:true,
+    count:shareFiles.length,
+    total:(files||[]).length||shareFiles.length,
+    partial:shareFiles.length !== ((files||[]).length||shareFiles.length)
+  };
 }
 async function buildArticlePhotoFiles(art, pics, baseName){
   const files=[];
@@ -2220,43 +2195,39 @@ async function shareCurrentArticlePhotos(){
   if(!ctx) ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
 
-  let files=getCachedArticlePhotoFilesForCtx(ctx) || [];
+  const files=getCachedArticlePhotoFilesForCtx(ctx) || [];
   if(!files.length){
-    files=await ensureCurrentArticlePhotoFiles(ctx);
-    if(files.length){
-      __articlePhotoShareCache = { key: ctx.cacheKey, files, at: Date.now() };
-    }
-  }
-
-  if(files.length){
-    try{
-      const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
-      if(shared){
-        if(shared.mode==='single'){
-          toast(shared.total>1
-            ? 'Condivisione aperta. Il browser/PWA regge una foto per volta per questo articolo.'
-            : 'Condivisione aperta per la foto dell\'articolo.');
-        }else if(shared.mode==='partial'){
-          toast(`Condivisione aperta per ${shared.count} foto su ${shared.total}. Il browser/PWA non accetta tutto il blocco.`);
-        }else{
-          toast(`Condivisione aperta per ${shared.count} foto.`);
-        }
-        return;
-      }
-    }catch(err){
-      if(err && err.name==='AbortError') return;
-      console.warn('Condivisione nativa foto fallita', err);
-    }
-  }
-
-  const sharedLinks = await tryNativeShareArticleLinks(ctx.pics, ctx.baseName);
-  if(sharedLinks===true){
-    toast('Condivisione aperta. Il browser sta inviando i link delle foto.');
+    warmCurrentArticlePhotoShare(ctx).catch(()=>{});
+    toast(`Sto preparando ${ctx.pics.length} foto. Premi di nuovo “Condividi foto”.`);
     return;
   }
-  if(sharedLinks==='abort') return;
 
-  toast('Condivisione non disponibile per queste foto su questo browser/PWA. Usa Scarica foto solo se ti serve davvero.');
+  try{
+    const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
+    if(shared?.ok){
+      if(shared.count===1){
+        toast(shared.total>1
+          ? 'Condivisione aperta. Questo browser/PWA regge una foto per volta.'
+          : 'Condivisione aperta per 1 foto.');
+      }else if(shared.partial){
+        toast(`Condivisione aperta per ${shared.count} foto su ${shared.total}. Il browser ne limita una parte.`);
+      }else{
+        toast(`Condivisione aperta per ${shared.count} foto.`);
+      }
+      return;
+    }
+  }catch(err){
+    if(err && err.name==='AbortError') return;
+    if(err && err.name==='NotAllowedError'){
+      console.warn('Condivisione bloccata per gesto utente non più valido', err);
+      warmCurrentArticlePhotoShare(ctx).catch(()=>{});
+      toast('Il browser ha bloccato la condivisione. Premi di nuovo “Condividi foto”.');
+      return;
+    }
+    console.warn('Condivisione nativa foto fallita', err);
+  }
+
+  toast('Qui la condivisione diretta delle foto non è supportata. Usa “Scarica foto” solo se ti serve davvero il download.');
 }
 const __zipCrcTable = (()=>{
   const table = new Uint32Array(256);
@@ -5226,6 +5197,7 @@ async function openArtEdit(id){
     currentArtExistingPics=[];
     renderArtPhotoPrev([]);
     restoreArticleDraft('');
+    updateArticleMeasureState();
     updateArticleCodeStatus();
     show('mArtEdit');
     scheduleModalTextareaFit('mArtEdit');
@@ -5250,6 +5222,7 @@ async function openArtEdit(id){
   currentArtExistingPics=await getArticlePics(a);
   renderArtPhotoPrev(currentArtExistingPics);
   restoreArticleDraft(a?.id||'');
+  updateArticleMeasureState();
   updateArticleCodeStatus();
   show('mArtEdit');
   scheduleModalTextareaFit('mArtEdit');
@@ -5528,6 +5501,7 @@ async function duplicateCurrentArticle(sourceId=null){
   currentArtExistingPics=await getArticlePics(a);
   renderArtPhotoPrev(currentArtExistingPics);
   renderArtAutoFields();
+  updateArticleMeasureState();
   updateArticleCodeStatus();
   show('mArtEdit');
   scheduleModalTextareaFit('mArtEdit');
@@ -5543,6 +5517,15 @@ async function saveArt(){
     const colorLabels=parseColorLabelsInput(document.getElementById('a_color_labels').value||'', colorCount);
     if(!code){ toast('Codice articolo obbligatorio'); return; }
     if(colorMode==='multiple' && colorCount<2){ toast('Se scegli Più colori devi indicare almeno 2 varianti'); return; }
+
+    const categoriaValue=document.getElementById('a_cat').value.trim();
+    const misuraValue=document.getElementById('a_mis').value.trim();
+    if(articleCategoryNeedsMeasure(categoriaValue) && !misuraValue){
+      updateArticleMeasureState();
+      toast('Per scarpe e cinture la misura è obbligatoria');
+      document.getElementById('a_mis')?.focus();
+      return;
+    }
 
     const codeLower=safeLower(code);
     const exists = db.articoli.find(a => 
@@ -5564,7 +5547,7 @@ async function saveArt(){
       codice: code,
       brand: getArticleBrandValue(),
       modello: document.getElementById('a_mod').value.trim(),
-      categoria: document.getElementById('a_cat').value.trim(),
+      categoria: categoriaValue,
       descrizione: document.getElementById('a_desc').value.trim(),
       fornitore: document.getElementById('a_forn').value.trim(),
       fornitoreLink: document.getElementById('a_forn_link').value.trim(),
@@ -5579,7 +5562,7 @@ async function saveArt(){
       colorCount: colorMode==='multiple' ? colorCount : 0,
       colorLabels: colorMode==='multiple' ? colorLabels : [],
       colorData: colorMode==='multiple' ? makeStableColorData({colorMode, colorCount, colorLabels}) : null,
-      misura: document.getElementById('a_mis').value.trim(),
+      misura: misuraValue,
       costoUsd: usd,
       costoEur: r.costo,
       prezzoVendita: r.sell,
@@ -5945,6 +5928,23 @@ async function deleteCli(){
   clearClientDraft();
   hide('mCliEdit');
   toast(cloudEnabled() ? 'Cliente eliminato anche dal cloud' : 'Cliente eliminato');
+}
+
+
+function articleCategoryNeedsMeasure(rawCat=''){
+  const cat=normalizeTextKey(rawCat||'');
+  return ['scarpa','scarpe','shoe','shoes','cintura','cinture','belt','belts'].some(token=>cat===token || cat.includes(token));
+}
+function updateArticleMeasureState(){
+  const catSel=document.getElementById('a_cat');
+  const mis=document.getElementById('a_mis');
+  const hint=document.getElementById('a_mis_hint');
+  if(!mis) return false;
+  const needed=articleCategoryNeedsMeasure(catSel?.value||'');
+  mis.required=needed;
+  mis.placeholder=needed ? 'Misura obbligatoria' : '';
+  if(hint) hint.textContent=needed ? 'Per scarpe e cinture la misura è obbligatoria.' : '';
+  return needed;
 }
 
 /* ====== ORDINI ====== */
@@ -6554,6 +6554,13 @@ function bindSearchSuggest(inputId, boxId, kind, onApply){
 }
 
 /* ====== EVENTS ====== */
+document.addEventListener('pointerdown',(ev)=>{
+  const btn=ev.target?.closest?.('[data-action="shareArtPhotos"]');
+  if(!btn) return;
+  const ctx=getPreparedCurrentArticlePhotoContext();
+  if(ctx) warmCurrentArticlePhotoShare(ctx).catch(()=>{});
+});
+
 document.addEventListener('click',(ev)=>{
   const el=ev.target.closest('[data-action],[data-go],[data-open]');
   if(!el) return;
@@ -6765,6 +6772,7 @@ document.getElementById('importFile').addEventListener('change',(e)=>{
   e.target.value='';
 });
 document.getElementById('a_brand')?.addEventListener('change', ()=>{ handleBrandSelectionChange(); saveArticleDraft(); });
+document.getElementById('a_cat')?.addEventListener('change', ()=>{ updateArticleMeasureState(); renderArtAutoFields(); saveArticleDraft(); });
 document.getElementById('a_photo')?.addEventListener('change', ()=>{ refreshArtPhotoPreviewFromInput(); saveArticleDraft(); });
 document.getElementById('btnCloudLogin')?.addEventListener('click', ()=>show('mCloudLogin'));
 document.getElementById('btnCloudLogout')?.addEventListener('click', cloudLogout);
@@ -7116,6 +7124,8 @@ async function pullCloudToLocal(opts={}){
     const localOrdByNumero=new Map((localDb.ordini||[]).map(o=>[normalizeTextKey(ensureOrderNumber(o)),o]).filter(([k])=>k));
     const localOrdByFingerprint=new Map((localDb.ordini||[]).map(o=>[normalizeOrderFingerprint(o),o]).filter(([k])=>k));
     const db={version:'v6',createdAt:new Date().toISOString(),
+      categorie:(cats||[]).map(c=>normalizeSpaceText(c?.nome||'')).filter(Boolean),
+      brands:[],
       articoli:(prod||[]).map(p=>{
         const local=localArtById.get(p.id)||localArtByCode.get(safeLower(p.sku));
         const packed=unpackCloudArticleDescription(p.descrizione||'');
@@ -7137,6 +7147,21 @@ async function pullCloudToLocal(opts={}){
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:Date.now(),_cloud:true}; })
     };
+    const mergedCategories=[...new Set([
+      ...(Array.isArray(localDb?.categorie)?localDb.categorie:[]),
+      ...(Array.isArray(db?.categorie)?db.categorie:[]),
+      ...((localDb?.articoli||[]).map(a=>normalizeSpaceText(a?.categoria||''))),
+      ...((db?.articoli||[]).map(a=>normalizeSpaceText(a?.categoria||'')))
+    ].map(v=>normalizeSpaceText(v)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+    const mergedBrands=[...new Set([
+      ...(Array.isArray(localDb?.brands)?localDb.brands:[]),
+      ...(Array.isArray(db?.brands)?db.brands:[]),
+      ...((localDb?.articoli||[]).map(a=>normalizeSpaceText(a?.brand||''))),
+      ...((db?.articoli||[]).map(a=>normalizeSpaceText(a?.brand||'')))
+    ].map(v=>normalizeSpaceText(v)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+    db.categorie=mergedCategories;
+    db.brands=mergedBrands;
+
     updateShippingNotifications(db, bg?'cloud-auto':'cloud');
     saveDBLocal(db);
     renderAll();
