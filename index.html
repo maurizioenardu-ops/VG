@@ -2067,61 +2067,89 @@ async function warmCurrentArticlePhotoShare(ctx=null){
     .finally(()=>{ __articlePhotoShareWarmPromise = null; });
   return __articlePhotoShareWarmPromise;
 }
-function canNativeShareFiles(files){
+function getNativeShareFilePlan(files){
   try{
-    if(typeof navigator==='undefined' || typeof navigator.share!=='function') return false;
-    if(!files?.length) return false;
-    if(typeof navigator.canShare!=='function') return true;
-    if(navigator.canShare({ files })) return true;
-    if(files.length===1 && navigator.canShare({ files:[files[0]] })) return 'single';
-    return false;
+    if(typeof navigator==='undefined' || typeof navigator.share!=='function') return null;
+    const cleanFiles=(Array.isArray(files)?files:[]).filter(f=>f instanceof File && Number(f.size||0)>0);
+    if(!cleanFiles.length) return null;
+
+    if(typeof navigator.canShare!=='function'){
+      return {
+        files: cleanFiles,
+        total: cleanFiles.length,
+        mode: cleanFiles.length===1 ? 'single' : 'multi'
+      };
+    }
+
+    const individuallyShareable=cleanFiles.filter(file=>{
+      try{ return navigator.canShare({ files:[file] }); }
+      catch(_e){ return false; }
+    });
+    if(!individuallyShareable.length) return null;
+
+    for(let size=individuallyShareable.length; size>=2; size--){
+      const subset=individuallyShareable.slice(0,size);
+      try{
+        if(navigator.canShare({ files: subset })){
+          return {
+            files: subset,
+            total: cleanFiles.length,
+            mode: size===cleanFiles.length ? 'multi' : 'partial'
+          };
+        }
+      }catch(_e){}
+    }
+
+    return {
+      files:[individuallyShareable[0]],
+      total: cleanFiles.length,
+      mode:'single'
+    };
   }catch(_e){
-    return false;
+    return null;
   }
-}
-function isShareAbortError(err){
-  return !!(err && err.name==='AbortError');
-}
-function isShareActivationError(err){
-  const name=String(err?.name||'');
-  const msg=String(err?.message||'').toLowerCase();
-  return name==='NotAllowedError'
-    || msg.includes('user activation')
-    || msg.includes('user gesture')
-    || msg.includes('requires transient activation')
-    || msg.includes('must be handling a user gesture');
 }
 async function tryNativeShareArticleFiles(files, baseName){
-  const mode = canNativeShareFiles(files);
-  if(!mode) return false;
+  const plan = getNativeShareFilePlan(files);
+  if(!plan?.files?.length) return false;
 
-  const attempts=[];
-  if(mode==='single'){
-    attempts.push({ kind:'single', files:[files[0]] });
-  }else{
-    attempts.push({ kind:'multi', files:[...files] });
-    if(files.length>1) attempts.push({ kind:'single', files:[files[0]] });
+  const shareSubset = async(subset, mode, totalCount)=>{
+    await navigator.share({
+      files: subset,
+      title:`Foto ${baseName}`,
+      text: subset.length===1
+        ? `Salva la foto dell'articolo ${baseName}`
+        : `Salva ${subset.length} foto dell'articolo ${baseName}`
+    });
+    return { mode, count: subset.length, total: totalCount||subset.length };
+  };
+
+  try{
+    return await shareSubset(plan.files, plan.mode, plan.total);
+  }catch(err){
+    if(err && err.name==='AbortError') throw err;
+    console.warn('Condivisione nativa foto fallita sul batch previsto', err);
   }
 
-  let lastErr=null;
-  for(const attempt of attempts){
+  const cleanFiles=(Array.isArray(files)?files:[]).filter(f=>f instanceof File && Number(f.size||0)>0);
+  const fallbackFile=cleanFiles[0];
+  if(!fallbackFile) return false;
+
+  if(typeof navigator.canShare==='function'){
     try{
-      await navigator.share({
-        files:attempt.files,
-        title:`Foto ${baseName}`,
-        text:attempt.kind==='single'
-          ? `Salva la foto dell'articolo ${baseName}`
-          : `Salva ${attempt.files.length} foto dell'articolo ${baseName}`
-      });
-      return attempt.kind;
-    }catch(err){
-      if(isShareAbortError(err)) throw err;
-      lastErr=err;
-      if(isShareActivationError(err)) throw err;
+      if(!navigator.canShare({ files:[fallbackFile] })) return false;
+    }catch(_e){
+      return false;
     }
   }
-  if(lastErr) throw lastErr;
-  return false;
+
+  try{
+    return await shareSubset([fallbackFile], 'single', cleanFiles.length);
+  }catch(err){
+    if(err && err.name==='AbortError') throw err;
+    console.warn('Condivisione nativa foto fallita anche su singolo file', err);
+    return false;
+  }
 }
 async function buildArticlePhotoFiles(art, pics, baseName){
   const files=[];
@@ -2192,29 +2220,33 @@ async function shareCurrentArticlePhotos(){
   if(!ctx) ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
 
-  const cachedFiles=getCachedArticlePhotoFilesForCtx(ctx) || [];
-  if(!cachedFiles.length){
-    warmCurrentArticlePhotoShare(ctx).catch(err=>console.warn('Warmup foto articolo fallito', err));
-    toast('Sto preparando le foto. Tocca di nuovo “Condividi foto” tra un attimo.');
-    return;
+  let files=getCachedArticlePhotoFilesForCtx(ctx) || [];
+  if(!files.length){
+    files=await ensureCurrentArticlePhotoFiles(ctx);
+    if(files.length){
+      __articlePhotoShareCache = { key: ctx.cacheKey, files, at: Date.now() };
+    }
   }
 
-  try{
-    const shared = await tryNativeShareArticleFiles(cachedFiles, ctx.baseName);
-    if(shared){
-      toast(shared==='single'
-        ? 'Condivisione aperta. Il browser supporta una foto per volta.'
-        : `Condivisione aperta per ${cachedFiles.length} foto.`);
-      return;
+  if(files.length){
+    try{
+      const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
+      if(shared){
+        if(shared.mode==='single'){
+          toast(shared.total>1
+            ? 'Condivisione aperta. Il browser/PWA regge una foto per volta per questo articolo.'
+            : 'Condivisione aperta per la foto dell\'articolo.');
+        }else if(shared.mode==='partial'){
+          toast(`Condivisione aperta per ${shared.count} foto su ${shared.total}. Il browser/PWA non accetta tutto il blocco.`);
+        }else{
+          toast(`Condivisione aperta per ${shared.count} foto.`);
+        }
+        return;
+      }
+    }catch(err){
+      if(err && err.name==='AbortError') return;
+      console.warn('Condivisione nativa foto fallita', err);
     }
-  }catch(err){
-    if(isShareAbortError(err)) return;
-    if(isShareActivationError(err)){
-      warmCurrentArticlePhotoShare(ctx).catch(()=>{});
-      toast('La condivisione non è partita al primo tocco. Riprova subito “Condividi foto”.');
-      return;
-    }
-    console.warn('Condivisione nativa foto fallita', err);
   }
 
   const sharedLinks = await tryNativeShareArticleLinks(ctx.pics, ctx.baseName);
@@ -2224,7 +2256,7 @@ async function shareCurrentArticlePhotos(){
   }
   if(sharedLinks==='abort') return;
 
-  toast('Da questo browser la condivisione diretta delle foto non parte. “Scarica foto” resta separato e non si apre da solo.');
+  toast('Condivisione non disponibile per queste foto su questo browser/PWA. Usa Scarica foto solo se ti serve davvero.');
 }
 const __zipCrcTable = (()=>{
   const table = new Uint32Array(256);
@@ -7193,7 +7225,6 @@ initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','
 updateArticleColorModeUI();
 document.getElementById('a_color_suggest_btn')?.addEventListener('click', async ()=>{ try{ await suggestArticleColorLabelsFromImage(); }catch(err){ console.warn('Suggerimento colori fallito', err); toast('Non sono riuscita a leggere bene la foto'); } });
 document.getElementById('a_color_labels_clear_btn')?.addEventListener('click', ()=>{ const el=document.getElementById('a_color_labels'); if(el){ el.value=''; saveArticleDraft(); toast('Abbinamenti colore puliti'); } });
-document.addEventListener('pointerdown', ev=>{ const btn=ev.target?.closest?.('[data-action="shareArtPhotos"]'); if(!btn) return; const ctx=getPreparedCurrentArticlePhotoContext(); if(ctx) warmCurrentArticlePhotoShare(ctx).catch(()=>{}); }, { passive:true });
 renderDiagnostics();
 fillUiEditor();
 applyUiPrefs();
