@@ -42,6 +42,7 @@ body{-webkit-tap-highlight-color:transparent}
 .artGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .artCard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;box-shadow:0 10px 24px rgba(15,23,42,.05);min-height:152px;display:flex;flex-direction:column;gap:10px;cursor:pointer}
 .artCard.tight{min-height:unset}
+.artCard.is-unavailable{border-color:#f59e0b;background:linear-gradient(180deg,#fffaf0 0%,#ffffff 100%);box-shadow:0 10px 24px rgba(245,158,11,.12)}
 .artCardHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .artIcon{width:62px;height:62px;border-radius:18px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:56px;line-height:1;background:linear-gradient(135deg,#fff8ef 0%, #eef4ff 100%);overflow:hidden}
 .artMeta{display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -63,6 +64,7 @@ body{-webkit-tap-highlight-color:transparent}
 .t{font-weight:1000}
 .s{font-size:12px;color:var(--muted);margin-top:2px}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:1000;border:1px solid var(--line);background:#fff}
+.pill.unavailable{background:#fff1f2;border-color:#ef4444;color:#b91c1c;font-weight:1200;letter-spacing:.3px;box-shadow:0 6px 14px rgba(239,68,68,.14);padding:8px 12px}
 .pill.cloudBtn{padding:9px 14px;border-radius:14px;font-size:13px;min-height:42px;box-shadow:0 5px 12px rgba(15,23,42,.08);background:rgba(255,255,255,.98)}
 .cloudBtn.mini{padding:7px 12px;min-height:36px;font-size:12px;border-radius:12px}
 .pill.cloudBtn.primary{background:#e0ecff;border-color:#93c5fd;color:#0f172a}
@@ -505,6 +507,7 @@ window.addEventListener('error',e=>{
     <div><div class="k">Marca</div><div id="vArtBrand" class="t">-</div></div>
     <div><div class="k">Fornitore</div><div id="vArtForn" class="t">-</div></div>
   </div>
+  <div style="margin-top:10px"><div class="k">Disponibilità</div><div id="vArtAvailability" class="t">Disponibile</div></div>
   <div style="margin-top:10px"><div class="k" id="vArtColorsLabel">Colori disponibili</div><div id="vArtColors" class="t">-</div></div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">Prezzo vendita</div><div id="vArtPrezzo" class="t">-</div></div>
@@ -549,6 +552,7 @@ window.addEventListener('error',e=>{
       <div><div class="k">Modello</div><input id="a_mod" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
       <div><div class="k">Categoria</div><select id="a_cat"><option value="">Seleziona categoria</option></select></div>
     </div>
+    <div style="margin-top:10px"><div class="k">Disponibilità</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_unavailable" type="checkbox" style="width:auto;margin-right:8px"/>Segna come NON DISPONIBILE</label><div class="helper" style="margin-top:6px">L'articolo resta visibile in lista, ma viene segnato come non disponibile e non si può aggiungere agli ordini.</div></div>
     <div style="margin-top:10px"><div class="k">Fornitore</div><select id="a_forn"></select><div id="a_forn_hint" class="date" style="margin-top:6px">Scelta automatica dal codice articolo.</div></div>
   </div>
 
@@ -1650,6 +1654,7 @@ function collectArticleDraft(){
       colorMode:document.getElementById('a_color_mode')?.value||'single',
       colorCount:document.getElementById('a_color_count')?.value||'',
       colorLabels:document.getElementById('a_color_labels')?.value||'',
+      nonDisponibile:!!document.getElementById('a_unavailable')?.checked,
       misura:document.getElementById('a_mis')?.value||'',
       costoUsd:document.getElementById('a_usd')?.value||'',
       promoAttiva:!!document.getElementById('a_promo_on')?.checked,
@@ -1684,6 +1689,7 @@ function restoreArticleDraft(targetId=''){
   document.getElementById('a_color_mode').value=(String(v.colorMode||'').toLowerCase()==='multiple' || String(v.colorMode||'').toLowerCase()==='numbered' || Number(v.colorCount||0)>0)?'multiple':'single';
   document.getElementById('a_color_count').value=v.colorCount||'';
   document.getElementById('a_color_labels').value=Array.isArray(v.colorLabels) ? formatColorLabelsInput(v.colorLabels, v.colorCount||0) : (v.colorLabels||'');
+  document.getElementById('a_unavailable').checked=!!v.nonDisponibile;
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=v.misura||'';
   document.getElementById('a_usd').value=v.costoUsd||'';
@@ -4744,8 +4750,10 @@ function renderArt(){
   }
   const cards=items.map(a=>{
     const promo=pseudoPromoBadge(a);
+    const unavailable=articleAvailabilityBadge(a);
+    const blocked=isArticleUnavailable(a);
     const metaLine=promoOnly ? `${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}` : `${esc(a.codice||'Senza codice')} • ${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
-    return `<div class="artCard tight" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${promo}</div><div class="artPrice">${money(currentPrice(a))}</div><div class="artActions"><button class="btn orderAdd small" type="button" data-action="addArtToOrder" data-id="${a.id}">Aggiungi a ordine</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
+    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${unavailable}${promo}</div><div class="artPrice">${money(currentPrice(a))}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
   }).join('');
   const emptyText=promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.';
   el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
@@ -4765,6 +4773,13 @@ function pseudoPromoBadge(a){
   const ok=promoValid(a);
   if(ok) return `<div class="pill promo" style="margin-top:6px"><span class="dot"></span>PROMO attiva</div>`;
   return `<div class="pill" style="margin-top:6px">PROMO impostata</div>`;
+}
+function isArticleUnavailable(article){
+  return !!(article && (article.nonDisponibile===true || article.disponibile===false));
+}
+function articleAvailabilityBadge(article,{compact=false}={}){
+  if(!isArticleUnavailable(article)) return '';
+  return `<div class="pill unavailable" style="margin-top:${compact ? '0' : '6px'}">NON DISPONIBILE</div>`;
 }
 
 function renderCli(){
@@ -5030,6 +5045,16 @@ async function openArtView(id){
   document.getElementById('vArtQual').textContent=articleQualityLabel(a)||'-';
   document.getElementById('vArtBrand').textContent=a.brand||'-';
   document.getElementById('vArtForn').textContent=a.fornitore||'-';
+  const availabilityEl=document.getElementById('vArtAvailability');
+  if(availabilityEl) availabilityEl.innerHTML=isArticleUnavailable(a) ? '<span class="pill unavailable">NON DISPONIBILE</span>' : 'Disponibile';
+  const addFromViewBtn=document.querySelector('[data-action="addArtToOrderFromView"]');
+  if(addFromViewBtn){
+    const blocked=isArticleUnavailable(a);
+    addFromViewBtn.disabled=blocked;
+    addFromViewBtn.classList.toggle('is-disabled', blocked);
+    addFromViewBtn.textContent=blocked ? 'Non disponibile' : 'Aggiungi a ordine';
+    addFromViewBtn.title=blocked ? 'Articolo non disponibile per nuovi ordini' : 'Aggiungi a ordine';
+  }
   const colorMode=getArticleColorMode(a);
   const colorCount=getArticleColorCount(a);
   const colorLabels=getArticleColorLabels(a);
@@ -5078,6 +5103,7 @@ async function openArtEdit(id){
     document.getElementById('a_color_mode').value='single';
     document.getElementById('a_color_count').value='';
     document.getElementById('a_color_labels').value='';
+    document.getElementById('a_unavailable').checked=false;
     updateArticleColorModeUI();
     syncBrandField('');
     refreshArticleCategorySelects('');
@@ -5094,7 +5120,7 @@ async function openArtEdit(id){
   set('a_cod', a?.codice); syncBrandField(a?.brand); set('a_mod', a?.modello);
   refreshArticleCategorySelects(a?.categoria||'');
   set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
-  set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); updateArticleColorModeUI();
+  set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
   set('a_mis', a?.misura); set('a_usd', a?.costoUsd||'');
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
   set('a_promo_date', a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||'');
@@ -5370,6 +5396,7 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_color_mode').value=getArticleColorMode(clone);
   document.getElementById('a_color_count').value=getArticleColorCount(clone)||'';
   document.getElementById('a_color_labels').value=formatColorLabelsInput(getArticleColorLabels(clone), getArticleColorCount(clone));
+  document.getElementById('a_unavailable').checked=isArticleUnavailable(clone);
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=clone.misura||'';
   document.getElementById('a_usd').value=clone.costoUsd||'';
@@ -5431,6 +5458,8 @@ async function saveArt(){
       taglia: '',
       variante: document.getElementById('a_variante').value.trim(),
       colore: colorMode==='single' ? document.getElementById('a_colore').value.trim() : '',
+      nonDisponibile: !!document.getElementById('a_unavailable').checked,
+      disponibile: !document.getElementById('a_unavailable').checked,
       colorMode,
       colorType: colorMode,
       colorCount: colorMode==='multiple' ? colorCount : 0,
@@ -6023,10 +6052,11 @@ function fillArtSelect(db, filter=''){
       const code=(a.codice||'').trim();
       const cat=displayCategoryValue(a.categoria);
       const price='€ '+money(currentPrice(a)||0);
-      const label=[model, code, cat, price].filter(Boolean).join(' • ');
-      return `<option value="${a.id}">${esc(label)}</option>`;
+      const blocked=isArticleUnavailable(a);
+      const label=[model, code, cat, price, blocked ? 'NON DISPONIBILE' : ''].filter(Boolean).join(' • ');
+      return `<option value="${a.id}" ${blocked ? 'disabled' : ''}>${esc(label)}</option>`;
     }).join('');
-    if(prev && Array.from(sel.options).some(o=>o.value===prev)) sel.value=prev;
+    if(prev && Array.from(sel.options).some(o=>o.value===prev && !o.disabled)) sel.value=prev;
   }
   if(hidden) hidden.innerHTML='';
   renderSelectedOrderArticlesSummary();
@@ -6047,6 +6077,10 @@ function addRow(){
   ids.forEach((artId)=>{
     const a=db.articoli.find(x=>String(x.id)===String(artId));
     if(!a) return;
+    if(isArticleUnavailable(a)){
+      toast('Articolo segnato come non disponibile');
+      return;
+    }
     if(ordRows.some(r=>String(r.articoloId)===String(artId))){
       toast("Articolo già presente nell'ordine");
       return;
@@ -6542,12 +6576,13 @@ document.addEventListener('click',(ev)=>{
   if(a==='addAgenda') return saveAgendaQuick(document.getElementById('agendaText')?.value||'', document.getElementById('agendaDate')?.value||'');
   if(a==='toggleAgendaDone') return agendaToggleById(el.dataset.id||'');
   if(a==='deleteAgenda') return agendaDeleteById(el.dataset.id||'');
-  if(a==='addArtToOrder'){ const id=el.dataset.id; if(id) return openOrdEdit(currentOrdId||null, id); return; }
+  if(a==='addArtToOrder'){ const id=el.dataset.id; if(id){ const db=loadDB(); const art=(db.articoli||[]).find(x=>String(x.id)===String(id)); if(art && isArticleUnavailable(art)){ toast('Articolo non disponibile'); return; } return openOrdEdit(currentOrdId||null, id); } return; }
   if(a==='addArtToOrderFromView'){
     const targetId=currentArtId || String(document.getElementById('vCod')?.textContent||'').trim();
     const db=loadDB();
     const art=(db.articoli||[]).find(x=>String(x.id)===String(targetId) || String(x.codice||'')===String(targetId));
     if(!art){ toast('Articolo non trovato'); return; }
+    if(isArticleUnavailable(art)){ toast('Articolo non disponibile'); return; }
     hide('mArtView', true);
     return openOrdEdit(currentOrdId||null, art.id);
   }
@@ -6587,7 +6622,7 @@ bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
   ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));
