@@ -1,0 +1,7 @@
+Ripristino flusso condivisione foto più vicino alla versione funzionante:
+- warmup foto silenzioso all'apertura articolo
+- niente popup all'apertura articolo
+- niente fallback automatico a link
+- niente tentativi parziali/zip nella share foto
+- download riportato a comportamento stabile
+- service worker aggiornato a sharefix7
