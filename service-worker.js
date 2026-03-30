@@ -1,4 +1,4 @@
-const VERSION = 'v12_2_slim_sharefix';
+const VERSION = 'v13_0_sharefix3';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

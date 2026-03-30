@@ -2145,24 +2145,38 @@ function pickNativeShareFileBatches(files){
     if(typeof navigator==='undefined' || typeof navigator.share!=='function') return [];
     const normalized=(files||[]).map((file,idx)=>normalizeArticleShareFile(file, idx)).filter(Boolean);
     if(!normalized.length) return [];
-    let singles=normalized;
-    if(typeof navigator.canShare==='function'){
-      singles=normalized.filter(file=>{
-        try{ return navigator.canShare({ files:[file] }); }catch(_e){ return false; }
-      });
+    const out=[];
+    const seen=new Set();
+    const addBatch=(batch)=>{
+      const clean=(batch||[]).filter(Boolean);
+      if(!clean.length) return;
+      const key=clean.map(f=>`${f.name}::${f.size}::${f.type}`).join('|');
+      if(!key || seen.has(key)) return;
+      seen.add(key);
+      out.push(clean);
+    };
+    const canShareFiles=(batch)=>{
+      if(typeof navigator.canShare!=='function') return null;
+      try{ return !!navigator.canShare({ files:batch }); }catch(_e){ return false; }
+    };
+
+    const fullSupport=canShareFiles(normalized);
+    if(fullSupport===true) addBatch(normalized);
+
+    normalized.forEach(file=>{
+      const ok=canShareFiles([file]);
+      if(ok!==false) addBatch([file]);
+    });
+
+    if(!out.length){
+      normalized.forEach(file=>addBatch([file]));
     }
-    if(!singles.length) return [];
-    const batches=[];
-    for(let size=singles.length; size>=1; size--){
-      for(let start=0; start<=Math.max(0, singles.length-size); start++){
-        const batch=singles.slice(start, start+size);
-        if(typeof navigator.canShare==='function'){
-          try{ if(!navigator.canShare({ files:batch })) continue; }catch(_e){ continue; }
-        }
-        batches.push(batch);
-      }
+
+    if(fullSupport!==true && normalized.length>1){
+      addBatch(normalized);
     }
-    return batches;
+
+    return out;
   }catch(_e){
     return [];
   }
@@ -2174,7 +2188,11 @@ async function tryNativeShareArticleFiles(files, baseName){
   let lastErr=null;
   for(const shareFiles of batches){
     try{
-      await navigator.share({ files:shareFiles });
+      await navigator.share({
+        title:`Foto ${baseName||'articolo'}`,
+        text:shareFiles.length>1 ? `Foto articolo ${baseName||'articolo'}` : undefined,
+        files:shareFiles
+      });
       return {
         ok:true,
         count:shareFiles.length,
@@ -5356,9 +5374,7 @@ async function openArtView(id){
   fitTextarea(document.getElementById('vArtPostIg'));
   const vArtSupplierLink=document.getElementById('vArtSupplierLink');
   if(vArtSupplierLink) vArtSupplierLink.value=(a.fornitoreLink||'').trim();
-  prepareArticlePhotoShareContext(a).then(ctx=>{
-    if(ctx) warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
-  }).catch(()=>{});
+  prepareArticlePhotoShareContext(a).catch(()=>{});
   show('mArtView');
   scheduleModalTextareaFit('mArtView');
 }
@@ -6747,9 +6763,20 @@ function bindSearchSuggest(inputId, boxId, kind, onApply){
 document.addEventListener('pointerdown',(ev)=>{
   const btn=ev.target?.closest?.('[data-action="shareArtPhotos"]');
   if(!btn) return;
-  const ctx=getPreparedCurrentArticlePhotoContext();
-  if(ctx) warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
-});
+  const prepared=getPreparedCurrentArticlePhotoContext();
+  if(prepared){
+    warmCurrentArticlePhotoShare(prepared, { silent:true }).catch(()=>{});
+    return;
+  }
+  try{
+    const db=loadDB();
+    const art=(db.articoli||[]).find(x=>x.id===currentArtId);
+    if(!art) return;
+    prepareArticlePhotoShareContext(art).then(ctx=>{
+      if(ctx) warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
+    }).catch(()=>{});
+  }catch(_e){}
+}, { passive:true });
 
 document.addEventListener('click',(ev)=>{
   const el=ev.target.closest('[data-action],[data-go],[data-open]');
@@ -7467,7 +7494,7 @@ async function bootApp(){
 bootApp();
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js').catch(err=>console.warn('Registrazione service worker fallita', err));
+    navigator.serviceWorker.register('./service-worker.js?v=sharefix3', { updateViaCache:'none' }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
 }
 </script>
