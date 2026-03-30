@@ -42,6 +42,7 @@ body{-webkit-tap-highlight-color:transparent}
 .artGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .artCard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;box-shadow:0 10px 24px rgba(15,23,42,.05);min-height:152px;display:flex;flex-direction:column;gap:10px;cursor:pointer}
 .artCard.tight{min-height:unset}
+.artCard.is-unavailable{border-color:#ef4444;background:linear-gradient(180deg,#fff5f5 0%,#ffffff 100%);box-shadow:0 10px 24px rgba(239,68,68,.12)}
 .artCardHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .artIcon{width:62px;height:62px;border-radius:18px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:56px;line-height:1;background:linear-gradient(135deg,#fff8ef 0%, #eef4ff 100%);overflow:hidden}
 .artMeta{display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -63,12 +64,13 @@ body{-webkit-tap-highlight-color:transparent}
 .t{font-weight:1000}
 .s{font-size:12px;color:var(--muted);margin-top:2px}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:1000;border:1px solid var(--line);background:#fff}
+.pill.unavailable{background:#fff1f2;border-color:#ef4444;color:#b91c1c;font-weight:1200;letter-spacing:.3px;box-shadow:0 6px 14px rgba(239,68,68,.14);padding:8px 12px}
 .pill.cloudBtn{padding:9px 14px;border-radius:14px;font-size:13px;min-height:42px;box-shadow:0 5px 12px rgba(15,23,42,.08);background:rgba(255,255,255,.98)}
 .cloudBtn.mini{padding:7px 12px;min-height:36px;font-size:12px;border-radius:12px}
 .pill.cloudBtn.primary{background:#e0ecff;border-color:#93c5fd;color:#0f172a}
 .pill.cloudBtn.secondary{background:#fff;border-color:#cbd5e1;color:#0f172a}
 .pricePaid{color:#16a34a!important;font-weight:1000}
-.pill.promo{border-color:#fecaca;background:#fff1f2;color:#991b1b}
+.pill.promo{border-color:#86efac;background:#f0fdf4;color:#166534;box-shadow:0 6px 14px rgba(34,197,94,.12)}
 .dot{width:10px;height:10px;border-radius:999px;background:#16a34a;display:inline-block}
 .priceHot{color:var(--red);font-weight:1000}
 .navBottom{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:8px 10px;z-index:20}
@@ -105,7 +107,7 @@ select[multiple]{min-height:150px}
 .heroSpot .title{font-size:22px;line-height:1.05;font-weight:1000;margin:0 0 6px}
 .heroSpot .desc{font-size:13px;color:#475569;line-height:1.35;margin:0 0 12px}
 .sparkTitle{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px}.sparkTitle span{font-size:11px;text-transform:uppercase;color:#64748b;font-weight:1000}
-.sparkBars{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:end;height:92px}.sparkCol{display:flex;flex-direction:column;align-items:center;gap:6px}.sparkBarWrap{height:68px;width:100%;display:flex;align-items:flex-end}.sparkBarBtn{appearance:none;border:0;background:transparent;padding:0;margin:0;width:100%;height:100%;display:flex;align-items:flex-end;cursor:pointer}.sparkBarBtn:focus-visible{outline:2px solid var(--navy);outline-offset:3px;border-radius:16px}.sparkBar{width:100%;border-radius:14px 14px 8px 8px;background:linear-gradient(180deg,#60a5fa,#1d4ed8)}.sparkBar.soft{background:linear-gradient(180deg,#fbbf24,#f59e0b)}.sparkLbl{font-size:10px;color:#64748b;font-weight:900}.shipAlert{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 12px;cursor:pointer}.shipAlerts{display:flex;flex-direction:column;gap:10px}.shipAlert .meta{font-size:12px;color:#475569;font-weight:900;margin-top:4px}.shipAlertEmpty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:12px;color:var(--muted)}.quickCard .h2{margin-bottom:8px}.substats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.micro{background:#f8fafc;border:1px solid #edf2f7;border-radius:14px;padding:10px 12px}.micro[data-go],.heroSpot[data-action],#dashList .row[data-action],#dashTips .row[data-action],.stat[data-go]{cursor:pointer}.micro .k{font-size:10px}.micro .v{font-size:16px;margin-top:2px}.stat .v.big{font-size:24px}.stat .sub{margin-top:4px;font-size:11px;color:#64748b;font-weight:800}
+.sparkBars{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:end;height:92px}.sparkCol{display:flex;flex-direction:column;align-items:center;gap:6px}.sparkBarWrap{height:68px;width:100%;display:flex;align-items:flex-end}.sparkBarBtn{appearance:none;border:0;background:transparent;padding:0;margin:0;width:100%;height:100%;display:flex;align-items:flex-end;cursor:pointer}.sparkBarBtn:focus-visible{outline:2px solid var(--navy);outline-offset:3px;border-radius:16px}.sparkBar{width:100%;border-radius:14px 14px 8px 8px;background:linear-gradient(180deg,#60a5fa,#1d4ed8)}.sparkBar.soft{background:linear-gradient(180deg,#fbbf24,#f59e0b)}.sparkLbl{font-size:10px;color:#64748b;font-weight:900}.shipAlert{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 12px;cursor:pointer}.shipAlerts{display:flex;flex-direction:column;gap:10px}.shipAlert .meta{font-size:12px;color:#475569;font-weight:900;margin-top:4px}.shipAlertEmpty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:12px;color:var(--muted)}.quickCard .h2{margin-bottom:8px}.substats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.micro{background:#f8fafc;border:1px solid #edf2f7;border-radius:14px;padding:10px 12px}.micro[data-go],.heroSpot[data-action],#dashList .row[data-action],#dashTips .row[data-action],.stat[data-go]{cursor:pointer}.micro .k{font-size:10px}.micro .v{font-size:16px;margin-top:2px}.stat .v.big{font-size:24px}.stat .sub{margin-top:4px;font-size:11px;color:#64748b;font-weight:800}.agendaComposer{display:grid;grid-template-columns:1fr 150px 170px auto;gap:8px;align-items:center}.agendaMiniBtn{padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:#fff;font-weight:900}.agendaList{display:flex;flex-direction:column;gap:8px}.agendaItem{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:16px;background:#fff}.agendaDot{width:12px;height:12px;border-radius:999px;background:#f59e0b;margin-top:6px}.agendaItem.done .agendaDot{background:#16a34a}.agendaItem.overdue .agendaDot{background:#dc2626}.agendaTitle{font-weight:900;color:#0f172a}.agendaMeta{font-size:12px;color:#64748b;font-weight:800;margin-top:2px}.agendaActions{display:flex;gap:6px;align-items:center}.agendaBtn{padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:900}.agendaEmpty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:12px;color:var(--muted)}.urgentBoard{display:flex;flex-direction:column;gap:10px}.urgentItem{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:flex-start;padding:12px;border:1px solid #fecaca;border-radius:16px;background:#fff5f5}.urgentDot{width:12px;height:12px;border-radius:999px;background:#dc2626;margin-top:6px;box-shadow:0 0 0 4px rgba(220,38,38,.12)}.urgentTitle{font-weight:900;color:#7f1d1d}.urgentMeta{font-size:12px;color:#991b1b;font-weight:800;margin-top:2px}.urgentEmpty{background:#fff;border:1px dashed #fecaca;border-radius:16px;padding:12px;color:#991b1b}.orderPrimaryRow aside{display:flex;flex-direction:column;gap:10px}.orderHintSoft{font-size:12px;color:#64748b;font-weight:800}.orderTrackCard{margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:12px}.orderTrackActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}@media (max-width:760px){.agendaComposer{grid-template-columns:1fr 1fr}.agendaComposer .full{grid-column:1/-1}.urgentItem{grid-template-columns:auto 1fr}}
 
 #mArtView .modal,#mArtEdit .modal{max-width:760px}
 
@@ -164,6 +166,50 @@ select[multiple]{min-height:150px}
 .searchSuggest{display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;background:#fff;border:1px solid #dbe3f0;border-radius:14px;box-shadow:0 10px 24px rgba(15,23,42,.12);max-height:220px;overflow:auto}
 .searchSuggest.show{display:block}
 .searchSuggest button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:10px 12px;font:inherit;color:#111827;cursor:pointer}
+.orderSection{background:#fff;border:1px solid var(--line);border-radius:20px;padding:14px;margin-top:12px;box-shadow:0 8px 22px rgba(15,23,42,.04)}
+.orderSection:first-of-type{margin-top:10px}
+.orderSection .h3{font-size:15px;font-weight:1000;margin:0 0 10px;color:#0f172a}
+.orderSection .helper{line-height:1.35}
+.orderClientSummary,.orderSelectedSummary{margin-top:8px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:16px;padding:10px 12px}
+.orderClientSummary.empty,.orderSelectedSummary.empty{color:#64748b}
+.orderClientSummary .title,.orderSelectedSummary .title{font-weight:1000;color:#0f172a}
+.orderClientSummary .meta,.orderSelectedSummary .meta{font-size:12px;color:#64748b;margin-top:4px;line-height:1.35}
+.orderChoiceList{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.orderChoiceChip{background:#eef2ff;border:1px solid #c7d2fe;color:#1e3a8a;border-radius:16px;padding:8px 10px;font-size:12px;font-weight:900;line-height:1.25;display:block}
+.orderPickList{display:grid;gap:8px;max-height:220px;overflow:auto;padding:10px;border:1px solid #e5e7eb;border-radius:18px;background:#fff}
+.orderPickList.empty{display:none}
+.orderPickItem{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:14px;background:#fff;cursor:pointer}
+.orderPickItem.active{border-color:#c89b14;background:#fffaf0;box-shadow:0 0 0 1px rgba(200,155,20,.15) inset}
+.orderPickCheck{width:20px;height:20px;border:2px solid #cbd5e1;border-radius:6px;flex:0 0 20px;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;background:#fff}
+.orderPickItem.active .orderPickCheck{background:#c89b14;border-color:#c89b14}
+.orderPickText{min-width:0;flex:1}
+.orderPickTitle{font-size:15px;font-weight:1000;line-height:1.15;color:#0f172a;display:block}
+.orderPickMeta{font-size:12px;color:#64748b;font-weight:800;margin-top:4px;line-height:1.25;display:block}
+.orderChoiceList{display:grid;gap:8px}
+.orderChoiceMeta{display:block;font-size:11px;font-weight:800;color:#475569;margin-top:4px}
+.orderCard{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;padding:14px;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+.orderCard + .orderCard{margin-top:10px}
+.orderCard .title{font-size:16px;font-weight:1000;line-height:1.2;color:#0f172a}
+.orderCard .meta{font-size:12px;color:#64748b;margin-top:4px;font-weight:800}
+.orderBadges{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.orderRemoveBtn{min-width:44px;height:36px;border-radius:12px;border:1px solid #dbe3ef;background:#fff;color:#334155;font-size:15px;font-weight:900;line-height:1;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(15,23,42,.06);padding:0 12px;cursor:pointer}
+.orderRemoveBtn:hover{background:#f8fafc;border-color:#cbd5e1;color:#0f172a}
+.orderRemoveBtn:active{transform:scale(.98)}
+.orderBadge{display:inline-flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;color:#334155}
+.orderRowControls{display:grid;gap:8px;margin-top:10px}
+.orderInlineField label{display:block;font-size:11px;font-weight:900;color:#64748b;text-transform:uppercase;margin-bottom:4px}
+.orderInlineField select,.orderInlineField input{margin:0}
+.orderRowControls{display:grid;gap:10px;margin-top:10px}
+.orderSection select[multiple]{min-height:96px;max-height:140px;background:#fbfdff;font-size:15px}
+.orderSection select[multiple] option{padding:8px 10px;border-bottom:1px solid #eef2f7}
+.orderSection select[multiple] option:checked{background:#e8f0ff;color:#0f172a}
+#o_art_selected_summary .title{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#o_art_selected_summary .countBadge{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 10px;border-radius:999px;background:#e8f0ff;color:#1d4ed8;font-weight:1000}
+#o_rows_summary{padding:8px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px}
+.orderPrimaryRow{display:grid;gap:10px}
+.orderRowsSummary{margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:10px 12px;font-size:12px;color:#475569;font-weight:800}
+.orderRowsSummary strong{color:#0f172a}
+@media(min-width:760px){.orderPrimaryRow{grid-template-columns:1.3fr .7fr}.orderRowControls{grid-template-columns:1fr 1fr}}
 .searchSuggest button+button{border-top:1px solid #eef2f7}
 .searchSuggest button:hover{background:#f8fafc}
 
@@ -209,6 +255,11 @@ window.addEventListener('error',e=>{
       <div class="stat" data-go="finanze"><div class="k">Guadagno totale</div><div id="c_profit_total" class="v big">0</div><div class="sub">margine complessivo</div></div>
     </div>
 
+    <div class="card" style="margin-top:12px">
+      <div class="h2">Da fare</div>
+      <div id="dashUrgent" class="urgentBoard"><div class="urgentEmpty">Nessuna urgenza in evidenza.</div></div>
+    </div>
+
     <div class="card quickCard">
       <div class="h2">Azioni rapide</div>
       <div class="btnGrid">
@@ -234,8 +285,25 @@ window.addEventListener('error',e=>{
     </div>
 
     <div class="card" style="margin-top:12px">
-      <div class="h2">Consigli del momento</div>
-      <div id="dashTips" class="list"></div>
+      <div class="h2">Agenda e scadenze</div>
+      <div class="agendaComposer" style="margin-top:8px">
+        <input id="agendaText" class="full" placeholder="Scrivi cosa devi fare..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
+        <input id="agendaDate" type="date" autocomplete="off"/>
+        <select id="agendaPreset" aria-label="Periodo rapido">
+          <option value="">Periodo rapido</option>
+          <option value="0">Oggi</option>
+          <option value="1">Domani</option>
+          <option value="3">Tra 3 giorni</option>
+          <option value="7">Tra 7 giorni</option>
+          <option value="10">Tra 10 giorni</option>
+          <option value="15">Tra 15 giorni</option>
+          <option value="30">Tra 30 giorni</option>
+          <option value="fine_mese">Fine mese</option>
+          <option value="custom">Scelgo io la data</option>
+        </select>
+        <button class="agendaMiniBtn" type="button" data-action="addAgenda">Aggiungi</button>
+      </div>
+      <div id="dashAgenda" class="agendaList" style="margin-top:10px"></div>
     </div>
   </div>
 
@@ -439,13 +507,14 @@ window.addEventListener('error',e=>{
     <div><div class="k">Marca</div><div id="vArtBrand" class="t">-</div></div>
     <div><div class="k">Fornitore</div><div id="vArtForn" class="t">-</div></div>
   </div>
+  <div style="margin-top:10px"><div class="k" id="vArtColorsLabel">Colori disponibili</div><div id="vArtColors" class="t">-</div></div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">Prezzo vendita</div><div id="vArtPrezzo" class="t">-</div></div>
     <div>
       <div class="k">Prezzo in uso</div>
       <div id="vArtPrezzoUse" class="priceHot">-</div>
       <div id="vArtPromoPill"></div>
-      <div class="orderAddWrap"><button class="btn orderAdd" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button></div>
+      
     </div>
   </div>
   <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button></div></div>
@@ -457,6 +526,7 @@ window.addEventListener('error',e=>{
     <button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button>
     <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
+    <button class="btn smallish" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button>
     <button class="btn smallish" type="button" data-action="closeView">Chiudi</button>
   </div>
 </div></div>
@@ -481,6 +551,7 @@ window.addEventListener('error',e=>{
       <div><div class="k">Modello</div><input id="a_mod" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
       <div><div class="k">Categoria</div><select id="a_cat"><option value="">Seleziona categoria</option></select></div>
     </div>
+    <div style="margin-top:10px"><div class="k">Disponibilità</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_unavailable" type="checkbox" style="width:auto;margin-right:8px"/>Segna come NON DISPONIBILE</label><div class="helper" style="margin-top:6px">L'articolo resta visibile in lista, ma viene segnato come non disponibile e non si può aggiungere agli ordini.</div></div>
     <div style="margin-top:10px"><div class="k">Fornitore</div><select id="a_forn"></select><div id="a_forn_hint" class="date" style="margin-top:6px">Scelta automatica dal codice articolo.</div></div>
   </div>
 
@@ -498,7 +569,7 @@ window.addEventListener('error',e=>{
           <option value="multiple">Più colori</option>
         </select>
       </div>
-      <div><div class="k">Misura</div><input id="a_mis" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+      <div><div class="k">Misura</div><input id="a_mis" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="a_mis_hint" class="helper"></div></div>
     </div>
     <div class="grid2" style="margin-top:10px">
       <div id="a_color_single_wrap">
@@ -553,7 +624,7 @@ window.addEventListener('error',e=>{
     <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple/><div class="small" style="margin-top:6px">Puoi selezionare più foto insieme (massimo 6 totali per articolo).</div></div>
+    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple/><div class="small" style="margin-top:6px">Puoi selezionare più foto insieme (massimo 15 totali per articolo).</div></div>
     <div class="actions compact" style="margin-top:8px"><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div>
     <div id="a_photo_prev" class="thumbs"></div>
   </div>
@@ -652,48 +723,62 @@ window.addEventListener('error',e=>{
 
 <div id="mOrdEdit" class="modalwrap"><div class="modal">
   <div class="h2" id="ordEditTitle">Nuovo ordine</div>
-  <div class="grid2">
-    <div><div class="k">Cliente (cerca)</div><div class="searchWrap"><input id="o_cli_q" placeholder="Cerca cliente..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="oCliSuggest" class="searchSuggest"></div></div><select id="o_cli"></select></div>
-    <div><div class="k">Stato</div>
-      <select id="o_stato">
-        <option>Richiesto</option>
-        <option>In attesa di pagamento</option>
-        <option>Pagato</option>
-        <option>In lavorazione</option>
-        <option>Spedito</option>
-        <option>Consegnato</option>
-        <option>Annullato</option>
-      </select>
+
+  <div class="orderSection">
+    <div class="h3">Cliente</div>
+    <div><div class="k">Cerca e seleziona cliente</div><div class="searchWrap"><input id="o_cli_q" placeholder="Cerca cliente per nome, telefono o città..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="oCliSuggest" class="searchSuggest"></div></div><select id="o_cli"></select><div id="o_cli_summary" class="orderClientSummary empty">Seleziona un cliente per vedere subito nome, telefono e città.</div></div>
+  </div>
+
+  <div class="orderSection">
+    <div class="h3">Dati ordine</div>
+    <div class="grid2">
+      <div><div class="k">Stato</div>
+        <select id="o_stato">
+          <option>Richiesto</option>
+          <option>In attesa di pagamento</option>
+          <option>Pagato</option>
+          <option>In lavorazione</option>
+          <option>Spedito</option>
+          <option>Consegnato</option>
+          <option>Annullato</option>
+        </select>
+      </div>
+      <div><div class="k">Data</div><input id="o_data" type="date" autocomplete="off"/></div>
     </div>
+    <div class="grid2" style="margin-top:10px">
+      <div><div class="k">Sconto cliente (€)</div><input id="o_discount" inputmode="decimal" placeholder="0" autocomplete="off"/></div>
+      <div class="card" style="margin-top:0"><div class="k">Riepilogo ordine</div><div id="o_tot" class="priceHot">0</div><div id="o_tot_meta" class="small" style="margin-top:6px">Subtotale €0,00 • Sconto €0,00</div></div>
+    </div>
+    <div style="margin-top:10px"><div class="k">Note</div><input id="o_note" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Aggiungi una nota utile per questo ordine"/></div>
   </div>
-  <div class="grid2" style="margin-top:10px">
-    <div><div class="k">Data</div><input id="o_data" type="date" autocomplete="off"/></div>
-    <div><div class="k">Note</div><input id="o_note" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+
+  <div class="orderSection">
+    <div class="h3">Articoli ordine</div>
+    <div class="orderPrimaryRow">
+      <div>
+        <div class="k">Articolo</div>
+        <div class="searchWrap"><input id="o_art_q" placeholder="Cerca per codice, nome, qualità o colore" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="oArtSuggest" class="searchSuggest"></div></div>
+        <select id="o_art_pick"><option value="">Seleziona articolo</option></select>
+        <select id="o_art" multiple hidden></select>
+        <div class="helper">Cerca per codice o nome e scegli dalla tendina.</div>
+        <div id="o_art_selected_summary" class="orderSelectedSummary empty">Cerca un articolo e poi aggiungilo.</div>
+      </div>
+      <aside>
+        <div id="o_pick_color_wrap" style="display:none"><div class="k">Colore</div><select id="o_pick_color"></select><div id="o_pick_color_hint" class="orderHintSoft">Scegli il colore e poi aggiungi l'articolo.</div></div>
+        <div><div class="k">Misura</div><select id="o_mis" autocomplete="off"><option value="">Non necessaria</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option></select><div id="o_mis_hint" class="helper">Usala solo per scarpe.</div></div>
+      </aside>
+    </div>
+    <div class="actions bottomMini"><button class="btn" type="button" data-action="addRow">Aggiungi</button></div>
+    <div id="o_rows_summary" class="orderRowsSummary">Ancora nessun articolo nell'ordine.</div>
+    <div id="o_rows" class="list"></div>
   </div>
-  <div class="grid2" style="margin-top:10px">
-    <div><div class="k">Mis.</div><select id="o_mis" autocomplete="off"><option value="">Non necessaria</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option></select><div id="o_mis_hint" class="helper">Obbligatoria solo per ordini con scarpe.</div></div>
-    <div><div class="k">Tracking</div><input id="o_tracking" placeholder="Inserisci tracking" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+
+  <div class="orderSection">
+    <div class="h3">Foto ordine</div>
+    <div><div class="k">Aggiungi foto</div><input id="o_photo" type="file" accept="image/*"/><div class="small" style="margin-top:6px">Per ogni articolo viene copiata una sola foto, cercando quella del colore scelto. Se serve, puoi aggiungerne una manuale.</div><div id="o_photo_prev" class="orderPhotoGrid"></div></div>
+    <div class="orderTrackCard"><div class="k">Tracking</div><input id="o_tracking" placeholder="Inserisci tracking" autocomplete="off" autocapitalize="off" spellcheck="false"/><div class="orderTrackActions"><button class="btn smallish" type="button" data-action="track17">Traccia spedizione</button><button class="btn smallish" type="button" data-action="openParcel">Apri Parcel</button></div></div>
   </div>
-  <div style="margin-top:10px;display:none" id="o_color_global_wrap"><div class="k">Numero colore</div><select id="o_color_num"></select><div id="o_color_hint" class="helper">Obbligatorio quando l'articolo usa colori numerati.</div></div>
-  <div class="grid2" style="margin-top:10px">
-    <div><div class="k">Sconto cliente (€)</div><input id="o_discount" inputmode="decimal" placeholder="0" autocomplete="off"/></div>
-    <div class="card" style="margin-top:0"><div class="k">Riepilogo ordine</div><div id="o_tot" class="priceHot">0</div><div id="o_tot_meta" class="small" style="margin-top:6px">Subtotale €0,00 • Sconto €0,00</div></div>
-  </div>
-  <div class="actions bottomMini" style="margin-top:8px">
-    <button class="btn smallish" type="button" data-action="track17">Traccia spedizione</button>
-    <button class="btn smallish" type="button" data-action="openParcel">Apri Parcel</button>
-  </div>
-  <div class="hr"></div>
-  <div class="h2">Righe ordine</div>
-  <div class="grid2">
-    <div><div class="k">Articoli (cerca e seleziona anche più articoli)</div><div class="searchWrap"><input id="o_art_q" placeholder="Cerca articolo anche per qualità..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="oArtSuggest" class="searchSuggest"></div></div><select id="o_art" multiple></select><div class="helper">Puoi selezionare più articoli insieme.</div></div>
-    <div><div class="k">Prezzo manuale (solo se selezioni 1 articolo)</div><input id="o_price" inputmode="decimal" autocomplete="off"/><div class="helper">Se selezioni più articoli usa i prezzi degli articoli.</div></div>
-  </div>
-  <div class="actions bottomMini">
-    <button class="btn" type="button" data-action="addRow">Aggiungi selezionati</button>
-  </div>
-  <div id="o_rows" class="list"></div>
-  <div style="margin-top:10px"><div class="k">Foto ordine</div><input id="o_photo" type="file" accept="image/*" multiple/><div class="small" style="margin-top:6px">Le foto degli articoli collegati vengono copiate in automatico. Se l'articolo non c'è o è una variante, puoi aggiungerle a mano.</div><div id="o_photo_prev" class="orderPhotoGrid"></div></div>
+
   <div class="actions bottomMini">
     <button class="btn primary" type="button" data-action="saveOrd">Salva</button>
     <button class="btn" type="button" data-action="closeOrd">Annulla</button>
@@ -733,22 +818,73 @@ window.addEventListener('error',e=>{
 
 <script>
 /* ====== DB ====== */
-const KEY='vg_db_full_v6';
-const LEGACY_KEYS=['vg_db_full_v5','vg_v7_web','vanity_glamour_v9_db'];
-const PHOTO_DB='vg_photos_v1';
+const KEY='vg_db_full_v8_baseclean';
+const LEGACY_KEYS=[];
+const PHOTO_DB='vg_photos_v3_baseclean';
 const PHOTO_STORE='photos';
 const PROVINCE=[ "AG","AL","AN","AO","AP","AQ","AR","AT","AV","BA","BG","BI","BL","BN","BO","BR","BS","BT","BZ","CA","CB","CE","CH","CL","CN","CO","CR","CS","CT","CZ","EN","FC","FE","FG","FI","FM","FR","GE","GO","GR","IM","IS","KR","LC","LE","LI","LO","LT","LU","MB","MC","ME","MI","MN","MO","MS","MT","NA","NO","NU","OR","PA","PC","PD","PE","PG","PI","PN","PO","PR","PT","PU","PV","PZ","RA","RC","RE","RG","RI","RM","RN","RO","SA","SI","SO","SP","SR","SS","SU","SV","TA","TE","TN","TO","TP","TR","TS","TV","UD","VA","VB","VC","VE","VI","VR","VT","VV" ];
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
-const ART_DRAFT_KEY='vg_draft_art_v1';
-const CLI_DRAFT_KEY='vg_draft_cli_v1';
-const ORD_DRAFT_KEY='vg_draft_ord_v1';
+const ART_DRAFT_KEY='vg_draft_art_v3_baseclean';
+const CLI_DRAFT_KEY='vg_draft_cli_v3_baseclean';
+const ORD_DRAFT_KEY='vg_draft_ord_v3_baseclean';
+const AGENDA_KEY='vg_dashboard_agenda_v3_baseclean';
 const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
 const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
 const round5=n=>Math.round(n/5)*5;
 
 function defDB(){
-  return {version:'v6.6',articoli:[],clienti:[],ordini:[],categorie:[],brands:[],createdAt:new Date().toISOString()};
+  return {version:'v6.7',articoli:[],clienti:[],ordini:[],categorie:[],brands:[],agenda:[],createdAt:new Date().toISOString()};
 }
+
+const APP_RESET_FLAG='vg_build_reset_20260330_baseclean_v1';
+const APP_RESET_OLD_KEYS=[
+  'vg_db_full_v8_baseclean',
+  'vg_db_full_v7_clean','vg_db_full_v6','vg_db_full_v5','vg_v7_web','vanity_glamour_v9_db',
+  'vg_draft_art_v3_baseclean','vg_draft_cli_v3_baseclean','vg_draft_ord_v3_baseclean','vg_dashboard_agenda_v3_baseclean',
+  'vg_draft_art_v2_clean','vg_draft_cli_v2_clean','vg_draft_ord_v2_clean','vg_dashboard_agenda_v2_clean',
+  'vg_draft_art_v1','vg_draft_cli_v1','vg_draft_ord_v1','vg_dashboard_agenda_v1',
+  'vg_photos_v1','vg_photos_v2_clean',
+  'sb-qfjwtawsqfwmsmrrgqfi-auth-token'
+];
+async function runOneTimeFreshReset(){
+  try{
+    if(localStorage.getItem(APP_RESET_FLAG)==='1') return;
+    const keys=[];
+    try{
+      for(let i=0;i<localStorage.length;i++){
+        const k=localStorage.key(i);
+        if(k) keys.push(k);
+      }
+    }catch(_e){}
+    const shouldRemove=(k)=>{
+      const key=String(k||'');
+      if(!key || key===APP_RESET_FLAG) return false;
+      if(key===KEY || key===KEY+'_backup_latest') return true;
+      if(APP_RESET_OLD_KEYS.includes(key)) return true;
+      if(/^vg_db_full_/i.test(key)) return true;
+      if(/^vg_draft_(art|cli|ord)_/i.test(key)) return true;
+      if(/^vg_dashboard_agenda_/i.test(key)) return true;
+      if(/^vanity_glamour_/i.test(key)) return true;
+      if(/^sb-qfjwtawsqfwmsmrrgqfi-auth-token$/i.test(key)) return true;
+      return false;
+    };
+    keys.filter(shouldRemove).forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
+    try{
+      if(typeof indexedDB!=='undefined'){
+        await Promise.all(['vg_photos_v1','vg_photos_v2_clean','vg_photos_v3_baseclean'].map(name=>new Promise(resolve=>{
+          try{
+            const req=indexedDB.deleteDatabase(name);
+            req.onsuccess=req.onerror=req.onblocked=()=>resolve(true);
+          }catch(_e){ resolve(true); }
+        })));
+      }
+    }catch(_e){}
+    localStorage.setItem(APP_RESET_FLAG,'1');
+  }catch(err){
+    console.warn('Reset iniziale build fallito', err);
+  }
+}
+
 function normalizeDBShape(o){
   if(!o || typeof o!=='object') return defDB();
   const db={
@@ -758,6 +894,7 @@ function normalizeDBShape(o){
     ordini:Array.isArray(o.ordini)?o.ordini:[],
     categorie:Array.isArray(o.categorie)?o.categorie:[],
     brands:Array.isArray(o.brands)?o.brands:[],
+    agenda:Array.isArray(o.agenda)?o.agenda:[],
     createdAt:o.createdAt||new Date().toISOString()
   };
   db.articoli=db.articoli.map(x=>({
@@ -766,18 +903,21 @@ function normalizeDBShape(o){
     brand:normalizeSpaceText(x?.brand||x?.marca||''),
     categoria:normalizeSpaceText(x?.categoria||''),
     colore:normalizeSpaceText(x?.colore||''),
-    colorMode:(String(x?.colorMode||'').toLowerCase()==='multiple' || String(x?.colorType||'').toLowerCase()==='multiple' || String(x?.colorMode||'').toLowerCase()==='numbered' || Number(x?.colorCount||x?.coloriNumerati||0)>0) ? 'multiple' : 'single',
-    colorCount:Math.max(0, parseInt(x?.colorCount||x?.coloriNumerati||0,10) || 0),
-    colorLabels:Array.isArray(x?.colorLabels)?x.colorLabels.map(v=>normalizeSpaceText(v||'')).filter(Boolean):[],
+    ...deriveColorShape(x),
     costoUsd:firstFiniteNumber(x?.costoUsd, x?.costoUSD, x?.usd, 0),
     costoEur:firstFiniteNumber(x?.costoEur, x?.costoEUR, x?.prezzo_acquisto, x?.costo, x?.costo_eur, 0),
     prezzoVendita:firstFiniteNumber(x?.prezzoVendita, x?.prezzo_vendita, x?.prezzo, x?.prezzo_vendita_iva, 0),
     promoAttiva:(typeof x?.promoAttiva==='boolean') ? x.promoAttiva : !!x?.promo_on,
     prezzoPromo:firstFiniteNumber(x?.prezzoPromo, x?.promoPrezzo, x?.promo_price, 0),
     scadenzaPromo:normalizeSpaceText(x?.scadenzaPromo||x?.promoScadenza||x?.promo_date||''),
-    foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,6):[],
-    photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,6):[]
-  })).map(x=>({ ...x, colorMode:(x.colorMode==='multiple' && x.colorCount>0)?'multiple':'single' }));
+    nonDisponibile:(typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.disponibile===false || x?.attivo===false),
+    disponibile:(typeof x?.disponibile==='boolean') ? x.disponibile : !((typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.attivo===false)),
+    foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,15):[],
+    photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,15):[]
+  })).map(x=>{
+    const shape=deriveColorShape(x);
+    return { ...x, ...shape, colorData:makeStableColorData(shape), colore:shape.colorMode==='multiple' ? '' : normalizeSpaceText(x?.colore||'') };
+  });
   db.clienti=db.clienti.map(x=>({
     ...x,
     nome:normalizeSpaceText(x?.nome||x?.name||''),
@@ -790,6 +930,15 @@ function normalizeDBShape(o){
     provincia:normalizeSpaceText(x?.provincia||x?.province||''),
     note:typeof x?.note==='string'?x.note:(x?.note||'')
   }));
+  try{ const agendaRaw=localStorage.getItem(AGENDA_KEY); const agendaExtra=JSON.parse(agendaRaw||'[]'); if(Array.isArray(agendaExtra) && agendaExtra.length){ db.agenda=[...(Array.isArray(db.agenda)?db.agenda:[]), ...agendaExtra]; } }catch(_e){}
+  db.agenda=db.agenda.map(x=>({
+    id:String(x?.id||uid()),
+    testo:normalizeSpaceText(x?.testo||x?.title||''),
+    data:normalizeSpaceText(x?.data||x?.date||''),
+    fatto:!!x?.fatto,
+    createdAt:x?.createdAt||new Date().toISOString()
+  })).filter(x=>x.testo && x.data);
+  db.agenda=Array.from(new Map(db.agenda.map(x=>[String(x.id),x])).values());
   db.ordini=db.ordini.map(x=>{
     const righe=Array.isArray(x?.righe)?x.righe.map(r=>({
       ...r,
@@ -798,10 +947,11 @@ function normalizeDBShape(o){
       modello:normalizeSpaceText(r?.modello||r?.nome||''),
       prezzo:Number(r?.prezzo||r?.prezzo_unitario||0),
       sconto:Number(r?.sconto||0),
-      richiedeNumeroColore: !!r?.richiedeNumeroColore,
+      richiedeNumeroColore: deriveColorShape(r).colorMode==='multiple' || !!r?.richiedeNumeroColore,
       numeroColore: normalizeSpaceText(r?.numeroColore||r?.coloreNumero||''),
-      colorCount: Math.max(0, parseInt(r?.colorCount||0,10) || 0),
-      colorLabels: Array.isArray(r?.colorLabels)?r.colorLabels.map(v=>normalizeSpaceText(v||'')).filter(Boolean):[],
+      colorCount: deriveColorShape(r).colorCount,
+      colorLabels: deriveColorShape(r).colorLabels,
+      colorData: makeStableColorData(deriveColorShape(r)),
       colore: normalizeSpaceText(r?.colore||'')
     })):[];
     const scontoCliente=calcOrderDiscount(x);
@@ -812,10 +962,10 @@ function normalizeDBShape(o){
       numeroOrdine:ensureOrderNumber(x),
       clienteId:String(x?.clienteId||''),
       righe,
-      foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,12):[],
-      fotoManuali:Array.isArray(x?.fotoManuali)?x.fotoManuali.filter(Boolean).slice(0,12):[],
-      fotoArticoli:Array.isArray(x?.fotoArticoli)?x.fotoArticoli.filter(Boolean).slice(0,12):[],
-      orderPhotoIds:Array.isArray(x?.orderPhotoIds)?x.orderPhotoIds.filter(Boolean).slice(0,12):[],
+      foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,15):[],
+      fotoManuali:Array.isArray(x?.fotoManuali)?x.fotoManuali.filter(Boolean).slice(0,15):[],
+      fotoArticoli:Array.isArray(x?.fotoArticoli)?x.fotoArticoli.filter(Boolean).slice(0,15):[],
+      orderPhotoIds:Array.isArray(x?.orderPhotoIds)?x.orderPhotoIds.filter(Boolean).slice(0,15):[],
       scontoCliente,
       subTotale,
       totale:(totalValue>0 || subTotale===0) ? totalValue : calcOrderNetTotal(righe, scontoCliente),
@@ -849,12 +999,65 @@ function normalizeDBShape(o){
     righe:Array.isArray(o?.righe)?o.righe:[]
   }));
 
-  db.categorie=[...new Set((db.categorie||[]).map(x=>normalizeSpaceText(x)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
-  db.brands=[...new Set((db.brands||[]).map(x=>normalizeSpaceText(x)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.categorie=[...new Set((db.categorie||[]).map(x=>sanitizeCategoryName(normalizeSpaceText(x))).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.brands=[...new Set((db.brands||[]).map(x=>sanitizeBrandName(normalizeSpaceText(x))).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.articoli=(db.articoli||[]).map(a=>({
+    ...a,
+    categoria:sanitizeCategoryName(a?.categoria||''),
+    brand:sanitizeBrandName(a?.brand||'')
+  }));
   return db;
 }
 
 function normalizeSpaceText(v){ return String(v==null?'':v).trim().replace(/\s+/g,' '); }
+function readStableColorData(item={}){
+  const raw=item?.colorData ?? item?.multiColorData ?? item?.colorMeta ?? null;
+  if(!raw) return null;
+  try{
+    const obj=typeof raw==='string' ? JSON.parse(raw) : raw;
+    if(!obj || typeof obj!=='object') return null;
+    const count=Math.max(0, parseInt(obj.count||obj.colorCount||0,10) || 0);
+    const labels=normalizeStoredColorLabels(obj.labels||obj.colorLabels||[], count);
+    const mode=String(obj.mode||obj.colorMode||'').toLowerCase()==='multiple' || count>1 || labels.length>1 ? 'multiple' : 'single';
+    if(mode!=='multiple') return null;
+    return { colorMode:'multiple', colorCount:Math.max(count, labels.length), colorLabels:normalizeStoredColorLabels(labels, Math.max(count, labels.length)) };
+  }catch(_e){ return null; }
+}
+function makeStableColorData(shape={}){
+  const count=Math.max(0, parseInt(shape?.colorCount||0,10) || 0);
+  const labels=normalizeStoredColorLabels(shape?.colorLabels||[], count);
+  if(!(String(shape?.colorMode||'')==='multiple' && Math.max(count, labels.length)>1)) return null;
+  const finalCount=Math.max(count, labels.length);
+  return { mode:'multiple', count:finalCount, labels:normalizeStoredColorLabels(labels, finalCount) };
+}
+function normalizeStoredColorLabels(raw, count=0){
+  const safeCount=Math.max(0, parseInt(count||0,10) || 0);
+  const base=Array.isArray(raw)
+    ? raw
+    : (typeof raw==='string'
+        ? raw.split(/\r?\n|\s*[;,|]\s*/g)
+        : (raw && typeof raw==='object' ? Object.values(raw) : []));
+  const cleaned=base.map(v=>normalizeSpaceText(v||'')).filter(Boolean);
+  if(!safeCount) return cleaned;
+  const out=new Array(safeCount).fill('');
+  cleaned.slice(0, safeCount).forEach((v,i)=>{ out[i]=v; });
+  return out.map(v=>normalizeSpaceText(v||''));
+}
+function deriveColorShape(item={}){
+  const stable=readStableColorData(item);
+  if(stable) return stable;
+  const labels=normalizeStoredColorLabels(item?.colorLabels, item?.colorCount||item?.coloriNumerati||0);
+  const explicitCount=Math.max(0, parseInt(item?.colorCount||item?.coloriNumerati||0,10) || 0);
+  const count=Math.max(explicitCount, labels.length);
+  const wantsMultiple=String(item?.colorMode||item?.colorType||'').toLowerCase()==='multiple'
+    || String(item?.colorMode||'').toLowerCase()==='numbered'
+    || count>1;
+  return {
+    colorMode: wantsMultiple ? 'multiple' : 'single',
+    colorCount: wantsMultiple ? count : 0,
+    colorLabels: wantsMultiple ? normalizeStoredColorLabels(labels, count) : []
+  };
+}
 function normalizeTextKey(v){ return normalizeSpaceText(v).toLowerCase(); }
 function normalizeLookupKey(v){
   return normalizeSpaceText(v)
@@ -964,8 +1167,7 @@ function getArticleColorCount(article){
   return Math.max(0, parseInt(article?.colorCount||0,10) || 0);
 }
 function getArticleColorLabels(article){
-  if(Array.isArray(article?.colorLabels)) return article.colorLabels.map(v=>normalizeSpaceText(v||'')).filter(Boolean);
-  return [];
+  return normalizeStoredColorLabels(article?.colorLabels, article?.colorCount||0);
 }
 function parseColorLabelsInput(raw='', count=0){
   const safeCount=Math.max(0, parseInt(count||0,10) || 0);
@@ -1023,7 +1225,7 @@ function updateArticleColorModeUI(){
 function buildOrderColorOptions(count, selected='', labels=[]){
   const safe=Math.max(0, parseInt(count||0,10) || 0);
   const current=String(selected||'').trim();
-  let html='<option value="">Seleziona numero colore</option>';
+  let html='<option value="">Seleziona colore</option>';
   for(let i=1;i<=safe;i++){
     const note=normalizeSpaceText(Array.isArray(labels)?(labels[i-1]||''):'');
     const label=note ? `Colore ${i} - ${esc(note)}` : `Colore ${i}`;
@@ -1309,8 +1511,8 @@ function mergeArticleRecords(prev,item){
     codice:normalizeSpaceText(item?.codice||item?.sku||''),
     brand:normalizeSpaceText(item?.brand||item?.marca||''),
     categoria:normalizeSpaceText(item?.categoria||''),
-    foto:Array.isArray(item?.foto)?item.foto.filter(Boolean).slice(0,6):[],
-    photoIds:Array.isArray(item?.photoIds)?item.photoIds.filter(Boolean).slice(0,6):[]
+    foto:Array.isArray(item?.foto)?item.foto.filter(Boolean).slice(0,15):[],
+    photoIds:Array.isArray(item?.photoIds)?item.photoIds.filter(Boolean).slice(0,15):[]
   };
   const nextWins=recordRichnessScore(item) >= recordRichnessScore(prev);
   const merged=nextWins ? {...prev, ...item} : {...item, ...prev};
@@ -1324,8 +1526,8 @@ function mergeArticleRecords(prev,item){
   merged.promoAttiva=(typeof merged?.promoAttiva==='boolean') ? merged.promoAttiva : ((typeof item?.promoAttiva==='boolean') ? item.promoAttiva : ((typeof prev?.promoAttiva==='boolean') ? prev.promoAttiva : false));
   merged.prezzoPromo=firstFiniteNumber(merged?.prezzoPromo, merged?.promoPrezzo, item?.prezzoPromo, item?.promoPrezzo, prev?.prezzoPromo, prev?.promoPrezzo, 0);
   merged.scadenzaPromo=normalizeSpaceText(merged?.scadenzaPromo||merged?.promoScadenza||item?.scadenzaPromo||item?.promoScadenza||prev?.scadenzaPromo||prev?.promoScadenza||'');
-  merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]).slice(0,6);
-  merged.photoIds=[...new Set([...(prev?.photoIds||[]), ...(item?.photoIds||[])].filter(Boolean).map(String))].slice(0,6);
+  merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]).slice(0,15);
+  merged.photoIds=[...new Set([...(prev?.photoIds||[]), ...(item?.photoIds||[])].filter(Boolean).map(String))].slice(0,15);
   return merged;
 }
 function dedupeArticoliWithMap(list=[]){ return dedupeSemanticList(list, normalizeArticleDedupKey, mergeArticleRecords); }
@@ -1364,10 +1566,10 @@ function mergeOrderRecords(prev,item){
       id:choosePreferredId(item?.id),
       numeroOrdine:ensureOrderNumber(item),
       righe,
-      foto:Array.isArray(item?.foto)?item.foto.filter(Boolean).slice(0,12):[],
-      fotoManuali:Array.isArray(item?.fotoManuali)?item.fotoManuali.filter(Boolean).slice(0,12):[],
-      fotoArticoli:Array.isArray(item?.fotoArticoli)?item.fotoArticoli.filter(Boolean).slice(0,12):[],
-      orderPhotoIds:Array.isArray(item?.orderPhotoIds)?item.orderPhotoIds.filter(Boolean).slice(0,12):[],
+      foto:Array.isArray(item?.foto)?item.foto.filter(Boolean).slice(0,15):[],
+      fotoManuali:Array.isArray(item?.fotoManuali)?item.fotoManuali.filter(Boolean).slice(0,15):[],
+      fotoArticoli:Array.isArray(item?.fotoArticoli)?item.fotoArticoli.filter(Boolean).slice(0,15):[],
+      orderPhotoIds:Array.isArray(item?.orderPhotoIds)?item.orderPhotoIds.filter(Boolean).slice(0,15):[],
       scontoCliente,
       subTotale,
       totale:(totalValue>0 || subTotale===0) ? totalValue : calcOrderNetTotal(righe, scontoCliente),
@@ -1381,10 +1583,10 @@ function mergeOrderRecords(prev,item){
   merged.id=choosePreferredId(prev?.id, item?.id) || merged.id;
   merged.numeroOrdine=ensureOrderNumber(merged);
   merged.righe=(Array.isArray(primary?.righe) && primary.righe.length) ? primary.righe : (Array.isArray(secondary?.righe) ? secondary.righe : []);
-  merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]).slice(0,12);
-  merged.fotoManuali=mergeUniquePics(prev?.fotoManuali||[], item?.fotoManuali||[]).slice(0,12);
-  merged.fotoArticoli=mergeUniquePics(prev?.fotoArticoli||[], item?.fotoArticoli||[]).slice(0,12);
-  merged.orderPhotoIds=[...new Set([...(prev?.orderPhotoIds||[]), ...(item?.orderPhotoIds||[])].filter(Boolean).map(String))].slice(0,12);
+  merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]).slice(0,15);
+  merged.fotoManuali=mergeUniquePics(prev?.fotoManuali||[], item?.fotoManuali||[]).slice(0,15);
+  merged.fotoArticoli=mergeUniquePics(prev?.fotoArticoli||[], item?.fotoArticoli||[]).slice(0,15);
+  merged.orderPhotoIds=[...new Set([...(prev?.orderPhotoIds||[]), ...(item?.orderPhotoIds||[])].filter(Boolean).map(String))].slice(0,15);
   merged.scontoCliente=calcOrderDiscount(primary) || calcOrderDiscount(secondary) || 0;
   merged.subTotale=calcOrderSubtotal(merged.righe);
   const totalValue=Number(merged?.totale);
@@ -1458,6 +1660,7 @@ function saveDB(db){
     const raw=JSON.stringify(cleanDb);
     localStorage.setItem(KEY, raw);
     try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
+    try{ localStorage.setItem(AGENDA_KEY, JSON.stringify(Array.isArray(cleanDb.agenda)?cleanDb.agenda:[])); }catch(_e){}
     const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
     legacyKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
   }catch(err){
@@ -1507,6 +1710,7 @@ function collectArticleDraft(){
       colorMode:document.getElementById('a_color_mode')?.value||'single',
       colorCount:document.getElementById('a_color_count')?.value||'',
       colorLabels:document.getElementById('a_color_labels')?.value||'',
+      nonDisponibile:!!document.getElementById('a_unavailable')?.checked,
       misura:document.getElementById('a_mis')?.value||'',
       costoUsd:document.getElementById('a_usd')?.value||'',
       promoAttiva:!!document.getElementById('a_promo_on')?.checked,
@@ -1540,7 +1744,8 @@ function restoreArticleDraft(targetId=''){
   document.getElementById('a_colore').value=v.colore||'';
   document.getElementById('a_color_mode').value=(String(v.colorMode||'').toLowerCase()==='multiple' || String(v.colorMode||'').toLowerCase()==='numbered' || Number(v.colorCount||0)>0)?'multiple':'single';
   document.getElementById('a_color_count').value=v.colorCount||'';
-  document.getElementById('a_color_labels').value=v.colorLabels||'';
+  document.getElementById('a_color_labels').value=Array.isArray(v.colorLabels) ? formatColorLabelsInput(v.colorLabels, v.colorCount||0) : (v.colorLabels||'');
+  document.getElementById('a_unavailable').checked=!!v.nonDisponibile;
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=v.misura||'';
   document.getElementById('a_usd').value=v.costoUsd||'';
@@ -1614,7 +1819,7 @@ function restoreOrderDraft(targetId='', prefillArticleId=null){
   ordRows=Array.isArray(draft.rows)?draft.rows:[];
   if(prefillArticleId){
     const a=db.articoli.find(x=>x.id===prefillArticleId);
-    if(a && !ordRows.some(r=>r.articoloId===prefillArticleId)) ordRows.push({articoloId:a.id, codice:a?.codice||'', modello:a?.modello||'', prezzo:Number(currentPrice(a)||0), richiedeNumeroColore:getArticleColorMode(a)==='multiple', colorCount:getArticleColorCount(a), colorLabels:getArticleColorLabels(a), numeroColore:'', colore:a?.colore||''});
+    if(a && !ordRows.some(r=>r.articoloId===prefillArticleId)) ordRows.push({articoloId:a.id, codice:a?.codice||'', modello:a?.modello||'', prezzo:Number(currentPrice(a)||0), richiedeNumeroColore:getArticleColorMode(a)==='multiple', colorCount:getArticleColorCount(a), colorLabels:getArticleColorLabels(a), colorData:makeStableColorData(deriveColorShape(a)), numeroColore:'', colore:a?.colore||''});
   }
   document.getElementById('o_cli').value=v.clienteId||'';
   document.getElementById('o_stato').value=v.stato||'Richiesto';
@@ -1739,11 +1944,12 @@ async function getPublicFotoUrl(path){
   if(!src) return '';
   if(/^data:|^https?:\/\//i.test(src)) return src;
   if(isTemporaryLocalPhotoRef(src)) return '';
-  const sb=await ensureCloud();
-  if(!sb) return src;
   const clean=src.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
+  const fallback=buildPublicStorageUrl(clean);
+  const sb=await ensureCloud();
+  if(!sb) return fallback || src;
   const { data } = sb.storage.from(SUPABASE_BUCKET).getPublicUrl(clean);
-  return data?.publicUrl || src;
+  return data?.publicUrl || fallback || src;
 }
 
 async function listCloudFotoPathsByCode(codice){
@@ -1758,7 +1964,7 @@ async function listCloudFotoPathsByCode(codice){
       .filter(f=>f && f.name && !String(f.name).endsWith('/'))
       .map(f=> `${code}/${f.name}`)
       .filter(Boolean)
-      .slice(0,6);
+      .slice(0,15);
   }catch(_e){
     return [];
   }
@@ -1773,10 +1979,10 @@ async function getArticlePics(a){
     out.push(clean);
   };
   if(Array.isArray(a.foto) && a.foto.length){
-    for(const path of a.foto.slice(0,6)){
+    for(const path of a.foto.slice(0,15)){
       const url=await getPublicFotoUrl(path);
       if(url) pushPic(url);
-      if(out.length>=6) return out.slice(0,6);
+      if(out.length>=15) return out.slice(0,15);
     }
   }
   if(Array.isArray(a.photoIds) && a.photoIds.length){
@@ -1785,10 +1991,10 @@ async function getArticlePics(a){
       if(!x) continue;
       if(typeof x==='string') pushPic(x);
       else if(x instanceof Blob) pushPic(URL.createObjectURL(x));
-      if(out.length>=6) break;
+      if(out.length>=15) break;
     }
   }
-  return out.slice(0,6);
+  return out.slice(0,15);
 }
 async function getArticleCloudSyncSources(a){
   if(!a) return [];
@@ -1799,12 +2005,12 @@ async function getArticleCloudSyncSources(a){
     out.push(clean);
   };
   if(Array.isArray(a.foto) && a.foto.length){
-    for(const src of a.foto.slice(0,6)){
+    for(const src of a.foto.slice(0,15)){
       const clean=String(src||'').trim();
       if(!clean) continue;
       if(/^data:|^https?:\/\//i.test(clean)) pushRef(clean);
       else pushRef(clean.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), ''));
-      if(out.length>=6) return out.slice(0,6);
+      if(out.length>=15) return out.slice(0,15);
     }
   }
   if(Array.isArray(a.photoIds) && a.photoIds.length){
@@ -1813,10 +2019,10 @@ async function getArticleCloudSyncSources(a){
       if(!x) continue;
       if(typeof x==='string') pushRef(x);
       else if(x instanceof Blob) pushRef(URL.createObjectURL(x));
-      if(out.length>=6) break;
+      if(out.length>=15) break;
     }
   }
-  return out.slice(0,6);
+  return out.slice(0,15);
 }
 async function getStoredPhotoSources(ids=[]){
   const out=[];
@@ -1831,14 +2037,14 @@ async function getStoredPhotoSources(ids=[]){
   return out;
 }
 async function getOrderManualPics(ord){
-  const legacy=Array.isArray(ord?.fotoManuali)?ord.fotoManuali.filter(Boolean).slice(0,12):[];
-  const stored=await getStoredPhotoSources(Array.isArray(ord?.orderPhotoIds)?ord.orderPhotoIds.filter(Boolean).slice(0,12):[]);
-  return mergeUniquePics(legacy, stored).slice(0,12);
+  const legacy=Array.isArray(ord?.fotoManuali)?ord.fotoManuali.filter(Boolean).slice(0,15):[];
+  const stored=await getStoredPhotoSources(Array.isArray(ord?.orderPhotoIds)?ord.orderPhotoIds.filter(Boolean).slice(0,15):[]);
+  return mergeUniquePics(legacy, stored).slice(0,15);
 }
 async function getOrderPics(ord, db){
   const articlePics=await getOrderArticleSnapshotPhotos(ord?.righe||[], db||loadDB());
   const manualPics=await getOrderManualPics(ord||{});
-  return mergeUniquePics(articlePics, manualPics).slice(0,12);
+  return mergeUniquePics(articlePics, manualPics).slice(0,15);
 }
 async function blobToDataUrl(blob){
   return await new Promise((res,rej)=>{
@@ -1875,6 +2081,49 @@ function guessPhotoExtension(src, blob){
   return 'jpg';
 }
 let __articlePhotoShareCache = null;
+let __articlePhotoShareContext = null;
+let __articlePhotoShareWarmPromise = null;
+function getArticlePhotoShareBaseName(art){
+  return (art?.codice||art?.brand||art?.modello||'articolo').toString().trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'articolo';
+}
+function getCachedArticlePhotoFilesForCtx(ctx){
+  if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx?.cacheKey && Array.isArray(__articlePhotoShareCache.files) && __articlePhotoShareCache.files.length){
+    return __articlePhotoShareCache.files;
+  }
+  return null;
+}
+function getPreparedCurrentArticlePhotoContext(){
+  return (__articlePhotoShareContext && __articlePhotoShareContext.art?.id===currentArtId) ? __articlePhotoShareContext : null;
+}
+async function prepareArticlePhotoShareContext(art){
+  if(!art){
+    __articlePhotoShareContext = null;
+    return null;
+  }
+  const pics=await getArticleCloudSyncSources(art);
+  if(!pics.length){
+    __articlePhotoShareContext = null;
+    return null;
+  }
+  const ctx={ art, pics, baseName:getArticlePhotoShareBaseName(art), cacheKey:`${art.id||''}::${pics.join('|')}` };
+  __articlePhotoShareContext = ctx;
+  return ctx;
+}
+async function warmCurrentArticlePhotoShare(ctx=null, opts={}){
+  const targetCtx = ctx || getPreparedCurrentArticlePhotoContext() || await getCurrentArticlePhotoContext();
+  if(!targetCtx) return [];
+  const cached=getCachedArticlePhotoFilesForCtx(targetCtx);
+  if(cached?.length) return cached;
+  if(__articlePhotoShareWarmPromise && __articlePhotoShareContext?.cacheKey===targetCtx.cacheKey){
+    return __articlePhotoShareWarmPromise;
+  }
+  __articlePhotoShareContext = targetCtx;
+  __articlePhotoShareWarmPromise = ensureCurrentArticlePhotoFiles(targetCtx, opts)
+    .catch(err=>{ console.warn('Warmup foto articolo fallito', err); return []; })
+    .finally(()=>{ __articlePhotoShareWarmPromise = null; });
+  return __articlePhotoShareWarmPromise;
+}
+
 function canNativeShareFiles(files){
   try{
     if(typeof navigator==='undefined' || typeof navigator.share!=='function') return false;
@@ -1887,25 +2136,52 @@ function canNativeShareFiles(files){
     return false;
   }
 }
+function isShareAbortError(err){
+  return !!(err && err.name==='AbortError');
+}
+function isShareActivationError(err){
+  const name=String(err?.name||'');
+  const msg=String(err?.message||'').toLowerCase();
+  return name==='NotAllowedError'
+    || msg.includes('user activation')
+    || msg.includes('user gesture')
+    || msg.includes('requires transient activation')
+    || msg.includes('must be handling a user gesture');
+}
 async function tryNativeShareArticleFiles(files, baseName){
   const mode = canNativeShareFiles(files);
   if(!mode) return false;
+
+  const attempts=[];
   if(mode==='single'){
-    await navigator.share({
-      files:[files[0]],
-      title:`Foto ${baseName}`,
-      text:`Salva la foto dell'articolo ${baseName}`
-    });
-    return 'single';
+    attempts.push({ kind:'single', files:[files[0]] });
+  }else{
+    attempts.push({ kind:'multi', files:[...files] });
+    if(files.length>1) attempts.push({ kind:'single', files:[files[0]] });
   }
-  await navigator.share({
-    files,
-    title:`Foto ${baseName}`,
-    text:`Salva ${files.length} foto dell'articolo ${baseName}`
-  });
-  return 'multi';
+
+  let lastErr=null;
+  for(const attempt of attempts){
+    try{
+      await navigator.share({
+        files:attempt.files,
+        title:`Foto ${baseName}`,
+        text:attempt.kind==='single'
+          ? `Salva la foto dell'articolo ${baseName}`
+          : `Salva ${attempt.files.length} foto dell'articolo ${baseName}`
+      });
+      return attempt.kind;
+    }catch(err){
+      if(isShareAbortError(err)) throw err;
+      lastErr=err;
+      if(isShareActivationError(err)) throw err;
+    }
+  }
+  if(lastErr) throw lastErr;
+  return false;
 }
 async function buildArticlePhotoFiles(art, pics, baseName){
+
   const files=[];
   for(let i=0;i<pics.length;i++){
     try{
@@ -1923,85 +2199,60 @@ async function buildArticlePhotoFiles(art, pics, baseName){
   }
   return files;
 }
-async function tryNativeShareArticleLinks(pics, baseName){
-  try{
-    if(typeof navigator==='undefined' || typeof navigator.share!=='function' || !pics?.length) return false;
-    const urls=[];
-    for(const raw of pics){
-      const clean=String(raw||'').trim();
-      if(!clean) continue;
-      const url = (/^https?:\/\//i.test(clean)) ? clean : await getPublicFotoUrl(clean);
-      if(url && /^https?:\/\//i.test(url) && !urls.includes(url)) urls.push(url);
-      if(urls.length>=10) break;
-    }
-    if(!urls.length) return false;
-    const payload = {
-      title:`Foto ${baseName}`,
-      text:`Foto articolo ${baseName}\n\n${urls.join('\n')}`
-    };
-    if(urls.length===1) payload.url = urls[0];
-    await navigator.share(payload);
-    return true;
-  }catch(err){
-    if(err && err.name==='AbortError') return 'abort';
-    console.warn('Condivisione link foto fallita', err);
-    return false;
-  }
-}
 async function getCurrentArticlePhotoContext(){
+  const prepared=getPreparedCurrentArticlePhotoContext();
+  if(prepared) return prepared;
   const db=loadDB();
   const art=db.articoli.find(x=>x.id===currentArtId);
   if(!art){ toast('Articolo non trovato'); return null; }
-  const pics=await getArticleCloudSyncSources(art);
-  if(!pics.length){ toast('Nessuna foto disponibile'); return null; }
-  const baseName=(art.codice||art.brand||art.modello||'articolo').toString().trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'articolo';
-  const cacheKey=`${art.id||''}::${pics.join('|')}`;
-  return { art, pics, baseName, cacheKey };
+  const ctx=await prepareArticlePhotoShareContext(art);
+  if(!ctx){ toast('Nessuna foto disponibile'); return null; }
+  return ctx;
 }
-async function ensureCurrentArticlePhotoFiles(ctx){
+async function ensureCurrentArticlePhotoFiles(ctx, opts={}){
   if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx.cacheKey && Array.isArray(__articlePhotoShareCache.files) && __articlePhotoShareCache.files.length){
     return __articlePhotoShareCache.files;
   }
-  toast(`Preparo ${ctx.pics.length} foto...`);
+  const silent = !!opts?.silent;
+  if(!silent) toast(`Preparo ${ctx.pics.length} foto...`);
   const files=await buildArticlePhotoFiles(ctx.art, ctx.pics, ctx.baseName);
   if(files.length){
     __articlePhotoShareCache = { key: ctx.cacheKey, files, at: Date.now() };
   }
   return files;
 }
+
 async function shareCurrentArticlePhotos(){
-  const ctx=await getCurrentArticlePhotoContext();
+  let ctx=getPreparedCurrentArticlePhotoContext();
+  if(!ctx) ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
 
-  const files=await ensureCurrentArticlePhotoFiles(ctx);
-  if(files.length){
-    try{
-      const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
-      if(shared){
-        toast(shared==='single'
-          ? 'Condivisione aperta. Il browser supporta una foto per volta.'
-          : `Condivisione aperta per ${files.length} foto.`);
-        return;
-      }
-    }catch(err){
-      if(err && err.name==='AbortError') return;
-      console.warn('Condivisione nativa foto fallita', err);
-      const activationErr = /activation|user gesture|notallowed/i.test(String(err && (err.message||err.name)||''));
-      if(activationErr){
-        toast('Foto pronte. Premi di nuovo “Condividi foto” per aprire la condivisione.');
-        return;
-      }
-    }
-  }
-
-  const sharedLinks = await tryNativeShareArticleLinks(ctx.pics, ctx.baseName);
-  if(sharedLinks===true){
-    toast('Condivisione aperta. Il browser sta inviando i link delle foto.');
+  const cachedFiles=getCachedArticlePhotoFilesForCtx(ctx) || [];
+  if(!cachedFiles.length){
+    warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(err=>console.warn('Warmup foto articolo fallito', err));
+    toast('Sto preparando le foto. Tocca di nuovo “Condividi foto” tra un attimo.');
     return;
   }
-  if(sharedLinks==='abort') return;
 
-  toast(files.length ? 'Condivisione foto non supportata da questo browser.' : 'Condivisione foto fallita');
+  try{
+    const shared = await tryNativeShareArticleFiles(cachedFiles, ctx.baseName);
+    if(shared){
+      toast(shared==='single'
+        ? 'Condivisione aperta. Il browser supporta una foto per volta.'
+        : `Condivisione aperta per ${cachedFiles.length} foto.`);
+      return;
+    }
+  }catch(err){
+    if(isShareAbortError(err)) return;
+    if(isShareActivationError(err)){
+      warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
+      toast('La condivisione non è partita al primo tocco. Riprova subito “Condividi foto”.');
+      return;
+    }
+    console.warn('Condivisione nativa foto fallita', err);
+  }
+
+  toast('La condivisione diretta delle foto non è partita. Niente link al posto delle foto.');
 }
 const __zipCrcTable = (()=>{
   const table = new Uint32Array(256);
@@ -2089,6 +2340,17 @@ function triggerBlobDownload(blob, filename){
   a.remove();
   setTimeout(()=>URL.revokeObjectURL(url), 15000);
 }
+function triggerDirectUrlDownload(url, filename=''){
+  const a=document.createElement('a');
+  a.href=url;
+  if(filename) a.download=filename;
+  a.rel='noopener';
+  a.target='_blank';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 async function downloadCurrentArticlePhotos(){
   const ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
@@ -2134,7 +2396,7 @@ async function syncArticlePhotosToCloud(artId, codice, pics){
   const sb=await ensureCloud();
   if(!sb||!cloudSession||!artId) return [];
   const cleanCode=String(codice||artId||'art').trim() || String(artId);
-  const normalized=(pics||[]).filter(Boolean).slice(0,6);
+  const normalized=(pics||[]).filter(Boolean).slice(0,15);
   const { data:existingRows } = await sb.from('prodotti_foto').select('path,ordine').eq('prodotto_id', artId).order('ordine',{ascending:true});
   const existingPaths=(existingRows||[]).map(r=>String(r?.path||'').trim()).filter(Boolean);
   const savedPaths=[];
@@ -2212,7 +2474,7 @@ async function migratePhotosToIndexedDB(){
   for(const a of db.articoli||[]){
     if(Array.isArray(a.foto) && a.foto.length && (!Array.isArray(a.photoIds) || !a.photoIds.length)){
       a.photoIds=[];
-      for(const src of a.foto.slice(0,6)){
+      for(const src of a.foto.slice(0,15)){
         const pid='ph_'+uid();
         await idbSet(pid,src);
         a.photoIds.push(pid);
@@ -2247,7 +2509,7 @@ function normalizeCloudPhotoPathList(list){
     const clean=String(raw||'').trim().replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
     if(!clean || !isLikelyCloudPhotoPath(clean) || out.includes(clean)) continue;
     out.push(clean);
-    if(out.length>=6) break;
+    if(out.length>=15) break;
   }
   return out;
 }
@@ -2484,6 +2746,15 @@ function stripBrandFromText(text, brand){
 }
 function normalizePostLine(text, brand){
   return stripBrandFromText(text, brand).replace(/\s+/g,' ').trim();
+}
+function smartSentenceCase(text){
+  const raw=String(text||'').replace(/\s+/g,' ').trim();
+  if(!raw) return '';
+  const tokenized=raw.replace(/[A-Za-zÀ-ÖØ-öø-ÿ0-9]+/g, token=>{
+    if(/^[A-Z0-9]{2,4}$/.test(token)) return token;
+    return token.toLowerCase();
+  });
+  return tokenized.replace(/^([\s"'“”‘’(\[]*)([A-Za-zÀ-ÖØ-öø-ÿ])/, (m,p1,p2)=>p1+p2.toUpperCase());
 }
 function uniquePostLines(lines=[]){
   const out=[];
@@ -3321,19 +3592,29 @@ function instagramCharacterPhrases(a){
 function buildPostFacebook(a){
   if(!a?.codice) return '';
   const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
+  const premiumLine = articleQualityLabel(a)==='Originale' ? 'QUALITÀ PREMIUM' : '';
   const variante = safePostDetailValue(a?.variante||'', a);
   const materiale = safePostDetailValue(a?.materiale||'', a);
   const misura = safePostDetailValue(postSizeValue(a), a);
   const colore = safePostDetailValue(a?.colore||'', a);
   const closer = pickRandom([
     'Per info scrivimi in privato 📩',
-    'Info in privato 📩',
-    'Scrivimi in privato 📩',
-    'Se ti interessa, privato 📩'
+    'Contattami in privato per dettagli',
+    'Richiedi disponibilità in privato',
+    'Scrivimi per disponibilità e dettagli',
+    'Info e dettagli in privato',
+    'Per colori e informazioni, messaggio privato',
+    'Messaggio privato per conferma disponibilità',
+    'Per sapere se è disponibile, contattami in privato',
+    'Prenotazione e informazioni in privato',
+    'Scrivimi per maggiori informazioni',
+    'Per tutte le info, scrivimi in privato',
+    'Contattami per info su colori e disponibilità'
   ]) || 'Per info scrivimi in privato 📩';
   const lines=[...promoPostIntroLines(a)];
   if(lines.length) lines.push('');
-  if(modelLine) lines.push(modelLine);
+  if(modelLine) lines.push(smartSentenceCase(modelLine));
+  if(premiumLine) lines.push(premiumLine);
   const seen = new Set();
   const pushUnique = (value)=>{
     const txt = compactPostValue(value||'');
@@ -3343,10 +3624,10 @@ function buildPostFacebook(a){
     seen.add(key);
     lines.push(txt);
   };
-  pushUnique(variante);
-  pushUnique(materiale);
-  if(misura) lines.push(`Mis. ${misura}`);
-  if(colore) lines.push(`Colore: ${colore}`);
+  pushUnique(smartSentenceCase(variante));
+  pushUnique(smartSentenceCase(materiale));
+  if(misura) lines.push(`Mis. ${smartSentenceCase(misura)}`);
+  if(colore) lines.push(`Colore: ${smartSentenceCase(colore)}`);
   const prezzoFacebook = formatPostPrezzoVendita(currentPrice(a));
   if(prezzoFacebook) lines.push(prezzoFacebook);
   lines.push(`cod. ${a.codice}`);
@@ -3356,21 +3637,21 @@ function buildPostFacebook(a){
 
 function buildPostInstagram(a){
   if(!a?.codice) return '';
-  const lines=[...promoPostIntroLines(a)];
-  const modelLine = postNameWithQuality(a,'ig') || [postPrimaryName(a,'ig'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
-  if(lines.length) lines.push('');
-  if(modelLine) lines.push(modelLine);
-  lines.push(`Cod. ${a.codice}`);
-  const closers=[
-    'DM 📩',
-    'Scrivimi in DM 📩',
-    'Info in DM 📩',
-    'Se ti interessa, DM 📩',
-    'Dettagli in DM 📩'
-  ];
-  const closer = pickRandom(closers) || 'DM 📩';
-  if(closer) lines.push('', closer);
-  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  const closer = pickRandom([
+    'Scrivimi in privato 📩',
+    'Per info, mandami un messaggio',
+    'Contattami in privato per dettagli',
+    'Disponibilità in privato',
+    'Messaggio privato per info',
+    'Per colori e dettagli, scrivimi',
+    'Richiedi disponibilità in privato',
+    'Per info e colori disponibili, scrivimi',
+    'Scrivimi per conferma disponibilità',
+    'Info e disponibilità via messaggio privato',
+    'Se vuoi vederla meglio, scrivimi 📩',
+    'Per prenotarla, messaggio privato'
+  ]) || 'Scrivimi in privato 📩';
+  return String(closer||'').trim();
 }
 
 function buildPostTelegram(a){
@@ -3433,6 +3714,9 @@ function buildCloudArticleMeta(art){
     taglia: art?.taglia||'',
     variante: art?.variante||'',
     colore: art?.colore||'',
+    colorMode: deriveColorShape(art).colorMode,
+    colorCount: deriveColorShape(art).colorCount,
+    colorLabels: deriveColorShape(art).colorLabels,
     misura: art?.misura||'',
     costoUsd: Number(art?.costoUsd||0),
     costoEur: Number(art?.costoEur||0),
@@ -3440,6 +3724,8 @@ function buildCloudArticleMeta(art){
     promoAttiva: !!art?.promoAttiva,
     prezzoPromo: Number(art?.prezzoPromo||0),
     scadenzaPromo: art?.scadenzaPromo||'',
+    nonDisponibile: !!art?.nonDisponibile,
+    disponibile: art?.disponibile===false ? false : !art?.nonDisponibile,
     post: art?.post||'',
     note: art?.note||'',
     foto: normalizeCloudPhotoPathList(art?.foto||[])
@@ -3787,6 +4073,135 @@ function pickArticleToSuggest(db, salesPerWeek){
   const pick=pool[Math.abs(daySeed) % pool.length] || items[0];
   return {article:pick, reason};
 }
+function agendaDayOffset(days){
+  const d=new Date();
+  d.setDate(d.getDate()+Number(days||0));
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function formatAgendaDate(v){
+  if(!v) return '-';
+  const d=new Date(String(v)+'T12:00:00');
+  if(isNaN(d)) return v;
+  return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+function agendaPresetDate(value){
+  const key=String(value||'').trim();
+  if(!key || key==='custom') return '';
+  if(key==='fine_mese'){
+    const now=new Date();
+    const d=new Date(now.getFullYear(), now.getMonth()+1, 0);
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  const days=parseInt(key,10);
+  if(Number.isFinite(days)) return agendaDayOffset(days);
+  return '';
+}
+function agendaDateLabel(v){
+  const today=agendaDayOffset(0);
+  const tomorrow=agendaDayOffset(1);
+  if(v===today) return 'Oggi';
+  if(v===tomorrow) return 'Domani';
+  const d=new Date(String(v)+'T12:00:00');
+  const diff=Math.round((d - new Date(today+'T12:00:00'))/86400000);
+  if(diff>1 && diff<=14) return `Tra ${diff} giorni`;
+  if(diff<0) return `Scaduta il ${formatAgendaDate(v)}`;
+  return formatAgendaDate(v);
+}
+function saveAgendaQuick(textValue, dateValue){
+  const testo=normalizeSpaceText(textValue||'');
+  const data=normalizeSpaceText(dateValue||'');
+  if(!testo){ toast('Scrivi cosa devi fare'); return false; }
+  if(!data){ toast('Scegli una data'); return false; }
+  const db=loadDB();
+  db.agenda=Array.isArray(db.agenda)?db.agenda:[];
+  db.agenda.unshift({id:uid(), testo, data, fatto:false, createdAt:new Date().toISOString()});
+  if(!saveDB(db)) return false;
+  try{ localStorage.setItem(AGENDA_KEY, JSON.stringify(db.agenda||[])); }catch(_e){}
+  const textEl=document.getElementById('agendaText');
+  if(textEl) textEl.value='';
+  renderHome();
+  renderDashboardUrgent();
+  renderDashboardAgenda();
+  toast('Scadenza aggiunta');
+  return true;
+}
+function renderDashboardAgenda(){
+  const db=loadDB();
+  const box=document.getElementById('dashAgenda');
+  const dateEl=document.getElementById('agendaDate');
+  const presetEl=document.getElementById('agendaPreset');
+  if(dateEl && !dateEl.value) dateEl.value=agendaDayOffset(0);
+  if(presetEl && !presetEl.value) presetEl.value='0';
+  if(!box) return;
+  const items=(Array.isArray(db.agenda)?db.agenda:[]).slice().sort((a,b)=>{
+    if(!!a.fatto!==!!b.fatto) return a.fatto?1:-1;
+    return String(a.data||'').localeCompare(String(b.data||'')) || String(b.createdAt||'').localeCompare(String(a.createdAt||''));
+  });
+  if(!items.length){
+    box.innerHTML='<div class="agendaEmpty">Nessuna scadenza. Puoi segnarti richiami clienti, consegne o cose da fare con un periodo rapido.</div>';
+    return;
+  }
+  const today=agendaDayOffset(0);
+  box.innerHTML=items.slice(0,8).map(item=>{
+    const stateClass=item.fatto ? 'done' : (String(item.data||'')<today ? 'overdue' : '');
+    return `<div class="agendaItem ${stateClass}"><div class="agendaDot"></div><div><div class="agendaTitle">${esc(item.testo)}</div><div class="agendaMeta">${esc(agendaDateLabel(item.data))}</div></div><div class="agendaActions"><button class="agendaBtn" type="button" onclick="agendaToggleById('${esc(item.id)}')">${item.fatto?'Riapri':'Fatto'}</button><button class="agendaBtn" type="button" onclick="agendaDeleteById('${esc(item.id)}')">Elimina</button></div></div>`;
+  }).join('');
+}
+function renderDashboardUrgent(){
+  const db=loadDB();
+  const box=document.getElementById('dashUrgent');
+  if(!box) return;
+  const card=box.closest('.card');
+  const today=new Date(agendaDayOffset(0)+'T12:00:00');
+  const urgent=[];
+  (Array.isArray(db.agenda)?db.agenda:[]).filter(item=>!item?.fatto && item?.data).forEach(item=>{
+    const d=new Date(String(item.data)+'T12:00:00');
+    if(isNaN(d)) return;
+    const diff=Math.round((d-today)/86400000);
+    if(diff<=1){
+      urgent.push({type:'agenda', title:item.testo||'Scadenza vicina', meta:diff<0 ? `Scaduta ${formatAgendaDate(item.data)}` : (diff===0 ? 'Scade oggi' : 'Scade domani'), score:diff});
+    }
+  });
+  urgent.sort((a,b)=>a.score-b.score || String(a.title||'').localeCompare(String(b.title||''),'it',{sensitivity:'base'}));
+  if(!urgent.length){
+    box.innerHTML='';
+    if(card) card.style.display='none';
+    return;
+  }
+  if(card) card.style.display='';
+  box.innerHTML=urgent.slice(0,6).map(item=>`<div class="urgentItem"><div class="urgentDot"></div><div><div class="urgentTitle">${esc(item.title)}</div><div class="urgentMeta">${esc(item.meta)}</div></div><div class="agendaMeta">Scadenza</div></div>`).join('');
+}
+
+function persistAgendaOnly(db){
+  try{ localStorage.setItem(AGENDA_KEY, JSON.stringify(Array.isArray(db?.agenda)?db.agenda:[])); }catch(_e){}
+}
+function agendaToggleById(id){
+  const key=String(id||'').trim();
+  if(!key) return;
+  const db=loadDB();
+  const item=(Array.isArray(db.agenda)?db.agenda:[]).find(x=>String(x.id)===key);
+  if(!item) return;
+  item.fatto=!item.fatto;
+  persistAgendaOnly(db);
+  if(saveDB(db)){
+    renderHome();
+    renderDashboardUrgent();
+    renderDashboardAgenda();
+  }
+}
+function agendaDeleteById(id){
+  const key=String(id||'').trim();
+  if(!key) return;
+  const db=loadDB();
+  db.agenda=(Array.isArray(db.agenda)?db.agenda:[]).filter(x=>String(x.id)!==key);
+  persistAgendaOnly(db);
+  if(saveDB(db)){
+    renderHome();
+    renderDashboardUrgent();
+    renderDashboardAgenda();
+  }
+}
+
 function buildDashboardTips(db, salesPerWeek, openOrders, promoCount){
   const tips=[];
   const artPick=pickArticleToSuggest(db, salesPerWeek);
@@ -3906,11 +4321,8 @@ function renderHome(){
   const last=ordini.slice().sort((a,b)=>(b._ts||0)-(a._ts||0))[0];
   const promoItems=db.articoli.filter(promoValid).sort((a,b)=>String(a.scadenzaPromo).localeCompare(String(b.scadenzaPromo)));
   const exp=promoItems[0];
-  const tips=buildDashboardTips(db, salesPerWeek, inCorso, promoItems.length);
-  const tipsBox=document.getElementById('dashTips');
-  if(tipsBox){
-    tipsBox.innerHTML=tips.map(t=>`<div class="row" data-action="${esc(t.action||'openAllArticles')}" ${t.articleId?`data-id="${esc(t.articleId)}"`:''} style="grid-template-columns:1fr"><div class="main"><div class="t">${esc(t.title)}</div><div class="s">${esc(t.text)}</div></div></div>`).join('') || '<div class="small">Nessun consiglio disponibile.</div>';
-  }
+  renderDashboardUrgent();
+  renderDashboardAgenda();
   const lines=[
     {label:last?`Ultimo ordine: ${last.stato} • ${last.data||''}`:'Ultimo ordine: nessuno', action:'ordini'},
     {label:`Promozioni: ${promoItems.length}${exp?` attive • ${[exp.brand,exp.modello].filter(Boolean).join(' ')}`:' attive'}`, action:'openPromoArticles'},
@@ -3926,13 +4338,20 @@ function renderHome(){
 function normalizeCategoryName(v){
   return String(v||'').trim().replace(/\s+/g,' ').toLowerCase();
 }
+function isVirtualCategoryName(v){
+  return /^senza\s+categoria$/i.test(String(v||'').trim());
+}
+function sanitizeCategoryName(v){
+  const clean=String(v||'').trim().replace(/\s+/g,' ');
+  return (!clean || isVirtualCategoryName(clean)) ? '' : clean;
+}
 function articleCategoryOptions(db){
   const saved=Array.isArray(db?.categorie)?db.categorie:[];
   const found=(db?.articoli||[]).map(a=>String(a?.categoria||'').trim()).filter(Boolean);
   const out=[];
   const seen=new Set();
   for(const name of [...saved, ...found]){
-    const clean=String(name||'').trim().replace(/\s+/g,' ');
+    const clean=sanitizeCategoryName(name);
     const key=normalizeCategoryName(clean);
     if(!clean || seen.has(key)) continue;
     seen.add(key);
@@ -3952,8 +4371,8 @@ function renderCategorySettings(){
 }
 function addCategory(){
   const input=document.getElementById('catName');
-  const nome=String(input?.value||'').trim().replace(/\s+/g,' ');
-  if(!nome){ toast('Scrivi il nome categoria'); return; }
+  const nome=sanitizeCategoryName(input?.value||'');
+  if(!nome){ toast('Scrivi un nome categoria valido'); return; }
   const db=loadDB();
   const key=normalizeCategoryName(nome);
   const exists=(db.categorie||[]).some(c=>normalizeCategoryName(c)===key) || (db.articoli||[]).some(a=>normalizeCategoryName(a?.categoria)===key);
@@ -3966,15 +4385,19 @@ function addCategory(){
   renderBrandSettings();
   refreshArticleCategorySelects();
   refreshArticleBrandSelects();
+  if(cloudEnabled()){
+    syncCategoryAddToCloud(nome).then(()=>toast('Categoria salvata anche nel cloud')).catch(err=>{ console.error('Sync cloud categoria fallita', err); toast('Categoria salvata in locale, ma cloud non aggiornato'); });
+    return;
+  }
   toast('Categoria salvata');
 }
 function renameCategory(oldName){
-  const cleanOld=String(oldName||'').trim().replace(/\s+/g,' ');
+  const cleanOld=sanitizeCategoryName(oldName||'');
   if(!cleanOld) return;
   const nuovo=window.prompt('Nuovo nome categoria', cleanOld);
   if(nuovo===null) return;
-  const cleanNew=String(nuovo||'').trim().replace(/\s+/g,' ');
-  if(!cleanNew){ toast('Nome categoria vuoto'); return; }
+  const cleanNew=sanitizeCategoryName(nuovo||'');
+  if(!cleanNew){ toast('Nome categoria non valido'); return; }
   const oldKey=normalizeCategoryName(cleanOld);
   const newKey=normalizeCategoryName(cleanNew);
   const db=loadDB();
@@ -3993,12 +4416,16 @@ function renameCategory(oldName){
   renderCategorySettings();
   refreshArticleCategorySelects(cleanNew);
   renderArt();
+  if(cloudEnabled()){
+    syncCategoryRenameInCloud(cleanOld, cleanNew).then(()=>toast('Categoria aggiornata anche nel cloud')).catch(err=>{ console.error('Rinomina cloud categoria fallita', err); toast('Categoria aggiornata in locale, ma cloud non aggiornato'); });
+    return;
+  }
   toast('Categoria aggiornata');
 }
 function deleteCategory(nome){
-  const clean=String(nome||'').trim().replace(/\s+/g,' ');
+  const clean=sanitizeCategoryName(nome||'');
   if(!clean) return;
-  askConfirm(`Elimino la categoria "${clean}"? Gli articoli restano salvati ma finiscono in "Senza categoria".`,()=>{
+  askConfirm(`Elimino la categoria "${clean}"? Gli articoli restano salvati ma finiscono in "Senza categoria".`, async ()=>{
     const db=loadDB();
     const key=normalizeCategoryName(clean);
     db.categorie=(db.categorie||[]).filter(c=>normalizeCategoryName(c)!==key);
@@ -4013,8 +4440,88 @@ function deleteCategory(nome){
     renderCategorySettings();
     refreshArticleCategorySelects();
     renderArt();
+    if(cloudEnabled()){
+      try{
+        await syncCategoryDeleteInCloud(clean);
+        toast('Categoria eliminata anche dal cloud');
+      }catch(err){
+        console.error('Eliminazione cloud categoria fallita', err);
+        toast('Categoria eliminata in locale, ma cloud non aggiornato');
+      }
+      return;
+    }
     toast('Categoria eliminata');
   },'Elimina categoria');
+}
+
+async function listCloudProductsForCategoryName(catName=''){
+  const sb=await ensureCloud();
+  if(!sb||!cloudSession) return { categoryRows:[], products:[] };
+  const clean=sanitizeCategoryName(catName);
+  const {data:categoryRows,error:catErr}=await sb.from('categorie').select('id,nome').eq('nome', clean);
+  if(catErr) throw catErr;
+  const {data:products,error:prodErr}=await sb.from('prodotti').select('id,descrizione,categoria_id,sku');
+  if(prodErr) throw prodErr;
+  return { categoryRows:Array.isArray(categoryRows)?categoryRows:[], products:Array.isArray(products)?products:[] };
+}
+async function syncCategoryAddToCloud(nome){
+  const clean=sanitizeCategoryName(nome);
+  if(!clean) return null;
+  return await ensureCategoryId(clean);
+}
+async function syncCategoryDeleteInCloud(nome){
+  const clean=sanitizeCategoryName(nome);
+  if(!clean) return;
+  const sb=await ensureCloud();
+  if(!sb||!cloudSession) return;
+  const {categoryRows, products}=await listCloudProductsForCategoryName(clean);
+  const catIds=new Set(categoryRows.map(row=>row.id).filter(Boolean));
+  for(const prod of products){
+    const packed=unpackCloudArticleDescription(prod?.descrizione||'');
+    const meta=(packed.meta&&typeof packed.meta==='object') ? packed.meta : {};
+    const matchById=prod?.categoria_id && catIds.has(prod.categoria_id);
+    const matchByMeta=normalizeCategoryName(meta?.categoria||'')===normalizeCategoryName(clean);
+    if(!matchById && !matchByMeta) continue;
+    const nextMeta={...meta, categoria:''};
+    const plain=[String(nextMeta?.descrizione||packed.plain||'').trim(), String(nextMeta?.note||'').trim()].filter(Boolean).join('\n\n');
+    const nextDesc=(plain + `
+
+[VGMETA]${JSON.stringify(nextMeta)}[/VGMETA]`).trim() || null;
+    const {error:updateErr}=await sb.from('prodotti').update({ categoria_id:null, descrizione: nextDesc }).eq('id', prod.id);
+    if(updateErr) throw updateErr;
+  }
+  if(categoryRows.length){
+    const {error:delErr}=await sb.from('categorie').delete().eq('nome', clean);
+    if(delErr) throw delErr;
+  }
+}
+async function syncCategoryRenameInCloud(oldName,newName){
+  const cleanOld=sanitizeCategoryName(oldName);
+  const cleanNew=sanitizeCategoryName(newName);
+  if(!cleanOld || !cleanNew || normalizeCategoryName(cleanOld)===normalizeCategoryName(cleanNew)) return;
+  const sb=await ensureCloud();
+  if(!sb||!cloudSession) return;
+  const newId=await ensureCategoryId(cleanNew);
+  const {categoryRows, products}=await listCloudProductsForCategoryName(cleanOld);
+  const catIds=new Set(categoryRows.map(row=>row.id).filter(Boolean));
+  for(const prod of products){
+    const packed=unpackCloudArticleDescription(prod?.descrizione||'');
+    const meta=(packed.meta&&typeof packed.meta==='object') ? packed.meta : {};
+    const matchById=prod?.categoria_id && catIds.has(prod.categoria_id);
+    const matchByMeta=normalizeCategoryName(meta?.categoria||'')===normalizeCategoryName(cleanOld);
+    if(!matchById && !matchByMeta) continue;
+    const nextMeta={...meta, categoria:cleanNew};
+    const plain=[String(nextMeta?.descrizione||packed.plain||'').trim(), String(nextMeta?.note||'').trim()].filter(Boolean).join('\n\n');
+    const nextDesc=(plain + `
+
+[VGMETA]${JSON.stringify(nextMeta)}[/VGMETA]`).trim() || null;
+    const {error:updateErr}=await sb.from('prodotti').update({ categoria_id:newId||null, descrizione: nextDesc }).eq('id', prod.id);
+    if(updateErr) throw updateErr;
+  }
+  if(categoryRows.length){
+    const {error:delErr}=await sb.from('categorie').delete().eq('nome', cleanOld);
+    if(delErr) throw delErr;
+  }
 }
 function refreshArticleCategorySelects(selectedEdit=''){
   const db=loadDB();
@@ -4066,16 +4573,23 @@ function refreshArticlePreviewFilters(){
   }
 }
 
-const DEFAULT_BRANDS=['Louis Vuitton','Gucci','Chanel','Dior','Alexander McQueen','Balenciaga','Versace'];
+const DEFAULT_BRANDS=[];
 function normalizeBrandName(v){
   return String(v||'').trim().replace(/\s+/g,' ').toLowerCase();
+}
+function isVirtualBrandName(v){
+  return /^senza\s+brand$/i.test(String(v||'').trim());
+}
+function sanitizeBrandName(v){
+  const clean=String(v||'').trim().replace(/\s+/g,' ');
+  return (!clean || isVirtualBrandName(clean)) ? '' : clean;
 }
 function articleBrandOptions(db){
   const seen=new Set();
   const out=[];
   const push=(v)=>{
-    const clean=String(v||'').trim().replace(/\s+/g,' ');
-    if(!clean || /^senza\s+brand$/i.test(clean)) return;
+    const clean=sanitizeBrandName(v);
+    if(!clean) return;
     const key=normalizeBrandName(clean);
     if(!key || seen.has(key)) return;
     seen.add(key);
@@ -4392,6 +4906,13 @@ function normalizeQualityValue(v){
 function articleQualityLabel(a){
   return normalizeQualityValue(a?.qualita||a?.qualità||qualityFromCode(a?.codice)||'');
 }
+function isArticleUnavailable(a){
+  return !!(a && (a.nonDisponibile===true || a.disponibile===false || a.attivo===false));
+}
+function articleAvailabilityBadge(a){
+  if(!isArticleUnavailable(a)) return '';
+  return '<div class="pill unavailable" style="margin-top:6px">NON DISPONIBILE</div>';
+}
 function articleSearchHay(a){
   const catLabel=displayCategoryValue(a?.categoria);
   const brandLabel=displayBrandValue(a?.brand);
@@ -4455,8 +4976,10 @@ function renderArt(){
   }
   const cards=items.map(a=>{
     const promo=pseudoPromoBadge(a);
+    const unavailable=articleAvailabilityBadge(a);
+    const blocked=isArticleUnavailable(a);
     const metaLine=promoOnly ? `${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}` : `${esc(a.codice||'Senza codice')} • ${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
-    return `<div class="artCard tight" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${promo}</div><div class="artPrice">${money(currentPrice(a))}</div><div class="artActions"><button class="btn orderAdd small" type="button" data-action="addArtToOrder" data-id="${a.id}">Aggiungi a ordine</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
+    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${unavailable}${promo}</div><div class="artPrice">${money(currentPrice(a))}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
   }).join('');
   const emptyText=promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.';
   el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
@@ -4617,7 +5140,7 @@ async function repairArchive(){
   for(const a of db.articoli||[]){
     if(Array.isArray(a.foto) && a.foto.length){
       if(!Array.isArray(a.photoIds)) a.photoIds=[];
-      for(const src of a.foto.slice(0,6)){
+      for(const src of a.foto.slice(0,15)){
         const pid='ph_'+uid();
         await idbSet(pid,src);
         a.photoIds.push(pid);
@@ -4632,7 +5155,7 @@ async function repairArchive(){
       seen.add(id);
       uniq.push(id);
     }
-    a.photoIds=uniq.slice(0,6);
+    a.photoIds=uniq.slice(0,15);
     a.photoIds.forEach(id=>referenced.add(String(id)));
   }
   const keys=await idbListKeys().catch(()=>[]);
@@ -4741,6 +5264,34 @@ async function openArtView(id){
   document.getElementById('vArtQual').textContent=articleQualityLabel(a)||'-';
   document.getElementById('vArtBrand').textContent=a.brand||'-';
   document.getElementById('vArtForn').textContent=a.fornitore||'-';
+  const availabilityEl=document.getElementById('vArtAvailability');
+  if(availabilityEl) availabilityEl.innerHTML=isArticleUnavailable(a) ? '<span class="pill unavailable">NON DISPONIBILE</span>' : 'Disponibile';
+  const addFromViewBtn=document.querySelector('[data-action="addArtToOrderFromView"]');
+  if(addFromViewBtn){
+    const blocked=isArticleUnavailable(a);
+    addFromViewBtn.disabled=blocked;
+    addFromViewBtn.classList.toggle('is-disabled', blocked);
+    addFromViewBtn.textContent=blocked ? 'Non disponibile' : 'Aggiungi a ordine';
+    addFromViewBtn.title=blocked ? 'Articolo non disponibile per nuovi ordini' : 'Aggiungi a ordine';
+  }
+  const colorMode=getArticleColorMode(a);
+  const colorCount=getArticleColorCount(a);
+  const colorLabels=getArticleColorLabels(a);
+  const colorsLabelEl=document.getElementById('vArtColorsLabel');
+  const colorsValueEl=document.getElementById('vArtColors');
+  if(colorsLabelEl && colorsValueEl){
+    if(colorMode==='multiple' && colorCount>0){
+      colorsLabelEl.textContent='Colori disponibili';
+      const lines=Array.from({length:colorCount}, (_,i)=>{
+        const note=normalizeSpaceText(colorLabels[i]||'');
+        return note ? `${i+1} - ${note}` : `Colore ${i+1}`;
+      });
+      colorsValueEl.textContent=lines.join(' • ');
+    }else{
+      colorsLabelEl.textContent='Colore';
+      colorsValueEl.textContent=normalizeSpaceText(a.colore||'') || '-';
+    }
+  }
   document.getElementById('vArtPrezzo').textContent=money(a.prezzoVendita||0);
   document.getElementById('vArtPrezzoUse').textContent=money(currentPrice(a));
   const pill=document.getElementById('vArtPromoPill');
@@ -4753,6 +5304,9 @@ async function openArtView(id){
   fitTextarea(document.getElementById('vArtPostIg'));
   const vArtSupplierLink=document.getElementById('vArtSupplierLink');
   if(vArtSupplierLink) vArtSupplierLink.value=(a.fornitoreLink||'').trim();
+  prepareArticlePhotoShareContext(a).then(ctx=>{
+    if(ctx) warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
+  }).catch(()=>{});
   show('mArtView');
   scheduleModalTextareaFit('mArtView');
 }
@@ -4760,6 +5314,7 @@ async function openArtEdit(id){
   const db=loadDB();
   const a=id?db.articoli.find(x=>x.id===id):null;
   currentArtId=id||null;
+  if(!currentArtId) __articlePhotoShareContext=null;
   currentArtDuplicateData=null;
   currentArtPhotosCleared=false;
   document.getElementById('artEditTitle').textContent = a?'Modifica articolo':'Nuovo articolo';
@@ -4771,6 +5326,7 @@ async function openArtEdit(id){
     document.getElementById('a_color_mode').value='single';
     document.getElementById('a_color_count').value='';
     document.getElementById('a_color_labels').value='';
+    document.getElementById('a_unavailable').checked=false;
     updateArticleColorModeUI();
     syncBrandField('');
     refreshArticleCategorySelects('');
@@ -4779,6 +5335,7 @@ async function openArtEdit(id){
     currentArtExistingPics=[];
     renderArtPhotoPrev([]);
     restoreArticleDraft('');
+    updateArticleMeasureState();
     updateArticleCodeStatus();
     show('mArtEdit');
     scheduleModalTextareaFit('mArtEdit');
@@ -4787,7 +5344,7 @@ async function openArtEdit(id){
   set('a_cod', a?.codice); syncBrandField(a?.brand); set('a_mod', a?.modello);
   refreshArticleCategorySelects(a?.categoria||'');
   set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
-  set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); updateArticleColorModeUI();
+  set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
   set('a_mis', a?.misura); set('a_usd', a?.costoUsd||'');
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
   set('a_promo_date', a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||'');
@@ -4803,6 +5360,7 @@ async function openArtEdit(id){
   currentArtExistingPics=await getArticlePics(a);
   renderArtPhotoPrev(currentArtExistingPics);
   restoreArticleDraft(a?.id||'');
+  updateArticleMeasureState();
   updateArticleCodeStatus();
   show('mArtEdit');
   scheduleModalTextareaFit('mArtEdit');
@@ -4815,7 +5373,7 @@ function mergePreviewPics(existingPics,newPics){
   const out=[];
   for(const src of [...(existingPics||[]), ...(newPics||[])]){
     if(src && !out.includes(src)) out.push(src);
-    if(out.length>=6) break;
+    if(out.length>=15) break;
   }
   return out;
 }
@@ -4829,10 +5387,10 @@ function revokeObjectUrls(urls){
 async function refreshArtPhotoPreviewFromInput(){
   const input=document.getElementById('a_photo');
   if(!input) return;
-  const maxNew=Math.max(0, 6 - (Array.isArray(currentArtExistingPics)?currentArtExistingPics.length:0));
+  const maxNew=Math.max(0, 15 - (Array.isArray(currentArtExistingPics)?currentArtExistingPics.length:0));
   const files=Array.from(input.files||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
   if(files.length>maxNew){
-    toast(`Puoi aggiungere ancora ${maxNew} foto`);
+    toast(`Puoi aggiungere ancora ${maxNew} foto manuale`);
     const dt=new DataTransfer();
     files.slice(0,maxNew).forEach(f=>dt.items.add(f));
     input.files=dt.files;
@@ -4970,6 +5528,7 @@ function renderArtAutoFields(){
     colorMode:document.getElementById('a_color_mode').value==='multiple' ? 'multiple' : 'single',
     colorCount:Math.max(0, parseInt(document.getElementById('a_color_count').value||0,10)||0),
     colorLabels:parseColorLabelsInput(document.getElementById('a_color_labels').value||'', document.getElementById('a_color_count').value||0),
+    colorData: makeStableColorData({colorMode:(document.getElementById('a_color_mode').value==='multiple' ? 'multiple' : 'single'), colorCount:parseInt(document.getElementById('a_color_count').value||0,10)||0, colorLabels:parseColorLabelsInput(document.getElementById('a_color_labels').value||'', document.getElementById('a_color_count').value||0)}),
     descrizione:document.getElementById('a_desc').value.trim(),
     fornitore:document.getElementById('a_forn').value.trim(),
     colori:'', tracolla:'', scatola:false
@@ -5044,8 +5603,8 @@ async function duplicateCurrentArticle(sourceId=null){
   currentArtId=null;
   currentArtPhotosCleared=false;
   currentArtDuplicateData={
-    foto: Array.isArray(clone?.foto) ? clone.foto.filter(Boolean).slice(0,6) : [],
-    photoIds: Array.isArray(clone?.photoIds) ? clone.photoIds.filter(Boolean).slice(0,6) : []
+    foto: Array.isArray(clone?.foto) ? clone.foto.filter(Boolean).slice(0,15) : [],
+    photoIds: Array.isArray(clone?.photoIds) ? clone.photoIds.filter(Boolean).slice(0,15) : []
   };
   hide('mArtView', true);
   document.getElementById('artEditTitle').textContent='Duplica articolo';
@@ -5062,6 +5621,7 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_color_mode').value=getArticleColorMode(clone);
   document.getElementById('a_color_count').value=getArticleColorCount(clone)||'';
   document.getElementById('a_color_labels').value=formatColorLabelsInput(getArticleColorLabels(clone), getArticleColorCount(clone));
+  document.getElementById('a_unavailable').checked=isArticleUnavailable(clone);
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=clone.misura||'';
   document.getElementById('a_usd').value=clone.costoUsd||'';
@@ -5079,6 +5639,7 @@ async function duplicateCurrentArticle(sourceId=null){
   currentArtExistingPics=await getArticlePics(a);
   renderArtPhotoPrev(currentArtExistingPics);
   renderArtAutoFields();
+  updateArticleMeasureState();
   updateArticleCodeStatus();
   show('mArtEdit');
   scheduleModalTextareaFit('mArtEdit');
@@ -5094,6 +5655,15 @@ async function saveArt(){
     const colorLabels=parseColorLabelsInput(document.getElementById('a_color_labels').value||'', colorCount);
     if(!code){ toast('Codice articolo obbligatorio'); return; }
     if(colorMode==='multiple' && colorCount<2){ toast('Se scegli Più colori devi indicare almeno 2 varianti'); return; }
+
+    const categoriaValue=document.getElementById('a_cat').value.trim();
+    const misuraValue=document.getElementById('a_mis').value.trim();
+    if(articleCategoryNeedsMeasure(categoriaValue) && !misuraValue){
+      updateArticleMeasureState();
+      toast('Per scarpe e cinture la misura è obbligatoria');
+      document.getElementById('a_mis')?.focus();
+      return;
+    }
 
     const codeLower=safeLower(code);
     const exists = db.articoli.find(a => 
@@ -5115,7 +5685,7 @@ async function saveArt(){
       codice: code,
       brand: getArticleBrandValue(),
       modello: document.getElementById('a_mod').value.trim(),
-      categoria: document.getElementById('a_cat').value.trim(),
+      categoria: categoriaValue,
       descrizione: document.getElementById('a_desc').value.trim(),
       fornitore: document.getElementById('a_forn').value.trim(),
       fornitoreLink: document.getElementById('a_forn_link').value.trim(),
@@ -5123,11 +5693,14 @@ async function saveArt(){
       taglia: '',
       variante: document.getElementById('a_variante').value.trim(),
       colore: colorMode==='single' ? document.getElementById('a_colore').value.trim() : '',
+      nonDisponibile: !!document.getElementById('a_unavailable').checked,
+      disponibile: !document.getElementById('a_unavailable').checked,
       colorMode,
       colorType: colorMode,
       colorCount: colorMode==='multiple' ? colorCount : 0,
       colorLabels: colorMode==='multiple' ? colorLabels : [],
-      misura: document.getElementById('a_mis').value.trim(),
+      colorData: colorMode==='multiple' ? makeStableColorData({colorMode, colorCount, colorLabels}) : null,
+      misura: misuraValue,
       costoUsd: usd,
       costoEur: r.costo,
       prezzoVendita: r.sell,
@@ -5146,7 +5719,7 @@ async function saveArt(){
       obj.foto = Array.isArray(obj.foto) ? obj.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')) : [];
       obj.photoIds = Array.isArray(obj.photoIds) ? obj.photoIds.filter(Boolean) : [];
       const existingCount=Math.max((obj.foto||[]).length, (obj.photoIds||[]).length);
-      const maxNew=Math.max(0, 6 - existingCount);
+      const maxNew=Math.max(0, 15 - existingCount);
       const filesToSave=selectedFiles.slice(0,maxNew);
       if(selectedFiles.length>maxNew) photoUploadWarning=`Caricate ${maxNew} foto, limite massimo raggiunto`;
 
@@ -5172,7 +5745,7 @@ async function saveArt(){
             }
           }
         }
-        obj.photoIds=[...new Set([...(obj.photoIds||[]), ...localPhotoIds])].slice(0,6);
+        obj.photoIds=[...new Set([...(obj.photoIds||[]), ...localPhotoIds])].slice(0,15);
       }
     }
     obj._ts=Date.now();
@@ -5284,7 +5857,14 @@ function mergeUniquePics(){
   Array.from(arguments).flat().forEach(src=>{
     if(src && !out.includes(src)) out.push(src);
   });
-  return out.slice(0,12);
+  return out.slice(0,15);
+}
+function pickOrderRowPhoto(art, row, artPics){
+  const pics=Array.isArray(artPics)?artPics.filter(Boolean):[];
+  if(!pics.length) return '';
+  const colorIndex=Math.max(0, (parseInt(row?.numeroColore||'0',10) || 1) - 1);
+  if(!!row?.richiedeNumeroColore && pics[colorIndex]) return pics[colorIndex];
+  return pics[0] || '';
 }
 async function getOrderArticleSnapshotPhotos(rows, db){
   const pics=[];
@@ -5293,13 +5873,12 @@ async function getOrderArticleSnapshotPhotos(rows, db){
     if(!art) continue;
     try{
       const artPics=await getArticlePics(art);
-      for(const src of (artPics||[])) {
-        if(src && !pics.includes(src)) pics.push(src);
-        if(pics.length>=12) return pics;
-      }
+      const picked=pickOrderRowPhoto(art, r, artPics);
+      if(picked && !pics.includes(picked)) pics.push(picked);
+      if(pics.length>=12) return pics;
     }catch(err){ console.warn('Lettura foto articolo per ordine fallita', err); }
   }
-  return pics.slice(0,12);
+  return pics.slice(0,15);
 }
 async function refreshOrdPhotoPreviewFromState(){
   const input=document.getElementById('o_photo');
@@ -5307,10 +5886,10 @@ async function refreshOrdPhotoPreviewFromState(){
   if(!box) return;
   const db=loadDB();
   const articlePics=await getOrderArticleSnapshotPhotos(ordRows, db);
-  const maxNew=Math.max(0, 12 - mergeUniquePics(articlePics, currentOrdExistingManualPhotos).length);
+  const maxNew=Math.max(0, 1 - currentOrdExistingManualPhotos.length);
   const files=Array.from(input?.files||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
   if(input && files.length>maxNew){
-    toast(`Puoi aggiungere ancora ${maxNew} foto`);
+    toast(`Puoi aggiungere ancora ${maxNew} foto manuale`);
     const dt=new DataTransfer();
     files.slice(0,maxNew).forEach(f=>dt.items.add(f));
     input.files=dt.files;
@@ -5354,7 +5933,49 @@ async function openOrdView(id){
   }
   const righeOrd=Array.isArray(o.righe)?o.righe:[];
   const rows=document.getElementById('vOrdRows');
-  rows.innerHTML=righeOrd.map(r=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(r.codice||'')} • ${esc(r.modello||'')}</div><div class="s">Prezzo ${money(r.prezzo||0)}${r?.numeroColore?` • Colore ${esc(r.numeroColore)}`:''}</div></div><div class="pill">Riga</div></div>`).join('') || `<div class="small">Nessuna riga</div>`;
+  rows.innerHTML=righeOrd.map((r,i)=>{
+    const art=(db.articoli||[]).find(a=>a.id===r?.articoloId || (r?.codice && a.codice===r.codice));
+    const labels=Array.isArray(r?.colorLabels) && r.colorLabels.length ? r.colorLabels : getArticleColorLabels(art);
+    const needsColor=!!r?.richiedeNumeroColore && Number(r?.colorCount||labels.length||0)>0;
+    const colorText=r?.colore ? `Colore ${esc(r.colore)}` : (r?.numeroColore ? `Colore ${esc(r.numeroColore)}` : '');
+    const metaParts=[`Prezzo ${money(r.prezzo||0)}`];
+    if(colorText) metaParts.push(colorText);
+    const colorUi=needsColor
+      ? `<div style="margin-top:8px"><div class="k">Colore</div><select data-role="viewRowColorNum" data-i="${i}">${buildOrderColorOptions(r.colorCount||labels.length||0, r.numeroColore||'', labels||[])}</select></div>`
+      : (r?.colore ? `<div class="s" style="margin-top:6px">Colore: ${esc(r.colore)}</div>` : '');
+    return `<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(r.codice||'')} • ${esc(r.modello||'')}</div><div class="s">${metaParts.join(' • ')}</div>${colorUi}</div><div class="pill">Riga</div></div>`;
+  }).join('') || `<div class="small">Nessuna riga</div>`;
+  rows.querySelectorAll('[data-role="viewRowColorNum"]').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      const idx=Number(sel.dataset.i);
+      const dbNow=loadDB();
+      const ord=dbNow.ordini.find(x=>x.id===currentOrdId);
+      if(!ord || !Array.isArray(ord.righe) || !ord.righe[idx]) return;
+      const row={...(ord.righe[idx]||{})};
+      const art=(dbNow.articoli||[]).find(a=>a.id===row?.articoloId || (row?.codice && a.codice===row.codice));
+      const labels=Array.isArray(row?.colorLabels) && row.colorLabels.length ? row.colorLabels : getArticleColorLabels(art);
+      const colorCount=Math.max(0, parseInt(row?.colorCount||labels.length||0,10) || 0);
+      const val=String(sel.value||'').trim();
+      row.richiedeNumeroColore=colorCount>0;
+      row.colorCount=colorCount;
+      row.colorLabels=labels.slice();
+      row.colorData=makeStableColorData({colorMode:colorCount>1?'multiple':'single', colorCount, colorLabels:labels});
+      row.numeroColore=val;
+      row.colore=(parseInt(val,10)>0 && labels[parseInt(val,10)-1]) ? labels[parseInt(val,10)-1] : '';
+      ord.righe[idx]=row;
+      ord.fotoArticoli=await getOrderArticleSnapshotPhotos(ord.righe, dbNow);
+      if(!saveDB(dbNow)) return;
+      if(cloudEnabled()){
+        try{
+          await cloudSaveOne('ord', ord, dbNow);
+        }catch(err){
+          console.error('Sync cloud colore ordine fallita', err);
+        }
+      }
+      toast('Colore ordine aggiornato');
+      await openOrdView(ord.id);
+    });
+  });
   const ordPics=await getOrderPics(o, db);
   document.getElementById('vOrdPhotos').innerHTML=ordPics.map(src=>`<img src="${src}" onclick="window.open('${src}','_blank','noopener')"/>`).join('');
   document.getElementById('vOrdPhotosEmpty').style.display=ordPics.length?'none':'block';
@@ -5447,6 +6068,23 @@ async function deleteCli(){
   toast(cloudEnabled() ? 'Cliente eliminato anche dal cloud' : 'Cliente eliminato');
 }
 
+
+function articleCategoryNeedsMeasure(rawCat=''){
+  const cat=normalizeTextKey(rawCat||'');
+  return ['scarpa','scarpe','shoe','shoes','cintura','cinture','belt','belts'].some(token=>cat===token || cat.includes(token));
+}
+function updateArticleMeasureState(){
+  const catSel=document.getElementById('a_cat');
+  const mis=document.getElementById('a_mis');
+  const hint=document.getElementById('a_mis_hint');
+  if(!mis) return false;
+  const needed=articleCategoryNeedsMeasure(catSel?.value||'');
+  mis.required=needed;
+  mis.placeholder=needed ? 'Misura obbligatoria' : '';
+  if(hint) hint.textContent=needed ? 'Per scarpe e cinture la misura è obbligatoria.' : '';
+  return needed;
+}
+
 /* ====== ORDINI ====== */
 let currentOrdId=null;
 let ordRows=[];
@@ -5481,44 +6119,69 @@ function updateOrderShoeSizeState(){
   const firstOpt=sel.querySelector('option[value=""]');
   if(firstOpt) firstOpt.textContent=needed ? 'Seleziona misura' : 'Non necessaria';
   if(!needed && !ORDER_SHOE_SIZES.includes(String(sel.value||''))) sel.value='';
-  if(hint) hint.textContent=needed ? 'Per le scarpe la misura è obbligatoria.' : 'Obbligatoria solo per ordini con scarpe.';
+  if(hint) hint.textContent=needed ? 'Se ci sono scarpe, scegli qui una sola misura valida per tutte le righe scarpe.' : 'Misura non necessaria se non ci sono scarpe.';
   return needed;
 }
 async function openOrdEdit(id, prefillArticleId=null){
-  const db=loadDB(); const o=id?db.ordini.find(x=>x.id===id):null;
-  currentOrdId=id||null;
-  document.getElementById('ordEditTitle').textContent=o?'Modifica ordine':'Nuovo ordine';
+  const db=loadDB();
+  const o=id?db.ordini.find(x=>x.id===id):null;
+  const isEditing=!!o;
+  currentOrdId=isEditing ? id : null;
+  document.getElementById('ordEditTitle').textContent=isEditing?'Modifica ordine':'Nuovo ordine';
   document.getElementById('o_cli_q').value='';
   document.getElementById('o_art_q').value='';
+  const pickColorEl=document.getElementById('o_pick_color');
+  if(pickColorEl){
+    pickColorEl.innerHTML='<option value="">Seleziona colore</option>';
+    pickColorEl.value='';
+  }
   fillClientSelect(db);
   fillArtSelect(db);
-  document.getElementById('o_cli').value=o?.clienteId||'';
-  const orderCli=(db.clienti||[]).find(c=>String(c.id)===String(o?.clienteId||''));
+  document.getElementById('o_cli').value=isEditing?(o?.clienteId||''):'';
+  const orderCli=isEditing ? (db.clienti||[]).find(c=>String(c.id)===String(o?.clienteId||'')) : null;
   document.getElementById('o_cli_q').value=orderCli?.nome||'';
-  document.getElementById('o_stato').value=o?.stato||'Richiesto';
-  document.getElementById('o_data').value=o?.data||todayStr();
-  document.getElementById('o_note').value=o?.note||'';
-  ensureOrderSizeOption(o?.mis||'');
-  document.getElementById('o_mis').value=o?.mis||'';
-  document.getElementById('o_tracking').value=o?.tracking||'';
-  document.getElementById('o_discount').value=calcOrderDiscount(o) ? String(calcOrderDiscount(o)).replace('.', ',') : '';
+  document.getElementById('o_stato').value=isEditing?(o?.stato||'Richiesto'):'Richiesto';
+  document.getElementById('o_data').value=isEditing?(o?.data||todayStr()):todayStr();
+  document.getElementById('o_note').value=isEditing?(o?.note||''):'';
+  ensureOrderSizeOption(isEditing?(o?.mis||''):'' );
+  document.getElementById('o_mis').value=isEditing?(o?.mis||''):'';
+  document.getElementById('o_tracking').value=isEditing?(o?.tracking||''):'';
+  document.getElementById('o_discount').value=isEditing && calcOrderDiscount(o) ? String(calcOrderDiscount(o)).replace('.', ',') : '';
   document.getElementById('o_art').value='';
-  document.getElementById('o_price').value='';
+  document.getElementById('o_art_pick').value='';
   document.getElementById('o_photo').value='';
-  currentOrdExistingManualPhotos=o ? await getOrderManualPics(o) : [];
-  ordRows=(o?.righe||[]).slice();
+  currentOrdExistingManualPhotos=isEditing ? await getOrderManualPics(o) : [];
+  ordRows=isEditing ? (o?.righe||[]).slice() : [];
+  if(isEditing){
+    restoreOrderDraft(o?.id||'', null);
+  }else{
+    clearOrderDraft();
+  }
   if(prefillArticleId){
-    const a=db.articoli.find(x=>x.id===prefillArticleId);
-    if(a && !ordRows.some(r=>r.articoloId===prefillArticleId)){
-      ordRows.push({articoloId:a.id, codice:a?.codice||'', modello:a?.modello||'', prezzo:Number(currentPrice(a)||0), richiedeNumeroColore:getArticleColorMode(a)==='multiple', colorCount:getArticleColorCount(a), colorLabels:getArticleColorLabels(a), numeroColore:'', colore:a?.colore||''});
+    const a=db.articoli.find(x=>String(x.id)===String(prefillArticleId));
+    if(a && !ordRows.some(r=>String(r.articoloId)===String(prefillArticleId))){
+      const labels=getArticleColorLabels(a);
+      const defaultColor=(getArticleColorMode(a)==='single') ? normalizeSpaceText(a?.colore||labels[0]||'') : '';
+      ordRows.push({
+        articoloId:a.id,
+        codice:a?.codice||'',
+        modello:a?.modello||'',
+        prezzo:Number(currentPrice(a)||0),
+        richiedeNumeroColore:getArticleColorMode(a)==='multiple',
+        colorCount:getArticleColorCount(a),
+        colorLabels:labels,
+        numeroColore:'',
+        colore:defaultColor
+      });
     }
   }
   renderOrdRows();
+  renderOrderClientSummary();
+  renderSelectedOrderArticlesSummary();
   updateOrderPriceFromSelection();
   updateOrderTotalsPreview();
   updateOrderShoeSizeState();
   await refreshOrdPhotoPreviewFromState();
-  restoreOrderDraft(o?.id||'', prefillArticleId);
   show('mOrdEdit');
 }
 function todayStr(){
@@ -5539,6 +6202,71 @@ function findClientAutoMatch(items, raw=''){
   const starts=items.filter(c=>searchStartsWith(c?.nome||'', raw) || searchStartsWith(c?.telefono||'', raw) || searchStartsWith(c?.citta||'', raw));
   return starts.length===1 ? starts[0] : null;
 }
+function renderOrderClientSummary(){
+  const box=document.getElementById('o_cli_summary');
+  const sel=document.getElementById('o_cli');
+  const db=loadDB();
+  if(!box || !sel) return;
+  const cli=(db.clienti||[]).find(c=>String(c.id)===String(sel.value||''));
+  if(!cli){
+    box.className='orderClientSummary empty';
+    box.textContent='Seleziona un cliente per vedere subito nome, telefono e città.';
+    return;
+  }
+  const meta=[cli.telefono, [cli.citta, cli.provincia].filter(Boolean).join(' • '), cli.indirizzo].filter(Boolean);
+  box.className='orderClientSummary';
+  box.innerHTML=`<div class="title">${esc(cli.nome||'Cliente selezionato')}</div><div class="meta">${meta.length?esc(meta.join(' • ')):'Nessun dettaglio aggiuntivo'}</div>`;
+}
+function renderSelectedOrderArticlesSummary(){
+  const box=document.getElementById('o_art_selected_summary');
+  const pick=document.getElementById('o_art_pick');
+  const db=loadDB();
+  if(!box || !pick) return;
+  const id=String(pick.value||'').trim();
+  const a=(db.articoli||[]).find(x=>String(x.id)===id);
+  if(!a){
+    box.className='orderSelectedSummary empty';
+    box.textContent='Cerca un articolo e poi aggiungilo.';
+    renderSelectedOrderColorPicker(null);
+    return;
+  }
+  const model=((a.modello||a.brand||'').trim() || 'Articolo');
+  const code=(a.codice||'').trim();
+  const meta=[a.brand, displayCategoryValue(a.categoria), a.qualita, '€ '+money(currentPrice(a)||0)].filter(Boolean).join(' • ');
+  box.className='orderSelectedSummary';
+  box.innerHTML=`<div class="title"><span>Da aggiungere</span></div><div class="orderChoiceList"><span class="orderChoiceChip">${esc(model)}${code?`<span class="orderChoiceMeta">Cod. ${esc(code)}${meta?` • ${esc(meta)}`:''}</span>`:''}</span></div>`;
+  renderSelectedOrderColorPicker(a);
+}
+function renderSelectedOrderColorPicker(article){
+  const wrap=document.getElementById('o_pick_color_wrap');
+  const sel=document.getElementById('o_pick_color');
+  const hint=document.getElementById('o_pick_color_hint');
+  if(!wrap || !sel) return;
+  if(!article){
+    wrap.style.display='none';
+    sel.innerHTML='';
+    sel.value='';
+    return;
+  }
+  const labels=getArticleColorLabels(article);
+  const singleColor=normalizeSpaceText(article?.colore||labels[0]||'');
+  if(getArticleColorMode(article)==='multiple' && Number(getArticleColorCount(article)||0)>0){
+    wrap.style.display='block';
+    sel.innerHTML=buildOrderColorOptions(getArticleColorCount(article), sel.value||'', labels);
+    if(hint) hint.textContent="Scegli il colore e poi aggiungi l'articolo.";
+    return;
+  }
+  if(singleColor){
+    wrap.style.display='block';
+    sel.innerHTML=`<option value="${esc(singleColor)}">${esc(singleColor)}</option>`;
+    sel.value=singleColor;
+    if(hint) hint.textContent='Colore già impostato per questo articolo.';
+    return;
+  }
+  wrap.style.display='none';
+  sel.innerHTML='';
+  sel.value='';
+}
 function fillClientSelect(db, filter='', autoPick=false){
   const sel=document.getElementById('o_cli');
   const searchInput=document.getElementById('o_cli_q');
@@ -5558,45 +6286,71 @@ function fillClientSelect(db, filter='', autoPick=false){
   }else if(prev && Array.from(sel.options).some(o=>o.value===prev)){
     sel.value=prev;
   }
+  renderOrderClientSummary();
   return items;
 }
 function fillArtSelect(db, filter=''){
-  const sel=document.getElementById('o_art');
-  const prev=Array.from(sel.selectedOptions||[]).map(o=>o.value);
-  const q=filter.toLowerCase();
-  const items=db.articoli.filter(a=>{
+  const sel=document.getElementById('o_art_pick');
+  const hidden=document.getElementById('o_art');
+  const q=String(filter||'').toLowerCase();
+  const prev=String(sel?.value||'').trim();
+  const items=(db.articoli||[]).filter(a=>{
     const hay=articleSearchHay(a);
     return !q || hay.includes(q);
   });
-  sel.innerHTML=items.map(a=>`<option value="${a.id}">${esc(a.brand||'')} ${esc(a.modello||'')} • ${esc(a.codice||'')}</option>`).join('');
-  prev.forEach(v=>{ const opt=Array.from(sel.options).find(o=>o.value===v); if(opt) opt.selected=true; });
+  if(sel){
+    sel.innerHTML='<option value="">Seleziona articolo</option>'+items.map(a=>{
+      const model=(a.modello||a.brand||'Articolo').trim();
+      const code=(a.codice||'').trim();
+      const cat=displayCategoryValue(a.categoria);
+      const price='€ '+money(currentPrice(a)||0);
+      const blocked=isArticleUnavailable(a);
+      const label=[model, code, cat, price, blocked ? 'NON DISPONIBILE' : ''].filter(Boolean).join(' • ');
+      return `<option value="${a.id}" ${blocked ? 'disabled' : ''}>${esc(label)}</option>`;
+    }).join('');
+    if(prev && Array.from(sel.options).some(o=>o.value===prev && !o.disabled)) sel.value=prev;
+  }
+  if(hidden) hidden.innerHTML='';
+  renderSelectedOrderArticlesSummary();
 }
-function selectedOrderArticleIds(){ return Array.from(document.getElementById('o_art').selectedOptions||[]).map(o=>o.value).filter(Boolean); }
+function selectedOrderArticleIds(){
+  const pick=document.getElementById('o_art_pick');
+  return pick && pick.value ? [pick.value] : [];
+}
 function updateOrderPriceFromSelection(){
   const db=loadDB();
   const ids=selectedOrderArticleIds();
-  const priceInput=document.getElementById('o_price');
-  if(ids.length!==1){ if(ids.length===0) priceInput.value=''; return; }
-  const a=db.articoli.find(x=>x.id===ids[0]);
-  const price=currentPrice(a);
-  priceInput.value = price ? String(price) : ''; 
+  return;
 }
 function addRow(){
   const db=loadDB();
   const ids=selectedOrderArticleIds();
   if(!ids.length){ toast('Seleziona almeno un articolo'); return; }
-  const manual=Number(document.getElementById('o_price').value||0);
-  ids.forEach((artId,idx)=>{
-    const a=db.articoli.find(x=>x.id===artId);
+  ids.forEach((artId)=>{
+    const a=db.articoli.find(x=>String(x.id)===String(artId));
     if(!a) return;
-    if(ordRows.some(r=>r.articoloId===artId)) return;
-    const prezzo=(ids.length===1 && manual>0) ? manual : Number(currentPrice(a)||0);
-    ordRows.push({articoloId:artId, codice:a?.codice||'', modello:a?.modello||'', prezzo, richiedeNumeroColore:getArticleColorMode(a)==='multiple', colorCount:getArticleColorCount(a), colorLabels:getArticleColorLabels(a), numeroColore:'', colore:a?.colore||''});
+    if(isArticleUnavailable(a)){
+      toast('Articolo segnato come non disponibile');
+      return;
+    }
+    if(ordRows.some(r=>String(r.articoloId)===String(artId))){
+      toast("Articolo già presente nell'ordine");
+      return;
+    }
+    const prezzo=Number(currentPrice(a)||0);
+    const labels=getArticleColorLabels(a);
+    const pickColor=String(document.getElementById('o_pick_color')?.value||'').trim();
+    const isMultiple=getArticleColorMode(a)==='multiple' && Number(getArticleColorCount(a)||0)>0;
+    const colorLabel=isMultiple ? ((parseInt(pickColor,10)>0 && labels[parseInt(pickColor,10)-1]) ? labels[parseInt(pickColor,10)-1] : '') : normalizeSpaceText(pickColor || a?.colore || labels[0] || '');
+    ordRows.push({articoloId:artId,codice:a?.codice||'',modello:a?.modello||'',prezzo,richiedeNumeroColore:isMultiple,colorCount:getArticleColorCount(a),colorLabels:labels,colorData:makeStableColorData({colorMode:isMultiple?'multiple':'single', colorCount:getArticleColorCount(a), colorLabels:labels}),numeroColore:isMultiple ? pickColor : '',colore:colorLabel});
   });
-  Array.from(document.getElementById('o_art').options).forEach(o=>o.selected=false);
+  const pick=document.getElementById('o_art_pick');
+  const colorPick=document.getElementById('o_pick_color');
+  if(pick) pick.value='';
+  if(colorPick){ colorPick.innerHTML=''; colorPick.value=''; }
   document.getElementById('o_art_q').value='';
-  document.getElementById('o_price').value='';
   fillArtSelect(db);
+  renderSelectedOrderArticlesSummary();
   renderOrdRows();
   updateOrderShoeSizeState();
   saveOrderDraft();
@@ -5619,22 +6373,52 @@ function openTrackParcel(){
   const win=window.open(webUrl,'_blank','noopener');
   if(!win) window.location.href=webUrl;
 }
+function buildOrderSizeOptions(selected=''){
+  const current=String(selected||'').trim();
+  const values=current && !ORDER_SHOE_SIZES.includes(current) ? [current, ...ORDER_SHOE_SIZES] : ORDER_SHOE_SIZES.slice();
+  const uniq=[...new Set(values)];
+  return `<option value="">Seleziona misura</option>` + uniq.map(v=>`<option value="${esc(v)}" ${String(v)===current?'selected':''}>${esc(v)}</option>`).join('');
+}
+
 function renderOrdRows(){
   const box=document.getElementById('o_rows');
+  const db=loadDB();
+  const globalSize=String(document.getElementById('o_mis')?.value||'').trim();
   box.innerHTML=ordRows.map((r,i)=>{
+    const art=(db.articoli||[]).find(a=>a.id===r?.articoloId || (r?.codice && a.codice===r.codice));
     const needsColor=!!r?.richiedeNumeroColore && Number(r?.colorCount||0)>0;
-    const colorUi=needsColor ? `<div class="helper" style="margin-top:8px">Numero colore obbligatorio</div><select data-role="rowColorNum" data-i="${i}" style="margin-top:6px">${buildOrderColorOptions(r.colorCount, r.numeroColore||'', r.colorLabels||[])}</select>` : (r?.colore ? `<div class="helper" style="margin-top:8px">Colore: ${esc(r.colore)}</div>` : '');
-    const priceLine=needsColor && r?.numeroColore ? `${money(r.prezzo||0)} • Colore ${esc(r.numeroColore)}` : money(r.prezzo||0);
-    return `<div class="row" style="grid-template-columns:1fr auto">
-      <div><div class="t">${esc(r.codice)} • ${esc(r.modello)}</div><div class="s">${priceLine}</div>${colorUi}</div>
-      <button class="btn danger" data-action="delRow" data-i="${i}">X</button>
-    </div>`;
-  }).join('') || `<div class="small">Nessuna riga</div>`;
+    const isShoe=orderRowNeedsShoeSize(r, db);
+    const badges=[];
+    if(r?.codice) badges.push(`<span class="orderBadge">Cod. ${esc(r.codice)}</span>`);
+    badges.push(`<span class="orderBadge">€ ${money(r.prezzo||0)}</span>`);
+    if(r?.colore) badges.push(`<span class="orderBadge">Colore ${esc(r.colore)}</span>`);
+    if(isShoe) badges.push(`<span class="orderBadge">Misura ${esc(globalSize||'da scegliere')}</span>`);
+    const colorUi=needsColor ? `<div class="orderInlineField"><label>Colore</label><select data-role="rowColorNum" data-i="${i}">${buildOrderColorOptions(r.colorCount, r.numeroColore||'', r.colorLabels||[])}</select></div>` : '';
+    const meta=[art?.brand, displayCategoryValue(art?.categoria||r?.categoria||''), art?.qualita].filter(Boolean).map(v=>esc(v)).join(' • ');
+    return `<div class="orderCard"><div><div class="title">${esc(r.modello||art?.modello||'Articolo selezionato')}</div><div class="meta">${meta || 'Riga ordine'}</div><div class="orderBadges">${badges.join('')}</div><div class="orderRowControls">${colorUi}</div></div><button class="orderRemoveBtn" type="button" aria-label="Rimuovi articolo" title="Rimuovi articolo" data-action="delRow" data-i="${i}">Rimuovi</button></div>`;
+  }).join('') || `<div class="orderSelectedSummary empty">Nessun articolo aggiunto.</div>`;
+  const sum=document.getElementById('o_rows_summary');
+  if(sum){
+    const shoeCount=ordRows.filter(r=>orderRowNeedsShoeSize(r, db)).length;
+    const colorCount=ordRows.filter(r=>!!r?.richiedeNumeroColore && Number(r?.colorCount||0)>0).length;
+    if(!ordRows.length){
+      sum.innerHTML="Ancora nessun articolo nell'ordine.";
+    }else{
+      const parts=[`<strong>Articoli:</strong> ${ordRows.length}`];
+      if(shoeCount) parts.push(`<strong>Scarpe:</strong> ${shoeCount}${globalSize?` • misura ${esc(globalSize)}`:''}`);
+      if(colorCount) parts.push(`<strong>Colori da scegliere:</strong> ${colorCount}`);
+      sum.innerHTML=parts.join(' &nbsp;•&nbsp; ');
+    }
+  }
   box.querySelectorAll('[data-role="rowColorNum"]').forEach(sel=>{
     sel.addEventListener('change',()=>{
       const idx=Number(sel.dataset.i);
       if(Number.isInteger(idx) && ordRows[idx]){
-        ordRows[idx].numeroColore=String(sel.value||'').trim();
+        const labels=Array.isArray(ordRows[idx].colorLabels)?ordRows[idx].colorLabels:[];
+        const val=String(sel.value||'').trim();
+        ordRows[idx].numeroColore=val;
+        ordRows[idx].colore=(parseInt(val,10)>0 && labels[parseInt(val,10)-1]) ? labels[parseInt(val,10)-1] : '';
+        renderOrdRows();
         updateOrderTotalsPreview();
         saveOrderDraft();
       }
@@ -5670,10 +6454,10 @@ async function saveOrd(){
   const articlePics=await getOrderArticleSnapshotPhotos(ordRows, db);
   const photoInput=document.getElementById('o_photo');
   const selectedFiles=Array.from(photoInput?.files||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
-  const existingManualIds=Array.isArray(old?.orderPhotoIds)?old.orderPhotoIds.filter(Boolean).slice(0,12):[];
-  const existingManualLegacy=Array.isArray(old?.fotoManuali)?old.fotoManuali.filter(Boolean).slice(0,12):[];
+  const existingManualIds=Array.isArray(old?.orderPhotoIds)?old.orderPhotoIds.filter(Boolean).slice(0,15):[];
+  const existingManualLegacy=Array.isArray(old?.fotoManuali)?old.fotoManuali.filter(Boolean).slice(0,15):[];
   const existingManualCount=Math.max(existingManualIds.length, existingManualLegacy.length, Array.isArray(currentOrdExistingManualPhotos)?currentOrdExistingManualPhotos.length:0);
-  const maxNew=Math.max(0, 12 - mergeUniquePics(articlePics, currentOrdExistingManualPhotos).length);
+  const maxNew=Math.max(0, 1 - currentOrdExistingManualPhotos.length);
   const newManualIds=[];
   const newManualLegacy=[];
   for(const file of selectedFiles.slice(0,maxNew)){
@@ -5694,7 +6478,7 @@ async function saveOrd(){
     }
   }
   const manualCount=existingManualCount + newManualIds.length;
-  const allOrderPics=mergeUniquePics(articlePics, currentOrdExistingManualPhotos);
+  const allOrderPics=mergeUniquePics(articlePics, currentOrdExistingManualPhotos).slice(0, articlePics.length + 1);
   const newOrderId=currentOrdId||('ORD-'+uid().slice(0,6).toUpperCase());
   const obj={
     id: newOrderId,
@@ -5705,10 +6489,22 @@ async function saveOrd(){
     note: document.getElementById('o_note').value.trim(),
     mis: misuraValue,
     tracking: document.getElementById('o_tracking').value.trim(),
-    righe: ordRows.slice(),
+    righe: ordRows.map(r=>({
+      ...r,
+      articoloId:String(r?.articoloId||''),
+      codice:normalizeSpaceText(r?.codice||''),
+      modello:normalizeSpaceText(r?.modello||''),
+      prezzo:Number(r?.prezzo||0),
+      richiedeNumeroColore:!!r?.richiedeNumeroColore,
+      colorCount:Math.max(0, parseInt(r?.colorCount||0,10) || 0),
+      colorLabels:Array.isArray(r?.colorLabels)?r.colorLabels.map(v=>normalizeSpaceText(v||'')).filter(Boolean):[],
+      colorData: makeStableColorData({colorMode:(!!r?.richiedeNumeroColore?'multiple':'single'), colorCount:Number(r?.colorCount||0), colorLabels:Array.isArray(r?.colorLabels)?r.colorLabels:[]}),
+      numeroColore:normalizeSpaceText(r?.numeroColore||''),
+      colore:normalizeSpaceText(r?.colore||'')
+    })),
     fotoArticoli: [],
-    fotoManuali: [...existingManualLegacy, ...newManualLegacy].slice(0,12),
-    orderPhotoIds: [...new Set([...existingManualIds, ...newManualIds])].slice(0,12),
+    fotoManuali: [...existingManualLegacy, ...newManualLegacy].slice(0,1),
+    orderPhotoIds: [...new Set([...existingManualIds, ...newManualIds])].slice(0,1),
     foto: [],
     subTotale: subtotal,
     scontoCliente,
@@ -5775,9 +6571,9 @@ function importDB(file){
       const incoming=normalizeDBShape(parsed);
       if(!incoming || !Array.isArray(incoming.articoli)||!Array.isArray(incoming.clienti)||!Array.isArray(incoming.ordini)) throw new Error('JSON non compatibile');
       for(const art of incoming.articoli){
-        art.photoIds=Array.isArray(art.photoIds)?art.photoIds.filter(Boolean).slice(0,6):[];
+        art.photoIds=Array.isArray(art.photoIds)?art.photoIds.filter(Boolean).slice(0,15):[];
         if(Array.isArray(art.foto) && art.foto.length){
-          for(const src of art.foto.slice(0,6)){
+          for(const src of art.foto.slice(0,15)){
             const pid='ph_'+uid();
             await idbSet(pid,src);
             art.photoIds.push(pid);
@@ -5896,6 +6692,13 @@ function bindSearchSuggest(inputId, boxId, kind, onApply){
 }
 
 /* ====== EVENTS ====== */
+document.addEventListener('pointerdown',(ev)=>{
+  const btn=ev.target?.closest?.('[data-action="shareArtPhotos"],[data-action="downloadArtPhotos"]');
+  if(!btn) return;
+  const ctx=getPreparedCurrentArticlePhotoContext();
+  if(ctx) warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
+});
+
 document.addEventListener('click',(ev)=>{
   const el=ev.target.closest('[data-action],[data-go],[data-open]');
   if(!el) return;
@@ -6029,12 +6832,18 @@ document.addEventListener('click',(ev)=>{
   if(a==='track17View') return openTrack17();
   if(a==='openParcelView') return openTrackParcel();
   if(a==='openMonthSales') return openMonthSales(Number(el.dataset.year), Number(el.dataset.month), el.dataset.label||'');
-  if(a==='addArtToOrder'){ const id=el.dataset.id; if(id) return openOrdEdit(null, id); return; }
+  if(a==='addAgenda') return saveAgendaQuick(document.getElementById('agendaText')?.value||'', document.getElementById('agendaDate')?.value||'');
+  if(a==='toggleAgendaDone') return agendaToggleById(el.dataset.id||'');
+  if(a==='deleteAgenda') return agendaDeleteById(el.dataset.id||'');
+  if(a==='addArtToOrder'){ const id=el.dataset.id; if(id){ const db=loadDB(); const art=(db.articoli||[]).find(x=>String(x.id)===String(id)); if(art && isArticleUnavailable(art)){ toast('Articolo non disponibile'); return; } return openOrdEdit(currentOrdId||null, id); } return; }
   if(a==='addArtToOrderFromView'){
-    if(!currentArtId){ toast('Articolo non trovato'); return; }
-    hide('mArtView');
-    requestAnimationFrame(()=>openOrdEdit(null, currentArtId));
-    return;
+    const targetId=currentArtId || String(document.getElementById('vCod')?.textContent||'').trim();
+    const db=loadDB();
+    const art=(db.articoli||[]).find(x=>String(x.id)===String(targetId) || String(x.codice||'')===String(targetId));
+    if(!art){ toast('Articolo non trovato'); return; }
+    if(isArticleUnavailable(art)){ toast('Articolo non disponibile'); return; }
+    hide('mArtView', true);
+    return openOrdEdit(currentOrdId||null, art.id);
   }
   if(a==='duplicateArt') return duplicateCurrentArticle(el.dataset.id || null);
   if(a==='editFromView'){ hide('mArtView', true); return openArtEdit(currentArtId); }
@@ -6072,7 +6881,7 @@ bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
   ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));
@@ -6082,14 +6891,18 @@ document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.k
 });
 
 bindSearchSuggest('o_cli_q','oCliSuggest','orderCli', value=>fillClientSelect(loadDB(), value, true));
+document.getElementById('o_art_pick')?.addEventListener('change', ()=>{ renderSelectedOrderArticlesSummary(); saveOrderDraft(); });
+document.getElementById('o_pick_color')?.addEventListener('change', saveOrderDraft);
+document.getElementById('agendaPreset')?.addEventListener('change', ()=>{ const preset=document.getElementById('agendaPreset'); const dateEl=document.getElementById('agendaDate'); const value=agendaPresetDate(preset?.value||''); if(value && dateEl) dateEl.value=value; });
 bindSearchSuggest('o_art_q','oArtSuggest','orderArt', value=>{
   fillArtSelect(loadDB(), value);
   updateOrderPriceFromSelection();
 });
-document.getElementById('o_art').addEventListener('change', ()=>{ updateOrderPriceFromSelection(); saveOrderDraft(); });
+document.getElementById('o_art').addEventListener('change', ()=>{ renderSelectedOrderArticlesSummary(); updateOrderPriceFromSelection(); saveOrderDraft(); });
 document.getElementById('o_discount').addEventListener('input', ()=>{ updateOrderTotalsPreview(); saveOrderDraft(); });
-['o_cli','o_stato','o_data','o_note','o_mis','o_tracking','o_price'].forEach(id=>{ const el=document.getElementById(id); if(el) ['input','change'].forEach(evt=>el.addEventListener(evt, saveOrderDraft)); });
-document.getElementById('o_cli')?.addEventListener('change', ()=>{ const db=loadDB(); const cli=(db.clienti||[]).find(c=>String(c.id)===String(document.getElementById('o_cli').value||'')); if(cli) document.getElementById('o_cli_q').value=cli.nome||''; saveOrderDraft(); });
+['o_cli','o_stato','o_data','o_note','o_tracking'].forEach(id=>{ const el=document.getElementById(id); if(el) ['input','change'].forEach(evt=>el.addEventListener(evt, saveOrderDraft)); });
+document.getElementById('o_mis')?.addEventListener('change', ()=>{ renderOrdRows(); saveOrderDraft(); });
+document.getElementById('o_cli')?.addEventListener('change', ()=>{ const db=loadDB(); const cli=(db.clienti||[]).find(c=>String(c.id)===String(document.getElementById('o_cli').value||'')); if(cli) document.getElementById('o_cli_q').value=cli.nome||''; renderOrderClientSummary(); saveOrderDraft(); });
 
 document.getElementById('importFile').addEventListener('change',(e)=>{
   const f=e.target.files[0];
@@ -6097,6 +6910,7 @@ document.getElementById('importFile').addEventListener('change',(e)=>{
   e.target.value='';
 });
 document.getElementById('a_brand')?.addEventListener('change', ()=>{ handleBrandSelectionChange(); saveArticleDraft(); });
+document.getElementById('a_cat')?.addEventListener('change', ()=>{ updateArticleMeasureState(); renderArtAutoFields(); saveArticleDraft(); });
 document.getElementById('a_photo')?.addEventListener('change', ()=>{ refreshArtPhotoPreviewFromInput(); saveArticleDraft(); });
 document.getElementById('btnCloudLogin')?.addEventListener('click', ()=>show('mCloudLogin'));
 document.getElementById('btnCloudLogout')?.addEventListener('click', cloudLogout);
@@ -6120,7 +6934,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-03-18-cloudfix-r2';
+const VG_BUILD='2026-03-30-sharefix-final-r9';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -6147,6 +6961,17 @@ async function autoCloudPullNow(reason='manual'){
 }
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SUPABASE_BUCKET='articoli';
+
+const SUPABASE_URL='https://qfjwtawsqfwmsmrrgqfi.supabase.co';
+function encodeStoragePath(path){
+  return String(path||'').split('/').map(part=>encodeURIComponent(part)).join('/');
+}
+function buildPublicStorageUrl(path){
+  const clean=String(path||'').trim().replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
+  if(!clean) return '';
+  return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${encodeStoragePath(clean)}`;
+}
+
 const isUuid=v=>UUID_RE.test(String(v||''));
 function cloudUi(){
   const uiPrefs=loadUiPrefs();
@@ -6242,7 +7067,7 @@ async function upsertCloudArticle(art){
     prezzo_acquisto: Number(art.costoEur || 0),
     prezzo_vendita: Number(art.prezzoVendita || 0),
     giacenza: 0,
-    attivo: true
+    attivo: !(art?.nonDisponibile===true || art?.disponibile===false)
   };
   if(isUuid(art.id)) payload.id=art.id;
   const {data,error}=await sb.from('prodotti').upsert(payload,{onConflict:'sku'}).select('*').single();
@@ -6448,6 +7273,8 @@ async function pullCloudToLocal(opts={}){
     const localOrdByNumero=new Map((localDb.ordini||[]).map(o=>[normalizeTextKey(ensureOrderNumber(o)),o]).filter(([k])=>k));
     const localOrdByFingerprint=new Map((localDb.ordini||[]).map(o=>[normalizeOrderFingerprint(o),o]).filter(([k])=>k));
     const db={version:'v6',createdAt:new Date().toISOString(),
+      categorie:(cats||[]).map(c=>normalizeSpaceText(c?.nome||'')).filter(Boolean),
+      brands:[],
       articoli:(prod||[]).map(p=>{
         const local=localArtById.get(p.id)||localArtByCode.get(safeLower(p.sku));
         const packed=unpackCloudArticleDescription(p.descrizione||'');
@@ -6462,11 +7289,28 @@ async function pullCloudToLocal(opts={}){
         const pulledCostoUsd=firstFiniteNumber(meta.costoUsd, local?.costoUsd, 0);
         const pulledCostoEur=firstFiniteNumber(p.prezzo_acquisto, p.costo, p.costo_eur, meta.costoEur, local?.costoEur, 0);
         const pulledPrezzoVendita=firstFiniteNumber(p.prezzo_vendita, p.prezzo, p.prezzo_vendita_iva, meta.prezzoVendita, meta.prezzo, local?.prezzoVendita, 0);
-        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:meta.colore||p.colore||local?.colore||'',misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,6):[],_ts:Date.now(),_cloud:true};
+        const colorShape=deriveColorShape({ colorMode:meta.colorMode||local?.colorMode, colorType:meta.colorType||local?.colorType, colorCount:meta.colorCount||local?.colorCount, colorLabels:meta.colorLabels||local?.colorLabels });
+        const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
+        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,15):[],_ts:Date.now(),_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
-      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(righeOrd); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:righeOrd,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,12):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,12):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(righeOrd, scontoCliente),_ts:Date.now(),_cloud:true}; })
+      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:Date.now(),_cloud:true}; })
     };
+    const mergedCategories=[...new Set([
+      ...(Array.isArray(localDb?.categorie)?localDb.categorie:[]),
+      ...(Array.isArray(db?.categorie)?db.categorie:[]),
+      ...((localDb?.articoli||[]).map(a=>normalizeSpaceText(a?.categoria||''))),
+      ...((db?.articoli||[]).map(a=>normalizeSpaceText(a?.categoria||'')))
+    ].map(v=>normalizeSpaceText(v)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+    const mergedBrands=[...new Set([
+      ...(Array.isArray(localDb?.brands)?localDb.brands:[]),
+      ...(Array.isArray(db?.brands)?db.brands:[]),
+      ...((localDb?.articoli||[]).map(a=>normalizeSpaceText(a?.brand||''))),
+      ...((db?.articoli||[]).map(a=>normalizeSpaceText(a?.brand||'')))
+    ].map(v=>normalizeSpaceText(v)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+    db.categorie=mergedCategories;
+    db.brands=mergedBrands;
+
     updateShippingNotifications(db, bg?'cloud-auto':'cloud');
     saveDBLocal(db);
     renderAll();
@@ -6550,21 +7394,42 @@ async function cloudLogout(){
 }
 
 /* init */
-renderAll();
-initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship']);
-updateArticleColorModeUI();
-document.getElementById('a_color_suggest_btn')?.addEventListener('click', async ()=>{ try{ await suggestArticleColorLabelsFromImage(); }catch(err){ console.warn('Suggerimento colori fallito', err); toast('Non sono riuscita a leggere bene la foto'); } });
-document.getElementById('a_color_labels_clear_btn')?.addEventListener('click', ()=>{ const el=document.getElementById('a_color_labels'); if(el){ el.value=''; saveArticleDraft(); toast('Abbinamenti colore puliti'); } });
-renderDiagnostics();
-fillUiEditor();
-applyUiPrefs();
-const initial=location.hash.replace('#','')||'home';
-history.replaceState({page:initial, artBrowse:{...artBrowseState}},'', '#'+initial);
-go(initial,false);
-cloudUi();
-refreshAutoCloudPull();
-requestPersistentStorage();
-ensureCloud().catch(err=>console.warn('Cloud init fallita', err));
+async function bootApp(){
+  await runOneTimeFreshReset();
+  renderAll();
+  initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship']);
+  updateArticleColorModeUI();
+  document.getElementById('a_color_suggest_btn')?.addEventListener('click', async ()=>{ try{ await suggestArticleColorLabelsFromImage(); }catch(err){ console.warn('Suggerimento colori fallito', err); toast('Non sono riuscita a leggere bene la foto'); } });
+  document.getElementById('a_color_labels_clear_btn')?.addEventListener('click', ()=>{ const el=document.getElementById('a_color_labels'); if(el){ el.value=''; saveArticleDraft(); toast('Abbinamenti colore puliti'); } });
+  renderDiagnostics();
+  fillUiEditor();
+  applyUiPrefs();
+  const initial=location.hash.replace('#','')||'home';
+  history.replaceState({page:initial, artBrowse:{...artBrowseState}},'', '#'+initial);
+  go(initial,false);
+  cloudUi();
+  refreshAutoCloudPull();
+  requestPersistentStorage();
+  ensureCloud().catch(err=>console.warn('Cloud init fallita', err));
+}
+bootApp();
+try{
+  const __vgBuildKey='VG_BUILD_ACTIVE';
+  const __vgPrevBuild=localStorage.getItem(__vgBuildKey);
+  if(__vgPrevBuild!==VG_BUILD){
+    localStorage.setItem(__vgBuildKey, VG_BUILD);
+    if('caches' in window){
+      caches.keys().then(keys=>Promise.all(keys.filter(k=>/^vg-runtime-/.test(k)).map(k=>caches.delete(k)))).catch(()=>{});
+    }
+  }
+}catch(_e){}
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./service-worker.js?v=baseclean1', { updateViaCache:'none' }).then(reg=>{
+      try{ reg.update(); }catch(_e){}
+    }).catch(err=>console.warn('Registrazione service worker fallita', err));
+  }, {once:true});
+}
 </script>
 </body>
 </html>
