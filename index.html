@@ -377,23 +377,23 @@ window.addEventListener('error',e=>{
 
   <div id="sec_impostazioni" class="section">
     <div class="card">
-      <div class="h2" id="settingsTitle">Impostazioni</div>
-      <div class="small">Strumenti cloud e manutenzione. Backup JSON nascosti per evitare tocchi accidentali.</div>
+      <div class="h2">Impostazioni</div>
+      <div class="small">Backup e strumenti</div>
       <div class="actions">
-        <button class="btn" data-action="exportFull" data-json-tool>Export DB (tutto)</button>
-        <button class="btn" data-action="exportLite" data-json-tool>Export DB (senza foto)</button>
-        <select id="importMode" class="btn" style="appearance:auto;min-width:170px" data-json-tool>
+        <button class="btn" data-action="exportFull">Export DB (tutto)</button>
+        <button class="btn" data-action="exportLite">Export DB (senza foto)</button>
+        <select id="importMode" class="btn" style="appearance:auto;min-width:170px">
           <option value="replace">Importa e sostituisci tutto</option>
           <option value="merge">Importa e unisci ai dati attuali</option>
         </select>
-        <label class="btn" style="display:inline-block" data-json-tool>
+        <label class="btn" style="display:inline-block">
           Import JSON<input id="importFile" type="file" accept="application/json" style="display:none"/>
         </label>
         <button class="btn" data-action="refreshDiag">Aggiorna diagnostica</button>
         <button class="btn danger" data-action="repairArchive">Ripara archivio</button>
         <button class="btn danger" data-action="hardReset">Reset totale</button>
       </div>
-      <div class="small" style="margin-top:10px" id="importHint">Usa il cloud per ricaricare articoli, clienti, ordini, categorie e foto. Per mostrare i pulsanti JSON apri <b>?json=1</b> oppure fai 5 tocchi rapidi sul titolo Impostazioni.</div>
+      <div class="small" style="margin-top:10px" id="importHint">Scegli prima se vuoi sostituire tutto il database oppure unire il JSON ai dati già presenti.</div>
     </div>
     
       <div class="card" style="margin-top:12px">
@@ -818,25 +818,25 @@ window.addEventListener('error',e=>{
 
 <script>
 /* ====== DB ====== */
-const KEY='vg_db_full_v9_simplefull';
+const KEY='vg_db_full_v7_clean';
 const LEGACY_KEYS=[];
-const PHOTO_DB='vg_photos_v3_simplefull';
+const PHOTO_DB='vg_photos_v2_clean';
 const PHOTO_STORE='photos';
 const PROVINCE=[ "AG","AL","AN","AO","AP","AQ","AR","AT","AV","BA","BG","BI","BL","BN","BO","BR","BS","BT","BZ","CA","CB","CE","CH","CL","CN","CO","CR","CS","CT","CZ","EN","FC","FE","FG","FI","FM","FR","GE","GO","GR","IM","IS","KR","LC","LE","LI","LO","LT","LU","MB","MC","ME","MI","MN","MO","MS","MT","NA","NO","NU","OR","PA","PC","PD","PE","PG","PI","PN","PO","PR","PT","PU","PV","PZ","RA","RC","RE","RG","RI","RM","RN","RO","SA","SI","SO","SP","SR","SS","SU","SV","TA","TE","TN","TO","TP","TR","TS","TV","UD","VA","VB","VC","VE","VI","VR","VT","VV" ];
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
-const ART_DRAFT_KEY='vg_draft_art_v3_simplefull';
-const CLI_DRAFT_KEY='vg_draft_cli_v3_simplefull';
-const ORD_DRAFT_KEY='vg_draft_ord_v3_simplefull';
-const AGENDA_KEY='vg_dashboard_agenda_v4_simplefull';
+const ART_DRAFT_KEY='vg_draft_art_v2_clean';
+const CLI_DRAFT_KEY='vg_draft_cli_v2_clean';
+const ORD_DRAFT_KEY='vg_draft_ord_v2_clean';
+const AGENDA_KEY='vg_dashboard_agenda_v2_clean';
 const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
 const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
 const round5=n=>Math.round(n/5)*5;
 
 function defDB(){
-  return {version:'v6.9-simplefull',articoli:[],clienti:[],ordini:[],categorie:[],brands:[],agenda:[],createdAt:new Date().toISOString()};
+  return {version:'v6.7',articoli:[],clienti:[],ordini:[],categorie:[],brands:[],agenda:[],createdAt:new Date().toISOString()};
 }
 
-const APP_RESET_FLAG='vg_build_reset_20260331_simplefull_v22';
+const APP_RESET_FLAG='vg_build_reset_20260329_clean_v1';
 const APP_RESET_OLD_KEYS=[
   'vg_db_full_v6','vg_db_full_v5','vg_v7_web','vanity_glamour_v9_db',
   'vg_draft_art_v1','vg_draft_cli_v1','vg_draft_ord_v1','vg_dashboard_agenda_v1',
@@ -857,9 +857,9 @@ async function runOneTimeFreshReset(){
       const key=String(k||'');
       if(!key) return false;
       if(APP_RESET_OLD_KEYS.includes(key)) return true;
-      if(/^vg_db_full_v[0-8]/i.test(key)) return true;
-      if(/^vg_draft_(art|cli|ord)_v[12]/i.test(key)) return true;
-      if(/^vg_dashboard_agenda_v[0-3]/i.test(key)) return true;
+      if(/^vg_db_full_/i.test(key)) return true;
+      if(/^vg_draft_(art|cli|ord)_/i.test(key)) return true;
+      if(/^vg_dashboard_agenda_/i.test(key)) return true;
       if(/^vanity_glamour_/i.test(key)) return true;
       if(/^sb-qfjwtawsqfwmsmrrgqfi-auth-token$/i.test(key)) return true;
       return false;
@@ -867,7 +867,7 @@ async function runOneTimeFreshReset(){
     keys.filter(shouldRemove).forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
     try{
       if(typeof indexedDB!=='undefined'){
-        await Promise.all(['vg_photos_v1','vg_photos_v2_clean'].map(name=>new Promise(resolve=>{
+        await Promise.all(['vg_photos_v1'].map(name=>new Promise(resolve=>{
           try{
             const req=indexedDB.deleteDatabase(name);
             req.onsuccess=req.onerror=req.onblocked=()=>resolve(true);
@@ -908,8 +908,8 @@ function normalizeDBShape(o){
     scadenzaPromo:normalizeSpaceText(x?.scadenzaPromo||x?.promoScadenza||x?.promo_date||''),
     nonDisponibile:(typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.disponibile===false || x?.attivo===false),
     disponibile:(typeof x?.disponibile==='boolean') ? x.disponibile : !((typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.attivo===false)),
-    foto:Array.isArray(x?.foto)?x.foto.filter(Boolean):[],
-    photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean):[]
+    foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,15):[],
+    photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,15):[]
   })).map(x=>{
     const shape=deriveColorShape(x);
     return { ...x, ...shape, colorData:makeStableColorData(shape), colore:shape.colorMode==='multiple' ? '' : normalizeSpaceText(x?.colore||'') };
@@ -1507,8 +1507,8 @@ function mergeArticleRecords(prev,item){
     codice:normalizeSpaceText(item?.codice||item?.sku||''),
     brand:normalizeSpaceText(item?.brand||item?.marca||''),
     categoria:normalizeSpaceText(item?.categoria||''),
-    foto:Array.isArray(item?.foto)?item.foto.filter(Boolean):[],
-    photoIds:Array.isArray(item?.photoIds)?item.photoIds.filter(Boolean):[]
+    foto:Array.isArray(item?.foto)?item.foto.filter(Boolean).slice(0,15):[],
+    photoIds:Array.isArray(item?.photoIds)?item.photoIds.filter(Boolean).slice(0,15):[]
   };
   const nextWins=recordRichnessScore(item) >= recordRichnessScore(prev);
   const merged=nextWins ? {...prev, ...item} : {...item, ...prev};
@@ -1522,8 +1522,8 @@ function mergeArticleRecords(prev,item){
   merged.promoAttiva=(typeof merged?.promoAttiva==='boolean') ? merged.promoAttiva : ((typeof item?.promoAttiva==='boolean') ? item.promoAttiva : ((typeof prev?.promoAttiva==='boolean') ? prev.promoAttiva : false));
   merged.prezzoPromo=firstFiniteNumber(merged?.prezzoPromo, merged?.promoPrezzo, item?.prezzoPromo, item?.promoPrezzo, prev?.prezzoPromo, prev?.promoPrezzo, 0);
   merged.scadenzaPromo=normalizeSpaceText(merged?.scadenzaPromo||merged?.promoScadenza||item?.scadenzaPromo||item?.promoScadenza||prev?.scadenzaPromo||prev?.promoScadenza||'');
-  merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]);
-  merged.photoIds=[...new Set([...(prev?.photoIds||[]), ...(item?.photoIds||[])].filter(Boolean).map(String))];
+  merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]).slice(0,15);
+  merged.photoIds=[...new Set([...(prev?.photoIds||[]), ...(item?.photoIds||[])].filter(Boolean).map(String))].slice(0,15);
   return merged;
 }
 function dedupeArticoliWithMap(list=[]){ return dedupeSemanticList(list, normalizeArticleDedupKey, mergeArticleRecords); }
@@ -1954,14 +1954,13 @@ async function listCloudFotoPathsByCode(codice){
   const sb=await ensureCloud();
   if(!sb) return [];
   try{
-    const { data, error } = await sb.storage.from(SUPABASE_BUCKET).list(code, { limit: 100, sortBy: { column: 'name', order: 'asc' } });
+    const { data, error } = await sb.storage.from(SUPABASE_BUCKET).list(code, { limit: 20, sortBy: { column: 'name', order: 'asc' } });
     if(error || !Array.isArray(data)) return [];
-    return normalizeCloudPhotoPathList(
-      data
-        .filter(f=>f && f.name && !String(f.name).endsWith('/'))
-        .map(f=> `${code}/${f.name}`)
-        .filter(Boolean)
-    );
+    return data
+      .filter(f=>f && f.name && !String(f.name).endsWith('/'))
+      .map(f=> `${code}/${f.name}`)
+      .filter(Boolean)
+      .slice(0,15);
   }catch(_e){
     return [];
   }
@@ -1969,59 +1968,57 @@ async function listCloudFotoPathsByCode(codice){
 
 async function getArticlePics(a){
   if(!a) return [];
-  const refs=await getArticleCloudSyncSources(a);
   const out=[];
-  for(const src of refs){
-    const url = (/^data:|^blob:|^https?:\/\//i.test(String(src||'').trim()))
-      ? String(src||'').trim()
-      : await getPublicFotoUrl(src);
-    if(url && !out.includes(url)) out.push(url);
+  const pushPic=(src)=>{
+    const clean=String(src||'').trim();
+    if(!clean || out.includes(clean)) return;
+    out.push(clean);
+  };
+  if(Array.isArray(a.foto) && a.foto.length){
+    for(const path of a.foto.slice(0,15)){
+      const url=await getPublicFotoUrl(path);
+      if(url) pushPic(url);
+      if(out.length>=15) return out.slice(0,15);
+    }
   }
-  return out;
+  if(Array.isArray(a.photoIds) && a.photoIds.length){
+    for(const id of a.photoIds){
+      const x=await idbGet(id);
+      if(!x) continue;
+      if(typeof x==='string') pushPic(x);
+      else if(x instanceof Blob) pushPic(URL.createObjectURL(x));
+      if(out.length>=15) break;
+    }
+  }
+  return out.slice(0,15);
 }
 async function getArticleCloudSyncSources(a){
   if(!a) return [];
   const out=[];
   const pushRef=(src)=>{
-    let clean=String(src||'').trim();
-    if(!clean) return;
-    if(!/^data:|^blob:|^https?:\/\//i.test(clean)){
-      clean=clean.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
-    }
+    const clean=String(src||'').trim();
     if(!clean || out.includes(clean)) return;
     out.push(clean);
   };
-
-  try{
-    if(a.id){
-      const sb=await ensureCloud();
-      if(sb){
-        const { data, error } = await sb.from('prodotti_foto').select('path,ordine').eq('prodotto_id', a.id).order('ordine',{ascending:true});
-        if(!error) normalizeCloudPhotoPathList((data||[]).map(r=>r?.path)).forEach(pushRef);
-      }
+  if(Array.isArray(a.foto) && a.foto.length){
+    for(const src of a.foto.slice(0,15)){
+      const clean=String(src||'').trim();
+      if(!clean) continue;
+      if(/^data:|^https?:\/\//i.test(clean)) pushRef(clean);
+      else pushRef(clean.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), ''));
+      if(out.length>=15) return out.slice(0,15);
     }
-  }catch(_e){}
-
-  try{
-    normalizeCloudPhotoPathList(await listCloudFotoPathsByCode(a.codice||'')).forEach(pushRef);
-  }catch(_e){}
-
-  if(Array.isArray(a.foto)){
-    for(const src of a.foto) pushRef(src);
   }
-
-  if(Array.isArray(a.photoIds)){
+  if(Array.isArray(a.photoIds) && a.photoIds.length){
     for(const id of a.photoIds){
-      try{
-        const x=await idbGet(id);
-        if(!x) continue;
-        if(typeof x==='string') pushRef(x);
-        else if(x instanceof Blob) pushRef(URL.createObjectURL(x));
-      }catch(_e){}
+      const x=await idbGet(id);
+      if(!x) continue;
+      if(typeof x==='string') pushRef(x);
+      else if(x instanceof Blob) pushRef(URL.createObjectURL(x));
+      if(out.length>=15) break;
     }
   }
-
-  return out;
+  return out.slice(0,15);
 }
 async function getStoredPhotoSources(ids=[]){
   const out=[];
@@ -2079,19 +2076,56 @@ function guessPhotoExtension(src, blob){
   if(mime.includes('gif')) return 'gif';
   return 'jpg';
 }
+let __articlePhotoShareCache = null;
+let __articlePhotoShareContext = null;
+let __articlePhotoShareWarmPromise = null;
+function getArticlePhotoShareBaseName(art){
+  return (art?.codice||art?.brand||art?.modello||'articolo').toString().trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'articolo';
+}
+function getCachedArticlePhotoFilesForCtx(ctx){
+  if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx?.cacheKey && Array.isArray(__articlePhotoShareCache.files) && __articlePhotoShareCache.files.length){
+    return __articlePhotoShareCache.files;
+  }
+  return null;
+}
+function getPreparedCurrentArticlePhotoContext(){
+  return (__articlePhotoShareContext && __articlePhotoShareContext.art?.id===currentArtId) ? __articlePhotoShareContext : null;
+}
+async function prepareArticlePhotoShareContext(art){
+  if(!art){
+    __articlePhotoShareContext = null;
+    return null;
+  }
+  const pics=await getArticleCloudSyncSources(art);
+  if(!pics.length){
+    __articlePhotoShareContext = null;
+    return null;
+  }
+  const ctx={ art, pics, baseName:getArticlePhotoShareBaseName(art), cacheKey:`${art.id||''}::${pics.join('|')}` };
+  __articlePhotoShareContext = ctx;
+  return ctx;
+}
+async function warmCurrentArticlePhotoShare(ctx=null, opts={}){
+  const targetCtx = ctx || getPreparedCurrentArticlePhotoContext() || await getCurrentArticlePhotoContext();
+  if(!targetCtx) return [];
+  const cached=getCachedArticlePhotoFilesForCtx(targetCtx);
+  if(cached?.length) return cached;
+  if(__articlePhotoShareWarmPromise && __articlePhotoShareContext?.cacheKey===targetCtx.cacheKey){
+    return __articlePhotoShareWarmPromise;
+  }
+  __articlePhotoShareContext = targetCtx;
+  __articlePhotoShareWarmPromise = ensureCurrentArticlePhotoFiles(targetCtx, opts)
+    .catch(err=>{ console.warn('Warmup foto articolo fallito', err); return []; })
+    .finally(()=>{ __articlePhotoShareWarmPromise = null; });
+  return __articlePhotoShareWarmPromise;
+}
+
 function canNativeShareFiles(files){
   try{
     if(typeof navigator==='undefined' || typeof navigator.share!=='function') return false;
     if(!files?.length) return false;
     if(typeof navigator.canShare!=='function') return true;
     return navigator.canShare({ files:[...files] });
-  }catch(_e){
-    return false;
-  }
-}
-function canNativeShareText(payload){
-  try{
-    return typeof navigator!=='undefined' && typeof navigator.share==='function' && !!(payload?.title || payload?.text || payload?.url);
   }catch(_e){
     return false;
   }
@@ -2108,28 +2142,16 @@ function isShareActivationError(err){
     || msg.includes('requires transient activation')
     || msg.includes('must be handling a user gesture');
 }
-async function tryNativeShareFileSet(files, title, text){
-  if(!canNativeShareFiles(files)) return false;
-  await navigator.share({ files:[...files], title, text });
-  return true;
-}
 async function tryNativeShareArticleFiles(files, baseName){
   if(!files?.length) return false;
+  if(!canNativeShareFiles(files)) return false;
   const count=files.length;
-  return await tryNativeShareFileSet(
-    files,
-    `Foto ${baseName}`,
-    count===1
+  await navigator.share({
+    files:[...files],
+    title:`Foto ${baseName}`,
+    text:count===1
       ? `Salva la foto dell'articolo ${baseName}`
       : `Salva ${count} foto dell'articolo ${baseName}`
-  );
-}
-async function tryNativeShareArticleLinks(urls, baseName){
-  const clean=(urls||[]).map(x=>String(x||'').trim()).filter(Boolean);
-  if(!clean.length || !canNativeShareText({title:`Foto ${baseName}`, text:clean.join('\n')})) return false;
-  await navigator.share({
-    title:`Foto ${baseName}`,
-    text:clean.join('\n')
   });
   return true;
 }
@@ -2152,77 +2174,6 @@ async function buildArticlePhotoFiles(art, pics, baseName){
   }
   return files;
 }
-let __articlePhotoShareCache = null;
-let __articlePhotoShareZipCache = null;
-let __articlePhotoShareContext = null;
-let __articlePhotoShareWarmPromise = null;
-function getArticlePhotoShareBaseName(art){
-  return (art?.codice||art?.brand||art?.modello||'articolo').toString().trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'articolo';
-}
-function getCachedArticlePhotoFilesForCtx(ctx){
-  if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx?.cacheKey && Array.isArray(__articlePhotoShareCache.files) && __articlePhotoShareCache.files.length){
-    return __articlePhotoShareCache.files;
-  }
-  return null;
-}
-function getCachedArticlePhotoZipForCtx(ctx){
-  if(__articlePhotoShareZipCache && __articlePhotoShareZipCache.key===ctx?.cacheKey && __articlePhotoShareZipCache.file){
-    return __articlePhotoShareZipCache.file;
-  }
-  return null;
-}
-function getPreparedCurrentArticlePhotoContext(){
-  return (__articlePhotoShareContext && __articlePhotoShareContext.art?.id===currentArtId) ? __articlePhotoShareContext : null;
-}
-async function prepareArticlePhotoShareContext(art){
-  if(!art){
-    __articlePhotoShareContext = null;
-    return null;
-  }
-  const pics=await getArticleCloudSyncSources(art);
-  if(!pics.length){
-    __articlePhotoShareContext = null;
-    return null;
-  }
-  const ctx={ art, pics, baseName:getArticlePhotoShareBaseName(art), cacheKey:`${art.id||''}::${pics.join('|')}` };
-  __articlePhotoShareContext = ctx;
-  return ctx;
-}
-async function ensureCurrentArticlePhotoZip(ctx, files=null, opts={}){
-  const cached=getCachedArticlePhotoZipForCtx(ctx);
-  if(cached) return cached;
-  const sourceFiles=(Array.isArray(files) && files.length)
-    ? files
-    : await ensureCurrentArticlePhotoFiles(ctx, { silent:!!opts?.silent, prebuildZip:false });
-  if(sourceFiles.length<2) return null;
-  const zipFile = await buildZipFromFiles(sourceFiles, `${ctx.baseName || 'articolo'}_foto.zip`);
-  __articlePhotoShareZipCache = { key: ctx.cacheKey, file: zipFile, at: Date.now() };
-  return zipFile;
-}
-async function warmCurrentArticlePhotoShare(ctx=null, opts={}){
-  const targetCtx = ctx || getPreparedCurrentArticlePhotoContext() || await getCurrentArticlePhotoContext();
-  if(!targetCtx) return [];
-  const cached=getCachedArticlePhotoFilesForCtx(targetCtx);
-  if(cached?.length){
-    if(cached.length>1 && !getCachedArticlePhotoZipForCtx(targetCtx)){
-      ensureCurrentArticlePhotoZip(targetCtx, cached, { silent:true }).catch(err=>console.warn('Warmup ZIP foto articolo fallito', err));
-    }
-    return cached;
-  }
-  if(__articlePhotoShareWarmPromise && __articlePhotoShareContext?.cacheKey===targetCtx.cacheKey){
-    return __articlePhotoShareWarmPromise;
-  }
-  __articlePhotoShareContext = targetCtx;
-  __articlePhotoShareWarmPromise = (async ()=>{
-    const files=await ensureCurrentArticlePhotoFiles(targetCtx, opts);
-    if(files.length>1){
-      await ensureCurrentArticlePhotoZip(targetCtx, files, { silent:true }).catch(err=>console.warn('Warmup ZIP foto articolo fallito', err));
-    }
-    return files;
-  })().catch(err=>{ console.warn('Warmup foto articolo fallito', err); return []; })
-    .finally(()=>{ __articlePhotoShareWarmPromise = null; });
-  return __articlePhotoShareWarmPromise;
-}
 async function getCurrentArticlePhotoContext(){
   const prepared=getPreparedCurrentArticlePhotoContext();
   if(prepared) return prepared;
@@ -2242,114 +2193,37 @@ async function ensureCurrentArticlePhotoFiles(ctx, opts={}){
   const files=await buildArticlePhotoFiles(ctx.art, ctx.pics, ctx.baseName);
   if(files.length){
     __articlePhotoShareCache = { key: ctx.cacheKey, files, at: Date.now() };
-    if(files.length>1 && opts?.prebuildZip!==false){
-      ensureCurrentArticlePhotoZip(ctx, files, { silent:true }).catch(err=>console.warn('Warmup ZIP foto articolo fallito', err));
-    }
   }
   return files;
 }
-async function getArticlePhotoShareUrls(ctx){
-  const out=[];
-  for(const raw of (ctx?.pics||[])){
-    try{
-      const direct=String(raw||'').trim();
-      const url = (/^https?:\/\//i.test(direct)) ? direct : await getPublicFotoUrl(direct);
-      if(/^https?:\/\//i.test(url) && !out.includes(url)) out.push(url);
-    }catch(_e){}
-  }
-  return out;
-}
+
 async function shareCurrentArticlePhotos(){
   let ctx=getPreparedCurrentArticlePhotoContext();
   if(!ctx) ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
 
-  try{
-    const files=getCachedArticlePhotoFilesForCtx(ctx) || await ensureCurrentArticlePhotoFiles(ctx, { silent:true });
+  let files=getCachedArticlePhotoFilesForCtx(ctx) || [];
+  if(!files.length){
+    files = await ensureCurrentArticlePhotoFiles(ctx, { silent:true });
+  }
+  if(!files.length){
+    toast('Nessuna foto condivisibile');
+    return;
+  }
 
-    if(files.length===1){
-      try{
-        const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
-        if(shared){
-          toast('Condivisione aperta per la foto.');
-          return;
-        }
-      }catch(err){
-        if(isShareAbortError(err)) return;
-        if(!isShareActivationError(err)) console.warn('Condivisione singola foto fallita', err);
-      }
-      triggerBlobDownload(files[0], files[0].name || `${ctx.baseName}.jpg`);
-      toast('Condivisione non supportata: ho scaricato la foto nei Download.');
+  try{
+    const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
+    if(shared){
+      toast(files.length===1 ? 'Condivisione aperta per la foto.' : `Condivisione aperta per ${files.length} foto.`);
       return;
     }
-
-    if(files.length>1){
-      try{
-        const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
-        if(shared){
-          toast(`Condivisione aperta per ${files.length} foto.`);
-          return;
-        }
-      }catch(err){
-        if(isShareAbortError(err)) return;
-        if(!isShareActivationError(err)) console.warn('Condivisione nativa multi-foto fallita', err);
-      }
-
-      const zipFile = getCachedArticlePhotoZipForCtx(ctx) || await ensureCurrentArticlePhotoZip(ctx, files, { silent:true });
-      if(zipFile){
-        try{
-          const zipShared = await tryNativeShareFileSet([zipFile], `Foto ${ctx.baseName}`, `Tutte le foto dell'articolo ${ctx.baseName} in un file ZIP.`);
-          if(zipShared){
-            toast(`Condivisione aperta con ZIP di ${files.length} foto.`);
-            return;
-          }
-        }catch(err){
-          if(isShareAbortError(err)) return;
-          if(!isShareActivationError(err)) console.warn('Condivisione ZIP foto fallita', err);
-        }
-
-        const urls = await getArticlePhotoShareUrls(ctx);
-        if(urls.length){
-          try{
-            const sharedLinks = await tryNativeShareArticleLinks(urls, ctx.baseName);
-            if(sharedLinks){
-              toast(`Condivisione aperta con ${urls.length} link foto.`);
-              return;
-            }
-          }catch(err){
-            if(isShareAbortError(err)) return;
-            if(!isShareActivationError(err)) console.warn('Condivisione link foto fallita', err);
-          }
-        }
-
-        triggerBlobDownload(zipFile, zipFile.name);
-        toast(`Ho scaricato uno ZIP con ${files.length} foto nei Download.`);
-        return;
-      }
-    }
-
-    const urls = await getArticlePhotoShareUrls(ctx);
-    if(urls.length){
-      try{
-        const sharedLinks = await tryNativeShareArticleLinks(urls, ctx.baseName);
-        if(sharedLinks){
-          toast(`Condivisione aperta con ${urls.length} link foto.`);
-          return;
-        }
-      }catch(err){
-        if(isShareAbortError(err)) return;
-        if(!isShareActivationError(err)) console.warn('Condivisione link foto fallita', err);
-      }
-    }
-
-    toast('Nessuna foto condivisibile');
   }catch(err){
     if(isShareAbortError(err)) return;
-    console.warn('Condivisione foto non riuscita', err);
-    toast('Condivisione foto non riuscita');
+    console.warn('Condivisione nativa foto fallita', err);
   }
-}
 
+  toast('Condivisione diretta non riuscita. Ho evitato il doppio tocco, ma qui il browser sta facendo il fenomeno.');
+}
 const __zipCrcTable = (()=>{
   const table = new Uint32Array(256);
   for(let n=0;n<256;n++){
@@ -2605,6 +2479,7 @@ function normalizeCloudPhotoPathList(list){
     const clean=String(raw||'').trim().replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
     if(!clean || !isLikelyCloudPhotoPath(clean) || out.includes(clean)) continue;
     out.push(clean);
+    if(out.length>=15) break;
   }
   return out;
 }
@@ -5698,8 +5573,8 @@ async function duplicateCurrentArticle(sourceId=null){
   currentArtId=null;
   currentArtPhotosCleared=false;
   currentArtDuplicateData={
-    foto: Array.isArray(clone?.foto) ? clone.foto.filter(Boolean) : [],
-    photoIds: Array.isArray(clone?.photoIds) ? clone.photoIds.filter(Boolean) : []
+    foto: Array.isArray(clone?.foto) ? clone.foto.filter(Boolean).slice(0,15) : [],
+    photoIds: Array.isArray(clone?.photoIds) ? clone.photoIds.filter(Boolean).slice(0,15) : []
   };
   hide('mArtView', true);
   document.getElementById('artEditTitle').textContent='Duplica articolo';
@@ -5840,7 +5715,7 @@ async function saveArt(){
             }
           }
         }
-        obj.photoIds=[...new Set([...(obj.photoIds||[]), ...localPhotoIds])];
+        obj.photoIds=[...new Set([...(obj.photoIds||[]), ...localPhotoIds])].slice(0,15);
       }
     }
     obj._ts=Date.now();
@@ -6666,9 +6541,9 @@ function importDB(file){
       const incoming=normalizeDBShape(parsed);
       if(!incoming || !Array.isArray(incoming.articoli)||!Array.isArray(incoming.clienti)||!Array.isArray(incoming.ordini)) throw new Error('JSON non compatibile');
       for(const art of incoming.articoli){
-        art.photoIds=Array.isArray(art.photoIds)?art.photoIds.filter(Boolean):[];
+        art.photoIds=Array.isArray(art.photoIds)?art.photoIds.filter(Boolean).slice(0,15):[];
         if(Array.isArray(art.foto) && art.foto.length){
-          for(const src of art.foto){
+          for(const src of art.foto.slice(0,15)){
             const pid='ph_'+uid();
             await idbSet(pid,src);
             art.photoIds.push(pid);
@@ -6699,45 +6574,6 @@ function importDB(file){
     }
   };
   r.readAsText(file);
-}
-
-
-function jsonToolsVisible(){
-  try{
-    const sp=new URLSearchParams(location.search);
-    if(sp.get('json')==='1') return true;
-    if(sp.get('json')==='0') return false;
-    return localStorage.getItem('vg_show_json_tools')==='1';
-  }catch(_e){ return false; }
-}
-function applyJsonToolVisibility(){
-  const show=jsonToolsVisible();
-  document.querySelectorAll('[data-json-tool]').forEach(el=>{
-    el.style.display=show ? '' : 'none';
-  });
-  const hint=document.getElementById('importHint');
-  if(hint){
-    hint.innerHTML = show
-      ? 'Strumenti JSON visibili. Per nasconderli apri <b>?json=0</b> oppure fai altri 5 tocchi sul titolo Impostazioni.'
-      : 'Usa il cloud per ricaricare articoli, clienti, ordini, categorie e foto. Per mostrare i pulsanti JSON apri <b>?json=1</b> oppure fai 5 tocchi rapidi sul titolo Impostazioni.';
-  }
-}
-function setupJsonToolReveal(){
-  const title=document.getElementById('settingsTitle');
-  if(!title) return;
-  let taps=0, timer=null;
-  title.addEventListener('click', ()=>{
-    taps++;
-    clearTimeout(timer);
-    timer=setTimeout(()=>{ taps=0; }, 1200);
-    if(taps>=5){
-      taps=0;
-      const next=jsonToolsVisible() ? '0' : '1';
-      try{ localStorage.setItem('vg_show_json_tools', next); }catch(_e){}
-      applyJsonToolVisibility();
-      toast(next==='1' ? 'Pulsanti JSON mostrati' : 'Pulsanti JSON nascosti');
-    }
-  });
 }
 
 
@@ -7068,7 +6904,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-03-31-simplefull-v22';
+const VG_BUILD='2026-03-30-sharefix-final-r9';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -7163,7 +6999,6 @@ async function ensureCloud(){
   if(cloudClient) return cloudClient;
   if(!window.VG_SUPABASE_READY) return null;
   cloudClient=await window.VG_SUPABASE_READY;
-  if(!cloudClient) return null;
   const {data:{session}}=await cloudClient.auth.getSession();
   cloudSession=session||null;
   cloudClient.auth.onAuthStateChange((_e,session)=>{ cloudSession=session||null; cloudUi(); refreshAutoCloudPull(); if(cloudSession) setTimeout(()=>autoCloudPullNow('login'), 1500); });
@@ -7426,7 +7261,7 @@ async function pullCloudToLocal(opts={}){
         const pulledPrezzoVendita=firstFiniteNumber(p.prezzo_vendita, p.prezzo, p.prezzo_vendita_iva, meta.prezzoVendita, meta.prezzo, local?.prezzoVendita, 0);
         const colorShape=deriveColorShape({ colorMode:meta.colorMode||local?.colorMode, colorType:meta.colorType||local?.colorType, colorCount:meta.colorCount||local?.colorCount, colorLabels:meta.colorLabels||local?.colorLabels });
         const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
-        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean):[],_ts:Date.now(),_cloud:true};
+        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,15):[],_ts:Date.now(),_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:Date.now(),_cloud:true}; })
@@ -7532,8 +7367,6 @@ async function cloudLogout(){
 async function bootApp(){
   await runOneTimeFreshReset();
   renderAll();
-  applyJsonToolVisibility();
-  setupJsonToolReveal();
   initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship']);
   updateArticleColorModeUI();
   document.getElementById('a_color_suggest_btn')?.addEventListener('click', async ()=>{ try{ await suggestArticleColorLabelsFromImage(); }catch(err){ console.warn('Suggerimento colori fallito', err); toast('Non sono riuscita a leggere bene la foto'); } });
@@ -7562,7 +7395,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=v22_simple_full', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=sharefix7', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

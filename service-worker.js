@@ -1,4 +1,4 @@
-const VERSION = 'v22_simple_full';
+const VERSION = 'v17_1_nodoubletap';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
