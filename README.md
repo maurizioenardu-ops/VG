@@ -1,23 +1,26 @@
-# Vanity Glamour — versione pronta per GitHub Pages
+# Vanity & Glamour - pacchetto pulito
 
-## Cosa fare
-1. Crea un repository su GitHub.
-2. Carica **tutti** i file di questa cartella nella root del repository.
-3. Su GitHub vai in **Settings → Pages**.
-4. In **Build and deployment** scegli:
-   - **Source**: Deploy from a branch
-   - **Branch**: `main`
-   - **Folder**: `/ (root)`
-5. Salva.
-6. Aspetta 1-2 minuti e apri il link Pages che GitHub mostra.
+Questa versione e' stata ripulita dai file non necessari.
 
-## File importanti
-- `index.html`
-- `supabaseClient.js`
-- `script.js`
-- `manifest.json`
-- `service-worker.js`
-- icone e file accessori
+## Dentro trovi solo il necessario
+- index.html
+- manifest.json
+- service-worker.js
+- supabaseClient.js
+- database.json vuoto
+- reset.html
+- reset-cache.html
+- icone PWA
+- 3 immagini categoria usate dall'interfaccia
+- 2 file SQL Supabase utili per lo storage foto
 
-## Nota cloud
-Per usare Supabase devi fare login dall'app con l'utente creato nel progetto Supabase.
+## Cosa e' stato tolto
+- foto di prova e immagini non usate
+- video e audio inutili
+- zip annidati
+- file di test, check, patch temporanei
+- html duplicati e backup
+- export JSON extra non necessari
+
+## Nota
+L'app parte vuota. Se fai login cloud e sincronizzi, eventuali dati presenti su Supabase possono tornare.

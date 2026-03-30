@@ -818,16 +818,16 @@ window.addEventListener('error',e=>{
 
 <script>
 /* ====== DB ====== */
-const KEY='vg_db_full_v6';
-const LEGACY_KEYS=['vg_db_full_v5','vg_v7_web','vanity_glamour_v9_db'];
-const PHOTO_DB='vg_photos_v1';
+const KEY='vg_db_full_v7_clean';
+const LEGACY_KEYS=[];
+const PHOTO_DB='vg_photos_v2_clean';
 const PHOTO_STORE='photos';
 const PROVINCE=[ "AG","AL","AN","AO","AP","AQ","AR","AT","AV","BA","BG","BI","BL","BN","BO","BR","BS","BT","BZ","CA","CB","CE","CH","CL","CN","CO","CR","CS","CT","CZ","EN","FC","FE","FG","FI","FM","FR","GE","GO","GR","IM","IS","KR","LC","LE","LI","LO","LT","LU","MB","MC","ME","MI","MN","MO","MS","MT","NA","NO","NU","OR","PA","PC","PD","PE","PG","PI","PN","PO","PR","PT","PU","PV","PZ","RA","RC","RE","RG","RI","RM","RN","RO","SA","SI","SO","SP","SR","SS","SU","SV","TA","TE","TN","TO","TP","TR","TS","TV","UD","VA","VB","VC","VE","VI","VR","VT","VV" ];
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
-const ART_DRAFT_KEY='vg_draft_art_v1';
-const CLI_DRAFT_KEY='vg_draft_cli_v1';
-const ORD_DRAFT_KEY='vg_draft_ord_v1';
-const AGENDA_KEY='vg_dashboard_agenda_v1';
+const ART_DRAFT_KEY='vg_draft_art_v2_clean';
+const CLI_DRAFT_KEY='vg_draft_cli_v2_clean';
+const ORD_DRAFT_KEY='vg_draft_ord_v2_clean';
+const AGENDA_KEY='vg_dashboard_agenda_v2_clean';
 const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
 const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
 const round5=n=>Math.round(n/5)*5;
@@ -835,6 +835,52 @@ const round5=n=>Math.round(n/5)*5;
 function defDB(){
   return {version:'v6.7',articoli:[],clienti:[],ordini:[],categorie:[],brands:[],agenda:[],createdAt:new Date().toISOString()};
 }
+
+const APP_RESET_FLAG='vg_build_reset_20260329_clean_v1';
+const APP_RESET_OLD_KEYS=[
+  'vg_db_full_v6','vg_db_full_v5','vg_v7_web','vanity_glamour_v9_db',
+  'vg_draft_art_v1','vg_draft_cli_v1','vg_draft_ord_v1','vg_dashboard_agenda_v1',
+  'vg_photos_v1',
+  'sb-qfjwtawsqfwmsmrrgqfi-auth-token'
+];
+async function runOneTimeFreshReset(){
+  try{
+    if(localStorage.getItem(APP_RESET_FLAG)==='1') return;
+    const keys=[];
+    try{
+      for(let i=0;i<localStorage.length;i++){
+        const k=localStorage.key(i);
+        if(k) keys.push(k);
+      }
+    }catch(_e){}
+    const shouldRemove=(k)=>{
+      const key=String(k||'');
+      if(!key) return false;
+      if(APP_RESET_OLD_KEYS.includes(key)) return true;
+      if(/^vg_db_full_/i.test(key)) return true;
+      if(/^vg_draft_(art|cli|ord)_/i.test(key)) return true;
+      if(/^vg_dashboard_agenda_/i.test(key)) return true;
+      if(/^vanity_glamour_/i.test(key)) return true;
+      if(/^sb-qfjwtawsqfwmsmrrgqfi-auth-token$/i.test(key)) return true;
+      return false;
+    };
+    keys.filter(shouldRemove).forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
+    try{
+      if(typeof indexedDB!=='undefined'){
+        await Promise.all(['vg_photos_v1'].map(name=>new Promise(resolve=>{
+          try{
+            const req=indexedDB.deleteDatabase(name);
+            req.onsuccess=req.onerror=req.onblocked=()=>resolve(true);
+          }catch(_e){ resolve(true); }
+        })));
+      }
+    }catch(_e){}
+    localStorage.setItem(APP_RESET_FLAG,'1');
+  }catch(err){
+    console.warn('Reset iniziale build fallito', err);
+  }
+}
+
 function normalizeDBShape(o){
   if(!o || typeof o!=='object') return defDB();
   const db={
@@ -1894,11 +1940,12 @@ async function getPublicFotoUrl(path){
   if(!src) return '';
   if(/^data:|^https?:\/\//i.test(src)) return src;
   if(isTemporaryLocalPhotoRef(src)) return '';
-  const sb=await ensureCloud();
-  if(!sb) return src;
   const clean=src.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
+  const fallback=buildPublicStorageUrl(clean);
+  const sb=await ensureCloud();
+  if(!sb) return fallback || src;
   const { data } = sb.storage.from(SUPABASE_BUCKET).getPublicUrl(clean);
-  return data?.publicUrl || src;
+  return data?.publicUrl || fallback || src;
 }
 
 async function listCloudFotoPathsByCode(codice){
@@ -2058,7 +2105,7 @@ async function prepareArticlePhotoShareContext(art){
   __articlePhotoShareContext = ctx;
   return ctx;
 }
-async function warmCurrentArticlePhotoShare(ctx=null){
+async function warmCurrentArticlePhotoShare(ctx=null, opts={}){
   const targetCtx = ctx || getPreparedCurrentArticlePhotoContext() || await getCurrentArticlePhotoContext();
   if(!targetCtx) return [];
   const cached=getCachedArticlePhotoFilesForCtx(targetCtx);
@@ -2067,7 +2114,7 @@ async function warmCurrentArticlePhotoShare(ctx=null){
     return __articlePhotoShareWarmPromise;
   }
   __articlePhotoShareContext = targetCtx;
-  __articlePhotoShareWarmPromise = ensureCurrentArticlePhotoFiles(targetCtx)
+  __articlePhotoShareWarmPromise = ensureCurrentArticlePhotoFiles(targetCtx, opts)
     .catch(err=>{ console.warn('Warmup foto articolo fallito', err); return []; })
     .finally(()=>{ __articlePhotoShareWarmPromise = null; });
   return __articlePhotoShareWarmPromise;
@@ -2195,11 +2242,12 @@ async function getCurrentArticlePhotoContext(){
   if(!ctx){ toast('Nessuna foto disponibile'); return null; }
   return ctx;
 }
-async function ensureCurrentArticlePhotoFiles(ctx){
+async function ensureCurrentArticlePhotoFiles(ctx, opts={}){
   if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx.cacheKey && Array.isArray(__articlePhotoShareCache.files) && __articlePhotoShareCache.files.length){
     return __articlePhotoShareCache.files;
   }
-  toast(`Preparo ${ctx.pics.length} foto...`);
+  const silent = !!opts?.silent;
+  if(!silent) toast(`Preparo ${ctx.pics.length} foto...`);
   const files=await buildArticlePhotoFiles(ctx.art, ctx.pics, ctx.baseName);
   if(files.length){
     __articlePhotoShareCache = { key: ctx.cacheKey, files, at: Date.now() };
@@ -2211,10 +2259,20 @@ async function shareCurrentArticlePhotos(){
   if(!ctx) ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
 
-  const files=getCachedArticlePhotoFilesForCtx(ctx) || [];
+  let files=getCachedArticlePhotoFilesForCtx(ctx) || [];
   if(!files.length){
-    warmCurrentArticlePhotoShare(ctx).catch(()=>{});
-    toast(`Sto preparando ${ctx.pics.length} foto. Premi di nuovo “Condividi foto”.`);
+    try{
+      const quickReady=await Promise.race([
+        warmCurrentArticlePhotoShare(ctx, { silent:true }).then(x=>Array.isArray(x)?x:[]),
+        new Promise(res=>setTimeout(()=>res([]), 350))
+      ]);
+      if(Array.isArray(quickReady) && quickReady.length) files=quickReady;
+      else files=getCachedArticlePhotoFilesForCtx(ctx) || [];
+    }catch(_e){}
+  }
+  if(!files.length){
+    warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
+    toast(`Sto preparando ${ctx.pics.length} foto. Appena pronte, ripremi “Condividi foto”.`);
     return;
   }
 
@@ -2238,7 +2296,7 @@ async function shareCurrentArticlePhotos(){
     if(err && err.name==='AbortError') return;
     if(err && err.name==='NotAllowedError'){
       console.warn('Condivisione bloccata per gesto utente non più valido', err);
-      warmCurrentArticlePhotoShare(ctx).catch(()=>{});
+      warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
       toast('Il browser ha bloccato la condivisione. Premi di nuovo “Condividi foto”.');
       return;
     }
@@ -4567,7 +4625,7 @@ function refreshArticlePreviewFilters(){
   }
 }
 
-const DEFAULT_BRANDS=['Louis Vuitton','Gucci','Chanel','Dior','Alexander McQueen','Balenciaga','Versace'];
+const DEFAULT_BRANDS=[];
 function normalizeBrandName(v){
   return String(v||'').trim().replace(/\s+/g,' ').toLowerCase();
 }
@@ -5299,7 +5357,7 @@ async function openArtView(id){
   const vArtSupplierLink=document.getElementById('vArtSupplierLink');
   if(vArtSupplierLink) vArtSupplierLink.value=(a.fornitoreLink||'').trim();
   prepareArticlePhotoShareContext(a).then(ctx=>{
-    if(ctx) warmCurrentArticlePhotoShare(ctx).catch(()=>{});
+    if(ctx) warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
   }).catch(()=>{});
   show('mArtView');
   scheduleModalTextareaFit('mArtView');
@@ -6690,7 +6748,7 @@ document.addEventListener('pointerdown',(ev)=>{
   const btn=ev.target?.closest?.('[data-action="shareArtPhotos"]');
   if(!btn) return;
   const ctx=getPreparedCurrentArticlePhotoContext();
-  if(ctx) warmCurrentArticlePhotoShare(ctx).catch(()=>{});
+  if(ctx) warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
 });
 
 document.addEventListener('click',(ev)=>{
@@ -6928,7 +6986,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-03-29-share-catfix-r3';
+const VG_BUILD='2026-03-30-silent-share-warm-r5';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -6955,6 +7013,17 @@ async function autoCloudPullNow(reason='manual'){
 }
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SUPABASE_BUCKET='articoli';
+
+const SUPABASE_URL='https://qfjwtawsqfwmsmrrgqfi.supabase.co';
+function encodeStoragePath(path){
+  return String(path||'').split('/').map(part=>encodeURIComponent(part)).join('/');
+}
+function buildPublicStorageUrl(path){
+  const clean=String(path||'').trim().replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
+  if(!clean) return '';
+  return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${encodeStoragePath(clean)}`;
+}
+
 const isUuid=v=>UUID_RE.test(String(v||''));
 function cloudUi(){
   const uiPrefs=loadUiPrefs();
@@ -7377,21 +7446,30 @@ async function cloudLogout(){
 }
 
 /* init */
-renderAll();
-initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship']);
-updateArticleColorModeUI();
-document.getElementById('a_color_suggest_btn')?.addEventListener('click', async ()=>{ try{ await suggestArticleColorLabelsFromImage(); }catch(err){ console.warn('Suggerimento colori fallito', err); toast('Non sono riuscita a leggere bene la foto'); } });
-document.getElementById('a_color_labels_clear_btn')?.addEventListener('click', ()=>{ const el=document.getElementById('a_color_labels'); if(el){ el.value=''; saveArticleDraft(); toast('Abbinamenti colore puliti'); } });
-renderDiagnostics();
-fillUiEditor();
-applyUiPrefs();
-const initial=location.hash.replace('#','')||'home';
-history.replaceState({page:initial, artBrowse:{...artBrowseState}},'', '#'+initial);
-go(initial,false);
-cloudUi();
-refreshAutoCloudPull();
-requestPersistentStorage();
-ensureCloud().catch(err=>console.warn('Cloud init fallita', err));
+async function bootApp(){
+  await runOneTimeFreshReset();
+  renderAll();
+  initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship']);
+  updateArticleColorModeUI();
+  document.getElementById('a_color_suggest_btn')?.addEventListener('click', async ()=>{ try{ await suggestArticleColorLabelsFromImage(); }catch(err){ console.warn('Suggerimento colori fallito', err); toast('Non sono riuscita a leggere bene la foto'); } });
+  document.getElementById('a_color_labels_clear_btn')?.addEventListener('click', ()=>{ const el=document.getElementById('a_color_labels'); if(el){ el.value=''; saveArticleDraft(); toast('Abbinamenti colore puliti'); } });
+  renderDiagnostics();
+  fillUiEditor();
+  applyUiPrefs();
+  const initial=location.hash.replace('#','')||'home';
+  history.replaceState({page:initial, artBrowse:{...artBrowseState}},'', '#'+initial);
+  go(initial,false);
+  cloudUi();
+  refreshAutoCloudPull();
+  requestPersistentStorage();
+  ensureCloud().catch(err=>console.warn('Cloud init fallita', err));
+}
+bootApp();
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./service-worker.js').catch(err=>console.warn('Registrazione service worker fallita', err));
+  }, {once:true});
+}
 </script>
 </body>
 </html>
