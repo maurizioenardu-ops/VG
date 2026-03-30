@@ -2001,12 +2001,11 @@ async function getArticleCloudSyncSources(a){
     out.push(clean);
   };
   if(Array.isArray(a.foto) && a.foto.length){
-    for(const src of a.foto.slice(0,15)){
+    for(const src of a.foto){
       const clean=String(src||'').trim();
       if(!clean) continue;
       if(/^data:|^https?:\/\//i.test(clean)) pushRef(clean);
       else pushRef(clean.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), ''));
-      if(out.length>=15) return out.slice(0,15);
     }
   }
   if(Array.isArray(a.photoIds) && a.photoIds.length){
@@ -2015,10 +2014,9 @@ async function getArticleCloudSyncSources(a){
       if(!x) continue;
       if(typeof x==='string') pushRef(x);
       else if(x instanceof Blob) pushRef(URL.createObjectURL(x));
-      if(out.length>=15) break;
     }
   }
-  return out.slice(0,15);
+  return out;
 }
 async function getStoredPhotoSources(ids=[]){
   const out=[];
@@ -2079,12 +2077,20 @@ function guessPhotoExtension(src, blob){
 let __articlePhotoShareCache = null;
 let __articlePhotoShareContext = null;
 let __articlePhotoShareWarmPromise = null;
+let __articlePhotoZipShareCache = null;
+let __articlePhotoZipShareWarmPromise = null;
 function getArticlePhotoShareBaseName(art){
   return (art?.codice||art?.brand||art?.modello||'articolo').toString().trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'articolo';
 }
 function getCachedArticlePhotoFilesForCtx(ctx){
   if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx?.cacheKey && Array.isArray(__articlePhotoShareCache.files) && __articlePhotoShareCache.files.length){
     return __articlePhotoShareCache.files;
+  }
+  return null;
+}
+function getCachedArticlePhotoZipForCtx(ctx){
+  if(__articlePhotoZipShareCache && __articlePhotoZipShareCache.key===ctx?.cacheKey && __articlePhotoZipShareCache.file){
+    return __articlePhotoZipShareCache.file;
   }
   return null;
 }
@@ -2119,15 +2125,39 @@ async function warmCurrentArticlePhotoShare(ctx=null, opts={}){
     .finally(()=>{ __articlePhotoShareWarmPromise = null; });
   return __articlePhotoShareWarmPromise;
 }
+async function ensureCurrentArticlePhotoZipFile(ctx, opts={}){
+  if(!ctx) return null;
+  const cached=getCachedArticlePhotoZipForCtx(ctx);
+  if(cached) return cached;
+  const files=await ensureCurrentArticlePhotoFiles(ctx, { silent:true });
+  if(files.length<=1) return null;
+  const silent = !!opts?.silent;
+  if(!silent) toast(`Preparo ZIP con ${files.length} foto...`);
+  const zipFile = await buildZipFromFiles(files, `${ctx.baseName || 'articolo'}_foto.zip`);
+  __articlePhotoZipShareCache = { key: ctx.cacheKey, file: zipFile, at: Date.now() };
+  return zipFile;
+}
+async function warmCurrentArticlePhotoZipShare(ctx=null, opts={}){
+  const targetCtx = ctx || getPreparedCurrentArticlePhotoContext() || await getCurrentArticlePhotoContext();
+  if(!targetCtx) return null;
+  const cached=getCachedArticlePhotoZipForCtx(targetCtx);
+  if(cached) return cached;
+  if(__articlePhotoZipShareWarmPromise && __articlePhotoShareContext?.cacheKey===targetCtx.cacheKey){
+    return __articlePhotoZipShareWarmPromise;
+  }
+  __articlePhotoShareContext = targetCtx;
+  __articlePhotoZipShareWarmPromise = ensureCurrentArticlePhotoZipFile(targetCtx, opts)
+    .catch(err=>{ console.warn('Warmup ZIP foto articolo fallito', err); return null; })
+    .finally(()=>{ __articlePhotoZipShareWarmPromise = null; });
+  return __articlePhotoZipShareWarmPromise;
+}
 
 function canNativeShareFiles(files){
   try{
     if(typeof navigator==='undefined' || typeof navigator.share!=='function') return false;
     if(!files?.length) return false;
     if(typeof navigator.canShare!=='function') return true;
-    if(navigator.canShare({ files })) return true;
-    if(files.length===1 && navigator.canShare({ files:[files[0]] })) return 'single';
-    return false;
+    return navigator.canShare({ files });
   }catch(_e){
     return false;
   }
@@ -2145,36 +2175,24 @@ function isShareActivationError(err){
     || msg.includes('must be handling a user gesture');
 }
 async function tryNativeShareArticleFiles(files, baseName){
-  const mode = canNativeShareFiles(files);
-  if(!mode) return false;
-
-  const attempts=[];
-  if(mode==='single'){
-    attempts.push({ kind:'single', files:[files[0]] });
-  }else{
-    attempts.push({ kind:'multi', files:[...files] });
-    if(files.length>1) attempts.push({ kind:'single', files:[files[0]] });
-  }
-
-  let lastErr=null;
-  for(const attempt of attempts){
-    try{
-      await navigator.share({
-        files:attempt.files,
-        title:`Foto ${baseName}`,
-        text:attempt.kind==='single'
-          ? `Salva la foto dell'articolo ${baseName}`
-          : `Salva ${attempt.files.length} foto dell'articolo ${baseName}`
-      });
-      return attempt.kind;
-    }catch(err){
-      if(isShareAbortError(err)) throw err;
-      lastErr=err;
-      if(isShareActivationError(err)) throw err;
-    }
-  }
-  if(lastErr) throw lastErr;
-  return false;
+  if(!canNativeShareFiles(files)) return false;
+  await navigator.share({
+    files:[...files],
+    title:`Foto ${baseName}`,
+    text:files.length===1
+      ? `Salva la foto dell'articolo ${baseName}`
+      : `Salva tutte le ${files.length} foto dell'articolo ${baseName}`
+  });
+  return files.length===1 ? 'single' : 'multi';
+}
+async function tryNativeShareArticleZip(zipFile, baseName, count){
+  if(!zipFile || !canNativeShareFiles([zipFile])) return false;
+  await navigator.share({
+    files:[zipFile],
+    title:`Foto ${baseName}`,
+    text:`Salva tutte le ${count} foto dell'articolo ${baseName} in un file ZIP`
+  });
+  return 'zip';
 }
 async function buildArticlePhotoFiles(art, pics, baseName){
 
@@ -2223,32 +2241,63 @@ async function shareCurrentArticlePhotos(){
   if(!ctx) ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
 
-  const cachedFiles=getCachedArticlePhotoFilesForCtx(ctx) || [];
-  if(!cachedFiles.length){
-    warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(err=>console.warn('Warmup foto articolo fallito', err));
-    toast('Sto preparando le foto. Tocca di nuovo “Condividi foto” tra un attimo.');
+  let files=getCachedArticlePhotoFilesForCtx(ctx) || [];
+  if(!files.length && __articlePhotoShareWarmPromise && __articlePhotoShareContext?.cacheKey===ctx.cacheKey){
+    files=await __articlePhotoShareWarmPromise;
+  }
+  if(!files.length){
+    files=await ensureCurrentArticlePhotoFiles(ctx, { silent:true });
+  }
+  if(!files.length){
+    toast('Nessuna foto disponibile');
     return;
   }
 
   try{
-    const shared = await tryNativeShareArticleFiles(cachedFiles, ctx.baseName);
+    const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
     if(shared){
       toast(shared==='single'
-        ? 'Condivisione aperta. Il browser supporta una foto per volta.'
-        : `Condivisione aperta per ${cachedFiles.length} foto.`);
+        ? 'Condivisione aperta per la foto dell\'articolo.'
+        : `Condivisione aperta per tutte le ${files.length} foto.`);
       return;
     }
   }catch(err){
     if(isShareAbortError(err)) return;
     if(isShareActivationError(err)){
       warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
-      toast('La condivisione non è partita al primo tocco. Riprova subito “Condividi foto”.');
+      warmCurrentArticlePhotoZipShare(ctx, { silent:true }).catch(()=>{});
+      toast('La condivisione richiede il tocco diretto del browser. Riapri l\'articolo e riprova una volta.');
       return;
     }
     console.warn('Condivisione nativa foto fallita', err);
   }
 
-  toast('La condivisione diretta delle foto non è partita. Niente link al posto delle foto.');
+  if(files.length>1){
+    try{
+      let zipFile=getCachedArticlePhotoZipForCtx(ctx);
+      if(!zipFile && __articlePhotoZipShareWarmPromise && __articlePhotoShareContext?.cacheKey===ctx.cacheKey){
+        zipFile=await __articlePhotoZipShareWarmPromise;
+      }
+      if(!zipFile){
+        zipFile=await ensureCurrentArticlePhotoZipFile(ctx, { silent:true });
+      }
+      const zipped = await tryNativeShareArticleZip(zipFile, ctx.baseName, files.length);
+      if(zipped){
+        toast(`Condivisione aperta con tutte le ${files.length} foto in ZIP.`);
+        return;
+      }
+    }catch(err){
+      if(isShareAbortError(err)) return;
+      if(isShareActivationError(err)){
+        warmCurrentArticlePhotoZipShare(ctx, { silent:true }).catch(()=>{});
+        toast('La condivisione richiede il tocco diretto del browser. Riapri l\'articolo e riprova una volta.');
+        return;
+      }
+      console.warn('Condivisione ZIP foto fallita', err);
+    }
+  }
+
+  toast('Il browser non supporta la condivisione diretta di tutte le foto. Usa “Scarica foto”.');
 }
 const __zipCrcTable = (()=>{
   const table = new Uint32Array(256);
@@ -5301,7 +5350,11 @@ async function openArtView(id){
   const vArtSupplierLink=document.getElementById('vArtSupplierLink');
   if(vArtSupplierLink) vArtSupplierLink.value=(a.fornitoreLink||'').trim();
   prepareArticlePhotoShareContext(a).then(ctx=>{
-    if(ctx) warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
+    if(ctx){
+      warmCurrentArticlePhotoShare(ctx, { silent:true })
+        .then(()=>warmCurrentArticlePhotoZipShare(ctx, { silent:true }))
+        .catch(()=>{});
+    }
   }).catch(()=>{});
   show('mArtView');
   scheduleModalTextareaFit('mArtView');
@@ -6692,7 +6745,10 @@ document.addEventListener('pointerdown',(ev)=>{
   const btn=ev.target?.closest?.('[data-action="shareArtPhotos"],[data-action="downloadArtPhotos"]');
   if(!btn) return;
   const ctx=getPreparedCurrentArticlePhotoContext();
-  if(ctx) warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
+  if(ctx){
+    warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
+    if(btn.dataset.action==='shareArtPhotos') warmCurrentArticlePhotoZipShare(ctx, { silent:true }).catch(()=>{});
+  }
 });
 
 document.addEventListener('click',(ev)=>{
@@ -6930,7 +6986,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-03-30-sharefix-final-r9';
+const VG_BUILD='2026-03-30-share-onetap-allphotos-r10';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -7421,7 +7477,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=sharefix7', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=sharefix8', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
