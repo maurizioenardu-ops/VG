@@ -1,4 +1,4 @@
-const VERSION = 'v17_0_sharefix7';
+const VERSION = 'v17_1_sharefix8_onetap_allphotos';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
