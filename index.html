@@ -42,7 +42,6 @@ body{-webkit-tap-highlight-color:transparent}
 .artGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .artCard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;box-shadow:0 10px 24px rgba(15,23,42,.05);min-height:152px;display:flex;flex-direction:column;gap:10px;cursor:pointer}
 .artCard.tight{min-height:unset}
-.artCard.is-unavailable{border-color:#ef4444;background:linear-gradient(180deg,#fff5f5 0%,#ffffff 100%);box-shadow:0 10px 24px rgba(239,68,68,.12)}
 .artCardHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .artIcon{width:62px;height:62px;border-radius:18px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:56px;line-height:1;background:linear-gradient(135deg,#fff8ef 0%, #eef4ff 100%);overflow:hidden}
 .artMeta{display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -64,13 +63,12 @@ body{-webkit-tap-highlight-color:transparent}
 .t{font-weight:1000}
 .s{font-size:12px;color:var(--muted);margin-top:2px}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:1000;border:1px solid var(--line);background:#fff}
-.pill.unavailable{background:#fff1f2;border-color:#ef4444;color:#b91c1c;font-weight:1200;letter-spacing:.3px;box-shadow:0 6px 14px rgba(239,68,68,.14);padding:8px 12px}
 .pill.cloudBtn{padding:9px 14px;border-radius:14px;font-size:13px;min-height:42px;box-shadow:0 5px 12px rgba(15,23,42,.08);background:rgba(255,255,255,.98)}
 .cloudBtn.mini{padding:7px 12px;min-height:36px;font-size:12px;border-radius:12px}
 .pill.cloudBtn.primary{background:#e0ecff;border-color:#93c5fd;color:#0f172a}
 .pill.cloudBtn.secondary{background:#fff;border-color:#cbd5e1;color:#0f172a}
 .pricePaid{color:#16a34a!important;font-weight:1000}
-.pill.promo{border-color:#86efac;background:#f0fdf4;color:#166534;box-shadow:0 6px 14px rgba(34,197,94,.12)}
+.pill.promo{border-color:#fecaca;background:#fff1f2;color:#991b1b}
 .dot{width:10px;height:10px;border-radius:999px;background:#16a34a;display:inline-block}
 .priceHot{color:var(--red);font-weight:1000}
 .navBottom{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:8px 10px;z-index:20}
@@ -551,7 +549,6 @@ window.addEventListener('error',e=>{
       <div><div class="k">Modello</div><input id="a_mod" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
       <div><div class="k">Categoria</div><select id="a_cat"><option value="">Seleziona categoria</option></select></div>
     </div>
-    <div style="margin-top:10px"><div class="k">Disponibilità</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_unavailable" type="checkbox" style="width:auto;margin-right:8px"/>Segna come NON DISPONIBILE</label><div class="helper" style="margin-top:6px">L'articolo resta visibile in lista, ma viene segnato come non disponibile e non si può aggiungere agli ordini.</div></div>
     <div style="margin-top:10px"><div class="k">Fornitore</div><select id="a_forn"></select><div id="a_forn_hint" class="date" style="margin-top:6px">Scelta automatica dal codice articolo.</div></div>
   </div>
 
@@ -569,7 +566,7 @@ window.addEventListener('error',e=>{
           <option value="multiple">Più colori</option>
         </select>
       </div>
-      <div><div class="k">Misura</div><input id="a_mis" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="a_mis_hint" class="helper"></div></div>
+      <div><div class="k">Misura</div><input id="a_mis" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
     </div>
     <div class="grid2" style="margin-top:10px">
       <div id="a_color_single_wrap">
@@ -818,16 +815,16 @@ window.addEventListener('error',e=>{
 
 <script>
 /* ====== DB ====== */
-const KEY='vg_db_full_v7_clean';
-const LEGACY_KEYS=[];
-const PHOTO_DB='vg_photos_v2_clean';
+const KEY='vg_db_full_v6';
+const LEGACY_KEYS=['vg_db_full_v5','vg_v7_web','vanity_glamour_v9_db'];
+const PHOTO_DB='vg_photos_v1';
 const PHOTO_STORE='photos';
 const PROVINCE=[ "AG","AL","AN","AO","AP","AQ","AR","AT","AV","BA","BG","BI","BL","BN","BO","BR","BS","BT","BZ","CA","CB","CE","CH","CL","CN","CO","CR","CS","CT","CZ","EN","FC","FE","FG","FI","FM","FR","GE","GO","GR","IM","IS","KR","LC","LE","LI","LO","LT","LU","MB","MC","ME","MI","MN","MO","MS","MT","NA","NO","NU","OR","PA","PC","PD","PE","PG","PI","PN","PO","PR","PT","PU","PV","PZ","RA","RC","RE","RG","RI","RM","RN","RO","SA","SI","SO","SP","SR","SS","SU","SV","TA","TE","TN","TO","TP","TR","TS","TV","UD","VA","VB","VC","VE","VI","VR","VT","VV" ];
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
-const ART_DRAFT_KEY='vg_draft_art_v2_clean';
-const CLI_DRAFT_KEY='vg_draft_cli_v2_clean';
-const ORD_DRAFT_KEY='vg_draft_ord_v2_clean';
-const AGENDA_KEY='vg_dashboard_agenda_v2_clean';
+const ART_DRAFT_KEY='vg_draft_art_v1';
+const CLI_DRAFT_KEY='vg_draft_cli_v1';
+const ORD_DRAFT_KEY='vg_draft_ord_v1';
+const AGENDA_KEY='vg_dashboard_agenda_v1';
 const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
 const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
 const round5=n=>Math.round(n/5)*5;
@@ -835,52 +832,6 @@ const round5=n=>Math.round(n/5)*5;
 function defDB(){
   return {version:'v6.7',articoli:[],clienti:[],ordini:[],categorie:[],brands:[],agenda:[],createdAt:new Date().toISOString()};
 }
-
-const APP_RESET_FLAG='vg_build_reset_20260329_clean_v1';
-const APP_RESET_OLD_KEYS=[
-  'vg_db_full_v6','vg_db_full_v5','vg_v7_web','vanity_glamour_v9_db',
-  'vg_draft_art_v1','vg_draft_cli_v1','vg_draft_ord_v1','vg_dashboard_agenda_v1',
-  'vg_photos_v1',
-  'sb-qfjwtawsqfwmsmrrgqfi-auth-token'
-];
-async function runOneTimeFreshReset(){
-  try{
-    if(localStorage.getItem(APP_RESET_FLAG)==='1') return;
-    const keys=[];
-    try{
-      for(let i=0;i<localStorage.length;i++){
-        const k=localStorage.key(i);
-        if(k) keys.push(k);
-      }
-    }catch(_e){}
-    const shouldRemove=(k)=>{
-      const key=String(k||'');
-      if(!key) return false;
-      if(APP_RESET_OLD_KEYS.includes(key)) return true;
-      if(/^vg_db_full_/i.test(key)) return true;
-      if(/^vg_draft_(art|cli|ord)_/i.test(key)) return true;
-      if(/^vg_dashboard_agenda_/i.test(key)) return true;
-      if(/^vanity_glamour_/i.test(key)) return true;
-      if(/^sb-qfjwtawsqfwmsmrrgqfi-auth-token$/i.test(key)) return true;
-      return false;
-    };
-    keys.filter(shouldRemove).forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
-    try{
-      if(typeof indexedDB!=='undefined'){
-        await Promise.all(['vg_photos_v1'].map(name=>new Promise(resolve=>{
-          try{
-            const req=indexedDB.deleteDatabase(name);
-            req.onsuccess=req.onerror=req.onblocked=()=>resolve(true);
-          }catch(_e){ resolve(true); }
-        })));
-      }
-    }catch(_e){}
-    localStorage.setItem(APP_RESET_FLAG,'1');
-  }catch(err){
-    console.warn('Reset iniziale build fallito', err);
-  }
-}
-
 function normalizeDBShape(o){
   if(!o || typeof o!=='object') return defDB();
   const db={
@@ -906,8 +857,6 @@ function normalizeDBShape(o){
     promoAttiva:(typeof x?.promoAttiva==='boolean') ? x.promoAttiva : !!x?.promo_on,
     prezzoPromo:firstFiniteNumber(x?.prezzoPromo, x?.promoPrezzo, x?.promo_price, 0),
     scadenzaPromo:normalizeSpaceText(x?.scadenzaPromo||x?.promoScadenza||x?.promo_date||''),
-    nonDisponibile:(typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.disponibile===false || x?.attivo===false),
-    disponibile:(typeof x?.disponibile==='boolean') ? x.disponibile : !((typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.attivo===false)),
     foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,15):[],
     photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,15):[]
   })).map(x=>{
@@ -995,13 +944,8 @@ function normalizeDBShape(o){
     righe:Array.isArray(o?.righe)?o.righe:[]
   }));
 
-  db.categorie=[...new Set((db.categorie||[]).map(x=>sanitizeCategoryName(normalizeSpaceText(x))).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
-  db.brands=[...new Set((db.brands||[]).map(x=>sanitizeBrandName(normalizeSpaceText(x))).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
-  db.articoli=(db.articoli||[]).map(a=>({
-    ...a,
-    categoria:sanitizeCategoryName(a?.categoria||''),
-    brand:sanitizeBrandName(a?.brand||'')
-  }));
+  db.categorie=[...new Set((db.categorie||[]).map(x=>normalizeSpaceText(x)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+  db.brands=[...new Set((db.brands||[]).map(x=>normalizeSpaceText(x)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
   return db;
 }
 
@@ -1706,7 +1650,6 @@ function collectArticleDraft(){
       colorMode:document.getElementById('a_color_mode')?.value||'single',
       colorCount:document.getElementById('a_color_count')?.value||'',
       colorLabels:document.getElementById('a_color_labels')?.value||'',
-      nonDisponibile:!!document.getElementById('a_unavailable')?.checked,
       misura:document.getElementById('a_mis')?.value||'',
       costoUsd:document.getElementById('a_usd')?.value||'',
       promoAttiva:!!document.getElementById('a_promo_on')?.checked,
@@ -1741,7 +1684,6 @@ function restoreArticleDraft(targetId=''){
   document.getElementById('a_color_mode').value=(String(v.colorMode||'').toLowerCase()==='multiple' || String(v.colorMode||'').toLowerCase()==='numbered' || Number(v.colorCount||0)>0)?'multiple':'single';
   document.getElementById('a_color_count').value=v.colorCount||'';
   document.getElementById('a_color_labels').value=Array.isArray(v.colorLabels) ? formatColorLabelsInput(v.colorLabels, v.colorCount||0) : (v.colorLabels||'');
-  document.getElementById('a_unavailable').checked=!!v.nonDisponibile;
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=v.misura||'';
   document.getElementById('a_usd').value=v.costoUsd||'';
@@ -1940,12 +1882,11 @@ async function getPublicFotoUrl(path){
   if(!src) return '';
   if(/^data:|^https?:\/\//i.test(src)) return src;
   if(isTemporaryLocalPhotoRef(src)) return '';
-  const clean=src.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
-  const fallback=buildPublicStorageUrl(clean);
   const sb=await ensureCloud();
-  if(!sb) return fallback || src;
+  if(!sb) return src;
+  const clean=src.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
   const { data } = sb.storage.from(SUPABASE_BUCKET).getPublicUrl(clean);
-  return data?.publicUrl || fallback || src;
+  return data?.publicUrl || src;
 }
 
 async function listCloudFotoPathsByCode(codice){
@@ -1954,12 +1895,13 @@ async function listCloudFotoPathsByCode(codice){
   const sb=await ensureCloud();
   if(!sb) return [];
   try{
-    const { data, error } = await sb.storage.from(SUPABASE_BUCKET).list(code, { limit: 100, sortBy: { column: 'name', order: 'asc' } });
+    const { data, error } = await sb.storage.from(SUPABASE_BUCKET).list(code, { limit: 20, sortBy: { column: 'name', order: 'asc' } });
     if(error || !Array.isArray(data)) return [];
     return data
       .filter(f=>f && f.name && !String(f.name).endsWith('/'))
       .map(f=> `${code}/${f.name}`)
-      .filter(Boolean);
+      .filter(Boolean)
+      .slice(0,15);
   }catch(_e){
     return [];
   }
@@ -1974,9 +1916,10 @@ async function getArticlePics(a){
     out.push(clean);
   };
   if(Array.isArray(a.foto) && a.foto.length){
-    for(const path of a.foto){
+    for(const path of a.foto.slice(0,15)){
       const url=await getPublicFotoUrl(path);
       if(url) pushPic(url);
+      if(out.length>=15) return out.slice(0,15);
     }
   }
   if(Array.isArray(a.photoIds) && a.photoIds.length){
@@ -1985,11 +1928,11 @@ async function getArticlePics(a){
       if(!x) continue;
       if(typeof x==='string') pushPic(x);
       else if(x instanceof Blob) pushPic(URL.createObjectURL(x));
+      if(out.length>=15) break;
     }
   }
-  return out;
+  return out.slice(0,15);
 }
-
 async function getArticleCloudSyncSources(a){
   if(!a) return [];
   const out=[];
@@ -1999,11 +1942,12 @@ async function getArticleCloudSyncSources(a){
     out.push(clean);
   };
   if(Array.isArray(a.foto) && a.foto.length){
-    for(const src of a.foto){
+    for(const src of a.foto.slice(0,15)){
       const clean=String(src||'').trim();
       if(!clean) continue;
       if(/^data:|^https?:\/\//i.test(clean)) pushRef(clean);
       else pushRef(clean.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), ''));
+      if(out.length>=15) return out.slice(0,15);
     }
   }
   if(Array.isArray(a.photoIds) && a.photoIds.length){
@@ -2012,9 +1956,10 @@ async function getArticleCloudSyncSources(a){
       if(!x) continue;
       if(typeof x==='string') pushRef(x);
       else if(x instanceof Blob) pushRef(URL.createObjectURL(x));
+      if(out.length>=15) break;
     }
   }
-  return out;
+  return out.slice(0,15);
 }
 async function getStoredPhotoSources(ids=[]){
   const out=[];
@@ -2073,128 +2018,37 @@ function guessPhotoExtension(src, blob){
   return 'jpg';
 }
 let __articlePhotoShareCache = null;
-let __articlePhotoShareContext = null;
-let __articlePhotoShareWarmPromise = null;
-let __articlePhotoZipShareCache = null;
-let __articlePhotoZipShareWarmPromise = null;
-function getArticlePhotoShareBaseName(art){
-  return (art?.codice||art?.brand||art?.modello||'articolo').toString().trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'articolo';
-}
-function getCachedArticlePhotoFilesForCtx(ctx){
-  if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx?.cacheKey && Array.isArray(__articlePhotoShareCache.files) && __articlePhotoShareCache.files.length){
-    return __articlePhotoShareCache.files;
-  }
-  return null;
-}
-function getCachedArticlePhotoZipForCtx(ctx){
-  if(__articlePhotoZipShareCache && __articlePhotoZipShareCache.key===ctx?.cacheKey && __articlePhotoZipShareCache.file){
-    return __articlePhotoZipShareCache.file;
-  }
-  return null;
-}
-function getPreparedCurrentArticlePhotoContext(){
-  return (__articlePhotoShareContext && __articlePhotoShareContext.art?.id===currentArtId) ? __articlePhotoShareContext : null;
-}
-async function prepareArticlePhotoShareContext(art){
-  if(!art){
-    __articlePhotoShareContext = null;
-    return null;
-  }
-  const pics=await getArticlePics(art);
-  if(!pics.length){
-    __articlePhotoShareContext = null;
-    return null;
-  }
-  const ctx={ art, pics, baseName:getArticlePhotoShareBaseName(art), cacheKey:`${art.id||''}::${pics.join('|')}` };
-  __articlePhotoShareContext = ctx;
-  return ctx;
-}
-
-async function warmCurrentArticlePhotoShare(ctx=null, opts={}){
-  const targetCtx = ctx || getPreparedCurrentArticlePhotoContext() || await getCurrentArticlePhotoContext();
-  if(!targetCtx) return [];
-  const cached=getCachedArticlePhotoFilesForCtx(targetCtx);
-  if(cached?.length) return cached;
-  if(__articlePhotoShareWarmPromise && __articlePhotoShareContext?.cacheKey===targetCtx.cacheKey){
-    return __articlePhotoShareWarmPromise;
-  }
-  __articlePhotoShareContext = targetCtx;
-  __articlePhotoShareWarmPromise = ensureCurrentArticlePhotoFiles(targetCtx, opts)
-    .catch(err=>{ console.warn('Warmup foto articolo fallito', err); return []; })
-    .finally(()=>{ __articlePhotoShareWarmPromise = null; });
-  return __articlePhotoShareWarmPromise;
-}
-async function ensureCurrentArticlePhotoZipFile(ctx, opts={}){
-  if(!ctx) return null;
-  const cached=getCachedArticlePhotoZipForCtx(ctx);
-  if(cached) return cached;
-  const files=await ensureCurrentArticlePhotoFiles(ctx, { silent:true });
-  if(files.length<=1) return null;
-  const silent = !!opts?.silent;
-  if(!silent) toast(`Preparo ZIP con ${files.length} foto...`);
-  const zipFile = await buildZipFromFiles(files, `${ctx.baseName || 'articolo'}_foto.zip`);
-  __articlePhotoZipShareCache = { key: ctx.cacheKey, file: zipFile, at: Date.now() };
-  return zipFile;
-}
-async function warmCurrentArticlePhotoZipShare(ctx=null, opts={}){
-  const targetCtx = ctx || getPreparedCurrentArticlePhotoContext() || await getCurrentArticlePhotoContext();
-  if(!targetCtx) return null;
-  const cached=getCachedArticlePhotoZipForCtx(targetCtx);
-  if(cached) return cached;
-  if(__articlePhotoZipShareWarmPromise && __articlePhotoShareContext?.cacheKey===targetCtx.cacheKey){
-    return __articlePhotoZipShareWarmPromise;
-  }
-  __articlePhotoShareContext = targetCtx;
-  __articlePhotoZipShareWarmPromise = ensureCurrentArticlePhotoZipFile(targetCtx, opts)
-    .catch(err=>{ console.warn('Warmup ZIP foto articolo fallito', err); return null; })
-    .finally(()=>{ __articlePhotoZipShareWarmPromise = null; });
-  return __articlePhotoZipShareWarmPromise;
-}
-
 function canNativeShareFiles(files){
   try{
     if(typeof navigator==='undefined' || typeof navigator.share!=='function') return false;
     if(!files?.length) return false;
     if(typeof navigator.canShare!=='function') return true;
-    return navigator.canShare({ files });
+    if(navigator.canShare({ files })) return true;
+    if(files.length===1 && navigator.canShare({ files:[files[0]] })) return 'single';
+    return false;
   }catch(_e){
     return false;
   }
 }
-function isShareAbortError(err){
-  return !!(err && err.name==='AbortError');
-}
-function isShareActivationError(err){
-  const name=String(err?.name||'');
-  const msg=String(err?.message||'').toLowerCase();
-  return name==='NotAllowedError'
-    || msg.includes('user activation')
-    || msg.includes('user gesture')
-    || msg.includes('requires transient activation')
-    || msg.includes('must be handling a user gesture');
-}
 async function tryNativeShareArticleFiles(files, baseName){
-  if(!canNativeShareFiles(files)) return false;
+  const mode = canNativeShareFiles(files);
+  if(!mode) return false;
+  if(mode==='single'){
+    await navigator.share({
+      files:[files[0]],
+      title:`Foto ${baseName}`,
+      text:`Salva la foto dell'articolo ${baseName}`
+    });
+    return 'single';
+  }
   await navigator.share({
-    files:[...files],
+    files,
     title:`Foto ${baseName}`,
-    text:files.length===1
-      ? `Salva la foto dell'articolo ${baseName}`
-      : `Salva tutte le ${files.length} foto dell'articolo ${baseName}`
+    text:`Salva ${files.length} foto dell'articolo ${baseName}`
   });
-  return files.length===1 ? 'single' : 'multi';
-}
-async function tryNativeShareArticleZip(zipFile, baseName, count){
-  if(!zipFile || !canNativeShareFiles([zipFile])) return false;
-  await navigator.share({
-    files:[zipFile],
-    title:`Foto ${baseName}`,
-    text:`Salva tutte le ${count} foto dell'articolo ${baseName} in un file ZIP`
-  });
-  return 'zip';
+  return 'multi';
 }
 async function buildArticlePhotoFiles(art, pics, baseName){
-
   const files=[];
   for(let i=0;i<pics.length;i++){
     try{
@@ -2212,90 +2066,85 @@ async function buildArticlePhotoFiles(art, pics, baseName){
   }
   return files;
 }
+async function tryNativeShareArticleLinks(pics, baseName){
+  try{
+    if(typeof navigator==='undefined' || typeof navigator.share!=='function' || !pics?.length) return false;
+    const urls=[];
+    for(const raw of pics){
+      const clean=String(raw||'').trim();
+      if(!clean) continue;
+      const url = (/^https?:\/\//i.test(clean)) ? clean : await getPublicFotoUrl(clean);
+      if(url && /^https?:\/\//i.test(url) && !urls.includes(url)) urls.push(url);
+      if(urls.length>=10) break;
+    }
+    if(!urls.length) return false;
+    const payload = {
+      title:`Foto ${baseName}`,
+      text:`Foto articolo ${baseName}\n\n${urls.join('\n')}`
+    };
+    if(urls.length===1) payload.url = urls[0];
+    await navigator.share(payload);
+    return true;
+  }catch(err){
+    if(err && err.name==='AbortError') return 'abort';
+    console.warn('Condivisione link foto fallita', err);
+    return false;
+  }
+}
 async function getCurrentArticlePhotoContext(){
-  const prepared=getPreparedCurrentArticlePhotoContext();
-  if(prepared) return prepared;
   const db=loadDB();
   const art=db.articoli.find(x=>x.id===currentArtId);
   if(!art){ toast('Articolo non trovato'); return null; }
-  const ctx=await prepareArticlePhotoShareContext(art);
-  if(!ctx){ toast('Nessuna foto disponibile'); return null; }
-  return ctx;
+  const pics=await getArticleCloudSyncSources(art);
+  if(!pics.length){ toast('Nessuna foto disponibile'); return null; }
+  const baseName=(art.codice||art.brand||art.modello||'articolo').toString().trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'articolo';
+  const cacheKey=`${art.id||''}::${pics.join('|')}`;
+  return { art, pics, baseName, cacheKey };
 }
-async function ensureCurrentArticlePhotoFiles(ctx, opts={}){
+async function ensureCurrentArticlePhotoFiles(ctx){
   if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx.cacheKey && Array.isArray(__articlePhotoShareCache.files) && __articlePhotoShareCache.files.length){
     return __articlePhotoShareCache.files;
   }
-  const silent = !!opts?.silent;
-  if(!silent) toast(`Preparo ${ctx.pics.length} foto...`);
+  toast(`Preparo ${ctx.pics.length} foto...`);
   const files=await buildArticlePhotoFiles(ctx.art, ctx.pics, ctx.baseName);
   if(files.length){
     __articlePhotoShareCache = { key: ctx.cacheKey, files, at: Date.now() };
   }
   return files;
 }
-
 async function shareCurrentArticlePhotos(){
-  let ctx=getPreparedCurrentArticlePhotoContext();
-  if(!ctx) ctx=await getCurrentArticlePhotoContext();
+  const ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
 
-  let files=getCachedArticlePhotoFilesForCtx(ctx) || [];
-  if(!files.length && __articlePhotoShareWarmPromise && __articlePhotoShareContext?.cacheKey===ctx.cacheKey){
-    files=await __articlePhotoShareWarmPromise;
-  }
-  if(!files.length){
-    files=await ensureCurrentArticlePhotoFiles(ctx, { silent:true });
-  }
-  if(!files.length){
-    toast('Nessuna foto disponibile');
-    return;
-  }
-
-  if(files.length===1){
+  const files=await ensureCurrentArticlePhotoFiles(ctx);
+  if(files.length){
     try{
       const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
       if(shared){
-        toast('Condivisione aperta per la foto dell\'articolo.');
+        toast(shared==='single'
+          ? 'Condivisione aperta. Il browser supporta una foto per volta.'
+          : `Condivisione aperta per ${files.length} foto.`);
         return;
       }
     }catch(err){
-      if(isShareAbortError(err)) return;
-      if(isShareActivationError(err)){
-        warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
-        toast('La condivisione richiede il tocco diretto del browser. Riapri l\'articolo e riprova una volta.');
+      if(err && err.name==='AbortError') return;
+      console.warn('Condivisione nativa foto fallita', err);
+      const activationErr = /activation|user gesture|notallowed/i.test(String(err && (err.message||err.name)||''));
+      if(activationErr){
+        toast('Foto pronte. Premi di nuovo “Condividi foto” per aprire la condivisione.');
         return;
       }
-      console.warn('Condivisione nativa foto fallita', err);
     }
-    toast('Il browser non supporta la condivisione diretta della foto. Usa “Scarica foto”.');
+  }
+
+  const sharedLinks = await tryNativeShareArticleLinks(ctx.pics, ctx.baseName);
+  if(sharedLinks===true){
+    toast('Condivisione aperta. Il browser sta inviando i link delle foto.');
     return;
   }
+  if(sharedLinks==='abort') return;
 
-  try{
-    let zipFile=getCachedArticlePhotoZipForCtx(ctx);
-    if(!zipFile && __articlePhotoZipShareWarmPromise && __articlePhotoShareContext?.cacheKey===ctx.cacheKey){
-      zipFile=await __articlePhotoZipShareWarmPromise;
-    }
-    if(!zipFile){
-      zipFile=await ensureCurrentArticlePhotoZipFile(ctx, { silent:true });
-    }
-    const zipped = await tryNativeShareArticleZip(zipFile, ctx.baseName, files.length);
-    if(zipped){
-      toast(`Condivisione aperta con tutte le ${files.length} foto in ZIP.`);
-      return;
-    }
-  }catch(err){
-    if(isShareAbortError(err)) return;
-    if(isShareActivationError(err)){
-      warmCurrentArticlePhotoZipShare(ctx, { silent:true }).catch(()=>{});
-      toast('La condivisione richiede il tocco diretto del browser. Riapri l\'articolo e riprova una volta.');
-      return;
-    }
-    console.warn('Condivisione ZIP foto fallita', err);
-  }
-
-  toast('Il browser non supporta la condivisione di un file ZIP. Usa “Scarica foto”.');
+  toast(files.length ? 'Condivisione foto non supportata da questo browser.' : 'Condivisione foto fallita');
 }
 const __zipCrcTable = (()=>{
   const table = new Uint32Array(256);
@@ -2383,17 +2232,6 @@ function triggerBlobDownload(blob, filename){
   a.remove();
   setTimeout(()=>URL.revokeObjectURL(url), 15000);
 }
-function triggerDirectUrlDownload(url, filename=''){
-  const a=document.createElement('a');
-  a.href=url;
-  if(filename) a.download=filename;
-  a.rel='noopener';
-  a.target='_blank';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-}
-
 async function downloadCurrentArticlePhotos(){
   const ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
@@ -3635,7 +3473,6 @@ function instagramCharacterPhrases(a){
 function buildPostFacebook(a){
   if(!a?.codice) return '';
   const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
-  const premiumLine = articleQualityLabel(a)==='Originale' ? 'QUALITÀ PREMIUM' : '';
   const variante = safePostDetailValue(a?.variante||'', a);
   const materiale = safePostDetailValue(a?.materiale||'', a);
   const misura = safePostDetailValue(postSizeValue(a), a);
@@ -3657,7 +3494,6 @@ function buildPostFacebook(a){
   const lines=[...promoPostIntroLines(a)];
   if(lines.length) lines.push('');
   if(modelLine) lines.push(smartSentenceCase(modelLine));
-  if(premiumLine) lines.push(premiumLine);
   const seen = new Set();
   const pushUnique = (value)=>{
     const txt = compactPostValue(value||'');
@@ -3767,8 +3603,6 @@ function buildCloudArticleMeta(art){
     promoAttiva: !!art?.promoAttiva,
     prezzoPromo: Number(art?.prezzoPromo||0),
     scadenzaPromo: art?.scadenzaPromo||'',
-    nonDisponibile: !!art?.nonDisponibile,
-    disponibile: art?.disponibile===false ? false : !art?.nonDisponibile,
     post: art?.post||'',
     note: art?.note||'',
     foto: normalizeCloudPhotoPathList(art?.foto||[])
@@ -4381,20 +4215,13 @@ function renderHome(){
 function normalizeCategoryName(v){
   return String(v||'').trim().replace(/\s+/g,' ').toLowerCase();
 }
-function isVirtualCategoryName(v){
-  return /^senza\s+categoria$/i.test(String(v||'').trim());
-}
-function sanitizeCategoryName(v){
-  const clean=String(v||'').trim().replace(/\s+/g,' ');
-  return (!clean || isVirtualCategoryName(clean)) ? '' : clean;
-}
 function articleCategoryOptions(db){
   const saved=Array.isArray(db?.categorie)?db.categorie:[];
   const found=(db?.articoli||[]).map(a=>String(a?.categoria||'').trim()).filter(Boolean);
   const out=[];
   const seen=new Set();
   for(const name of [...saved, ...found]){
-    const clean=sanitizeCategoryName(name);
+    const clean=String(name||'').trim().replace(/\s+/g,' ');
     const key=normalizeCategoryName(clean);
     if(!clean || seen.has(key)) continue;
     seen.add(key);
@@ -4414,8 +4241,8 @@ function renderCategorySettings(){
 }
 function addCategory(){
   const input=document.getElementById('catName');
-  const nome=sanitizeCategoryName(input?.value||'');
-  if(!nome){ toast('Scrivi un nome categoria valido'); return; }
+  const nome=String(input?.value||'').trim().replace(/\s+/g,' ');
+  if(!nome){ toast('Scrivi il nome categoria'); return; }
   const db=loadDB();
   const key=normalizeCategoryName(nome);
   const exists=(db.categorie||[]).some(c=>normalizeCategoryName(c)===key) || (db.articoli||[]).some(a=>normalizeCategoryName(a?.categoria)===key);
@@ -4428,19 +4255,15 @@ function addCategory(){
   renderBrandSettings();
   refreshArticleCategorySelects();
   refreshArticleBrandSelects();
-  if(cloudEnabled()){
-    syncCategoryAddToCloud(nome).then(()=>toast('Categoria salvata anche nel cloud')).catch(err=>{ console.error('Sync cloud categoria fallita', err); toast('Categoria salvata in locale, ma cloud non aggiornato'); });
-    return;
-  }
   toast('Categoria salvata');
 }
 function renameCategory(oldName){
-  const cleanOld=sanitizeCategoryName(oldName||'');
+  const cleanOld=String(oldName||'').trim().replace(/\s+/g,' ');
   if(!cleanOld) return;
   const nuovo=window.prompt('Nuovo nome categoria', cleanOld);
   if(nuovo===null) return;
-  const cleanNew=sanitizeCategoryName(nuovo||'');
-  if(!cleanNew){ toast('Nome categoria non valido'); return; }
+  const cleanNew=String(nuovo||'').trim().replace(/\s+/g,' ');
+  if(!cleanNew){ toast('Nome categoria vuoto'); return; }
   const oldKey=normalizeCategoryName(cleanOld);
   const newKey=normalizeCategoryName(cleanNew);
   const db=loadDB();
@@ -4459,16 +4282,12 @@ function renameCategory(oldName){
   renderCategorySettings();
   refreshArticleCategorySelects(cleanNew);
   renderArt();
-  if(cloudEnabled()){
-    syncCategoryRenameInCloud(cleanOld, cleanNew).then(()=>toast('Categoria aggiornata anche nel cloud')).catch(err=>{ console.error('Rinomina cloud categoria fallita', err); toast('Categoria aggiornata in locale, ma cloud non aggiornato'); });
-    return;
-  }
   toast('Categoria aggiornata');
 }
 function deleteCategory(nome){
-  const clean=sanitizeCategoryName(nome||'');
+  const clean=String(nome||'').trim().replace(/\s+/g,' ');
   if(!clean) return;
-  askConfirm(`Elimino la categoria "${clean}"? Gli articoli restano salvati ma finiscono in "Senza categoria".`, async ()=>{
+  askConfirm(`Elimino la categoria "${clean}"? Gli articoli restano salvati ma finiscono in "Senza categoria".`,()=>{
     const db=loadDB();
     const key=normalizeCategoryName(clean);
     db.categorie=(db.categorie||[]).filter(c=>normalizeCategoryName(c)!==key);
@@ -4483,88 +4302,8 @@ function deleteCategory(nome){
     renderCategorySettings();
     refreshArticleCategorySelects();
     renderArt();
-    if(cloudEnabled()){
-      try{
-        await syncCategoryDeleteInCloud(clean);
-        toast('Categoria eliminata anche dal cloud');
-      }catch(err){
-        console.error('Eliminazione cloud categoria fallita', err);
-        toast('Categoria eliminata in locale, ma cloud non aggiornato');
-      }
-      return;
-    }
     toast('Categoria eliminata');
   },'Elimina categoria');
-}
-
-async function listCloudProductsForCategoryName(catName=''){
-  const sb=await ensureCloud();
-  if(!sb||!cloudSession) return { categoryRows:[], products:[] };
-  const clean=sanitizeCategoryName(catName);
-  const {data:categoryRows,error:catErr}=await sb.from('categorie').select('id,nome').eq('nome', clean);
-  if(catErr) throw catErr;
-  const {data:products,error:prodErr}=await sb.from('prodotti').select('id,descrizione,categoria_id,sku');
-  if(prodErr) throw prodErr;
-  return { categoryRows:Array.isArray(categoryRows)?categoryRows:[], products:Array.isArray(products)?products:[] };
-}
-async function syncCategoryAddToCloud(nome){
-  const clean=sanitizeCategoryName(nome);
-  if(!clean) return null;
-  return await ensureCategoryId(clean);
-}
-async function syncCategoryDeleteInCloud(nome){
-  const clean=sanitizeCategoryName(nome);
-  if(!clean) return;
-  const sb=await ensureCloud();
-  if(!sb||!cloudSession) return;
-  const {categoryRows, products}=await listCloudProductsForCategoryName(clean);
-  const catIds=new Set(categoryRows.map(row=>row.id).filter(Boolean));
-  for(const prod of products){
-    const packed=unpackCloudArticleDescription(prod?.descrizione||'');
-    const meta=(packed.meta&&typeof packed.meta==='object') ? packed.meta : {};
-    const matchById=prod?.categoria_id && catIds.has(prod.categoria_id);
-    const matchByMeta=normalizeCategoryName(meta?.categoria||'')===normalizeCategoryName(clean);
-    if(!matchById && !matchByMeta) continue;
-    const nextMeta={...meta, categoria:''};
-    const plain=[String(nextMeta?.descrizione||packed.plain||'').trim(), String(nextMeta?.note||'').trim()].filter(Boolean).join('\n\n');
-    const nextDesc=(plain + `
-
-[VGMETA]${JSON.stringify(nextMeta)}[/VGMETA]`).trim() || null;
-    const {error:updateErr}=await sb.from('prodotti').update({ categoria_id:null, descrizione: nextDesc }).eq('id', prod.id);
-    if(updateErr) throw updateErr;
-  }
-  if(categoryRows.length){
-    const {error:delErr}=await sb.from('categorie').delete().eq('nome', clean);
-    if(delErr) throw delErr;
-  }
-}
-async function syncCategoryRenameInCloud(oldName,newName){
-  const cleanOld=sanitizeCategoryName(oldName);
-  const cleanNew=sanitizeCategoryName(newName);
-  if(!cleanOld || !cleanNew || normalizeCategoryName(cleanOld)===normalizeCategoryName(cleanNew)) return;
-  const sb=await ensureCloud();
-  if(!sb||!cloudSession) return;
-  const newId=await ensureCategoryId(cleanNew);
-  const {categoryRows, products}=await listCloudProductsForCategoryName(cleanOld);
-  const catIds=new Set(categoryRows.map(row=>row.id).filter(Boolean));
-  for(const prod of products){
-    const packed=unpackCloudArticleDescription(prod?.descrizione||'');
-    const meta=(packed.meta&&typeof packed.meta==='object') ? packed.meta : {};
-    const matchById=prod?.categoria_id && catIds.has(prod.categoria_id);
-    const matchByMeta=normalizeCategoryName(meta?.categoria||'')===normalizeCategoryName(cleanOld);
-    if(!matchById && !matchByMeta) continue;
-    const nextMeta={...meta, categoria:cleanNew};
-    const plain=[String(nextMeta?.descrizione||packed.plain||'').trim(), String(nextMeta?.note||'').trim()].filter(Boolean).join('\n\n');
-    const nextDesc=(plain + `
-
-[VGMETA]${JSON.stringify(nextMeta)}[/VGMETA]`).trim() || null;
-    const {error:updateErr}=await sb.from('prodotti').update({ categoria_id:newId||null, descrizione: nextDesc }).eq('id', prod.id);
-    if(updateErr) throw updateErr;
-  }
-  if(categoryRows.length){
-    const {error:delErr}=await sb.from('categorie').delete().eq('nome', cleanOld);
-    if(delErr) throw delErr;
-  }
 }
 function refreshArticleCategorySelects(selectedEdit=''){
   const db=loadDB();
@@ -4616,23 +4355,16 @@ function refreshArticlePreviewFilters(){
   }
 }
 
-const DEFAULT_BRANDS=[];
+const DEFAULT_BRANDS=['Louis Vuitton','Gucci','Chanel','Dior','Alexander McQueen','Balenciaga','Versace'];
 function normalizeBrandName(v){
   return String(v||'').trim().replace(/\s+/g,' ').toLowerCase();
-}
-function isVirtualBrandName(v){
-  return /^senza\s+brand$/i.test(String(v||'').trim());
-}
-function sanitizeBrandName(v){
-  const clean=String(v||'').trim().replace(/\s+/g,' ');
-  return (!clean || isVirtualBrandName(clean)) ? '' : clean;
 }
 function articleBrandOptions(db){
   const seen=new Set();
   const out=[];
   const push=(v)=>{
-    const clean=sanitizeBrandName(v);
-    if(!clean) return;
+    const clean=String(v||'').trim().replace(/\s+/g,' ');
+    if(!clean || /^senza\s+brand$/i.test(clean)) return;
     const key=normalizeBrandName(clean);
     if(!key || seen.has(key)) return;
     seen.add(key);
@@ -4949,13 +4681,6 @@ function normalizeQualityValue(v){
 function articleQualityLabel(a){
   return normalizeQualityValue(a?.qualita||a?.qualità||qualityFromCode(a?.codice)||'');
 }
-function isArticleUnavailable(a){
-  return !!(a && (a.nonDisponibile===true || a.disponibile===false || a.attivo===false));
-}
-function articleAvailabilityBadge(a){
-  if(!isArticleUnavailable(a)) return '';
-  return '<div class="pill unavailable" style="margin-top:6px">NON DISPONIBILE</div>';
-}
 function articleSearchHay(a){
   const catLabel=displayCategoryValue(a?.categoria);
   const brandLabel=displayBrandValue(a?.brand);
@@ -5019,10 +4744,8 @@ function renderArt(){
   }
   const cards=items.map(a=>{
     const promo=pseudoPromoBadge(a);
-    const unavailable=articleAvailabilityBadge(a);
-    const blocked=isArticleUnavailable(a);
     const metaLine=promoOnly ? `${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}` : `${esc(a.codice||'Senza codice')} • ${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
-    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${unavailable}${promo}</div><div class="artPrice">${money(currentPrice(a))}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
+    return `<div class="artCard tight" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${promo}</div><div class="artPrice">${money(currentPrice(a))}</div><div class="artActions"><button class="btn orderAdd small" type="button" data-action="addArtToOrder" data-id="${a.id}">Aggiungi a ordine</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
   }).join('');
   const emptyText=promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.';
   el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
@@ -5307,16 +5030,6 @@ async function openArtView(id){
   document.getElementById('vArtQual').textContent=articleQualityLabel(a)||'-';
   document.getElementById('vArtBrand').textContent=a.brand||'-';
   document.getElementById('vArtForn').textContent=a.fornitore||'-';
-  const availabilityEl=document.getElementById('vArtAvailability');
-  if(availabilityEl) availabilityEl.innerHTML=isArticleUnavailable(a) ? '<span class="pill unavailable">NON DISPONIBILE</span>' : 'Disponibile';
-  const addFromViewBtn=document.querySelector('[data-action="addArtToOrderFromView"]');
-  if(addFromViewBtn){
-    const blocked=isArticleUnavailable(a);
-    addFromViewBtn.disabled=blocked;
-    addFromViewBtn.classList.toggle('is-disabled', blocked);
-    addFromViewBtn.textContent=blocked ? 'Non disponibile' : 'Aggiungi a ordine';
-    addFromViewBtn.title=blocked ? 'Articolo non disponibile per nuovi ordini' : 'Aggiungi a ordine';
-  }
   const colorMode=getArticleColorMode(a);
   const colorCount=getArticleColorCount(a);
   const colorLabels=getArticleColorLabels(a);
@@ -5347,13 +5060,6 @@ async function openArtView(id){
   fitTextarea(document.getElementById('vArtPostIg'));
   const vArtSupplierLink=document.getElementById('vArtSupplierLink');
   if(vArtSupplierLink) vArtSupplierLink.value=(a.fornitoreLink||'').trim();
-  prepareArticlePhotoShareContext(a).then(ctx=>{
-    if(ctx){
-      warmCurrentArticlePhotoShare(ctx, { silent:true })
-        .then(()=>warmCurrentArticlePhotoZipShare(ctx, { silent:true }))
-        .catch(()=>{});
-    }
-  }).catch(()=>{});
   show('mArtView');
   scheduleModalTextareaFit('mArtView');
 }
@@ -5361,7 +5067,6 @@ async function openArtEdit(id){
   const db=loadDB();
   const a=id?db.articoli.find(x=>x.id===id):null;
   currentArtId=id||null;
-  if(!currentArtId) __articlePhotoShareContext=null;
   currentArtDuplicateData=null;
   currentArtPhotosCleared=false;
   document.getElementById('artEditTitle').textContent = a?'Modifica articolo':'Nuovo articolo';
@@ -5373,7 +5078,6 @@ async function openArtEdit(id){
     document.getElementById('a_color_mode').value='single';
     document.getElementById('a_color_count').value='';
     document.getElementById('a_color_labels').value='';
-    document.getElementById('a_unavailable').checked=false;
     updateArticleColorModeUI();
     syncBrandField('');
     refreshArticleCategorySelects('');
@@ -5382,7 +5086,6 @@ async function openArtEdit(id){
     currentArtExistingPics=[];
     renderArtPhotoPrev([]);
     restoreArticleDraft('');
-    updateArticleMeasureState();
     updateArticleCodeStatus();
     show('mArtEdit');
     scheduleModalTextareaFit('mArtEdit');
@@ -5391,7 +5094,7 @@ async function openArtEdit(id){
   set('a_cod', a?.codice); syncBrandField(a?.brand); set('a_mod', a?.modello);
   refreshArticleCategorySelects(a?.categoria||'');
   set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
-  set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
+  set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); updateArticleColorModeUI();
   set('a_mis', a?.misura); set('a_usd', a?.costoUsd||'');
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
   set('a_promo_date', a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||'');
@@ -5407,7 +5110,6 @@ async function openArtEdit(id){
   currentArtExistingPics=await getArticlePics(a);
   renderArtPhotoPrev(currentArtExistingPics);
   restoreArticleDraft(a?.id||'');
-  updateArticleMeasureState();
   updateArticleCodeStatus();
   show('mArtEdit');
   scheduleModalTextareaFit('mArtEdit');
@@ -5668,7 +5370,6 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_color_mode').value=getArticleColorMode(clone);
   document.getElementById('a_color_count').value=getArticleColorCount(clone)||'';
   document.getElementById('a_color_labels').value=formatColorLabelsInput(getArticleColorLabels(clone), getArticleColorCount(clone));
-  document.getElementById('a_unavailable').checked=isArticleUnavailable(clone);
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=clone.misura||'';
   document.getElementById('a_usd').value=clone.costoUsd||'';
@@ -5686,7 +5387,6 @@ async function duplicateCurrentArticle(sourceId=null){
   currentArtExistingPics=await getArticlePics(a);
   renderArtPhotoPrev(currentArtExistingPics);
   renderArtAutoFields();
-  updateArticleMeasureState();
   updateArticleCodeStatus();
   show('mArtEdit');
   scheduleModalTextareaFit('mArtEdit');
@@ -5702,15 +5402,6 @@ async function saveArt(){
     const colorLabels=parseColorLabelsInput(document.getElementById('a_color_labels').value||'', colorCount);
     if(!code){ toast('Codice articolo obbligatorio'); return; }
     if(colorMode==='multiple' && colorCount<2){ toast('Se scegli Più colori devi indicare almeno 2 varianti'); return; }
-
-    const categoriaValue=document.getElementById('a_cat').value.trim();
-    const misuraValue=document.getElementById('a_mis').value.trim();
-    if(articleCategoryNeedsMeasure(categoriaValue) && !misuraValue){
-      updateArticleMeasureState();
-      toast('Per scarpe e cinture la misura è obbligatoria');
-      document.getElementById('a_mis')?.focus();
-      return;
-    }
 
     const codeLower=safeLower(code);
     const exists = db.articoli.find(a => 
@@ -5732,7 +5423,7 @@ async function saveArt(){
       codice: code,
       brand: getArticleBrandValue(),
       modello: document.getElementById('a_mod').value.trim(),
-      categoria: categoriaValue,
+      categoria: document.getElementById('a_cat').value.trim(),
       descrizione: document.getElementById('a_desc').value.trim(),
       fornitore: document.getElementById('a_forn').value.trim(),
       fornitoreLink: document.getElementById('a_forn_link').value.trim(),
@@ -5740,14 +5431,12 @@ async function saveArt(){
       taglia: '',
       variante: document.getElementById('a_variante').value.trim(),
       colore: colorMode==='single' ? document.getElementById('a_colore').value.trim() : '',
-      nonDisponibile: !!document.getElementById('a_unavailable').checked,
-      disponibile: !document.getElementById('a_unavailable').checked,
       colorMode,
       colorType: colorMode,
       colorCount: colorMode==='multiple' ? colorCount : 0,
       colorLabels: colorMode==='multiple' ? colorLabels : [],
       colorData: colorMode==='multiple' ? makeStableColorData({colorMode, colorCount, colorLabels}) : null,
-      misura: misuraValue,
+      misura: document.getElementById('a_mis').value.trim(),
       costoUsd: usd,
       costoEur: r.costo,
       prezzoVendita: r.sell,
@@ -6115,23 +5804,6 @@ async function deleteCli(){
   toast(cloudEnabled() ? 'Cliente eliminato anche dal cloud' : 'Cliente eliminato');
 }
 
-
-function articleCategoryNeedsMeasure(rawCat=''){
-  const cat=normalizeTextKey(rawCat||'');
-  return ['scarpa','scarpe','shoe','shoes','cintura','cinture','belt','belts'].some(token=>cat===token || cat.includes(token));
-}
-function updateArticleMeasureState(){
-  const catSel=document.getElementById('a_cat');
-  const mis=document.getElementById('a_mis');
-  const hint=document.getElementById('a_mis_hint');
-  if(!mis) return false;
-  const needed=articleCategoryNeedsMeasure(catSel?.value||'');
-  mis.required=needed;
-  mis.placeholder=needed ? 'Misura obbligatoria' : '';
-  if(hint) hint.textContent=needed ? 'Per scarpe e cinture la misura è obbligatoria.' : '';
-  return needed;
-}
-
 /* ====== ORDINI ====== */
 let currentOrdId=null;
 let ordRows=[];
@@ -6351,11 +6023,10 @@ function fillArtSelect(db, filter=''){
       const code=(a.codice||'').trim();
       const cat=displayCategoryValue(a.categoria);
       const price='€ '+money(currentPrice(a)||0);
-      const blocked=isArticleUnavailable(a);
-      const label=[model, code, cat, price, blocked ? 'NON DISPONIBILE' : ''].filter(Boolean).join(' • ');
-      return `<option value="${a.id}" ${blocked ? 'disabled' : ''}>${esc(label)}</option>`;
+      const label=[model, code, cat, price].filter(Boolean).join(' • ');
+      return `<option value="${a.id}">${esc(label)}</option>`;
     }).join('');
-    if(prev && Array.from(sel.options).some(o=>o.value===prev && !o.disabled)) sel.value=prev;
+    if(prev && Array.from(sel.options).some(o=>o.value===prev)) sel.value=prev;
   }
   if(hidden) hidden.innerHTML='';
   renderSelectedOrderArticlesSummary();
@@ -6376,10 +6047,6 @@ function addRow(){
   ids.forEach((artId)=>{
     const a=db.articoli.find(x=>String(x.id)===String(artId));
     if(!a) return;
-    if(isArticleUnavailable(a)){
-      toast('Articolo segnato come non disponibile');
-      return;
-    }
     if(ordRows.some(r=>String(r.articoloId)===String(artId))){
       toast("Articolo già presente nell'ordine");
       return;
@@ -6739,16 +6406,6 @@ function bindSearchSuggest(inputId, boxId, kind, onApply){
 }
 
 /* ====== EVENTS ====== */
-document.addEventListener('pointerdown',(ev)=>{
-  const btn=ev.target?.closest?.('[data-action="shareArtPhotos"],[data-action="downloadArtPhotos"]');
-  if(!btn) return;
-  const ctx=getPreparedCurrentArticlePhotoContext();
-  if(ctx){
-    warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
-    if(btn.dataset.action==='shareArtPhotos') warmCurrentArticlePhotoZipShare(ctx, { silent:true }).catch(()=>{});
-  }
-});
-
 document.addEventListener('click',(ev)=>{
   const el=ev.target.closest('[data-action],[data-go],[data-open]');
   if(!el) return;
@@ -6885,13 +6542,12 @@ document.addEventListener('click',(ev)=>{
   if(a==='addAgenda') return saveAgendaQuick(document.getElementById('agendaText')?.value||'', document.getElementById('agendaDate')?.value||'');
   if(a==='toggleAgendaDone') return agendaToggleById(el.dataset.id||'');
   if(a==='deleteAgenda') return agendaDeleteById(el.dataset.id||'');
-  if(a==='addArtToOrder'){ const id=el.dataset.id; if(id){ const db=loadDB(); const art=(db.articoli||[]).find(x=>String(x.id)===String(id)); if(art && isArticleUnavailable(art)){ toast('Articolo non disponibile'); return; } return openOrdEdit(currentOrdId||null, id); } return; }
+  if(a==='addArtToOrder'){ const id=el.dataset.id; if(id) return openOrdEdit(currentOrdId||null, id); return; }
   if(a==='addArtToOrderFromView'){
     const targetId=currentArtId || String(document.getElementById('vCod')?.textContent||'').trim();
     const db=loadDB();
     const art=(db.articoli||[]).find(x=>String(x.id)===String(targetId) || String(x.codice||'')===String(targetId));
     if(!art){ toast('Articolo non trovato'); return; }
-    if(isArticleUnavailable(art)){ toast('Articolo non disponibile'); return; }
     hide('mArtView', true);
     return openOrdEdit(currentOrdId||null, art.id);
   }
@@ -6931,7 +6587,7 @@ bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
   ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));
@@ -6960,7 +6616,6 @@ document.getElementById('importFile').addEventListener('change',(e)=>{
   e.target.value='';
 });
 document.getElementById('a_brand')?.addEventListener('change', ()=>{ handleBrandSelectionChange(); saveArticleDraft(); });
-document.getElementById('a_cat')?.addEventListener('change', ()=>{ updateArticleMeasureState(); renderArtAutoFields(); saveArticleDraft(); });
 document.getElementById('a_photo')?.addEventListener('change', ()=>{ refreshArtPhotoPreviewFromInput(); saveArticleDraft(); });
 document.getElementById('btnCloudLogin')?.addEventListener('click', ()=>show('mCloudLogin'));
 document.getElementById('btnCloudLogout')?.addEventListener('click', cloudLogout);
@@ -6984,7 +6639,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-03-30-share-allphotos-guaranteed-r11';
+const VG_BUILD='2026-03-18-cloudfix-r2';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -7011,17 +6666,6 @@ async function autoCloudPullNow(reason='manual'){
 }
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SUPABASE_BUCKET='articoli';
-
-const SUPABASE_URL='https://qfjwtawsqfwmsmrrgqfi.supabase.co';
-function encodeStoragePath(path){
-  return String(path||'').split('/').map(part=>encodeURIComponent(part)).join('/');
-}
-function buildPublicStorageUrl(path){
-  const clean=String(path||'').trim().replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
-  if(!clean) return '';
-  return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${encodeStoragePath(clean)}`;
-}
-
 const isUuid=v=>UUID_RE.test(String(v||''));
 function cloudUi(){
   const uiPrefs=loadUiPrefs();
@@ -7117,7 +6761,7 @@ async function upsertCloudArticle(art){
     prezzo_acquisto: Number(art.costoEur || 0),
     prezzo_vendita: Number(art.prezzoVendita || 0),
     giacenza: 0,
-    attivo: !(art?.nonDisponibile===true || art?.disponibile===false)
+    attivo: true
   };
   if(isUuid(art.id)) payload.id=art.id;
   const {data,error}=await sb.from('prodotti').upsert(payload,{onConflict:'sku'}).select('*').single();
@@ -7323,8 +6967,6 @@ async function pullCloudToLocal(opts={}){
     const localOrdByNumero=new Map((localDb.ordini||[]).map(o=>[normalizeTextKey(ensureOrderNumber(o)),o]).filter(([k])=>k));
     const localOrdByFingerprint=new Map((localDb.ordini||[]).map(o=>[normalizeOrderFingerprint(o),o]).filter(([k])=>k));
     const db={version:'v6',createdAt:new Date().toISOString(),
-      categorie:(cats||[]).map(c=>normalizeSpaceText(c?.nome||'')).filter(Boolean),
-      brands:[],
       articoli:(prod||[]).map(p=>{
         const local=localArtById.get(p.id)||localArtByCode.get(safeLower(p.sku));
         const packed=unpackCloudArticleDescription(p.descrizione||'');
@@ -7340,27 +6982,11 @@ async function pullCloudToLocal(opts={}){
         const pulledCostoEur=firstFiniteNumber(p.prezzo_acquisto, p.costo, p.costo_eur, meta.costoEur, local?.costoEur, 0);
         const pulledPrezzoVendita=firstFiniteNumber(p.prezzo_vendita, p.prezzo, p.prezzo_vendita_iva, meta.prezzoVendita, meta.prezzo, local?.prezzoVendita, 0);
         const colorShape=deriveColorShape({ colorMode:meta.colorMode||local?.colorMode, colorType:meta.colorType||local?.colorType, colorCount:meta.colorCount||local?.colorCount, colorLabels:meta.colorLabels||local?.colorLabels });
-        const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
-        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,15):[],_ts:Date.now(),_cloud:true};
+        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,15):[],_ts:Date.now(),_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:Date.now(),_cloud:true}; })
     };
-    const mergedCategories=[...new Set([
-      ...(Array.isArray(localDb?.categorie)?localDb.categorie:[]),
-      ...(Array.isArray(db?.categorie)?db.categorie:[]),
-      ...((localDb?.articoli||[]).map(a=>normalizeSpaceText(a?.categoria||''))),
-      ...((db?.articoli||[]).map(a=>normalizeSpaceText(a?.categoria||'')))
-    ].map(v=>normalizeSpaceText(v)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
-    const mergedBrands=[...new Set([
-      ...(Array.isArray(localDb?.brands)?localDb.brands:[]),
-      ...(Array.isArray(db?.brands)?db.brands:[]),
-      ...((localDb?.articoli||[]).map(a=>normalizeSpaceText(a?.brand||''))),
-      ...((db?.articoli||[]).map(a=>normalizeSpaceText(a?.brand||'')))
-    ].map(v=>normalizeSpaceText(v)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
-    db.categorie=mergedCategories;
-    db.brands=mergedBrands;
-
     updateShippingNotifications(db, bg?'cloud-auto':'cloud');
     saveDBLocal(db);
     renderAll();
@@ -7444,42 +7070,21 @@ async function cloudLogout(){
 }
 
 /* init */
-async function bootApp(){
-  await runOneTimeFreshReset();
-  renderAll();
-  initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship']);
-  updateArticleColorModeUI();
-  document.getElementById('a_color_suggest_btn')?.addEventListener('click', async ()=>{ try{ await suggestArticleColorLabelsFromImage(); }catch(err){ console.warn('Suggerimento colori fallito', err); toast('Non sono riuscita a leggere bene la foto'); } });
-  document.getElementById('a_color_labels_clear_btn')?.addEventListener('click', ()=>{ const el=document.getElementById('a_color_labels'); if(el){ el.value=''; saveArticleDraft(); toast('Abbinamenti colore puliti'); } });
-  renderDiagnostics();
-  fillUiEditor();
-  applyUiPrefs();
-  const initial=location.hash.replace('#','')||'home';
-  history.replaceState({page:initial, artBrowse:{...artBrowseState}},'', '#'+initial);
-  go(initial,false);
-  cloudUi();
-  refreshAutoCloudPull();
-  requestPersistentStorage();
-  ensureCloud().catch(err=>console.warn('Cloud init fallita', err));
-}
-bootApp();
-try{
-  const __vgBuildKey='VG_BUILD_ACTIVE';
-  const __vgPrevBuild=localStorage.getItem(__vgBuildKey);
-  if(__vgPrevBuild!==VG_BUILD){
-    localStorage.setItem(__vgBuildKey, VG_BUILD);
-    if('caches' in window){
-      caches.keys().then(keys=>Promise.all(keys.filter(k=>/^vg-runtime-/.test(k)).map(k=>caches.delete(k)))).catch(()=>{});
-    }
-  }
-}catch(_e){}
-if('serviceWorker' in navigator){
-  window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=sharefix9', { updateViaCache:'none' }).then(reg=>{
-      try{ reg.update(); }catch(_e){}
-    }).catch(err=>console.warn('Registrazione service worker fallita', err));
-  }, {once:true});
-}
+renderAll();
+initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship']);
+updateArticleColorModeUI();
+document.getElementById('a_color_suggest_btn')?.addEventListener('click', async ()=>{ try{ await suggestArticleColorLabelsFromImage(); }catch(err){ console.warn('Suggerimento colori fallito', err); toast('Non sono riuscita a leggere bene la foto'); } });
+document.getElementById('a_color_labels_clear_btn')?.addEventListener('click', ()=>{ const el=document.getElementById('a_color_labels'); if(el){ el.value=''; saveArticleDraft(); toast('Abbinamenti colore puliti'); } });
+renderDiagnostics();
+fillUiEditor();
+applyUiPrefs();
+const initial=location.hash.replace('#','')||'home';
+history.replaceState({page:initial, artBrowse:{...artBrowseState}},'', '#'+initial);
+go(initial,false);
+cloudUi();
+refreshAutoCloudPull();
+requestPersistentStorage();
+ensureCloud().catch(err=>console.warn('Cloud init fallita', err));
 </script>
 </body>
 </html>
