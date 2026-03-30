@@ -1,8 +1,8 @@
 {
-  "id": "./?v=v18_0_baseclean",
+  "id": "./?v=v21_clean_cloudready",
   "name": "Vanity & Glamour",
   "short_name": "V&G",
-  "start_url": "./?v=v18_0_baseclean",
+  "start_url": "./?v=v21_clean_cloudready",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0f172a",

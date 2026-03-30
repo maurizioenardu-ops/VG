@@ -18,7 +18,7 @@ small{display:block;margin-top:10px;color:#cbd5e1}
     try{ sessionStorage.clear(); }catch(_e){}
     try{
       if(typeof indexedDB!=='undefined'){
-        await Promise.all(['vg_photos_v1','vg_photos_v2_clean','vg_photos_v3_baseclean'].map(name=>new Promise(res=>{
+        await Promise.all(['vg_photos_v1'].map(name=>new Promise(res=>{
           const req=indexedDB.deleteDatabase(name);
           req.onsuccess=req.onerror=req.onblocked=()=>res(true);
         })));

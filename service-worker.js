@@ -1,4 +1,4 @@
-const VERSION = 'v18_0_baseclean';
+const VERSION = 'v21_clean_cloudready';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

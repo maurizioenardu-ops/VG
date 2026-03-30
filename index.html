@@ -377,23 +377,23 @@ window.addEventListener('error',e=>{
 
   <div id="sec_impostazioni" class="section">
     <div class="card">
-      <div class="h2">Impostazioni</div>
-      <div class="small">Backup e strumenti</div>
+      <div class="h2" id="settingsTitle">Impostazioni</div>
+      <div class="small">Strumenti cloud e manutenzione. Backup JSON nascosti per evitare tocchi accidentali.</div>
       <div class="actions">
-        <button class="btn" data-action="exportFull">Export DB (tutto)</button>
-        <button class="btn" data-action="exportLite">Export DB (senza foto)</button>
-        <select id="importMode" class="btn" style="appearance:auto;min-width:170px">
+        <button class="btn" data-action="exportFull" data-json-tool>Export DB (tutto)</button>
+        <button class="btn" data-action="exportLite" data-json-tool>Export DB (senza foto)</button>
+        <select id="importMode" class="btn" style="appearance:auto;min-width:170px" data-json-tool>
           <option value="replace">Importa e sostituisci tutto</option>
           <option value="merge">Importa e unisci ai dati attuali</option>
         </select>
-        <label class="btn" style="display:inline-block">
+        <label class="btn" style="display:inline-block" data-json-tool>
           Import JSON<input id="importFile" type="file" accept="application/json" style="display:none"/>
         </label>
         <button class="btn" data-action="refreshDiag">Aggiorna diagnostica</button>
         <button class="btn danger" data-action="repairArchive">Ripara archivio</button>
         <button class="btn danger" data-action="hardReset">Reset totale</button>
       </div>
-      <div class="small" style="margin-top:10px" id="importHint">Scegli prima se vuoi sostituire tutto il database oppure unire il JSON ai dati già presenti.</div>
+      <div class="small" style="margin-top:10px" id="importHint">Usa il cloud per ricaricare articoli, clienti, ordini, categorie e foto. Per mostrare i pulsanti JSON apri <b>?json=1</b> oppure fai 5 tocchi rapidi sul titolo Impostazioni.</div>
     </div>
     
       <div class="card" style="margin-top:12px">
@@ -818,32 +818,29 @@ window.addEventListener('error',e=>{
 
 <script>
 /* ====== DB ====== */
-const KEY='vg_db_full_v8_baseclean';
+const KEY='vg_db_full_v8_cleanbase';
 const LEGACY_KEYS=[];
-const PHOTO_DB='vg_photos_v3_baseclean';
+const PHOTO_DB='vg_photos_v2_clean';
 const PHOTO_STORE='photos';
 const PROVINCE=[ "AG","AL","AN","AO","AP","AQ","AR","AT","AV","BA","BG","BI","BL","BN","BO","BR","BS","BT","BZ","CA","CB","CE","CH","CL","CN","CO","CR","CS","CT","CZ","EN","FC","FE","FG","FI","FM","FR","GE","GO","GR","IM","IS","KR","LC","LE","LI","LO","LT","LU","MB","MC","ME","MI","MN","MO","MS","MT","NA","NO","NU","OR","PA","PC","PD","PE","PG","PI","PN","PO","PR","PT","PU","PV","PZ","RA","RC","RE","RG","RI","RM","RN","RO","SA","SI","SO","SP","SR","SS","SU","SV","TA","TE","TN","TO","TP","TR","TS","TV","UD","VA","VB","VC","VE","VI","VR","VT","VV" ];
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
-const ART_DRAFT_KEY='vg_draft_art_v3_baseclean';
-const CLI_DRAFT_KEY='vg_draft_cli_v3_baseclean';
-const ORD_DRAFT_KEY='vg_draft_ord_v3_baseclean';
-const AGENDA_KEY='vg_dashboard_agenda_v3_baseclean';
+const ART_DRAFT_KEY='vg_draft_art_v2_clean';
+const CLI_DRAFT_KEY='vg_draft_cli_v2_clean';
+const ORD_DRAFT_KEY='vg_draft_ord_v2_clean';
+const AGENDA_KEY='vg_dashboard_agenda_v3_cleanbase';
 const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
 const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
 const round5=n=>Math.round(n/5)*5;
 
 function defDB(){
-  return {version:'v6.7',articoli:[],clienti:[],ordini:[],categorie:[],brands:[],agenda:[],createdAt:new Date().toISOString()};
+  return {version:'v6.8-cleanbase',articoli:[],clienti:[],ordini:[],categorie:[],brands:[],agenda:[],createdAt:new Date().toISOString()};
 }
 
-const APP_RESET_FLAG='vg_build_reset_20260330_baseclean_v1';
+const APP_RESET_FLAG='vg_build_reset_20260329_clean_v1';
 const APP_RESET_OLD_KEYS=[
-  'vg_db_full_v8_baseclean',
-  'vg_db_full_v7_clean','vg_db_full_v6','vg_db_full_v5','vg_v7_web','vanity_glamour_v9_db',
-  'vg_draft_art_v3_baseclean','vg_draft_cli_v3_baseclean','vg_draft_ord_v3_baseclean','vg_dashboard_agenda_v3_baseclean',
-  'vg_draft_art_v2_clean','vg_draft_cli_v2_clean','vg_draft_ord_v2_clean','vg_dashboard_agenda_v2_clean',
+  'vg_db_full_v6','vg_db_full_v5','vg_v7_web','vanity_glamour_v9_db',
   'vg_draft_art_v1','vg_draft_cli_v1','vg_draft_ord_v1','vg_dashboard_agenda_v1',
-  'vg_photos_v1','vg_photos_v2_clean',
+  'vg_photos_v1',
   'sb-qfjwtawsqfwmsmrrgqfi-auth-token'
 ];
 async function runOneTimeFreshReset(){
@@ -858,8 +855,7 @@ async function runOneTimeFreshReset(){
     }catch(_e){}
     const shouldRemove=(k)=>{
       const key=String(k||'');
-      if(!key || key===APP_RESET_FLAG) return false;
-      if(key===KEY || key===KEY+'_backup_latest') return true;
+      if(!key) return false;
       if(APP_RESET_OLD_KEYS.includes(key)) return true;
       if(/^vg_db_full_/i.test(key)) return true;
       if(/^vg_draft_(art|cli|ord)_/i.test(key)) return true;
@@ -871,7 +867,7 @@ async function runOneTimeFreshReset(){
     keys.filter(shouldRemove).forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
     try{
       if(typeof indexedDB!=='undefined'){
-        await Promise.all(['vg_photos_v1','vg_photos_v2_clean','vg_photos_v3_baseclean'].map(name=>new Promise(resolve=>{
+        await Promise.all(['vg_photos_v1'].map(name=>new Promise(resolve=>{
           try{
             const req=indexedDB.deleteDatabase(name);
             req.onsuccess=req.onerror=req.onblocked=()=>resolve(true);
@@ -6607,6 +6603,45 @@ function importDB(file){
 }
 
 
+function jsonToolsVisible(){
+  try{
+    const sp=new URLSearchParams(location.search);
+    if(sp.get('json')==='1') return true;
+    if(sp.get('json')==='0') return false;
+    return localStorage.getItem('vg_show_json_tools')==='1';
+  }catch(_e){ return false; }
+}
+function applyJsonToolVisibility(){
+  const show=jsonToolsVisible();
+  document.querySelectorAll('[data-json-tool]').forEach(el=>{
+    el.style.display=show ? '' : 'none';
+  });
+  const hint=document.getElementById('importHint');
+  if(hint){
+    hint.innerHTML = show
+      ? 'Strumenti JSON visibili. Per nasconderli apri <b>?json=0</b> oppure fai altri 5 tocchi sul titolo Impostazioni.'
+      : 'Usa il cloud per ricaricare articoli, clienti, ordini, categorie e foto. Per mostrare i pulsanti JSON apri <b>?json=1</b> oppure fai 5 tocchi rapidi sul titolo Impostazioni.';
+  }
+}
+function setupJsonToolReveal(){
+  const title=document.getElementById('settingsTitle');
+  if(!title) return;
+  let taps=0, timer=null;
+  title.addEventListener('click', ()=>{
+    taps++;
+    clearTimeout(timer);
+    timer=setTimeout(()=>{ taps=0; }, 1200);
+    if(taps>=5){
+      taps=0;
+      const next=jsonToolsVisible() ? '0' : '1';
+      try{ localStorage.setItem('vg_show_json_tools', next); }catch(_e){}
+      applyJsonToolVisibility();
+      toast(next==='1' ? 'Pulsanti JSON mostrati' : 'Pulsanti JSON nascosti');
+    }
+  });
+}
+
+
 function searchStartsWith(candidate, query){
   const value=normalizeTextKey(candidate);
   const q=normalizeTextKey(query);
@@ -7397,6 +7432,8 @@ async function cloudLogout(){
 async function bootApp(){
   await runOneTimeFreshReset();
   renderAll();
+  applyJsonToolVisibility();
+  setupJsonToolReveal();
   initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship']);
   updateArticleColorModeUI();
   document.getElementById('a_color_suggest_btn')?.addEventListener('click', async ()=>{ try{ await suggestArticleColorLabelsFromImage(); }catch(err){ console.warn('Suggerimento colori fallito', err); toast('Non sono riuscita a leggere bene la foto'); } });
@@ -7425,7 +7462,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=baseclean1', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=v21_clean_cloudready', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
