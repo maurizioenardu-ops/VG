@@ -2143,58 +2143,45 @@ function normalizeArticleShareFile(file, idx=0){
     return null;
   }
 }
-function getNativeShareBatchCapacity(files){
-  const batches = pickNativeShareFileBatches(files);
-  return batches.length ? batches[0].length : 0;
-}
-function pickNativeShareFileBatches(files){
+function detectNativeShareFileMode(files){
   try{
-    if(typeof navigator==='undefined' || typeof navigator.share!=='function') return [];
+    if(typeof navigator==='undefined' || typeof navigator.share!=='function') return false;
     const normalized=(files||[]).map((file,idx)=>normalizeArticleShareFile(file, idx)).filter(Boolean);
-    if(!normalized.length) return [];
-    let singles=normalized;
-    if(typeof navigator.canShare==='function'){
-      singles=normalized.filter(file=>{
-        try{ return navigator.canShare({ files:[file] }); }catch(_e){ return false; }
-      });
+    if(!normalized.length) return false;
+    if(typeof navigator.canShare!=='function') return normalized.length>1 ? 'multi' : 'single';
+    try{ if(navigator.canShare({ files:normalized })) return normalized.length>1 ? 'multi' : 'single'; }catch(_e){}
+    if(normalized.length===1){
+      try{ if(navigator.canShare({ files:[normalized[0]] })) return 'single'; }catch(_e){}
+      return false;
     }
-    if(!singles.length) return [];
-    const batches=[];
-    for(let size=singles.length; size>=1; size--){
-      for(let start=0; start<=Math.max(0, singles.length-size); start++){
-        const batch=singles.slice(start, start+size);
-        if(typeof navigator.canShare==='function'){
-          try{ if(!navigator.canShare({ files:batch })) continue; }catch(_e){ continue; }
-        }
-        batches.push(batch);
-      }
+    let singleCount=0;
+    for(const file of normalized){
+      try{ if(navigator.canShare({ files:[file] })) singleCount++; }catch(_e){}
     }
-    return batches;
+    if(singleCount===normalized.length && singleCount>0) return 'single_only';
+    if(singleCount>0) return 'partial_only';
+    return false;
   }catch(_e){
-    return [];
+    return false;
   }
 }
 async function tryNativeShareArticleFiles(files, baseName){
-  const batches = pickNativeShareFileBatches(files);
-  if(!batches.length) return { ok:false, reason:'unsupported', count:0, total:(files||[]).length||0 };
-  const total=(files||[]).length||0;
-  let lastErr=null;
-  for(const shareFiles of batches){
-    try{
-      await navigator.share({ files:shareFiles });
-      return {
-        ok:true,
-        count:shareFiles.length,
-        total:total||shareFiles.length,
-        partial:shareFiles.length !== (total||shareFiles.length)
-      };
-    }catch(err){
-      if(err && err.name==='AbortError') throw err;
-      if(err && err.name==='NotAllowedError') throw err;
-      lastErr=err;
-    }
+  const normalized=(files||[]).map((file,idx)=>normalizeArticleShareFile(file, idx)).filter(Boolean);
+  const total=normalized.length;
+  if(!total) return { ok:false, reason:'unsupported', count:0, total:0 };
+  const mode = detectNativeShareFileMode(normalized);
+  if(!mode) return { ok:false, reason:'unsupported', count:0, total };
+  if((mode==='single_only' || mode==='partial_only') && total>1){
+    return { ok:false, reason:mode, count:0, total };
   }
-  return { ok:false, reason:'failed', count:0, total, error:lastErr };
+  try{
+    await navigator.share({ files:normalized });
+    return { ok:true, count:total, total, partial:false, mode };
+  }catch(err){
+    if(err && err.name==='AbortError') throw err;
+    if(err && err.name==='NotAllowedError') throw err;
+    return { ok:false, reason:'failed', count:0, total, error:err, mode };
+  }
 }
 async function buildArticlePhotoFiles(art, pics, baseName){
   const files=[];
@@ -2299,17 +2286,10 @@ async function shareCurrentArticlePhotos(){
 
   let files=getCachedArticlePhotoFilesForCtx(ctx) || [];
   if(!files.length){
-    const fastLinks = await tryImmediateShareArticleLinks(ctx);
-    if(fastLinks===true){
-      warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
-      toast('Condivisione aperta. Intanto preparo anche i file foto in background.');
-      return;
-    }
-    if(fastLinks==='abort') return;
     try{
       const quickReady=await Promise.race([
         warmCurrentArticlePhotoShare(ctx, { silent:true }).then(x=>Array.isArray(x)?x:[]),
-        new Promise(res=>setTimeout(()=>res([]), 650))
+        new Promise(res=>setTimeout(()=>res([]), 700))
       ]);
       if(Array.isArray(quickReady) && quickReady.length) files=quickReady;
       else files=getCachedArticlePhotoFilesForCtx(ctx) || [];
@@ -2317,92 +2297,65 @@ async function shareCurrentArticlePhotos(){
   }
   if(!files.length){
     warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
-    toast(`Sto preparando ${ctx.pics.length} foto. Quando smette di fare il cretino, ripremi “Condividi foto”.`);
+    toast(`Sto preparando ${ctx.pics.length} foto. Ripremi “Condividi foto” tra un attimo.`);
     return;
   }
 
-  let sharedMeta=null;
   const totalFiles=(files||[]).length||0;
-  const nativeBatchCapacity=getNativeShareBatchCapacity(files);
+  let sharedMeta=null;
 
-  if(totalFiles>1 && nativeBatchCapacity>0 && nativeBatchCapacity<totalFiles){
+  try{
+    const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
+    if(shared?.ok){
+      toast(shared.count===1
+        ? 'Condivisione aperta per 1 foto.'
+        : `Condivisione aperta per ${shared.count} foto.`);
+      return;
+    }
+    sharedMeta=shared;
+  }catch(err){
+    if(err && err.name==='AbortError') return;
+    if(err && err.name==='NotAllowedError'){
+      console.warn('Condivisione file bloccata per gesto utente non più valido', err);
+      warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
+      toast('Il browser ha bloccato la condivisione. Premi di nuovo “Condividi foto”.');
+      return;
+    }
+    console.warn('Condivisione nativa foto fallita', err);
+    sharedMeta={ ok:false, reason:'failed', error:err };
+  }
+
+  if(totalFiles>1 && (sharedMeta?.reason==='single_only' || sharedMeta?.reason==='partial_only' || sharedMeta?.reason==='unsupported' || sharedMeta?.reason==='failed')){
     try{
-      toast(`Questo browser/PWA ne mastica ${nativeBatchCapacity} su ${totalFiles}. Provo a condividere uno ZIP unico...`);
       const zipFile = await buildZipFromFiles(files, `${ctx.baseName || 'articolo'}_foto.zip`);
       const zipShared = await tryNativeShareArticleFiles([zipFile], `${ctx.baseName || 'articolo'}_foto_zip`);
       if(zipShared?.ok){
-        toast(`Condivisione aperta con archivio ZIP di ${totalFiles} foto.`);
+        toast(`Condivisione aperta con ZIP di ${totalFiles} foto.`);
         return;
       }
-      sharedMeta={ ok:false, reason:'zip_unsupported', error:zipShared?.error || null };
+      sharedMeta = { ok:false, reason: zipShared?.reason || 'zip_failed', error: zipShared?.error || null };
     }catch(err){
       if(err && err.name==='AbortError') return;
       if(err && err.name==='NotAllowedError'){
         console.warn('Condivisione ZIP bloccata per gesto utente non più valido', err);
-        const fastLinks = await tryImmediateShareArticleLinks(ctx);
-        if(fastLinks===true){
-          toast('Il browser ha rifiutato lo ZIP, ma ha aperto la condivisione dei link foto.');
-          return;
-        }
-        if(fastLinks==='abort') return;
         warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
-        toast('Il browser ha bloccato la condivisione dello ZIP. Premi di nuovo “Condividi foto”.');
+        toast('Il browser ha bloccato lo ZIP. Premi di nuovo “Condividi foto”.');
         return;
       }
       console.warn('Condivisione ZIP foto fallita', err);
-      sharedMeta={ ok:false, reason:'zip_failed', error:err };
-    }
-  }else{
-    try{
-      const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
-      if(shared?.ok){
-        if(shared.count===1){
-          toast(shared.total>1
-            ? 'Condivisione aperta. Questo browser/PWA regge una foto per volta.'
-            : 'Condivisione aperta per 1 foto.');
-        }else if(shared.partial){
-          toast(`Condivisione aperta per ${shared.count} foto su ${shared.total}. Il browser ne limita una parte.`);
-        }else{
-          toast(`Condivisione aperta per ${shared.count} foto.`);
-        }
-        return;
-      }
-      sharedMeta=shared;
-    }catch(err){
-      if(err && err.name==='AbortError') return;
-      if(err && err.name==='NotAllowedError'){
-        console.warn('Condivisione bloccata per gesto utente non più valido', err);
-        const fastLinks = await tryImmediateShareArticleLinks(ctx);
-        if(fastLinks===true){
-          toast('Il browser ha snobbato i file, ma ha aperto la condivisione dei link foto.');
-          return;
-        }
-        if(fastLinks==='abort') return;
-        warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
-        toast('Il browser ha bloccato la condivisione file. Premi di nuovo “Condividi foto”.');
-        return;
-      }
-      console.warn('Condivisione nativa foto fallita', err);
-      sharedMeta={ ok:false, reason:'failed', error:err };
+      sharedMeta = { ok:false, reason:'zip_failed', error:err };
     }
   }
 
-  const linkShare=await tryNativeShareArticleLinks(ctx.pics, ctx.baseName);
-  if(linkShare===true){
-    toast('Questo browser/PWA non porta tutte le foto come file: ho aperto la condivisione dei link foto.');
+  if(sharedMeta?.reason==='single_only' || sharedMeta?.reason==='partial_only'){
+    toast('Questo browser/PWA non vuole passare tutte le foto insieme. Ho evitato di rifilarti un link: prova di nuovo oppure usa lo ZIP.');
     return;
   }
-  if(linkShare==='abort') return;
-
-  if(sharedMeta?.reason==='zip_unsupported' || sharedMeta?.reason==='zip_failed'){
-    toast('Il browser/PWA non ha voluto condividere tutte le foto come file nemmeno in ZIP. Ho lasciato il ripiego sui link foto.');
+  if(sharedMeta?.reason==='unsupported' || sharedMeta?.reason==='zip_failed' || sharedMeta?.reason==='failed'){
+    toast('Qui la condivisione delle foto come file non è partita. Non ti apro link di nascosto.');
     return;
   }
-  if(sharedMeta?.reason==='failed'){
-    toast('La condivisione diretta delle foto è stata rifiutata dal browser/PWA. Usa “Scarica foto” solo come ultima spiaggia.');
-    return;
-  }
-  toast('Qui la condivisione diretta delle foto non è supportata. Ho provato anche i link, ma questo browser/PWA continua a fare il prezioso.');
+  toast('La condivisione non è partita. Però almeno non ti sto spacciando un link al posto delle foto.');
 }
 const __zipCrcTable = (()=>{
   const table = new Uint32Array(256);
@@ -7104,7 +7057,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-03-30-sharefix-final-r8';
+const VG_BUILD='2026-03-30-sharefix-final-r9';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -7595,7 +7548,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=sharefix5', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=sharefix6', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
