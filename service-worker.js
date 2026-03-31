@@ -1,4 +1,4 @@
-const VERSION = 'v30_0_article_photo_limit_9';
+const VERSION = 'v31_0_cloud_merge_ts';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
