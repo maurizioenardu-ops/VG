@@ -1,18 +1,13 @@
-const VERSION = 'v18_0_cloudsharefix1';
+const CACHE_NAME='vg-cache-v11_6-materiale-guard';
+const VERSION = 'v11_6';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
-  './',
-  './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './reset.html',
   './reset-cache.html',
-  './database.json',
-  './cat-accessori.jpg',
-  './cat-borse.jpg',
-  './cat-cinture.jpg',
-  './supabaseClient.js'
+  './assets/categoria-borse.jpg',
+  './assets/categoria-portafogli.jpg'
 ];
 
 self.addEventListener('install', event => {
@@ -25,6 +20,10 @@ self.addEventListener('activate', event => {
     const keys = await caches.keys();
     await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
     await self.clients.claim();
+    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of clients) {
+      client.postMessage({ type: 'VG_SW_UPDATED', version: VERSION });
+    }
   })());
 });
 
@@ -33,20 +32,19 @@ self.addEventListener('fetch', event => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
+  // Always go to network first for HTML and navigation requests.
   if (req.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
     event.respondWith((async () => {
       try {
-        const fresh = await fetch(req, { cache: 'reload' });
-        const cache = await caches.open(CACHE);
-        cache.put('./index.html', fresh.clone());
-        return fresh;
-      } catch (_err) {
+        return await fetch(req, { cache: 'reload' });
+      } catch (err) {
         return (await caches.match('./index.html')) || (await caches.match('./reset-cache.html')) || Response.error();
       }
     })());
     return;
   }
 
+  // Manifest should always be fresh.
   if (url.pathname.endsWith('manifest.json')) {
     event.respondWith((async () => {
       try {
@@ -54,23 +52,21 @@ self.addEventListener('fetch', event => {
         const cache = await caches.open(CACHE);
         cache.put('./manifest.json', fresh.clone());
         return fresh;
-      } catch (_err) {
+      } catch (err) {
         return (await caches.match('./manifest.json')) || Response.error();
       }
     })());
     return;
   }
 
+  // Icons and reset page: cache-first is fine.
   event.respondWith((async () => {
     const cached = await caches.match(req);
     if (cached) return cached;
-    try {
-      const fresh = await fetch(req);
-      const cache = await caches.open(CACHE);
-      cache.put(req, fresh.clone());
-      return fresh;
-    } catch (_err) {
-      return caches.match(req);
-    }
+    const fresh = await fetch(req);
+    const cache = await caches.open(CACHE);
+    cache.put(req, fresh.clone());
+    return fresh;
   })());
 });
+
