@@ -1,4 +1,4 @@
-const VERSION = 'v20_0_shareallzip';
+const VERSION = 'v18_0_cloudsharefix1';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
