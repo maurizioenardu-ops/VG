@@ -71,7 +71,10 @@ body{-webkit-tap-highlight-color:transparent}
 .pill.cloudBtn.secondary{background:#fff;border-color:#cbd5e1;color:#0f172a}
 .pricePaid{color:#16a34a!important;font-weight:1000}
 .pill.promo{border-color:#86efac;background:#f0fdf4;color:#166534;box-shadow:0 6px 14px rgba(34,197,94,.12)}
+.pill.promoExpired{border-color:#fecaca;background:#fff1f2;color:#b91c1c;box-shadow:0 6px 14px rgba(239,68,68,.14)}
 .dot{width:10px;height:10px;border-radius:999px;background:#16a34a;display:inline-block}
+.promoNote{margin-top:6px;font-size:11px;line-height:1.3;font-weight:900;color:#475569}
+.promoNote.expired{color:#b91c1c}
 .priceHot{color:var(--red);font-weight:1000}
 .navBottom{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:8px 10px;z-index:20}
 .navBottom .inner{max-width:560px;margin:0 auto;display:flex;justify-content:space-between}
@@ -889,8 +892,9 @@ function articlePromoExpired(a, today=todayStr()){
 }
 function normalizeArticlePromoState(article, today=todayStr()){
   if(!article || typeof article!=='object') return article;
-  if(!articlePromoExpired(article, today)) return article;
-  return { ...article, promoAttiva:false };
+  const normalized={ ...article, dataInizioPromo:getPromoStartDate(article) };
+  if(!articlePromoExpired(normalized, today)) return normalized;
+  return { ...normalized, promoAttiva:false };
 }
 
 function normalizeDBShape(o){
@@ -918,6 +922,7 @@ function normalizeDBShape(o){
     promoAttiva:(typeof x?.promoAttiva==='boolean') ? x.promoAttiva : !!x?.promo_on,
     prezzoPromo:firstFiniteNumber(x?.prezzoPromo, x?.promoPrezzo, x?.promo_price, 0),
     scadenzaPromo:normalizeSpaceText(x?.scadenzaPromo||x?.promoScadenza||x?.promo_date||''),
+    dataInizioPromo:normalizePromoStartDate(x?.dataInizioPromo||x?.promoDataInizio||x?.promoStartDate||''),
     nonDisponibile:(typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.disponibile===false || x?.attivo===false),
     disponibile:(typeof x?.disponibile==='boolean') ? x.disponibile : !((typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.attivo===false)),
     foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],
@@ -1546,6 +1551,7 @@ function mergeArticleRecords(prev,item){
   merged.promoAttiva=(typeof merged?.promoAttiva==='boolean') ? merged.promoAttiva : ((typeof item?.promoAttiva==='boolean') ? item.promoAttiva : ((typeof prev?.promoAttiva==='boolean') ? prev.promoAttiva : false));
   merged.prezzoPromo=firstFiniteNumber(merged?.prezzoPromo, merged?.promoPrezzo, item?.prezzoPromo, item?.promoPrezzo, prev?.prezzoPromo, prev?.promoPrezzo, 0);
   merged.scadenzaPromo=normalizeSpaceText(merged?.scadenzaPromo||merged?.promoScadenza||item?.scadenzaPromo||item?.promoScadenza||prev?.scadenzaPromo||prev?.promoScadenza||'');
+  merged.dataInizioPromo=normalizePromoStartDate(merged?.dataInizioPromo||merged?.promoDataInizio||item?.dataInizioPromo||item?.promoDataInizio||prev?.dataInizioPromo||prev?.promoDataInizio||'');
   merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]).slice(0,MAX_ARTICLE_PHOTOS);
   merged.photoIds=[...new Set([...(prev?.photoIds||[]), ...(item?.photoIds||[])].filter(Boolean).map(String))].slice(0,MAX_ARTICLE_PHOTOS);
   return merged;
@@ -2778,6 +2784,49 @@ function calcFromUsd(usd, qual){
     return {costo, sell, marg};
   }
 }
+function normalizePromoStartDate(v=''){
+  const raw=String(v||'').trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : '';
+}
+function getPromoStartDate(a){
+  return normalizePromoStartDate(a?.dataInizioPromo||a?.promoDataInizio||a?.promoStartDate||'');
+}
+function formatPromoDateLabel(v=''){
+  const raw=String(v||'').trim();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const [yyyy,mm,dd]=raw.split('-');
+  return `${dd}/${mm}/${yyyy}`;
+}
+function promoHasHistory(a){
+  return !!(a && (a.promoAttiva || Number(a.prezzoPromo||0)>0 || getPromoStartDate(a)));
+}
+function promoExpiredDisplay(a, today=todayStr()){
+  const d=String(a?.scadenzaPromo||'').trim();
+  return !!(promoHasHistory(a) && d.length>=8 && d<today);
+}
+function promoPeriodLabel(a){
+  const start=getPromoStartDate(a);
+  const end=String(a?.scadenzaPromo||'').trim();
+  if(start && end) return `Promo dal ${formatPromoDateLabel(start)} al ${formatPromoDateLabel(end)}`;
+  if(end) return `Promo fino al ${formatPromoDateLabel(end)}`;
+  if(start) return `Promo dal ${formatPromoDateLabel(start)}`;
+  return '';
+}
+function promoInfoHtml(a,{marginTop='6px'}={}){
+  const style=marginTop ? ` style="margin-top:${marginTop}"` : '';
+  const note=promoPeriodLabel(a);
+  if(promoValid(a)){
+    return `<div class="pill promo"${style}><span class="dot"></span>PROMO attiva</div>${note?`<div class="promoNote">${esc(note)}</div>`:''}`;
+  }
+  if(promoExpiredDisplay(a)){
+    const when=formatPromoDateLabel(a?.scadenzaPromo||'');
+    return `<div class="pill promoExpired"${style}>PROMO scaduta</div>${when?`<div class="promoNote expired">Scaduta il ${esc(when)}</div>`:''}`;
+  }
+  if(a?.promoAttiva){
+    return `<div class="pill"${style}>PROMO impostata</div>${note?`<div class="promoNote">${esc(note)}</div>`:''}`;
+  }
+  return '';
+}
 function promoValid(a){
   if(!a.promoAttiva) return false;
   const p=Number(a.prezzoPromo||0);
@@ -2788,6 +2837,13 @@ function promoValid(a){
 }
 function currentPrice(a){
   return promoValid(a) ? Number(a.prezzoPromo) : Number(a.prezzoVendita||0);
+}
+function resolvePromoStartDate(prevArticle, nextPromo){
+  const nextActive=!!nextPromo?.promoAttiva && Number(nextPromo?.prezzoPromo||0)>0 && String(nextPromo?.scadenzaPromo||'').trim().length>=8;
+  const prevStart=getPromoStartDate(prevArticle);
+  if(!nextActive) return prevStart || '';
+  if(prevArticle && promoValid(prevArticle) && prevStart) return prevStart;
+  return todayStr();
 }
 
 
@@ -3288,15 +3344,10 @@ function pickFacebookDetailLines(a){
 function promoPostIntroLines(a){
   if(!a?.promoAttiva) return [];
   const lines=['⭕️ PROMOZIONE ⭕️'];
-  const scadenzaRaw=String(a?.scadenzaPromo||'').trim();
-  if(scadenzaRaw){
-    let scadenzaLabel=scadenzaRaw;
-    if(/^\d{4}-\d{2}-\d{2}$/.test(scadenzaRaw)){
-      const [yyyy,mm,dd]=scadenzaRaw.split('-');
-      scadenzaLabel=`${dd}/${mm}/${yyyy}`;
-    }
-    lines.push(`(fino al ${scadenzaLabel})`);
-  }
+  const start=getPromoStartDate(a);
+  const end=String(a?.scadenzaPromo||'').trim();
+  if(start && end) lines.push(`(dal ${formatPromoDateLabel(start)} al ${formatPromoDateLabel(end)})`);
+  else if(end) lines.push(`(fino al ${formatPromoDateLabel(end)})`);
   return lines;
 }
 function postTraitFlags(a){
@@ -3777,15 +3828,12 @@ function buildPostTelegram(a){
   const qemoji=emojiQualityForPost(a);
   const lines=[];
   if(a.promoAttiva){
+    const promoStart=getPromoStartDate(a);
     const scadenzaRaw=String(a.scadenzaPromo||'').trim();
-    let scadenzaLabel=scadenzaRaw;
-    if(/^\d{4}-\d{2}-\d{2}$/.test(scadenzaRaw)){
-      const [yyyy,mm,dd]=scadenzaRaw.split('-');
-      scadenzaLabel=`${dd}/${mm}/${yyyy}`;
-    }
     const tipoMateriale=materiale || materialeCompat || variante;
     lines.push('⭕️ PROMOZIONE ⭕️');
-    if(scadenzaLabel) lines.push(`(fino al ${scadenzaLabel})`);
+    if(promoStart && scadenzaRaw) lines.push(`(dal ${formatPromoDateLabel(promoStart)} al ${formatPromoDateLabel(scadenzaRaw)})`);
+    else if(scadenzaRaw) lines.push(`(fino al ${formatPromoDateLabel(scadenzaRaw)})`);
     if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
     if(tipoMateriale) lines.push(tipoMateriale);
     if(colore) lines.push(colore);
@@ -3831,6 +3879,7 @@ function buildCloudArticleMeta(art){
     promoAttiva: !!art?.promoAttiva,
     prezzoPromo: Number(art?.prezzoPromo||0),
     scadenzaPromo: art?.scadenzaPromo||'',
+    dataInizioPromo: getPromoStartDate(art),
     nonDisponibile: !!art?.nonDisponibile,
     disponibile: art?.disponibile===false ? false : !art?.nonDisponibile,
     post: art?.post||'',
@@ -5110,10 +5159,7 @@ async function hydrateArticleThumbs(items){
   }
 }
 function pseudoPromoBadge(a){
-  if(!a.promoAttiva) return '';
-  const ok=promoValid(a);
-  if(ok) return `<div class="pill promo" style="margin-top:6px"><span class="dot"></span>PROMO attiva</div>`;
-  return `<div class="pill" style="margin-top:6px">PROMO impostata</div>`;
+  return promoInfoHtml(a,{marginTop:'6px'});
 }
 
 function renderCli(){
@@ -5413,7 +5459,7 @@ async function openArtView(id){
   document.getElementById('vArtPrezzo').textContent=money(a.prezzoVendita||0);
   document.getElementById('vArtPrezzoUse').textContent=money(currentPrice(a));
   const pill=document.getElementById('vArtPromoPill');
-  pill.innerHTML = promoValid(a)?`<div class="pill promo" style="margin-top:6px"><span class="dot"></span>PROMO attiva</div>`:(a.promoAttiva?`<div class="pill" style="margin-top:6px">PROMO impostata</div>`:'');
+  pill.innerHTML = promoInfoHtml(a,{marginTop:'6px'});
   document.getElementById('vArtPost').value=buildPostTelegram(a);
   fitTextarea(document.getElementById('vArtPost'));
   document.getElementById('vArtPostFb').value=buildPostFacebook(a);
@@ -5864,6 +5910,11 @@ async function saveArt(){
       promoAttiva: document.getElementById('a_promo_on').checked,
       prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
       scadenzaPromo: document.getElementById('a_promo_date').value.trim(),
+      dataInizioPromo: resolvePromoStartDate(old, {
+        promoAttiva: document.getElementById('a_promo_on').checked,
+        prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
+        scadenzaPromo: document.getElementById('a_promo_date').value.trim()
+      }),
       post: document.getElementById('a_post').value,
       note: document.getElementById('a_note').value,
       foto: keptFoto,
@@ -7462,7 +7513,7 @@ async function pullCloudToLocal(opts={}){
         const colorShape=deriveColorShape({ colorMode:meta.colorMode||local?.colorMode, colorType:meta.colorType||local?.colorType, colorCount:meta.colorCount||local?.colorCount, colorLabels:meta.colorLabels||local?.colorLabels });
         const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
         const cloudTs=parseTimestampLike(meta._ts, p.updated_at, p.created_at, local?._ts, Date.now());
-        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],_ts:cloudTs,_cloud:true};
+        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],_ts:cloudTs,_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; })
