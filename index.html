@@ -624,8 +624,7 @@ window.addEventListener('error',e=>{
     <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple/><div class="small" style="margin-top:6px">Puoi selezionare più foto insieme (massimo 15 totali per articolo).</div></div>
-    <div class="actions compact" style="margin-top:8px"><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div>
+    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Aggiungi foto</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 15 foto totali per articolo.</div></div>
     <div id="a_photo_prev" class="thumbs"></div>
   </div>
 
@@ -881,6 +880,17 @@ async function runOneTimeFreshReset(){
   }
 }
 
+function articlePromoExpired(a, today=todayStr()){
+  if(!a?.promoAttiva) return false;
+  const d=String(a?.scadenzaPromo||'').trim();
+  return !!(d && d.length>=8 && d<today);
+}
+function normalizeArticlePromoState(article, today=todayStr()){
+  if(!article || typeof article!=='object') return article;
+  if(!articlePromoExpired(article, today)) return article;
+  return { ...article, promoAttiva:false };
+}
+
 function normalizeDBShape(o){
   if(!o || typeof o!=='object') return defDB();
   const db={
@@ -912,7 +922,7 @@ function normalizeDBShape(o){
     photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,15):[]
   })).map(x=>{
     const shape=deriveColorShape(x);
-    return { ...x, ...shape, colorData:makeStableColorData(shape), colore:shape.colorMode==='multiple' ? '' : normalizeSpaceText(x?.colore||'') };
+    return normalizeArticlePromoState({ ...x, ...shape, colorData:makeStableColorData(shape), colore:shape.colorMode==='multiple' ? '' : normalizeSpaceText(x?.colore||'') });
   });
   db.clienti=db.clienti.map(x=>({
     ...x,
@@ -2112,9 +2122,24 @@ let __articlePhotoShareWarmPromise = null;
 function getArticlePhotoShareBaseName(art){
   return (art?.codice||art?.brand||art?.modello||'articolo').toString().trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'articolo';
 }
+function shouldShareArticlePhotosAsZip(files){
+  const list=Array.isArray(files) ? files.filter(Boolean) : [];
+  if(list.length<=1) return false;
+  if(list.length>ARTICLE_NATIVE_SHARE_MAX_FILES) return true;
+  try{
+    if(typeof navigator?.canShare==='function' && !navigator.canShare({ files:list })) return true;
+  }catch(_e){}
+  return false;
+}
 function getCachedArticlePhotoFilesForCtx(ctx){
   if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx?.cacheKey && Array.isArray(__articlePhotoShareCache.files) && __articlePhotoShareCache.files.length){
     return __articlePhotoShareCache.files;
+  }
+  return null;
+}
+function getCachedArticlePhotoZipForCtx(ctx){
+  if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx?.cacheKey && __articlePhotoShareCache.zipFile instanceof File){
+    return __articlePhotoShareCache.zipFile;
   }
   return null;
 }
@@ -2139,12 +2164,19 @@ async function warmCurrentArticlePhotoShare(ctx=null, opts={}){
   const targetCtx = ctx || getPreparedCurrentArticlePhotoContext() || await getCurrentArticlePhotoContext();
   if(!targetCtx) return [];
   const cached=getCachedArticlePhotoFilesForCtx(targetCtx);
-  if(cached?.length) return cached;
+  if(cached?.length){
+    if(cached.length>1 && !getCachedArticlePhotoZipForCtx(targetCtx)) ensureCurrentArticlePhotoZip(targetCtx, cached, { silent:true }).catch(()=>{});
+    return cached;
+  }
   if(__articlePhotoShareWarmPromise && __articlePhotoShareContext?.cacheKey===targetCtx.cacheKey){
     return __articlePhotoShareWarmPromise;
   }
   __articlePhotoShareContext = targetCtx;
   __articlePhotoShareWarmPromise = ensureCurrentArticlePhotoFiles(targetCtx, opts)
+    .then(async files=>{
+      if(files.length>1) await ensureCurrentArticlePhotoZip(targetCtx, files, { silent:true }).catch(()=>null);
+      return files;
+    })
     .catch(err=>{ console.warn('Warmup foto articolo fallito', err); return []; })
     .finally(()=>{ __articlePhotoShareWarmPromise = null; });
   return __articlePhotoShareWarmPromise;
@@ -2246,10 +2278,27 @@ async function ensureCurrentArticlePhotoFiles(ctx, opts={}){
   const silent = !!opts?.silent;
   if(!silent) toast(`Preparo ${ctx.pics.length} foto...`);
   const files=await buildArticlePhotoFiles(ctx.art, ctx.pics, ctx.baseName);
-  if(files.length){
-    __articlePhotoShareCache = { key: ctx.cacheKey, files, at: Date.now() };
+  if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx.cacheKey){
+    __articlePhotoShareCache = { ...__articlePhotoShareCache, files, at: Date.now() };
+  }else if(files.length){
+    __articlePhotoShareCache = { key: ctx.cacheKey, files, zipFile:null, at: Date.now() };
   }
   return files;
+}
+async function ensureCurrentArticlePhotoZip(ctx, files=null, opts={}){
+  const cached=getCachedArticlePhotoZipForCtx(ctx);
+  if(cached) return cached;
+  const list=(Array.isArray(files) && files.length) ? files : await ensureCurrentArticlePhotoFiles(ctx, { silent:!!opts?.silent });
+  if(!Array.isArray(list) || list.length<=1) return null;
+  const silent=!!opts?.silent;
+  if(!silent) toast(`Preparo ZIP con ${list.length} foto...`);
+  const zipFile=await buildZipFromFiles(list, `${ctx.baseName || 'articolo'}_foto.zip`);
+  if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx.cacheKey){
+    __articlePhotoShareCache = { ...__articlePhotoShareCache, zipFile, at: Date.now() };
+  }else{
+    __articlePhotoShareCache = { key: ctx.cacheKey, files:list, zipFile, at: Date.now() };
+  }
+  return zipFile;
 }
 
 async function shareCurrentArticlePhotos(){
@@ -2271,18 +2320,32 @@ async function shareCurrentArticlePhotos(){
     toast(`Foto pronte: ${files.length} su ${ctx.pics.length}. Condivido solo quelle recuperate.`);
   }
 
+  const preferZip=shouldShareArticlePhotosAsZip(files);
+
   try{
-    const sharedAll = await tryNativeShareArticleFiles(files, ctx.baseName);
-    if(sharedAll){
-      toast(files.length===1 ? 'Condivisione aperta.' : `Condivisione aperta per ${files.length} foto.`);
-      return;
+    if(!preferZip){
+      const sharedAll = await tryNativeShareArticleFiles(files, ctx.baseName);
+      if(sharedAll){
+        toast(files.length===1 ? 'Condivisione aperta.' : `Condivisione aperta per ${files.length} foto.`);
+        return;
+      }
     }
 
-    const zipFile = await buildZipFromFiles(files, `${ctx.baseName || 'articolo'}_foto.zip`);
-    const zipShared = await tryNativeShareArticleFiles([zipFile], ctx.baseName);
-    if(zipShared){
-      toast(`Condivisione aperta con ZIP contenente ${files.length} foto.`);
-      return;
+    const zipFile = getCachedArticlePhotoZipForCtx(ctx) || await ensureCurrentArticlePhotoZip(ctx, files, { silent:true });
+    if(zipFile){
+      const zipShared = await tryNativeShareArticleFiles([zipFile], ctx.baseName);
+      if(zipShared){
+        toast(`Condivisione aperta con ZIP contenente ${files.length} foto.`);
+        return;
+      }
+    }
+
+    if(preferZip){
+      const sharedAll = await tryNativeShareArticleFiles(files, ctx.baseName);
+      if(sharedAll){
+        toast(files.length===1 ? 'Condivisione aperta.' : `Condivisione aperta per ${files.length} foto.`);
+        return;
+      }
     }
 
     toast('Condivisione foto non riuscita. Prova di nuovo oppure usa Scarica foto.');
@@ -2290,11 +2353,13 @@ async function shareCurrentArticlePhotos(){
     if(isShareAbortError(err)) return;
     console.warn('Condivisione foto articolo fallita', err);
     try{
-      const fallbackZip = await buildZipFromFiles(files, `${ctx.baseName || 'articolo'}_foto.zip`);
-      const zipShared = await tryNativeShareArticleFiles([fallbackZip], ctx.baseName);
-      if(zipShared){
-        toast(`Condivisione aperta con ZIP contenente ${files.length} foto.`);
-        return;
+      const fallbackZip = getCachedArticlePhotoZipForCtx(ctx) || await ensureCurrentArticlePhotoZip(ctx, files, { silent:true });
+      if(fallbackZip){
+        const zipShared = await tryNativeShareArticleFiles([fallbackZip], ctx.baseName);
+        if(zipShared){
+          toast(`Condivisione aperta con ZIP contenente ${files.length} foto.`);
+          return;
+        }
       }
     }catch(zipErr){
       console.warn('Fallback ZIP share foto articolo fallito', zipErr);
@@ -5298,6 +5363,8 @@ function renderAll(){ renderHome(); renderArt(); renderCli(); renderOrd(); rende
 /* ====== ART view/edit ====== */
 let currentArtId=null;
 let currentArtExistingPics=[];
+let currentArtPendingFiles=[];
+let currentArtPendingPreviewUrls=[];
 let currentArtPhotosCleared=false;
 let currentArtDuplicateData=null;
 async function openArtView(id){
@@ -5365,6 +5432,7 @@ async function openArtEdit(id){
   if(!currentArtId) __articlePhotoShareContext=null;
   currentArtDuplicateData=null;
   currentArtPhotosCleared=false;
+  resetPendingArtPhotoFiles();
   document.getElementById('artEditTitle').textContent = a?'Modifica articolo':'Nuovo articolo';
   const set=(k,v)=>document.getElementById(k).value=(v===0?0:(v||''));
 
@@ -5381,7 +5449,7 @@ async function openArtEdit(id){
     document.getElementById('a_promo_on').checked=false;
     document.getElementById('a_photo').value='';
     currentArtExistingPics=[];
-    renderArtPhotoPrev([]);
+    renderCurrentArtPhotoPreview();
     restoreArticleDraft('');
     updateArticleMeasureState();
     updateArticleCodeStatus();
@@ -5406,7 +5474,7 @@ async function openArtEdit(id){
   document.getElementById('a_photo').value='';
   renderArtAutoFields();
   currentArtExistingPics=await getArticlePics(a);
-  renderArtPhotoPrev(currentArtExistingPics);
+  renderCurrentArtPhotoPreview();
   restoreArticleDraft(a?.id||'');
   updateArticleMeasureState();
   updateArticleCodeStatus();
@@ -5432,21 +5500,59 @@ async function filesToObjectUrls(fileList,maxCount){
 function revokeObjectUrls(urls){
   (urls||[]).forEach(src=>{ if(typeof src==='string' && src.startsWith('blob:')){ try{ URL.revokeObjectURL(src); }catch(_e){} } });
 }
+function resetPendingArtPhotoFiles(){
+  currentArtPendingFiles=[];
+  revokeObjectUrls(currentArtPendingPreviewUrls);
+  currentArtPendingPreviewUrls=[];
+  const input=document.getElementById('a_photo');
+  if(input) input.value='';
+}
+function renderCurrentArtPhotoPreview(){
+  renderArtPhotoPrev(mergePreviewPics(currentArtExistingPics, currentArtPendingPreviewUrls));
+  updateArtPhotoStatus();
+}
+function updateArtPhotoStatus(){
+  const box=document.getElementById('a_photo_status');
+  if(!box) return;
+  const existingCount=Array.isArray(currentArtExistingPics) ? currentArtExistingPics.length : 0;
+  const pendingCount=Array.isArray(currentArtPendingFiles) ? currentArtPendingFiles.length : 0;
+  const remaining=Math.max(0, 15 - existingCount - pendingCount);
+  const parts=[];
+  if(existingCount) parts.push(`${existingCount} già presenti`);
+  if(pendingCount) parts.push(`${pendingCount} nuove da salvare`);
+  parts.push(remaining>0 ? `puoi aggiungerne ancora ${remaining}` : 'limite massimo raggiunto');
+  box.textContent=parts.join(' • ');
+}
+async function syncPendingArtPhotoPreviewUrls(){
+  revokeObjectUrls(currentArtPendingPreviewUrls);
+  currentArtPendingPreviewUrls=await filesToObjectUrls(currentArtPendingFiles, Math.max(0, 15 - (Array.isArray(currentArtExistingPics)?currentArtExistingPics.length:0)));
+  renderCurrentArtPhotoPreview();
+}
+async function appendPendingArtPhotoFiles(fileList){
+  const incoming=Array.from(fileList||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
+  if(!incoming.length){
+    updateArtPhotoStatus();
+    return;
+  }
+  const existingCount=Array.isArray(currentArtExistingPics) ? currentArtExistingPics.length : 0;
+  const pendingCount=Array.isArray(currentArtPendingFiles) ? currentArtPendingFiles.length : 0;
+  const remaining=Math.max(0, 15 - existingCount - pendingCount);
+  if(!remaining){
+    toast('Hai già raggiunto il massimo di 15 foto per articolo');
+    updateArtPhotoStatus();
+    return;
+  }
+  const accepted=incoming.slice(0, remaining);
+  if(incoming.length>remaining) toast(`Puoi aggiungere ancora ${remaining} foto`);
+  currentArtPendingFiles=[...currentArtPendingFiles, ...accepted].slice(0, Math.max(0, 15 - existingCount));
+  await syncPendingArtPhotoPreviewUrls();
+}
 async function refreshArtPhotoPreviewFromInput(){
   const input=document.getElementById('a_photo');
   if(!input) return;
-  const maxNew=Math.max(0, 15 - (Array.isArray(currentArtExistingPics)?currentArtExistingPics.length:0));
-  const files=Array.from(input.files||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
-  if(files.length>maxNew){
-    toast(`Puoi aggiungere ancora ${maxNew} foto manuale`);
-    const dt=new DataTransfer();
-    files.slice(0,maxNew).forEach(f=>dt.items.add(f));
-    input.files=dt.files;
-  }
   const selected=Array.from(input.files||[]);
-  const blobUrls=await filesToObjectUrls(selected,maxNew);
-  renderArtPhotoPrev(mergePreviewPics(currentArtExistingPics, blobUrls));
-  setTimeout(()=>revokeObjectUrls(blobUrls), 1200);
+  await appendPendingArtPhotoFiles(selected);
+  input.value='';
 }
 function fitTextarea(el){
   if(!el) return;
@@ -5728,7 +5834,7 @@ async function saveArt(){
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
     const keptFoto=currentArtPhotosCleared ? [] : (Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : []);
     const keptPhotoIds=currentArtPhotosCleared ? [] : (Array.isArray(old?.photoIds) ? old.photoIds.filter(Boolean).slice() : []);
-    const obj={
+    const obj=normalizeArticlePromoState({
       id: currentArtId||uid(),
       codice: code,
       brand: getArticleBrandValue(),
@@ -5759,9 +5865,8 @@ async function saveArt(){
       note: document.getElementById('a_note').value,
       foto: keptFoto,
       photoIds: keptPhotoIds
-    };
-    const photoInput=document.getElementById('a_photo');
-    const selectedFiles=Array.from(photoInput?.files||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
+    });
+    const selectedFiles=Array.from(currentArtPendingFiles||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
     let photoUploadWarning='';
     if(selectedFiles.length){
       obj.foto = Array.isArray(obj.foto) ? obj.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')) : [];
@@ -5807,6 +5912,7 @@ async function saveArt(){
     }
     currentArtDuplicateData=null;
     currentArtPhotosCleared=false;
+    resetPendingArtPhotoFiles();
     clearArticleDraft();
     hide('mArtEdit');
     if(photoUploadWarning) toast('Articolo salvato. '+photoUploadWarning);
@@ -6896,8 +7002,10 @@ document.addEventListener('click',(ev)=>{
   if(a==='duplicateArt') return duplicateCurrentArticle(el.dataset.id || null);
   if(a==='editFromView'){ hide('mArtView', true); return openArtEdit(currentArtId); }
   if(a==='closeView') return hide('mArtView');
+  if(a==='pickMoreArtPhotos'){ document.getElementById('a_photo')?.click(); return; }
+  if(a==='clearPendingArtPhotos'){ resetPendingArtPhotoFiles(); renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Nuove foto annullate'); return; }
   if(a==='closeEdit'){ saveArticleDraft(); return hide('mArtEdit'); }
-  if(a==='clearArtPhotos'){ currentArtExistingPics=[]; currentArtPhotosCleared=true; document.getElementById('a_photo').value=''; renderArtPhotoPrev([]); saveArticleDraft(); toast('Foto attuali rimosse'); return; }
+  if(a==='clearArtPhotos'){ currentArtExistingPics=[]; currentArtPhotosCleared=true; document.getElementById('a_photo').value=''; renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Foto attuali rimosse'); return; }
   if(a==='saveArt') return saveArt();
   if(a==='deleteArt') return deleteArt();
   if(a==='saveCli') return saveCli();
@@ -6959,7 +7067,7 @@ document.getElementById('importFile').addEventListener('change',(e)=>{
 });
 document.getElementById('a_brand')?.addEventListener('change', ()=>{ handleBrandSelectionChange(); saveArticleDraft(); });
 document.getElementById('a_cat')?.addEventListener('change', ()=>{ updateArticleMeasureState(); renderArtAutoFields(); saveArticleDraft(); });
-document.getElementById('a_photo')?.addEventListener('change', ()=>{ refreshArtPhotoPreviewFromInput(); saveArticleDraft(); });
+document.getElementById('a_photo')?.addEventListener('change', async ()=>{ await refreshArtPhotoPreviewFromInput(); saveArticleDraft(); });
 document.getElementById('btnCloudLogin')?.addEventListener('click', ()=>show('mCloudLogin'));
 document.getElementById('btnCloudLogout')?.addEventListener('click', cloudLogout);
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden) flushVisibleDrafts(); else autoCloudPullNow('visible'); });
