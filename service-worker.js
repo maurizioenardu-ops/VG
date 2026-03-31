@@ -1,11 +1,13 @@
-const CACHE_NAME='vg-cache-v9_1';
-const VERSION = 'v8_9c';
+const CACHE_NAME='vg-cache-v10_5-postsocial-quality';
+const VERSION = 'v10_5';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './reset-cache.html'
+  './reset-cache.html',
+  './assets/categoria-borse.jpg',
+  './assets/categoria-portafogli.jpg'
 ];
 
 self.addEventListener('install', event => {
