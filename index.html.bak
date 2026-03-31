@@ -107,7 +107,7 @@ select[multiple]{min-height:150px}
 .heroSpot .title{font-size:22px;line-height:1.05;font-weight:1000;margin:0 0 6px}
 .heroSpot .desc{font-size:13px;color:#475569;line-height:1.35;margin:0 0 12px}
 .sparkTitle{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px}.sparkTitle span{font-size:11px;text-transform:uppercase;color:#64748b;font-weight:1000}
-.sparkBars{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:end;height:92px}.sparkCol{display:flex;flex-direction:column;align-items:center;gap:6px}.sparkBarWrap{height:68px;width:100%;display:flex;align-items:flex-end}.sparkBarBtn{appearance:none;border:0;background:transparent;padding:0;margin:0;width:100%;height:100%;display:flex;align-items:flex-end;cursor:pointer}.sparkBarBtn:focus-visible{outline:2px solid var(--navy);outline-offset:3px;border-radius:16px}.sparkBar{width:100%;border-radius:14px 14px 8px 8px;background:linear-gradient(180deg,#60a5fa,#1d4ed8)}.sparkBar.soft{background:linear-gradient(180deg,#fbbf24,#f59e0b)}.sparkLbl{font-size:10px;color:#64748b;font-weight:900}.shipAlert{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 12px;cursor:pointer}.shipAlerts{display:flex;flex-direction:column;gap:10px}.shipAlert .meta{font-size:12px;color:#475569;font-weight:900;margin-top:4px}.shipAlertEmpty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:12px;color:var(--muted)}.quickCard .h2{margin-bottom:8px}.substats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.micro{background:#f8fafc;border:1px solid #edf2f7;border-radius:14px;padding:10px 12px}.micro[data-go],.heroSpot[data-action],#dashList .row[data-action],#dashTips .row[data-action],.stat[data-go]{cursor:pointer}.micro .k{font-size:10px}.micro .v{font-size:16px;margin-top:2px}.stat .v.big{font-size:24px}.stat .sub{margin-top:4px;font-size:11px;color:#64748b;font-weight:800}.agendaComposer{display:grid;grid-template-columns:1fr 150px 170px auto;gap:8px;align-items:center}.agendaMiniBtn{padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:#fff;font-weight:900}.agendaList{display:flex;flex-direction:column;gap:8px}.agendaItem{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:16px;background:#fff}.agendaDot{width:12px;height:12px;border-radius:999px;background:#f59e0b;margin-top:6px}.agendaItem.done .agendaDot{background:#16a34a}.agendaItem.overdue .agendaDot{background:#dc2626}.agendaTitle{font-weight:900;color:#0f172a}.agendaMeta{font-size:12px;color:#64748b;font-weight:800;margin-top:2px}.agendaActions{display:flex;gap:6px;align-items:center}.agendaBtn{padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:900}.agendaEmpty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:12px;color:var(--muted)}.urgentBoard{display:flex;flex-direction:column;gap:10px}.urgentItem{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:flex-start;padding:12px;border:1px solid #fecaca;border-radius:16px;background:#fff5f5}.urgentDot{width:12px;height:12px;border-radius:999px;background:#dc2626;margin-top:6px;box-shadow:0 0 0 4px rgba(220,38,38,.12)}.urgentTitle{font-weight:900;color:#7f1d1d}.urgentMeta{font-size:12px;color:#991b1b;font-weight:800;margin-top:2px}.urgentEmpty{background:#fff;border:1px dashed #fecaca;border-radius:16px;padding:12px;color:#991b1b}.orderPrimaryRow aside{display:flex;flex-direction:column;gap:10px}.orderHintSoft{font-size:12px;color:#64748b;font-weight:800}.orderTrackCard{margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:12px}.orderTrackActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}@media (max-width:760px){.agendaComposer{grid-template-columns:1fr 1fr}.agendaComposer .full{grid-column:1/-1}.urgentItem{grid-template-columns:auto 1fr}}
+.sparkBars{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:end;height:92px}.sparkCol{display:flex;flex-direction:column;align-items:center;gap:6px}.sparkBarWrap{height:68px;width:100%;display:flex;align-items:flex-end}.sparkBarBtn{appearance:none;border:0;background:transparent;padding:0;margin:0;width:100%;height:100%;display:flex;align-items:flex-end;cursor:pointer}.sparkBarBtn:focus-visible{outline:2px solid var(--navy);outline-offset:3px;border-radius:16px}.sparkBar{width:100%;border-radius:14px 14px 8px 8px;background:linear-gradient(180deg,#60a5fa,#1d4ed8)}.sparkBar.soft{background:linear-gradient(180deg,#fbbf24,#f59e0b)}.sparkLbl{font-size:10px;color:#64748b;font-weight:900}.shipAlert{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 12px;cursor:pointer}.shipAlerts{display:flex;flex-direction:column;gap:10px}.shipAlert .meta{font-size:12px;color:#475569;font-weight:900;margin-top:4px}.shipAlertEmpty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:12px;color:var(--muted)}.quickCard .h2{margin-bottom:8px}.substats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.micro{background:#f8fafc;border:1px solid #edf2f7;border-radius:14px;padding:10px 12px}.micro[data-go],.heroSpot[data-action],#dashList .row[data-action],#dashList .row[data-go],#dashList .row[data-open],#dashTips .row[data-action],.stat[data-go]{cursor:pointer}.dashTap .chev{font-size:24px;line-height:1;color:#94a3b8;font-weight:900}.dashTap .s{margin-top:4px;color:#64748b;font-size:12px;font-weight:800}.micro .k{font-size:10px}.micro .v{font-size:16px;margin-top:2px}.stat .v.big{font-size:24px}.stat .sub{margin-top:4px;font-size:11px;color:#64748b;font-weight:800}.agendaComposer{display:grid;grid-template-columns:1fr 150px 170px auto;gap:8px;align-items:center}.agendaMiniBtn{padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:#fff;font-weight:900}.agendaList{display:flex;flex-direction:column;gap:8px}.agendaItem{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:16px;background:#fff}.agendaDot{width:12px;height:12px;border-radius:999px;background:#f59e0b;margin-top:6px}.agendaItem.done .agendaDot{background:#16a34a}.agendaItem.overdue .agendaDot{background:#dc2626}.agendaTitle{font-weight:900;color:#0f172a}.agendaMeta{font-size:12px;color:#64748b;font-weight:800;margin-top:2px}.agendaActions{display:flex;gap:6px;align-items:center}.agendaBtn{padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:900}.agendaEmpty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:12px;color:var(--muted)}.urgentBoard{display:flex;flex-direction:column;gap:10px}.urgentItem{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:flex-start;padding:12px;border:1px solid #fecaca;border-radius:16px;background:#fff5f5}.urgentDot{width:12px;height:12px;border-radius:999px;background:#dc2626;margin-top:6px;box-shadow:0 0 0 4px rgba(220,38,38,.12)}.urgentTitle{font-weight:900;color:#7f1d1d}.urgentMeta{font-size:12px;color:#991b1b;font-weight:800;margin-top:2px}.urgentEmpty{background:#fff;border:1px dashed #fecaca;border-radius:16px;padding:12px;color:#991b1b}.orderPrimaryRow aside{display:flex;flex-direction:column;gap:10px}.orderHintSoft{font-size:12px;color:#64748b;font-weight:800}.orderTrackCard{margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:12px}.orderTrackActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}@media (max-width:760px){.agendaComposer{grid-template-columns:1fr 1fr}.agendaComposer .full{grid-column:1/-1}.urgentItem{grid-template-columns:auto 1fr}}
 
 #mArtView .modal,#mArtEdit .modal{max-width:760px}
 
@@ -501,12 +501,13 @@ window.addEventListener('error',e=>{
   <div class="hr"></div>
   <div class="grid2">
     <div><div class="k">Codice</div><div id="vArtCod" class="t">-</div></div>
-    <div><div class="k">Qualità</div><div id="vArtQual" class="t">-</div></div>
+    <div><div class="k">Modello</div><div id="vArtModel" class="t">-</div></div>
   </div>
   <div class="grid2" style="margin-top:10px">
+    <div><div class="k">Qualità</div><div id="vArtQual" class="t">-</div></div>
     <div><div class="k">Marca</div><div id="vArtBrand" class="t">-</div></div>
-    <div><div class="k">Fornitore</div><div id="vArtForn" class="t">-</div></div>
   </div>
+  <div style="margin-top:10px"><div class="k">Fornitore</div><div id="vArtForn" class="t">-</div></div>
   <div style="margin-top:10px"><div class="k" id="vArtColorsLabel">Colori disponibili</div><div id="vArtColors" class="t">-</div></div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">Prezzo vendita</div><div id="vArtPrezzo" class="t">-</div></div>
@@ -624,7 +625,7 @@ window.addEventListener('error',e=>{
     <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Aggiungi foto</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 15 foto totali per articolo.</div></div>
+    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Aggiungi foto</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 9 foto totali per articolo.</div></div>
     <div id="a_photo_prev" class="thumbs"></div>
   </div>
 
@@ -830,6 +831,7 @@ const AGENDA_KEY='vg_dashboard_agenda_v2_clean';
 const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
 const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
 const round5=n=>Math.round(n/5)*5;
+const MAX_ARTICLE_PHOTOS=9;
 
 function defDB(){
   return {version:'v6.7',articoli:[],clienti:[],ordini:[],categorie:[],brands:[],agenda:[],createdAt:new Date().toISOString()};
@@ -918,8 +920,8 @@ function normalizeDBShape(o){
     scadenzaPromo:normalizeSpaceText(x?.scadenzaPromo||x?.promoScadenza||x?.promo_date||''),
     nonDisponibile:(typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.disponibile===false || x?.attivo===false),
     disponibile:(typeof x?.disponibile==='boolean') ? x.disponibile : !((typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.attivo===false)),
-    foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,15):[],
-    photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,15):[]
+    foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],
+    photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[]
   })).map(x=>{
     const shape=deriveColorShape(x);
     return normalizeArticlePromoState({ ...x, ...shape, colorData:makeStableColorData(shape), colore:shape.colorMode==='multiple' ? '' : normalizeSpaceText(x?.colore||'') });
@@ -1393,6 +1395,18 @@ function choosePreferredId(){
   const ids=Array.from(arguments).flat().map(v=>normalizeSpaceText(v)).filter(Boolean);
   return ids.find(looksLikeUuid) || ids[0] || '';
 }
+function parseTimestampLike(){
+  const values=Array.from(arguments).flat();
+  for(const raw of values){
+    if(raw==null || raw==='') continue;
+    if(typeof raw==='number' && Number.isFinite(raw) && raw>0) return raw;
+    const asNum=Number(raw);
+    if(Number.isFinite(asNum) && asNum>0) return asNum;
+    const parsed=Date.parse(String(raw));
+    if(Number.isFinite(parsed) && parsed>0) return parsed;
+  }
+  return 0;
+}
 function recordRichnessScore(rec){
   let score=Number(rec?._ts||0);
   if(!rec || typeof rec!=='object') return score;
@@ -1517,8 +1531,8 @@ function mergeArticleRecords(prev,item){
     codice:normalizeSpaceText(item?.codice||item?.sku||''),
     brand:normalizeSpaceText(item?.brand||item?.marca||''),
     categoria:normalizeSpaceText(item?.categoria||''),
-    foto:Array.isArray(item?.foto)?item.foto.filter(Boolean).slice(0,15):[],
-    photoIds:Array.isArray(item?.photoIds)?item.photoIds.filter(Boolean).slice(0,15):[]
+    foto:Array.isArray(item?.foto)?item.foto.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],
+    photoIds:Array.isArray(item?.photoIds)?item.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[]
   };
   const nextWins=recordRichnessScore(item) >= recordRichnessScore(prev);
   const merged=nextWins ? {...prev, ...item} : {...item, ...prev};
@@ -1532,8 +1546,8 @@ function mergeArticleRecords(prev,item){
   merged.promoAttiva=(typeof merged?.promoAttiva==='boolean') ? merged.promoAttiva : ((typeof item?.promoAttiva==='boolean') ? item.promoAttiva : ((typeof prev?.promoAttiva==='boolean') ? prev.promoAttiva : false));
   merged.prezzoPromo=firstFiniteNumber(merged?.prezzoPromo, merged?.promoPrezzo, item?.prezzoPromo, item?.promoPrezzo, prev?.prezzoPromo, prev?.promoPrezzo, 0);
   merged.scadenzaPromo=normalizeSpaceText(merged?.scadenzaPromo||merged?.promoScadenza||item?.scadenzaPromo||item?.promoScadenza||prev?.scadenzaPromo||prev?.promoScadenza||'');
-  merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]).slice(0,15);
-  merged.photoIds=[...new Set([...(prev?.photoIds||[]), ...(item?.photoIds||[])].filter(Boolean).map(String))].slice(0,15);
+  merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]).slice(0,MAX_ARTICLE_PHOTOS);
+  merged.photoIds=[...new Set([...(prev?.photoIds||[]), ...(item?.photoIds||[])].filter(Boolean).map(String))].slice(0,MAX_ARTICLE_PHOTOS);
   return merged;
 }
 function dedupeArticoliWithMap(list=[]){ return dedupeSemanticList(list, normalizeArticleDedupKey, mergeArticleRecords); }
@@ -1970,7 +1984,7 @@ async function listCloudFotoPathsByCode(codice){
       .filter(f=>f && f.name && !String(f.name).endsWith('/'))
       .map(f=> `${code}/${f.name}`)
       .filter(Boolean)
-      .slice(0,15);
+      .slice(0,MAX_ARTICLE_PHOTOS);
   }catch(_e){
     return [];
   }
@@ -1985,10 +1999,10 @@ async function getArticlePics(a){
     out.push(clean);
   };
   if(Array.isArray(a.foto) && a.foto.length){
-    for(const path of a.foto.slice(0,15)){
+    for(const path of a.foto.slice(0,MAX_ARTICLE_PHOTOS)){
       const url=await getPublicFotoUrl(path);
       if(url) pushPic(url);
-      if(out.length>=15) return out.slice(0,15);
+      if(out.length>=MAX_ARTICLE_PHOTOS) return out.slice(0,MAX_ARTICLE_PHOTOS);
     }
   }
   if(Array.isArray(a.photoIds) && a.photoIds.length){
@@ -1997,10 +2011,10 @@ async function getArticlePics(a){
       if(!x) continue;
       if(typeof x==='string') pushPic(x);
       else if(x instanceof Blob) pushPic(URL.createObjectURL(x));
-      if(out.length>=15) break;
+      if(out.length>=MAX_ARTICLE_PHOTOS) break;
     }
   }
-  return out.slice(0,15);
+  return out.slice(0,MAX_ARTICLE_PHOTOS);
 }
 async function getArticleCloudSyncSources(a){
   if(!a) return [];
@@ -2489,7 +2503,7 @@ async function syncArticlePhotosToCloud(artId, codice, pics){
   const sb=await ensureCloud();
   if(!sb||!cloudSession||!artId) return [];
   const cleanCode=String(codice||artId||'art').trim() || String(artId);
-  const normalized=(pics||[]).filter(Boolean).slice(0,15);
+  const normalized=(pics||[]).filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS);
   const { data:existingRows } = await sb.from('prodotti_foto').select('path,ordine').eq('prodotto_id', artId).order('ordine',{ascending:true});
   const existingPaths=(existingRows||[]).map(r=>String(r?.path||'').trim()).filter(Boolean);
   const savedPaths=[];
@@ -2567,7 +2581,7 @@ async function migratePhotosToIndexedDB(){
   for(const a of db.articoli||[]){
     if(Array.isArray(a.foto) && a.foto.length && (!Array.isArray(a.photoIds) || !a.photoIds.length)){
       a.photoIds=[];
-      for(const src of a.foto.slice(0,15)){
+      for(const src of a.foto.slice(0,MAX_ARTICLE_PHOTOS)){
         const pid='ph_'+uid();
         await idbSet(pid,src);
         a.photoIds.push(pid);
@@ -2602,7 +2616,7 @@ function normalizeCloudPhotoPathList(list){
     const clean=String(raw||'').trim().replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
     if(!clean || !isLikelyCloudPhotoPath(clean) || out.includes(clean)) continue;
     out.push(clean);
-    if(out.length>=15) break;
+    if(out.length>=MAX_ARTICLE_PHOTOS) break;
   }
   return out;
 }
@@ -3821,7 +3835,8 @@ function buildCloudArticleMeta(art){
     disponibile: art?.disponibile===false ? false : !art?.nonDisponibile,
     post: art?.post||'',
     note: art?.note||'',
-    foto: normalizeCloudPhotoPathList(art?.foto||[])
+    foto: normalizeCloudPhotoPathList(art?.foto||[]),
+    _ts: parseTimestampLike(art?._ts, Date.now())
   };
 }
 function packCloudArticleDescription(art){
@@ -4417,14 +4432,21 @@ function renderHome(){
   renderDashboardUrgent();
   renderDashboardAgenda();
   const lines=[
-    {label:last?`Ultimo ordine: ${last.stato} • ${last.data||''}`:'Ultimo ordine: nessuno', action:'ordini'},
-    {label:`Promozioni: ${promoItems.length}${exp?` attive • ${[exp.brand,exp.modello].filter(Boolean).join(' ')}`:' attive'}`, action:'openPromoArticles'},
-    {label:`Tutti gli articoli: ${(db.articoli||[]).length}`, action:'openAllArticles'},
-    {label:`Ordini aperti: ${inCorso} • Incassato mese ${money(incMese)}`, action:'ordini'}
+    last
+      ? {label:`Ultimo ordine: ${last.stato} • ${last.data||''}`, sub:"Apre direttamente l'ultimo ordine salvato", open:'ord', id:last.id||''}
+      : {label:'Ultimo ordine: nessuno', sub:"Apri l'elenco ordini", go:'ordini'},
+    {label:`Promozioni: ${promoItems.length}${exp?` attive • ${[exp.brand,exp.modello].filter(Boolean).join(' ')}`:' attive'}`, sub:'Apri solo gli articoli in promozione', action:'openPromoArticles'},
+    {label:`Tutti gli articoli: ${(db.articoli||[]).length}`, sub:"Apri tutto l'archivio articoli", action:'openAllArticles'},
+    {label:`Ordini aperti: ${inCorso} • Incassato mese ${money(incMese)}`, sub:'Apri ordini e incassi del mese', go:'ordini'}
   ];
 
   const list=document.getElementById('dashList');
-  list.innerHTML=lines.map(row=>`<div class="row" data-action="${row.action}" style="grid-template-columns:1fr"><div class="main"><div class="t">${esc(row.label)}</div></div></div>`).join('');
+  list.innerHTML=lines.map(row=>{
+    const attr=row.open
+      ? `data-open="${row.open}" data-id="${esc(row.id||'')}"`
+      : (row.go ? `data-go="${row.go}"` : `data-action="${row.action}"`);
+    return `<div class="row dashTap" ${attr} role="button" tabindex="0" style="grid-template-columns:1fr auto"><div class="main"><div class="t">${esc(row.label)}</div><div class="s">${esc(row.sub||'')}</div></div><div class="chev" aria-hidden="true">›</div></div>`;
+  }).join('');
   renderShipAlerts();
 }
 
@@ -5062,7 +5084,7 @@ function renderArt(){
   }).sort((a,b)=>Number(b._ts||0)-Number(a._ts||0));
   const el=document.getElementById('listArt');
   renderArtBreadcrumbs();
-  const showOverview=!q && !catFilter;
+  const showOverview=!promoOnly && !q && !catFilter && !brandFilter && !qualityFilter;
   if(showOverview){
     renderCategoryOverview(items,{promoOnly,brandFilter,qualityFilter});
     return;
@@ -5233,7 +5255,7 @@ async function repairArchive(){
   for(const a of db.articoli||[]){
     if(Array.isArray(a.foto) && a.foto.length){
       if(!Array.isArray(a.photoIds)) a.photoIds=[];
-      for(const src of a.foto.slice(0,15)){
+      for(const src of a.foto.slice(0,MAX_ARTICLE_PHOTOS)){
         const pid='ph_'+uid();
         await idbSet(pid,src);
         a.photoIds.push(pid);
@@ -5248,7 +5270,7 @@ async function repairArchive(){
       seen.add(id);
       uniq.push(id);
     }
-    a.photoIds=uniq.slice(0,15);
+    a.photoIds=uniq.slice(0,MAX_ARTICLE_PHOTOS);
     a.photoIds.forEach(id=>referenced.add(String(id)));
   }
   const keys=await idbListKeys().catch(()=>[]);
@@ -5356,6 +5378,7 @@ async function openArtView(id){
   hero.src=pics[0]||''; hero.style.display=pics[0]?'block':'none';
   thumbs.innerHTML=pics.map(src=>`<img src="${src}" onclick="document.getElementById('vArtHero').src='${src}'"/>`).join('');
   document.getElementById('vArtCod').textContent=a.codice||'-';
+  document.getElementById('vArtModel').textContent=normalizeSpaceText(a.modello||'')||'-';
   document.getElementById('vArtQual').textContent=articleQualityLabel(a)||'-';
   document.getElementById('vArtBrand').textContent=a.brand||'-';
   document.getElementById('vArtForn').textContent=a.fornitore||'-';
@@ -5469,7 +5492,7 @@ function mergePreviewPics(existingPics,newPics){
   const out=[];
   for(const src of [...(existingPics||[]), ...(newPics||[])]){
     if(src && !out.includes(src)) out.push(src);
-    if(out.length>=15) break;
+    if(out.length>=MAX_ARTICLE_PHOTOS) break;
   }
   return out;
 }
@@ -5496,7 +5519,7 @@ function updateArtPhotoStatus(){
   if(!box) return;
   const existingCount=Array.isArray(currentArtExistingPics) ? currentArtExistingPics.length : 0;
   const pendingCount=Array.isArray(currentArtPendingFiles) ? currentArtPendingFiles.length : 0;
-  const remaining=Math.max(0, 15 - existingCount - pendingCount);
+  const remaining=Math.max(0, MAX_ARTICLE_PHOTOS - existingCount - pendingCount);
   const parts=[];
   if(existingCount) parts.push(`${existingCount} già presenti`);
   if(pendingCount) parts.push(`${pendingCount} nuove da salvare`);
@@ -5505,7 +5528,7 @@ function updateArtPhotoStatus(){
 }
 async function syncPendingArtPhotoPreviewUrls(){
   revokeObjectUrls(currentArtPendingPreviewUrls);
-  currentArtPendingPreviewUrls=await filesToObjectUrls(currentArtPendingFiles, Math.max(0, 15 - (Array.isArray(currentArtExistingPics)?currentArtExistingPics.length:0)));
+  currentArtPendingPreviewUrls=await filesToObjectUrls(currentArtPendingFiles, Math.max(0, MAX_ARTICLE_PHOTOS - (Array.isArray(currentArtExistingPics)?currentArtExistingPics.length:0)));
   renderCurrentArtPhotoPreview();
 }
 async function appendPendingArtPhotoFiles(fileList){
@@ -5516,15 +5539,15 @@ async function appendPendingArtPhotoFiles(fileList){
   }
   const existingCount=Array.isArray(currentArtExistingPics) ? currentArtExistingPics.length : 0;
   const pendingCount=Array.isArray(currentArtPendingFiles) ? currentArtPendingFiles.length : 0;
-  const remaining=Math.max(0, 15 - existingCount - pendingCount);
+  const remaining=Math.max(0, MAX_ARTICLE_PHOTOS - existingCount - pendingCount);
   if(!remaining){
-    toast('Hai già raggiunto il massimo di 15 foto per articolo');
+    toast('Hai già raggiunto il massimo di 9 foto per articolo');
     updateArtPhotoStatus();
     return;
   }
   const accepted=incoming.slice(0, remaining);
   if(incoming.length>remaining) toast(`Puoi aggiungere ancora ${remaining} foto`);
-  currentArtPendingFiles=[...currentArtPendingFiles, ...accepted].slice(0, Math.max(0, 15 - existingCount));
+  currentArtPendingFiles=[...currentArtPendingFiles, ...accepted].slice(0, Math.max(0, MAX_ARTICLE_PHOTOS - existingCount));
   await syncPendingArtPhotoPreviewUrls();
 }
 async function refreshArtPhotoPreviewFromInput(){
@@ -5737,8 +5760,8 @@ async function duplicateCurrentArticle(sourceId=null){
   currentArtId=null;
   currentArtPhotosCleared=false;
   currentArtDuplicateData={
-    foto: Array.isArray(clone?.foto) ? clone.foto.filter(Boolean).slice(0,15) : [],
-    photoIds: Array.isArray(clone?.photoIds) ? clone.photoIds.filter(Boolean).slice(0,15) : []
+    foto: Array.isArray(clone?.foto) ? clone.foto.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS) : [],
+    photoIds: Array.isArray(clone?.photoIds) ? clone.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS) : []
   };
   hide('mArtView', true);
   document.getElementById('artEditTitle').textContent='Duplica articolo';
@@ -5852,7 +5875,7 @@ async function saveArt(){
       obj.foto = Array.isArray(obj.foto) ? obj.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')) : [];
       obj.photoIds = Array.isArray(obj.photoIds) ? obj.photoIds.filter(Boolean) : [];
       const existingCount=Math.max((obj.foto||[]).length, (obj.photoIds||[]).length);
-      const maxNew=Math.max(0, 15 - existingCount);
+      const maxNew=Math.max(0, MAX_ARTICLE_PHOTOS - existingCount);
       const filesToSave=selectedFiles.slice(0,maxNew);
       if(selectedFiles.length>maxNew) photoUploadWarning=`Caricate ${maxNew} foto, limite massimo raggiunto`;
 
@@ -5878,7 +5901,7 @@ async function saveArt(){
             }
           }
         }
-        obj.photoIds=[...new Set([...(obj.photoIds||[]), ...localPhotoIds])].slice(0,15);
+        obj.photoIds=[...new Set([...(obj.photoIds||[]), ...localPhotoIds])].slice(0,MAX_ARTICLE_PHOTOS);
       }
     }
     obj._ts=Date.now();
@@ -6705,9 +6728,9 @@ function importDB(file){
       const incoming=normalizeDBShape(parsed);
       if(!incoming || !Array.isArray(incoming.articoli)||!Array.isArray(incoming.clienti)||!Array.isArray(incoming.ordini)) throw new Error('JSON non compatibile');
       for(const art of incoming.articoli){
-        art.photoIds=Array.isArray(art.photoIds)?art.photoIds.filter(Boolean).slice(0,15):[];
+        art.photoIds=Array.isArray(art.photoIds)?art.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[];
         if(Array.isArray(art.foto) && art.foto.length){
-          for(const src of art.foto.slice(0,15)){
+          for(const src of art.foto.slice(0,MAX_ARTICLE_PHOTOS)){
             const pid='ph_'+uid();
             await idbSet(pid,src);
             art.photoIds.push(pid);
@@ -6833,6 +6856,15 @@ document.addEventListener('pointerdown',(ev)=>{
     .then(()=>getPreparedCurrentArticlePhotoContext() || getCurrentArticlePhotoContext())
     .then(ctx=>{ if(ctx) return warmCurrentArticlePhotoShare(ctx, { silent:true }); })
     .catch(()=>{});
+});
+
+document.addEventListener('keydown',(ev)=>{
+  const isActivate=(ev.key==='Enter' || ev.key===' ' || ev.key==='Spacebar');
+  if(!isActivate) return;
+  const el=ev.target?.closest?.('[data-action],[data-go],[data-open]');
+  if(!el) return;
+  ev.preventDefault();
+  el.click();
 });
 
 document.addEventListener('click',(ev)=>{
@@ -7072,7 +7104,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-03-31-essential-share-v27';
+const VG_BUILD='2026-03-31-essential-share-v31-cloud-merge-ts';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -7410,7 +7442,7 @@ async function pullCloudToLocal(opts={}){
     const localOrdById=new Map((localDb.ordini||[]).map(o=>[o.id,o]));
     const localOrdByNumero=new Map((localDb.ordini||[]).map(o=>[normalizeTextKey(ensureOrderNumber(o)),o]).filter(([k])=>k));
     const localOrdByFingerprint=new Map((localDb.ordini||[]).map(o=>[normalizeOrderFingerprint(o),o]).filter(([k])=>k));
-    const db={version:'v6',createdAt:new Date().toISOString(),
+    const cloudDb={version:'v6',createdAt:new Date().toISOString(),
       categorie:(cats||[]).map(c=>normalizeSpaceText(c?.nome||'')).filter(Boolean),
       brands:[],
       articoli:(prod||[]).map(p=>{
@@ -7429,28 +7461,37 @@ async function pullCloudToLocal(opts={}){
         const pulledPrezzoVendita=firstFiniteNumber(p.prezzo_vendita, p.prezzo, p.prezzo_vendita_iva, meta.prezzoVendita, meta.prezzo, local?.prezzoVendita, 0);
         const colorShape=deriveColorShape({ colorMode:meta.colorMode||local?.colorMode, colorType:meta.colorType||local?.colorType, colorCount:meta.colorCount||local?.colorCount, colorLabels:meta.colorLabels||local?.colorLabels });
         const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
-        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,15):[],_ts:Date.now(),_cloud:true};
+        const cloudTs=parseTimestampLike(meta._ts, p.updated_at, p.created_at, local?._ts, Date.now());
+        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],_ts:cloudTs,_cloud:true};
       }),
-      clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
-      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:Date.now(),_cloud:true}; })
+      clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true})),
+      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; })
     };
     const mergedCategories=[...new Set([
       ...(Array.isArray(localDb?.categorie)?localDb.categorie:[]),
-      ...(Array.isArray(db?.categorie)?db.categorie:[]),
+      ...(Array.isArray(cloudDb?.categorie)?cloudDb.categorie:[]),
       ...((localDb?.articoli||[]).map(a=>normalizeSpaceText(a?.categoria||''))),
-      ...((db?.articoli||[]).map(a=>normalizeSpaceText(a?.categoria||'')))
+      ...((cloudDb?.articoli||[]).map(a=>normalizeSpaceText(a?.categoria||'')))
     ].map(v=>normalizeSpaceText(v)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
     const mergedBrands=[...new Set([
       ...(Array.isArray(localDb?.brands)?localDb.brands:[]),
-      ...(Array.isArray(db?.brands)?db.brands:[]),
+      ...(Array.isArray(cloudDb?.brands)?cloudDb.brands:[]),
       ...((localDb?.articoli||[]).map(a=>normalizeSpaceText(a?.brand||''))),
-      ...((db?.articoli||[]).map(a=>normalizeSpaceText(a?.brand||'')))
+      ...((cloudDb?.articoli||[]).map(a=>normalizeSpaceText(a?.brand||'')))
     ].map(v=>normalizeSpaceText(v)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
-    db.categorie=mergedCategories;
-    db.brands=mergedBrands;
+    const mergedDb=normalizeDBShape({
+      version: cloudDb.version || localDb.version || 'v6',
+      createdAt: localDb.createdAt || cloudDb.createdAt || new Date().toISOString(),
+      articoli:[...(Array.isArray(localDb?.articoli)?localDb.articoli:[]), ...(Array.isArray(cloudDb?.articoli)?cloudDb.articoli:[])],
+      clienti:[...(Array.isArray(localDb?.clienti)?localDb.clienti:[]), ...(Array.isArray(cloudDb?.clienti)?cloudDb.clienti:[])],
+      ordini:[...(Array.isArray(localDb?.ordini)?localDb.ordini:[]), ...(Array.isArray(cloudDb?.ordini)?cloudDb.ordini:[])],
+      categorie: mergedCategories,
+      brands: mergedBrands,
+      agenda:[...(Array.isArray(localDb?.agenda)?localDb.agenda:[])]
+    });
 
-    updateShippingNotifications(db, bg?'cloud-auto':'cloud');
-    saveDBLocal(db);
+    updateShippingNotifications(mergedDb, bg?'cloud-auto':'cloud');
+    saveDBLocal(mergedDb);
     renderAll();
     renderDiagnostics();
     if(!opts.silent) toast('Dati cloud caricati');
@@ -7563,7 +7604,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v27', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v28-dashboard-clicks', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
