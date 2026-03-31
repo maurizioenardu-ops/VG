@@ -621,7 +621,6 @@ window.addEventListener('error',e=>{
         <option>In lavorazione</option>
         <option>Spedito</option>
         <option>Consegnato</option>
-        <option>Annullato</option>
       </select>
     </div>
   </div>
@@ -2987,20 +2986,20 @@ function buildPostInstagram(a){
   if(lines.length) lines.push('');
   if(modelLine) lines.push(modelLine);
   lines.push(`Cod. ${a.codice}`);
+  const phrase = pickRandom(instagramCharacterPhrases(a)) || 'Ha presenza. Punto.';
   const closers=[
     'DM 📩',
     'Scrivimi in DM 📩',
     'Info in DM 📩',
     'Se ti interessa, DM 📩',
-    'Dettagli in DM 📩'
+    'Dettagli in DM 📩',
+    'Disponibile. DM 📩',
+    'Disponibile ✨ DM 📩'
   ];
+  if(phrase) lines.push('', phrase);
   const closer = pickRandom(closers) || 'DM 📩';
   if(closer) lines.push('', closer);
-  return lines.join('
-').replace(/
-{3,}/g,'
-
-').trim();
+  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
 
 function buildPostTelegram(a){
@@ -3413,7 +3412,7 @@ function renderHome(){
   const db=loadDB();
   const now=new Date(), curMonth=now.getMonth(), curYear=now.getFullYear();
   const ordini=db.ordini||[];
-  const inCorso=ordini.filter(o=>{ const s=String(o.stato||'').trim().toLowerCase(); return s!=='consegnato' && s!=='annullato'; }).length;
+  const inCorso=ordini.filter(o=>String(o.stato||'').trim().toLowerCase()!=='consegnato').length;
   const totaleOrdini=ordini.reduce((s,o)=>s+Number(o.totale||0),0);
   const mediaOrdini=ordini.length ? totaleOrdini / ordini.length : 0;
   const guadagnoTot=ordini.reduce((s,o)=>s+(orderPaidStatus(o)?orderMargin(o,db):0),0);

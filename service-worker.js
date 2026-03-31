@@ -1,5 +1,5 @@
-const CACHE_NAME='vg-cache-v10_2-portafogli';
-const VERSION = 'v10_2';
+const CACHE_NAME='vg-cache-v11_6-materiale-guard';
+const VERSION = 'v11_6';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './manifest.json',
@@ -69,3 +69,4 @@ self.addEventListener('fetch', event => {
     return fresh;
   })());
 });
+
