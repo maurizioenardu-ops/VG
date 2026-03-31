@@ -624,7 +624,7 @@ window.addEventListener('error',e=>{
     <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Aggiungi foto</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 15 foto totali per articolo.</div></div>
+    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Aggiungi foto</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 9 foto totali per articolo.</div></div>
     <div id="a_photo_prev" class="thumbs"></div>
   </div>
 
@@ -830,6 +830,7 @@ const AGENDA_KEY='vg_dashboard_agenda_v2_clean';
 const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
 const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
 const round5=n=>Math.round(n/5)*5;
+const MAX_ARTICLE_PHOTOS=9;
 
 function defDB(){
   return {version:'v6.7',articoli:[],clienti:[],ordini:[],categorie:[],brands:[],agenda:[],createdAt:new Date().toISOString()};
@@ -918,8 +919,8 @@ function normalizeDBShape(o){
     scadenzaPromo:normalizeSpaceText(x?.scadenzaPromo||x?.promoScadenza||x?.promo_date||''),
     nonDisponibile:(typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.disponibile===false || x?.attivo===false),
     disponibile:(typeof x?.disponibile==='boolean') ? x.disponibile : !((typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.attivo===false)),
-    foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,15):[],
-    photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,15):[]
+    foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],
+    photoIds:Array.isArray(x?.photoIds)?x.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[]
   })).map(x=>{
     const shape=deriveColorShape(x);
     return normalizeArticlePromoState({ ...x, ...shape, colorData:makeStableColorData(shape), colore:shape.colorMode==='multiple' ? '' : normalizeSpaceText(x?.colore||'') });
@@ -1517,8 +1518,8 @@ function mergeArticleRecords(prev,item){
     codice:normalizeSpaceText(item?.codice||item?.sku||''),
     brand:normalizeSpaceText(item?.brand||item?.marca||''),
     categoria:normalizeSpaceText(item?.categoria||''),
-    foto:Array.isArray(item?.foto)?item.foto.filter(Boolean).slice(0,15):[],
-    photoIds:Array.isArray(item?.photoIds)?item.photoIds.filter(Boolean).slice(0,15):[]
+    foto:Array.isArray(item?.foto)?item.foto.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],
+    photoIds:Array.isArray(item?.photoIds)?item.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[]
   };
   const nextWins=recordRichnessScore(item) >= recordRichnessScore(prev);
   const merged=nextWins ? {...prev, ...item} : {...item, ...prev};
@@ -1532,8 +1533,8 @@ function mergeArticleRecords(prev,item){
   merged.promoAttiva=(typeof merged?.promoAttiva==='boolean') ? merged.promoAttiva : ((typeof item?.promoAttiva==='boolean') ? item.promoAttiva : ((typeof prev?.promoAttiva==='boolean') ? prev.promoAttiva : false));
   merged.prezzoPromo=firstFiniteNumber(merged?.prezzoPromo, merged?.promoPrezzo, item?.prezzoPromo, item?.promoPrezzo, prev?.prezzoPromo, prev?.promoPrezzo, 0);
   merged.scadenzaPromo=normalizeSpaceText(merged?.scadenzaPromo||merged?.promoScadenza||item?.scadenzaPromo||item?.promoScadenza||prev?.scadenzaPromo||prev?.promoScadenza||'');
-  merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]).slice(0,15);
-  merged.photoIds=[...new Set([...(prev?.photoIds||[]), ...(item?.photoIds||[])].filter(Boolean).map(String))].slice(0,15);
+  merged.foto=mergeUniquePics(prev?.foto||[], item?.foto||[]).slice(0,MAX_ARTICLE_PHOTOS);
+  merged.photoIds=[...new Set([...(prev?.photoIds||[]), ...(item?.photoIds||[])].filter(Boolean).map(String))].slice(0,MAX_ARTICLE_PHOTOS);
   return merged;
 }
 function dedupeArticoliWithMap(list=[]){ return dedupeSemanticList(list, normalizeArticleDedupKey, mergeArticleRecords); }
@@ -1970,7 +1971,7 @@ async function listCloudFotoPathsByCode(codice){
       .filter(f=>f && f.name && !String(f.name).endsWith('/'))
       .map(f=> `${code}/${f.name}`)
       .filter(Boolean)
-      .slice(0,15);
+      .slice(0,MAX_ARTICLE_PHOTOS);
   }catch(_e){
     return [];
   }
@@ -1985,10 +1986,10 @@ async function getArticlePics(a){
     out.push(clean);
   };
   if(Array.isArray(a.foto) && a.foto.length){
-    for(const path of a.foto.slice(0,15)){
+    for(const path of a.foto.slice(0,MAX_ARTICLE_PHOTOS)){
       const url=await getPublicFotoUrl(path);
       if(url) pushPic(url);
-      if(out.length>=15) return out.slice(0,15);
+      if(out.length>=MAX_ARTICLE_PHOTOS) return out.slice(0,MAX_ARTICLE_PHOTOS);
     }
   }
   if(Array.isArray(a.photoIds) && a.photoIds.length){
@@ -1997,10 +1998,10 @@ async function getArticlePics(a){
       if(!x) continue;
       if(typeof x==='string') pushPic(x);
       else if(x instanceof Blob) pushPic(URL.createObjectURL(x));
-      if(out.length>=15) break;
+      if(out.length>=MAX_ARTICLE_PHOTOS) break;
     }
   }
-  return out.slice(0,15);
+  return out.slice(0,MAX_ARTICLE_PHOTOS);
 }
 async function getArticleCloudSyncSources(a){
   if(!a) return [];
@@ -2489,7 +2490,7 @@ async function syncArticlePhotosToCloud(artId, codice, pics){
   const sb=await ensureCloud();
   if(!sb||!cloudSession||!artId) return [];
   const cleanCode=String(codice||artId||'art').trim() || String(artId);
-  const normalized=(pics||[]).filter(Boolean).slice(0,15);
+  const normalized=(pics||[]).filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS);
   const { data:existingRows } = await sb.from('prodotti_foto').select('path,ordine').eq('prodotto_id', artId).order('ordine',{ascending:true});
   const existingPaths=(existingRows||[]).map(r=>String(r?.path||'').trim()).filter(Boolean);
   const savedPaths=[];
@@ -2567,7 +2568,7 @@ async function migratePhotosToIndexedDB(){
   for(const a of db.articoli||[]){
     if(Array.isArray(a.foto) && a.foto.length && (!Array.isArray(a.photoIds) || !a.photoIds.length)){
       a.photoIds=[];
-      for(const src of a.foto.slice(0,15)){
+      for(const src of a.foto.slice(0,MAX_ARTICLE_PHOTOS)){
         const pid='ph_'+uid();
         await idbSet(pid,src);
         a.photoIds.push(pid);
@@ -2602,7 +2603,7 @@ function normalizeCloudPhotoPathList(list){
     const clean=String(raw||'').trim().replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
     if(!clean || !isLikelyCloudPhotoPath(clean) || out.includes(clean)) continue;
     out.push(clean);
-    if(out.length>=15) break;
+    if(out.length>=MAX_ARTICLE_PHOTOS) break;
   }
   return out;
 }
@@ -5240,7 +5241,7 @@ async function repairArchive(){
   for(const a of db.articoli||[]){
     if(Array.isArray(a.foto) && a.foto.length){
       if(!Array.isArray(a.photoIds)) a.photoIds=[];
-      for(const src of a.foto.slice(0,15)){
+      for(const src of a.foto.slice(0,MAX_ARTICLE_PHOTOS)){
         const pid='ph_'+uid();
         await idbSet(pid,src);
         a.photoIds.push(pid);
@@ -5255,7 +5256,7 @@ async function repairArchive(){
       seen.add(id);
       uniq.push(id);
     }
-    a.photoIds=uniq.slice(0,15);
+    a.photoIds=uniq.slice(0,MAX_ARTICLE_PHOTOS);
     a.photoIds.forEach(id=>referenced.add(String(id)));
   }
   const keys=await idbListKeys().catch(()=>[]);
@@ -5476,7 +5477,7 @@ function mergePreviewPics(existingPics,newPics){
   const out=[];
   for(const src of [...(existingPics||[]), ...(newPics||[])]){
     if(src && !out.includes(src)) out.push(src);
-    if(out.length>=15) break;
+    if(out.length>=MAX_ARTICLE_PHOTOS) break;
   }
   return out;
 }
@@ -5503,7 +5504,7 @@ function updateArtPhotoStatus(){
   if(!box) return;
   const existingCount=Array.isArray(currentArtExistingPics) ? currentArtExistingPics.length : 0;
   const pendingCount=Array.isArray(currentArtPendingFiles) ? currentArtPendingFiles.length : 0;
-  const remaining=Math.max(0, 15 - existingCount - pendingCount);
+  const remaining=Math.max(0, MAX_ARTICLE_PHOTOS - existingCount - pendingCount);
   const parts=[];
   if(existingCount) parts.push(`${existingCount} già presenti`);
   if(pendingCount) parts.push(`${pendingCount} nuove da salvare`);
@@ -5512,7 +5513,7 @@ function updateArtPhotoStatus(){
 }
 async function syncPendingArtPhotoPreviewUrls(){
   revokeObjectUrls(currentArtPendingPreviewUrls);
-  currentArtPendingPreviewUrls=await filesToObjectUrls(currentArtPendingFiles, Math.max(0, 15 - (Array.isArray(currentArtExistingPics)?currentArtExistingPics.length:0)));
+  currentArtPendingPreviewUrls=await filesToObjectUrls(currentArtPendingFiles, Math.max(0, MAX_ARTICLE_PHOTOS - (Array.isArray(currentArtExistingPics)?currentArtExistingPics.length:0)));
   renderCurrentArtPhotoPreview();
 }
 async function appendPendingArtPhotoFiles(fileList){
@@ -5523,15 +5524,15 @@ async function appendPendingArtPhotoFiles(fileList){
   }
   const existingCount=Array.isArray(currentArtExistingPics) ? currentArtExistingPics.length : 0;
   const pendingCount=Array.isArray(currentArtPendingFiles) ? currentArtPendingFiles.length : 0;
-  const remaining=Math.max(0, 15 - existingCount - pendingCount);
+  const remaining=Math.max(0, MAX_ARTICLE_PHOTOS - existingCount - pendingCount);
   if(!remaining){
-    toast('Hai già raggiunto il massimo di 15 foto per articolo');
+    toast('Hai già raggiunto il massimo di 9 foto per articolo');
     updateArtPhotoStatus();
     return;
   }
   const accepted=incoming.slice(0, remaining);
   if(incoming.length>remaining) toast(`Puoi aggiungere ancora ${remaining} foto`);
-  currentArtPendingFiles=[...currentArtPendingFiles, ...accepted].slice(0, Math.max(0, 15 - existingCount));
+  currentArtPendingFiles=[...currentArtPendingFiles, ...accepted].slice(0, Math.max(0, MAX_ARTICLE_PHOTOS - existingCount));
   await syncPendingArtPhotoPreviewUrls();
 }
 async function refreshArtPhotoPreviewFromInput(){
@@ -5744,8 +5745,8 @@ async function duplicateCurrentArticle(sourceId=null){
   currentArtId=null;
   currentArtPhotosCleared=false;
   currentArtDuplicateData={
-    foto: Array.isArray(clone?.foto) ? clone.foto.filter(Boolean).slice(0,15) : [],
-    photoIds: Array.isArray(clone?.photoIds) ? clone.photoIds.filter(Boolean).slice(0,15) : []
+    foto: Array.isArray(clone?.foto) ? clone.foto.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS) : [],
+    photoIds: Array.isArray(clone?.photoIds) ? clone.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS) : []
   };
   hide('mArtView', true);
   document.getElementById('artEditTitle').textContent='Duplica articolo';
@@ -5859,7 +5860,7 @@ async function saveArt(){
       obj.foto = Array.isArray(obj.foto) ? obj.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')) : [];
       obj.photoIds = Array.isArray(obj.photoIds) ? obj.photoIds.filter(Boolean) : [];
       const existingCount=Math.max((obj.foto||[]).length, (obj.photoIds||[]).length);
-      const maxNew=Math.max(0, 15 - existingCount);
+      const maxNew=Math.max(0, MAX_ARTICLE_PHOTOS - existingCount);
       const filesToSave=selectedFiles.slice(0,maxNew);
       if(selectedFiles.length>maxNew) photoUploadWarning=`Caricate ${maxNew} foto, limite massimo raggiunto`;
 
@@ -5885,7 +5886,7 @@ async function saveArt(){
             }
           }
         }
-        obj.photoIds=[...new Set([...(obj.photoIds||[]), ...localPhotoIds])].slice(0,15);
+        obj.photoIds=[...new Set([...(obj.photoIds||[]), ...localPhotoIds])].slice(0,MAX_ARTICLE_PHOTOS);
       }
     }
     obj._ts=Date.now();
@@ -6712,9 +6713,9 @@ function importDB(file){
       const incoming=normalizeDBShape(parsed);
       if(!incoming || !Array.isArray(incoming.articoli)||!Array.isArray(incoming.clienti)||!Array.isArray(incoming.ordini)) throw new Error('JSON non compatibile');
       for(const art of incoming.articoli){
-        art.photoIds=Array.isArray(art.photoIds)?art.photoIds.filter(Boolean).slice(0,15):[];
+        art.photoIds=Array.isArray(art.photoIds)?art.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[];
         if(Array.isArray(art.foto) && art.foto.length){
-          for(const src of art.foto.slice(0,15)){
+          for(const src of art.foto.slice(0,MAX_ARTICLE_PHOTOS)){
             const pid='ph_'+uid();
             await idbSet(pid,src);
             art.photoIds.push(pid);
@@ -7445,7 +7446,7 @@ async function pullCloudToLocal(opts={}){
         const pulledPrezzoVendita=firstFiniteNumber(p.prezzo_vendita, p.prezzo, p.prezzo_vendita_iva, meta.prezzoVendita, meta.prezzo, local?.prezzoVendita, 0);
         const colorShape=deriveColorShape({ colorMode:meta.colorMode||local?.colorMode, colorType:meta.colorType||local?.colorType, colorCount:meta.colorCount||local?.colorCount, colorLabels:meta.colorLabels||local?.colorLabels });
         const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
-        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,15):[],_ts:Date.now(),_cloud:true};
+        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],_ts:Date.now(),_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:Date.now(),_cloud:true}; })

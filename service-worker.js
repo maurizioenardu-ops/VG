@@ -1,4 +1,4 @@
-const VERSION = 'v27_0_share_direct_ready';
+const VERSION = 'v30_0_article_photo_limit_9';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
