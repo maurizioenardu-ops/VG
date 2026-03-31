@@ -108,11 +108,12 @@ select[multiple]{min-height:150px}
 
 #mArtView .modal,#mArtEdit .modal{max-width:760px}
 
-#vArtPost,#a_post,#c_ship{overflow:hidden;resize:none;scrollbar-width:none;-ms-overflow-style:none}
+#vArtPost,#vArtPostFb,#vArtPostIg,#a_post,#a_post_fb,#a_post_ig,#c_ship{overflow:hidden;resize:none;scrollbar-width:none;-ms-overflow-style:none}
+#vArtPost,#vArtPostFb,#vArtPostIg,#a_post,#a_post_fb,#a_post_ig{min-height:190px;line-height:1.45}
 .viewBottomSpace{margin-top:22px;padding-bottom:10px}
 .linkRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .linkRow input{flex:1 1 240px}
-#vArtPost::-webkit-scrollbar,#a_post::-webkit-scrollbar,#c_ship::-webkit-scrollbar{display:none}
+#vArtPost::-webkit-scrollbar,#vArtPostFb::-webkit-scrollbar,#vArtPostIg::-webkit-scrollbar,#a_post::-webkit-scrollbar,#a_post_fb::-webkit-scrollbar,#a_post_ig::-webkit-scrollbar,#c_ship::-webkit-scrollbar{display:none}
 @media (max-width:700px){
   #mArtView .modal,#mArtEdit .modal{width:100vw;max-width:none;height:100vh;max-height:none;border-radius:0;padding:14px 14px 96px}
   #mArtView.modalwrap,#mArtEdit.modalwrap{padding:0}
@@ -170,7 +171,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v10_1-cat4">
+  <meta name="vg-version" content="v10_2-fbgroup">
 </head>
 <body>
 <div class="top">
@@ -233,7 +234,7 @@ window.addEventListener('error',e=>{
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Articoli</div><button class="btn" type="button" data-action="newArt">+ Nuovo</button></div>
       <div class="grid2" style="margin-top:10px">
-        <div class="searchWrap"><input id="qArt" placeholder="Cerca per codice, brand, modello, categoria, colore, taglia, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
+        <div class="searchWrap"><input id="qArt" placeholder="Cerca per codice, brand, modello, categoria, colore, materiale, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
         <div><select id="qArtCat"><option value="">Tutte le categorie</option></select></div>
       </div>
       <div id="artBreadcrumbs" class="artBreadcrumbs" style="display:none"></div>
@@ -433,10 +434,12 @@ window.addEventListener('error',e=>{
       <div class="orderAddWrap"><button class="btn orderAdd" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button></div>
     </div>
   </div>
-  <div style="margin-top:10px"><div class="k">Post</div><textarea id="vArtPost" readonly></textarea></div>
+  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
-    <button class="btn primary smallish" type="button" data-action="copyPost">Copia post</button>
+    <button class="btn smallish" type="button" data-action="shareArtPhotos">Condividi foto</button>
     <button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button>
     <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
@@ -450,7 +453,7 @@ window.addEventListener('error',e=>{
   <div class="formBlock dati inputSoft">
     <div class="blockTitle">Dati articolo</div>
     <div class="grid2">
-      <div><div class="k">Codice articolo</div><input id="a_cod" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+      <div><div class="k">Codice articolo</div><input id="a_cod" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="a_cod_hint" class="date" style="margin-top:6px"></div></div>
       <div>
         <div class="k">Brand</div>
         <select id="a_brand">
@@ -470,7 +473,7 @@ window.addEventListener('error',e=>{
   <div class="formBlock varianti inputSoft">
     <div class="blockTitle">Varianti e dettagli</div>
     <div class="grid2">
-      <div><div class="k">Taglia</div><input id="a_taglia" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+      <div><div class="k">Materiale</div><input id="a_taglia" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Es. Pelle di vitello impressa"/></div>
       <div><div class="k">Variante</div><input id="a_variante" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
     </div>
     <div class="grid2" style="margin-top:10px">
@@ -504,7 +507,9 @@ window.addEventListener('error',e=>{
   <div class="formBlock postblk inputSoft">
     <div class="blockTitle">Post e contenuti</div>
     <div><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Dettagli utili per il post..."></textarea></div>
-    <div style="margin-top:10px"><div class="k">Post</div><textarea id="a_post" placeholder="Qui il post (auto)"></textarea></div>
+    <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="a_post_fb" readonly placeholder="Qui il post Facebook (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbEdit">Copia FB</button></div></div>
+    <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="a_post" placeholder="Qui il post Telegram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostTelegramEdit">Copia Telegram</button></div></div>
+    <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
     <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple/><div class="small" style="margin-top:6px">Puoi selezionare più foto insieme (massimo 6 totali per articolo).</div></div>
@@ -691,6 +696,9 @@ const PHOTO_DB='vg_photos_v1';
 const PHOTO_STORE='photos';
 const PROVINCE=[ "AG","AL","AN","AO","AP","AQ","AR","AT","AV","BA","BG","BI","BL","BN","BO","BR","BS","BT","BZ","CA","CB","CE","CH","CL","CN","CO","CR","CS","CT","CZ","EN","FC","FE","FG","FI","FM","FR","GE","GO","GR","IM","IS","KR","LC","LE","LI","LO","LT","LU","MB","MC","ME","MI","MN","MO","MS","MT","NA","NO","NU","OR","PA","PC","PD","PE","PG","PI","PN","PO","PR","PT","PU","PV","PZ","RA","RC","RE","RG","RI","RM","RN","RO","SA","SI","SO","SP","SR","SS","SU","SV","TA","TE","TN","TO","TP","TR","TS","TV","UD","VA","VB","VC","VE","VI","VR","VT","VV" ];
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+const ART_DRAFT_KEY='vg_draft_art_v1';
+const CLI_DRAFT_KEY='vg_draft_cli_v1';
+const ORD_DRAFT_KEY='vg_draft_ord_v1';
 const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
 const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
 const round5=n=>Math.round(n/5)*5;
@@ -1040,7 +1048,17 @@ function loadDB(){
       if(!raw) return;
       try{ found.push({key:k, db:normalizeDBShape(JSON.parse(raw))}); }catch(_e){}
     });
-    if(!found.length) return defDB();
+    if(!found.length){
+      try{
+        const backupRaw=localStorage.getItem(KEY+'_backup_latest');
+        if(backupRaw){
+          const backupDb=normalizeDBShape(JSON.parse(backupRaw));
+          localStorage.setItem(KEY, JSON.stringify(backupDb));
+          return backupDb;
+        }
+      }catch(_e){}
+      return defDB();
+    }
 
     let merged=defDB();
     found.forEach(({db})=>{
@@ -1085,6 +1103,191 @@ function saveDB(db){
   return true;
 }
 function safeLower(v){ return String(v==null?'':v).trim().toLowerCase(); }
+function isModalVisible(id){
+  const el=document.getElementById(id);
+  return !!el && el.style.display==='flex';
+}
+function saveDraftRaw(key, payload){
+  try{ localStorage.setItem(key, JSON.stringify({...payload, _ts:Date.now()})); }catch(_e){}
+}
+function loadDraftRaw(key){
+  try{ return JSON.parse(localStorage.getItem(key)||'null'); }catch(_e){ return null; }
+}
+function clearDraftRaw(key){
+  try{ localStorage.removeItem(key); }catch(_e){}
+}
+function persistSafetySnapshot(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(raw) localStorage.setItem(KEY+'_backup_latest', raw);
+  }catch(_e){}
+}
+function collectArticleDraft(){
+  return {
+    currentArtId: currentArtId||'',
+    values:{
+      codice:document.getElementById('a_cod')?.value||'',
+      brand:getArticleBrandValue(),
+      modello:document.getElementById('a_mod')?.value||'',
+      categoria:document.getElementById('a_cat')?.value||'',
+      descrizione:document.getElementById('a_desc')?.value||'',
+      fornitore:document.getElementById('a_forn')?.value||'',
+      fornitoreLink:document.getElementById('a_forn_link')?.value||'',
+      materiale:document.getElementById('a_taglia')?.value||'',
+      variante:document.getElementById('a_variante')?.value||'',
+      colore:document.getElementById('a_colore')?.value||'',
+      misura:document.getElementById('a_mis')?.value||'',
+      costoUsd:document.getElementById('a_usd')?.value||'',
+      promoAttiva:!!document.getElementById('a_promo_on')?.checked,
+      prezzoPromo:document.getElementById('a_promo_price')?.value||'',
+      scadenzaPromo:document.getElementById('a_promo_date')?.value||'',
+      note:document.getElementById('a_note')?.value||''
+    }
+  };
+}
+function saveArticleDraft(){
+  if(!isModalVisible('mArtEdit')) return;
+  saveDraftRaw(ART_DRAFT_KEY, collectArticleDraft());
+}
+function restoreArticleDraft(targetId=''){
+  const draft=loadDraftRaw(ART_DRAFT_KEY);
+  if(!draft?.values) return false;
+  const draftId=String(draft.currentArtId||'');
+  const wanted=String(targetId||'');
+  if(wanted && draftId && wanted!==draftId) return false;
+  if(!wanted && draftId) return false;
+  const v=draft.values||{};
+  document.getElementById('a_cod').value=v.codice||'';
+  syncBrandField(v.brand||'');
+  document.getElementById('a_mod').value=v.modello||'';
+  refreshArticleCategorySelects(v.categoria||'');
+  document.getElementById('a_desc').value=v.descrizione||'';
+  updateSupplierField(v.fornitore||'');
+  document.getElementById('a_forn_link').value=v.fornitoreLink||'';
+  document.getElementById('a_taglia').value=v.materiale||'';
+  document.getElementById('a_variante').value=v.variante||'';
+  document.getElementById('a_colore').value=v.colore||'';
+  document.getElementById('a_mis').value=v.misura||'';
+  document.getElementById('a_usd').value=v.costoUsd||'';
+  document.getElementById('a_promo_on').checked=!!v.promoAttiva;
+  document.getElementById('a_promo_price').value=v.prezzoPromo||'';
+  document.getElementById('a_promo_date').value=v.scadenzaPromo||'';
+  document.getElementById('a_note').value=v.note||'';
+  renderArtAutoFields();
+  return true;
+}
+function clearArticleDraft(){ clearDraftRaw(ART_DRAFT_KEY); }
+function collectClientDraft(){
+  return {
+    currentCliId: currentCliId||'',
+    values:{
+      nome:document.getElementById('c_nome')?.value||'',
+      tel:document.getElementById('c_tel')?.value||'',
+      indirizzo:document.getElementById('c_ind')?.value||'',
+      cap:document.getElementById('c_cap')?.value||'',
+      citta:document.getElementById('c_citta')?.value||'',
+      prov:document.getElementById('c_prov')?.value||'',
+      note:document.getElementById('c_note')?.value||''
+    }
+  };
+}
+function saveClientDraft(){ if(!isModalVisible('mCliEdit')) return; saveDraftRaw(CLI_DRAFT_KEY, collectClientDraft()); }
+function restoreClientDraft(targetId=''){
+  const draft=loadDraftRaw(CLI_DRAFT_KEY);
+  if(!draft?.values) return false;
+  const draftId=String(draft.currentCliId||'');
+  const wanted=String(targetId||'');
+  if(wanted && draftId && wanted!==draftId) return false;
+  if(!wanted && draftId) return false;
+  const v=draft.values||{};
+  document.getElementById('c_nome').value=v.nome||'';
+  document.getElementById('c_tel').value=v.tel||'';
+  document.getElementById('c_ind').value=v.indirizzo||'';
+  document.getElementById('c_cap').value=v.cap||'';
+  document.getElementById('c_citta').value=v.citta||'';
+  document.getElementById('c_prov').value=v.prov||'';
+  document.getElementById('c_note').value=v.note||'';
+  refreshClientShipping();
+  return true;
+}
+function clearClientDraft(){ clearDraftRaw(CLI_DRAFT_KEY); }
+function collectOrderDraft(){
+  return {
+    currentOrdId: currentOrdId||'',
+    rows:Array.isArray(ordRows)?JSON.parse(JSON.stringify(ordRows)):[],
+    values:{
+      clienteId:document.getElementById('o_cli')?.value||'',
+      stato:document.getElementById('o_stato')?.value||'',
+      data:document.getElementById('o_data')?.value||'',
+      note:document.getElementById('o_note')?.value||'',
+      mis:document.getElementById('o_mis')?.value||'',
+      tracking:document.getElementById('o_tracking')?.value||'',
+      discount:document.getElementById('o_discount')?.value||''
+    }
+  };
+}
+function saveOrderDraft(){ if(!isModalVisible('mOrdEdit')) return; saveDraftRaw(ORD_DRAFT_KEY, collectOrderDraft()); }
+function restoreOrderDraft(targetId='', prefillArticleId=null){
+  const draft=loadDraftRaw(ORD_DRAFT_KEY);
+  if(!draft?.values) return false;
+  const draftId=String(draft.currentOrdId||'');
+  const wanted=String(targetId||'');
+  if(wanted && draftId && wanted!==draftId) return false;
+  if(!wanted && draftId) return false;
+  const db=loadDB();
+  const v=draft.values||{};
+  ordRows=Array.isArray(draft.rows)?draft.rows:[];
+  if(prefillArticleId){
+    const a=db.articoli.find(x=>x.id===prefillArticleId);
+    if(a && !ordRows.some(r=>r.articoloId===prefillArticleId)) ordRows.push({articoloId:a.id, codice:a?.codice||'', modello:a?.modello||'', prezzo:Number(currentPrice(a)||0)});
+  }
+  document.getElementById('o_cli').value=v.clienteId||'';
+  document.getElementById('o_stato').value=v.stato||'Richiesto';
+  document.getElementById('o_data').value=v.data||todayStr();
+  document.getElementById('o_note').value=v.note||'';
+  ensureOrderSizeOption(v.mis||'');
+  document.getElementById('o_mis').value=v.mis||'';
+  document.getElementById('o_tracking').value=v.tracking||'';
+  document.getElementById('o_discount').value=v.discount||'';
+  renderOrdRows();
+  updateOrderTotalsPreview();
+  updateOrderShoeSizeState();
+  return true;
+}
+function clearOrderDraft(){ clearDraftRaw(ORD_DRAFT_KEY); }
+function flushVisibleDrafts(){
+  persistSafetySnapshot();
+  saveArticleDraft();
+  saveClientDraft();
+  saveOrderDraft();
+}
+function articleCodeExists(code, excludeId=null){
+  const clean=normalizeTextKey(code||'');
+  if(!clean) return null;
+  return (loadDB().articoli||[]).find(a=>normalizeTextKey(a?.codice||'')===clean && String(a?.id||'')!==String(excludeId||'')) || null;
+}
+function updateArticleCodeStatus(){
+  const input=document.getElementById('a_cod');
+  const hint=document.getElementById('a_cod_hint');
+  if(!input || !hint) return;
+  const code=String(input.value||'').trim();
+  if(!code){
+    hint.textContent='';
+    hint.style.color='';
+    input.setCustomValidity('');
+    return;
+  }
+  const exists=articleCodeExists(code, currentArtId);
+  if(exists){
+    hint.textContent=`Codice già presente${exists.modello ? `: ${exists.modello}` : ''}`;
+    hint.style.color='#b91c1c';
+    input.setCustomValidity('Codice articolo già esistente');
+    return;
+  }
+  hint.textContent='Codice disponibile';
+  hint.style.color='#15803d';
+  input.setCustomValidity('');
+}
 
 function openPhotoDB(){
   return new Promise((res,rej)=>{
@@ -1370,99 +1573,172 @@ async function tryNativeShareArticleLinks(pics, baseName){
     return false;
   }
 }
-async function downloadCurrentArticlePhotos(){
+async function getCurrentArticlePhotoContext(){
   const db=loadDB();
   const art=db.articoli.find(x=>x.id===currentArtId);
-  if(!art){ toast('Articolo non trovato'); return; }
+  if(!art){ toast('Articolo non trovato'); return null; }
   const pics=await getArticleCloudSyncSources(art);
-  if(!pics.length){ toast('Nessuna foto da scaricare'); return; }
+  if(!pics.length){ toast('Nessuna foto disponibile'); return null; }
   const baseName=(art.codice||art.brand||art.modello||'articolo').toString().trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'articolo';
   const cacheKey=`${art.id||''}::${pics.join('|')}`;
+  return { art, pics, baseName, cacheKey };
+}
+async function ensureCurrentArticlePhotoFiles(ctx){
+  if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx.cacheKey && Array.isArray(__articlePhotoShareCache.files) && __articlePhotoShareCache.files.length){
+    return __articlePhotoShareCache.files;
+  }
+  toast(`Preparo ${ctx.pics.length} foto...`);
+  const files=await buildArticlePhotoFiles(ctx.art, ctx.pics, ctx.baseName);
+  if(files.length){
+    __articlePhotoShareCache = { key: ctx.cacheKey, files, at: Date.now() };
+  }
+  return files;
+}
+async function shareCurrentArticlePhotos(){
+  const ctx=await getCurrentArticlePhotoContext();
+  if(!ctx) return;
 
-  if(__articlePhotoShareCache && __articlePhotoShareCache.key===cacheKey && Array.isArray(__articlePhotoShareCache.files) && __articlePhotoShareCache.files.length){
+  const files=await ensureCurrentArticlePhotoFiles(ctx);
+  if(files.length){
     try{
-      const shared = await tryNativeShareArticleFiles(__articlePhotoShareCache.files, baseName);
+      const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
       if(shared){
         toast(shared==='single'
           ? 'Condivisione aperta. Il browser supporta una foto per volta.'
-          : `Seleziona Galleria, Foto o File per salvare ${__articlePhotoShareCache.files.length} foto.`);
+          : `Condivisione aperta per ${files.length} foto.`);
         return;
       }
-      const sharedLinks = await tryNativeShareArticleLinks(pics, baseName);
-      if(sharedLinks===true){
-        toast('Condivisione aperta. Il browser sta inviando i link delle foto.');
-        return;
-      }
-      if(sharedLinks==='abort') return;
     }catch(err){
       if(err && err.name==='AbortError') return;
-      console.warn('Condivisione nativa foto da cache fallita', err);
+      console.warn('Condivisione nativa foto fallita', err);
+      const activationErr = /activation|user gesture|notallowed/i.test(String(err && (err.message||err.name)||''));
+      if(activationErr){
+        toast('Foto pronte. Premi di nuovo “Condividi foto” per aprire la condivisione.');
+        return;
+      }
     }
   }
 
-  toast(`Preparo ${pics.length} foto...`);
-  const files=await buildArticlePhotoFiles(art, pics, baseName);
-  if(!files.length){
-    const sharedLinks = await tryNativeShareArticleLinks(pics, baseName);
-    if(sharedLinks===true){
-      toast('Condivisione aperta. Il browser sta inviando i link delle foto.');
-      return;
-    }
-    if(sharedLinks==='abort') return;
-    toast('Condivisione foto fallita');
-    return;
-  }
-  __articlePhotoShareCache = { key: cacheKey, files, at: Date.now() };
-
-  try{
-    const shared = await tryNativeShareArticleFiles(files, baseName);
-    if(shared){
-      toast(shared==='single'
-        ? 'Condivisione aperta. Il browser supporta una foto per volta.'
-        : `Seleziona Galleria, Foto o File per salvare ${files.length} foto.`);
-      return;
-    }
-  }catch(err){
-    if(err && err.name==='AbortError') return;
-    console.warn('Condivisione nativa foto fallita', err);
-    const activationErr = /activation|user gesture|notallowed/i.test(String(err && (err.message||err.name)||''));
-    if(activationErr){
-      toast('Foto pronte. Premi di nuovo “Scarica foto” per aprire la condivisione.');
-      return;
-    }
-  }
-
-  const sharedLinks = await tryNativeShareArticleLinks(pics, baseName);
+  const sharedLinks = await tryNativeShareArticleLinks(ctx.pics, ctx.baseName);
   if(sharedLinks===true){
     toast('Condivisione aperta. Il browser sta inviando i link delle foto.');
     return;
   }
   if(sharedLinks==='abort') return;
 
-  let ok=0;
-  for(let i=0;i<files.length;i++){
-    try{
-      const file=files[i];
-      const url=URL.createObjectURL(file);
-      const a=document.createElement('a');
-      a.href=url;
-      a.download=file.name;
-      a.rel='noopener';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url), 12000);
-      ok++;
-      await new Promise(r=>setTimeout(r, 1400));
-    }catch(err){
-      console.warn('Download foto articolo fallito', err);
-    }
+  toast(files.length ? 'Condivisione foto non supportata da questo browser.' : 'Condivisione foto fallita');
+}
+const __zipCrcTable = (()=>{
+  const table = new Uint32Array(256);
+  for(let n=0;n<256;n++){
+    let c=n;
+    for(let k=0;k<8;k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    table[n]=c >>> 0;
   }
-  toast(ok===files.length
-    ? `Avviate ${ok} foto. Le trovi nei Download e poi in Galleria.`
-    : (ok
-      ? `Avviate ${ok} foto su ${files.length}. Se il browser ne blocca qualcuna, premi di nuovo Scarica foto per condividere.`
-      : 'Download foto fallito'));
+  return table;
+})();
+function crc32Bytes(bytes){
+  let crc = 0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++) crc = __zipCrcTable[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+function writeU16(arr, val){ arr.push(val & 0xFF, (val >>> 8) & 0xFF); }
+function writeU32(arr, val){ arr.push(val & 0xFF, (val >>> 8) & 0xFF, (val >>> 16) & 0xFF, (val >>> 24) & 0xFF); }
+async function buildZipFromFiles(files, zipName){
+  const localParts=[];
+  const central=[];
+  let offset=0;
+  for(const file of files){
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const name = (file.name || 'file').replace(/[\/]+/g, '_');
+    const nameBytes = new TextEncoder().encode(name);
+    const crc = crc32Bytes(bytes);
+    const local=[];
+    writeU32(local, 0x04034b50);
+    writeU16(local, 20);
+    writeU16(local, 0);
+    writeU16(local, 0);
+    writeU16(local, 0);
+    writeU16(local, 0);
+    writeU32(local, crc);
+    writeU32(local, bytes.length);
+    writeU32(local, bytes.length);
+    writeU16(local, nameBytes.length);
+    writeU16(local, 0);
+    localParts.push(new Uint8Array(local), nameBytes, bytes);
+
+    const cent=[];
+    writeU32(cent, 0x02014b50);
+    writeU16(cent, 20);
+    writeU16(cent, 20);
+    writeU16(cent, 0);
+    writeU16(cent, 0);
+    writeU16(cent, 0);
+    writeU16(cent, 0);
+    writeU32(cent, crc);
+    writeU32(cent, bytes.length);
+    writeU32(cent, bytes.length);
+    writeU16(cent, nameBytes.length);
+    writeU16(cent, 0);
+    writeU16(cent, 0);
+    writeU16(cent, 0);
+    writeU16(cent, 0);
+    writeU32(cent, 0);
+    writeU32(cent, offset);
+    central.push(new Uint8Array(cent), nameBytes);
+
+    offset += local.length + nameBytes.length + bytes.length;
+  }
+  let centralSize = 0;
+  for(const part of central) centralSize += part.length;
+  const end=[];
+  writeU32(end, 0x06054b50);
+  writeU16(end, 0);
+  writeU16(end, 0);
+  writeU16(end, files.length);
+  writeU16(end, files.length);
+  writeU32(end, centralSize);
+  writeU32(end, offset);
+  writeU16(end, 0);
+  const blob = new Blob([...localParts, ...central, new Uint8Array(end)], { type:'application/zip' });
+  return new File([blob], zipName, { type:'application/zip' });
+}
+function triggerBlobDownload(blob, filename){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=filename;
+  a.rel='noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 15000);
+}
+async function downloadCurrentArticlePhotos(){
+  const ctx=await getCurrentArticlePhotoContext();
+  if(!ctx) return;
+
+  const files=await ensureCurrentArticlePhotoFiles(ctx);
+  if(!files.length){
+    toast('Download foto fallito');
+    return;
+  }
+
+  try{
+    if(files.length===1){
+      triggerBlobDownload(files[0], files[0].name || `${ctx.baseName}.jpg`);
+      toast('Foto scaricata. La trovi nei Download e poi in Galleria.');
+      return;
+    }
+
+    toast(`Preparo ZIP con ${files.length} foto...`);
+    const zipFile = await buildZipFromFiles(files, `${ctx.baseName || 'articolo'}_foto.zip`);
+    triggerBlobDownload(zipFile, zipFile.name);
+    toast(`Scaricate ${files.length} foto in un file ZIP. Lo trovi nei Download.`);
+  }catch(err){
+    console.warn('Download ZIP foto articolo fallito', err);
+    toast('Download foto fallito');
+  }
 }
 async function uploadArticlePhotoToSupabase(file, codice, slot){
   const sb=await ensureCloud();
@@ -1859,7 +2135,875 @@ function formatPostPrezzoVendita(prezzo){
     : n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
   return `💶 ${txt}`;
 }
-function buildPost(a){
+
+function stableHashSeed(value){
+  const raw=String(value||'');
+  let h=0;
+  for(let i=0;i<raw.length;i++) h=((h<<5)-h)+raw.charCodeAt(i), h|=0;
+  return Math.abs(h||0);
+}
+function pickVariantBySeed(items, seed, shift=0){
+  const list=Array.isArray(items)?items.filter(Boolean):[];
+  if(!list.length) return '';
+  return list[Math.abs(Number(seed||0)+Number(shift||0)) % list.length];
+}
+function pickRandom(items){
+  const list=Array.isArray(items)?items.filter(Boolean):[];
+  if(!list.length) return '';
+  return list[Math.floor(Math.random()*list.length)] || list[0] || '';
+}
+
+function postFeatureFragments(a){
+  const key=categoryKey(a?.categoria||'');
+  const color=compactPostValue(a?.colore||'');
+  const material=compactPostValue(a?.materiale||a?.variante||'');
+  const size=postSizeValue(a);
+  const desc=compactPostValue(a?.descrizione||'');
+  const fragments=[];
+  const push=(...items)=>items.filter(Boolean).forEach(v=>fragments.push(v));
+
+  if(key.includes('bors')){
+    push(
+      'presenza calibrata',
+      'linea molto curata',
+      'eleganza ben dosata',
+      'taglio pulito',
+      'carattere discreto ma evidente',
+      'proporzioni ben pensate',
+      'dettaglio che si nota al punto giusto'
+    );
+    if(size) push('formato ben studiato','proporzioni pratiche ma ricercate');
+  }else if(key.includes('sneaker')){
+    push(
+      'profilo contemporaneo',
+      'linea dinamica ma pulita',
+      'presenza forte senza eccessi',
+      'dettagli ben calibrati',
+      'carattere moderno',
+      'look deciso ma ordinato'
+    );
+    if(size) push('misure disponibili','calzata interessante');
+  }else if(key.includes('scarp')){
+    push(
+      'profilo slanciato',
+      'linea elegante',
+      'portamento deciso',
+      'presenza ben definita',
+      'taglio molto curato',
+      'stile essenziale ma forte'
+    );
+    if(size) push('misure disponibili','calzata interessante');
+  }else if(key.includes('cintur')){
+    push(
+      'dettaglio che completa davvero',
+      'linea essenziale',
+      'finitura ordinata',
+      'presenza discreta ma efficace',
+      'equilibrio molto riuscito'
+    );
+  }else if(key.includes('portafogl')){
+    push(
+      'ordine con stile',
+      'formato compatto e curato',
+      'praticità raffinata',
+      'linea pulita',
+      'eleganza quotidiana',
+      'dettagli ben pensati'
+    );
+  }else if(key.includes('accessor')){
+    push(
+      'tocco finale ben riuscito',
+      'dettaglio ben scelto',
+      'presenza discreta ma centrata',
+      'linea curata',
+      'accento di stile ben dosato'
+    );
+  }else{
+    push(
+      'linea curata',
+      'presenza elegante',
+      'stile pulito',
+      'dettaglio ben riuscito',
+      'finitura ordinata'
+    );
+  }
+
+  if(color) push(`${color} con grande presenza`, `${color} dal tono raffinato`, `${color} molto facile da portare`);
+  if(material) push(`${material} con resa curata`, `${material} ben rifinito`, `${material} dal look pulito`);
+  if(desc) push(desc);
+  return uniquePostLines(fragments);
+}
+function postLuxuryLeadPools(a, mode='fb'){
+  const key=categoryKey(a?.categoria||'');
+  const color=compactPostValue(a?.colore||'');
+  const material=compactPostValue(a?.materiale||a?.variante||'');
+  const size=postSizeValue(a);
+  const base=[
+    'Presenza pulita, effetto forte',
+    'Dettagli scelti bene, stile che si vede',
+    'Essenziale solo in apparenza',
+    'Quando il gusto si nota senza spiegazioni',
+    'Più lo guardi, più convince',
+    'Linea precisa, presenza vera',
+    'Ha il suo modo di farsi notare'
+  ];
+  const push=(arr,...items)=>uniquePostLines([...(arr||[]), ...items.filter(Boolean)]);
+  if(key.includes('bors')) return push(base,
+    'Non passa inosservata. E nemmeno ci prova',
+    'Piccola fuori, presenza enorme addosso',
+    'Fa scena con misura, ed è proprio questo il bello',
+    'Ha quel tipo di presenza che sistema tutto senza appesantire niente',
+    color ? `${color} che si fa notare al punto giusto` : '',
+    material ? `${material} con una resa davvero pulita` : '',
+    size ? 'Proporzioni studiate bene, presenza chic' : ''
+  );
+  if(key.includes('sneaker')) return push(base,
+    'Non è la solita linea sportiva. Si vede subito',
+    'Comoda sì, banale neanche per sbaglio',
+    'Dettagli netti, impatto pulito',
+    'Ha quel tipo di carattere che si nota al primo sguardo',
+    color ? `${color} con un contrasto molto riuscito` : '',
+    size ? 'Misure disponibili, identità ben definita' : ''
+  );
+  if(key.includes('scarp')) return push(base,
+    'Qui il carattere si vede senza bisogno di esagerare',
+    'Linea slanciata, presenza decisa',
+    'Fa la sua figura nel modo giusto',
+    'Ha quell’eleganza che non chiede permesso',
+    color ? `${color} con un impatto molto elegante` : '',
+    size ? 'Misure disponibili, taglio molto ben definito' : ''
+  );
+  if(key.includes('cintur')) return push(base,
+    'Basta un dettaglio giusto per cambiare tutto',
+    'Piccola cosa, grande differenza',
+    'Fa ordine al look senza rubare spazio',
+    material ? `${material} con finitura molto ordinata` : ''
+  );
+  if(key.includes('portafogl')) return push(base,
+    'Compatto fuori, pensato bene dentro',
+    'Ordine e stile nella stessa linea',
+    'Quel tipo di cura che si percepisce subito',
+    material ? `${material} con resa molto pulita` : ''
+  );
+  if(key.includes('accessor')) return push(base,
+    'Il dettaglio giusto cambia davvero l’insieme',
+    'Piccolo, ma con una presenza molto precisa',
+    'Quel tocco che rimette tutto in ordine'
+  );
+  if(mode==='ig') return push(base,
+    'Presenza che si nota subito',
+    'Pulito, forte, riuscito',
+    'Dal vivo rende ancora meglio',
+    'Dettagli che fanno la differenza'
+  );
+  return base;
+}
+function postHeadlinePools(a){
+  const key=categoryKey(a?.categoria||'');
+  const soft=pickRandom(postFeatureFragments(a)) || 'linea curata';
+  const withNamed=(lead)=>[lead, '', `${postNameWithQuality(a,'fb')} ${colorEmojiForPost(a)}`.replace(/\s+/g,' ').trim()].join('\n').trim();
+  const common=[
+    withNamed('Dettagli che si notano subito'),
+    withNamed('Più lo guardi, più convince'),
+    withNamed('Presenza pulita, carattere vero'),
+    withNamed(`Ha quel tipo di ${soft} che resta in mente`)
+  ];
+  if(key.includes('bors')) return uniquePostLines([
+    withNamed('Non passa inosservata. E nemmeno ci prova'),
+    withNamed('Piccola fuori, presenza enorme addosso'),
+    withNamed('Ha quel tipo di presenza che completa tutto'),
+    withNamed('Pulita, decisa, fatta per farsi notare con misura'),
+    withNamed(`Borsa dal ${soft}`),
+    ...common
+  ]);
+  if(key.includes('sneaker')) return uniquePostLines([
+    withNamed('Non è la solita linea sportiva. Si vede subito'),
+    withNamed('Comoda sì, banale no'),
+    withNamed('Dettagli netti, impatto pulito'),
+    withNamed('Ha carattere senza bisogno di esagerare'),
+    withNamed(`Sneakers dal ${soft}`),
+    ...common
+  ]);
+  if(key.includes('scarp')) return uniquePostLines([
+    withNamed('Qui il carattere si vede senza bisogno di esagerare'),
+    withNamed('Linea slanciata, presenza decisa'),
+    withNamed('Fa la sua figura nel modo giusto'),
+    withNamed('Eleganza che si nota subito'),
+    withNamed(`Scarpa dal ${soft}`),
+    ...common
+  ]);
+  if(key.includes('cintur')) return uniquePostLines([
+    withNamed('Basta un dettaglio giusto per cambiare tutto'),
+    withNamed('Piccola cosa, grande differenza'),
+    withNamed('Fa ordine al look senza rubare spazio'),
+    withNamed(`Cintura dal ${soft}`),
+    ...common
+  ]);
+  if(key.includes('portafogl')) return uniquePostLines([
+    withNamed('Compatto fuori, pensato bene dentro'),
+    withNamed('Ordine e stile nella stessa linea'),
+    withNamed('Quel tipo di cura che si percepisce subito'),
+    withNamed(`Portafoglio dal ${soft}`),
+    ...common
+  ]);
+  if(key.includes('accessor')) return uniquePostLines([
+    withNamed('Il dettaglio giusto cambia davvero l’insieme'),
+    withNamed('Piccolo, ma con una presenza molto precisa'),
+    withNamed('Quel tocco che rimette tutto in ordine'),
+    withNamed(`Accessorio dal ${soft}`),
+    ...common
+  ]);
+  return uniquePostLines([
+    withNamed('Dettagli scelti bene, stile che si vede'),
+    withNamed('Una linea che resta in mente'),
+    withNamed(`Articolo dal ${soft}`),
+    ...common
+  ]);
+}
+function categoryKey(value){
+  return normalizeTextKey(value||'').replace(/\s+/g,'');
+}
+function categoryLabelForPost(a){
+  const key=categoryKey(a?.categoria||'');
+  if(key.includes('scarp')) return 'Scarpa';
+  if(key.includes('sneaker')) return 'Sneakers';
+  if(key.includes('bors')) return 'Borsa';
+  if(key.includes('cintur')) return 'Cintura';
+  if(key.includes('portafogl')) return 'Portafoglio';
+  if(key.includes('accessor')) return 'Accessorio';
+  return 'Articolo';
+}
+function categoryEmojiForPost(a){
+  const key=categoryKey(a?.categoria||'');
+  if(key.includes('scarp') || key.includes('sneaker')) return '👟';
+  if(key.includes('bors')) return '👜';
+  if(key.includes('cintur')) return '✨';
+  if(key.includes('portafogl')) return '🖤';
+  if(key.includes('accessor')) return '✨';
+  return '🖤';
+}
+function colorEmojiForPost(a){
+  const color=normalizeTextKey(a?.colore||'');
+  if(color.includes('nero')) return '🖤';
+  if(color.includes('bianc')) return '🤍';
+  if(color.includes('ross')) return '❤️';
+  if(color.includes('blu')) return '💙';
+  if(color.includes('beige') || color.includes('nude')) return '🤎';
+  if(color.includes('rosa')) return '🩷';
+  if(color.includes('argento') || color.includes('silver')) return '✨';
+  if(color.includes('oro') || color.includes('gold')) return '💛';
+  return categoryEmojiForPost(a);
+}
+function formatMoneyCompactEuro(value){
+  const n=Number(value);
+  if(!(n>0)) return '';
+  const txt=Number.isInteger(n)
+    ? String(n)
+    : n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
+  return `€${txt}`;
+}
+function formatFbDetailLine(label, value){
+  const clean=String(value||'').trim();
+  return clean ? `✔️ ${label}: ${clean}` : '';
+}
+function compactPostValue(text){
+  return String(text||'').replace(/\s+/g,' ').trim();
+}
+function postDimensionLabel(a){
+  const key=categoryKey(a?.categoria||'');
+  return (key.includes('scarp') || key.includes('sneaker')) ? 'Misure' : 'Dimensioni';
+}
+function postSizeValue(a){
+  const misura=compactPostValue(a?.misura||'');
+  return misura || '';
+}
+
+function safePostDetailValue(value, a){
+  const txt=compactPostValue(value||'');
+  if(!txt) return '';
+  if(/[\n\r#@]/.test(txt)) return '';
+  const norm=normalizeTextKey(txt);
+  const blocked=[a?.brand,a?.modello].map(v=>normalizeTextKey(v||'')).filter(Boolean);
+  if(blocked.some(token=>token && norm.includes(token))) return '';
+  return txt;
+}
+function postCategoryDescriptors(a, mode='fb'){
+  const key=categoryKey(a?.categoria||'');
+  const descriptors=[];
+  const push=(...items)=>items.filter(Boolean).forEach(v=>descriptors.push(v));
+  if(key.includes('bors')){
+    push(
+      'Linea pulita',
+      'Presenza calibrata',
+      'Dettagli scelti bene',
+      'Compatta, ma con carattere',
+      'Eleganza ben dosata',
+      'Profilo molto curato',
+      'Borsa dal taglio preciso'
+    );
+  }else if(key.includes('sneaker')){
+    push(
+      'Profilo contemporaneo',
+      'Taglio pulito',
+      'Carattere moderno',
+      'Dettagli netti',
+      'Presenza dinamica',
+      'Sneakers dal carattere ben definito'
+    );
+  }else if(key.includes('scarp')){
+    push(
+      'Profilo slanciato',
+      'Taglio elegante',
+      'Presenza decisa',
+      'Linea molto curata',
+      'Carattere definito',
+      'Scarpa dal carattere pulito'
+    );
+  }else if(key.includes('cintur')){
+    push(
+      'Dettaglio che cambia tutto',
+      'Linea essenziale',
+      'Finitura ordinata',
+      'Presenza discreta',
+      'Equilibrio molto riuscito',
+      'Cintura dal profilo pulito'
+    );
+  }else if(key.includes('portafogl')){
+    push(
+      'Ordine con stile',
+      'Formato compatto',
+      'Praticità raffinata',
+      'Dettagli ben pensati',
+      'Linea pulita',
+      'Portafoglio dal profilo curato'
+    );
+  }else if(key.includes('accessor')){
+    push(
+      'Tocco finale ben riuscito',
+      'Dettaglio ben scelto',
+      'Presenza discreta',
+      'Linea curata',
+      'Accessorio dal carattere pulito'
+    );
+  }else{
+    push(
+      'Linea curata',
+      'Presenza elegante',
+      'Dettaglio ben riuscito',
+      'Stile pulito',
+      'Articolo dal profilo ordinato'
+    );
+  }
+  if(mode==='ig'){
+    push(
+      'Fa scena senza sforzo',
+      'Dettagli che si notano subito',
+      'Pulito, forte, riuscito',
+      'Dal vivo rende ancora meglio'
+    );
+  }
+  return uniquePostLines(descriptors);
+}
+function postPrimaryName(a, mode='fb'){
+  const model=normalizePostLine(a?.modello||'', a?.brand||'');
+  if(mode==='fb' && model) return model;
+  return pickRandom(postCategoryDescriptors(a, mode)) || model || categoryLabelForPost(a);
+}
+function postNameWithQuality(a, mode='fb'){
+  const base=postPrimaryName(a, mode);
+  const qemoji=emojiQualityForPost(a);
+  return [base, qemoji].filter(Boolean).join(' ').trim();
+}
+function buildPostHeadline(a, mode='fb'){
+  const named=postNameWithQuality(a, mode);
+  const emoji=colorEmojiForPost(a);
+  const lead=pickRandom(postLuxuryLeadPools(a, mode)) || 'Una linea che resta in mente';
+  return [lead, '', `${named} ${emoji}`.replace(/\s+/g,' ').trim()].join('\n').trim();
+}
+function pickFacebookDetailLines(a){
+  const detailCandidates=[];
+  const sizeValue=postSizeValue(a);
+  if(sizeValue) detailCandidates.push(formatFbDetailLine(postDimensionLabel(a), sizeValue));
+  const colore=safePostDetailValue(a?.colore||'', a);
+  if(colore) detailCandidates.push(formatFbDetailLine('Colore', colore));
+  const materiale=safePostDetailValue(a?.materiale||a?.variante||'', a);
+  if(materiale) detailCandidates.push(formatFbDetailLine('Materiale', materiale));
+  const descrizione=safePostDetailValue(a?.descrizione||'', a);
+  if(descrizione && descrizione.length<=52) detailCandidates.push(`✔️ ${descrizione}`);
+  return uniquePostLines(detailCandidates).slice(0,3);
+}
+function promoPostIntroLines(a){
+  if(!a?.promoAttiva) return [];
+  const lines=['⭕️ PROMOZIONE ⭕️'];
+  const scadenzaRaw=String(a?.scadenzaPromo||'').trim();
+  if(scadenzaRaw){
+    let scadenzaLabel=scadenzaRaw;
+    if(/^\d{4}-\d{2}-\d{2}$/.test(scadenzaRaw)){
+      const [yyyy,mm,dd]=scadenzaRaw.split('-');
+      scadenzaLabel=`${dd}/${mm}/${yyyy}`;
+    }
+    lines.push(`(fino al ${scadenzaLabel})`);
+  }
+  return lines;
+}
+function postTraitFlags(a){
+  const src = [
+    a?.categoria||'', a?.modello||'', a?.descrizione||'', a?.variante||'', a?.materiale||'',
+    a?.colore||'', a?.misura||'', a?.materiale||a?.taglia||''
+  ].join(' | ').toLowerCase();
+  const has = (re)=> re.test(src);
+  return {
+    nero: has(/\bnero\b|black|noir/),
+    bianco: has(/\bbianc[oaie]?\b|white/),
+    beige: has(/\bbeige\b|nude|sabbia|ecru/),
+    cuoio: has(/cuoio|camel|cognac|tabacco|marrone|testa di moro/),
+    rosso: has(/rosso|red|bordeaux|rubino/),
+    argento: has(/argento|silver|metal|metallizz/),
+    oro: has(/oro|gold|dorat/),
+    compatto: has(/compat|mini|small|piccol|essenzial/),
+    capiente: has(/capient|maxi|large|grande|shopper|oversize/),
+    oversize: has(/oversize|maxi/),
+    classico: has(/classic|classica|timeless|intramontabile/),
+    elegante: has(/elegant|raffinat|chic|slanciat|pulit/),
+    sportivo: has(/sport|sneaker|runner|street|urban/),
+    tacco: has(/tacco|heel/),
+    tallone: has(/tallone/),
+    suola: has(/suola|platform|plateau/),
+    vitello: has(/vitello|calf/),
+    martellata: has(/martellat|grana|grain/),
+    liscia: has(/liscia|smooth/),
+    impressa: has(/impress|stampat|emboss/),
+    intreccio: has(/intrecc|woven|trecc/),
+    logo: has(/logo|monogram/)
+  };
+}
+function postPhrasePools(mode='fb'){
+  const commonLong = [
+    'Non segue il look. Lo definisce.',
+    'Ha presenza. E si vede subito.',
+    'Il dettaglio giusto cambia tutto.',
+    'Eleganza netta, senza rumore.',
+    'Non chiede attenzione. Se la prende.',
+    'Più la guardi, più capisci perché funziona.',
+    'Pulita nelle linee, forte nell’effetto.',
+    'Quando il gusto si vede, non serve aggiungere altro.',
+    'Fa scena senza alzare la voce.',
+    'Una presenza discreta, ma impossibile da ignorare.',
+    'Ha quel dettaglio che cambia il risultato.',
+    'Si nota nel modo giusto.',
+    'Tiene la scena senza forzare niente.',
+    'Niente di eccessivo. Ed è proprio questo il bello.',
+    'C’è differenza tra bello e memorabile.',
+    'Ha più personalità di tanta roba che si vede in giro.',
+    'Il fascino delle linee fatte bene.',
+    'Essenziale solo in apparenza.',
+    'Non ha bisogno di presentazioni inutili.',
+    'Si riconosce subito quando una cosa è fatta con criterio.',
+    'Qui il carattere si vede senza bisogno di spiegazioni.',
+    'Ha quella presenza che resta in testa.',
+    'Pulita, decisa, riuscita bene.',
+    'Certe presenze si capiscono al primo sguardo.',
+    'C’è un motivo se certe cose colpiscono subito.',
+    'Il gusto vero non ha bisogno di effetti speciali.',
+    'Ha il passo sicuro delle cose riuscite bene.',
+    'Il colpo d’occhio è forte. Il resto viene da sé.',
+    'Sa farsi ricordare senza alzare il tono.',
+    'Semplice solo per chi guarda in fretta.',
+    'Il tipo di presenza che sistema tutto il resto.',
+    'Più che mostrarsi, si impone nel modo giusto.',
+    'Si fa notare con una calma che vale doppio.',
+    'Ha una pulizia che parla da sola.',
+    'Non riempie il look. Lo mette a fuoco.',
+    'La differenza sta tutta nei particolari fatti bene.',
+    'Certe linee non hanno bisogno di spiegazioni.',
+    'Ha presenza, ma non sente il bisogno di dimostrarlo.',
+    'L’effetto è preciso. Ed è proprio quello che conta.',
+    'Quando c’è equilibrio, si vede immediatamente.',
+    'Cura, carattere e misura. Tutto al posto giusto.',
+    'La prima impressione basta già a capire.',
+    'Ha una firma visiva che resta in mente.',
+    'Fatta bene nel modo che conta davvero.',
+    'Non rincorre il colpo di scena. Lo crea.',
+    'Una scelta con carattere, senza teatralità.',
+    'Ci sono articoli belli. E poi ci sono quelli centrati davvero.',
+    'Il genere di pezzo che non ha bisogno di essere spiegato.',
+    'Non punta sull’eccesso. Vince sulla presenza.',
+    'Ha una calma elegante che si fa notare subito.',
+    'Si sente pensata. E si vede.',
+    'Tutto il resto gira intorno a questo dettaglio.',
+    'Ha il tipo di equilibrio che non si improvvisa.',
+    'La linea è pulita. L’impatto no.',
+    'Resta misurata, ma lascia il segno.',
+    'Il carattere qui non è un accessorio.',
+    'Ha l’evidenza silenziosa delle cose fatte bene.',
+    'Un dettaglio così cambia davvero il tono di tutto.',
+    'Non ha bisogno di rumore per restare impressa.',
+    'La differenza non urla. Si riconosce.'
+  ];
+  const commonShort = [
+    'Ha presenza. Punto.',
+    'Qui il carattere si vede subito.',
+    'Fa scena senza sforzo.',
+    'Pulita, forte, riuscita.',
+    'Dettagli che restano in testa.',
+    'Cura vera, effetto immediato.',
+    'Semplice solo in apparenza.',
+    'Presenza forte, linee pulite.',
+    'Il dettaglio giusto cambia tutto.',
+    'Ha il suo modo di farsi notare.',
+    'Niente eccessi. Solo presenza.',
+    'Dal vivo rende ancora meglio.',
+    'Si nota nel modo giusto.',
+    'Ha una marcia in più.',
+    'Fa il suo effetto. Eccome.',
+    'Ha il dettaglio che conta.',
+    'Qui la differenza si vede.',
+    'Linea pulita, impatto vero.',
+    'Non passa per caso.',
+    'Si fa ricordare subito.',
+    'Ha gusto, e si sente.',
+    'Il carattere è tutto qui.',
+    'Equilibrio molto riuscito.',
+    'Niente da aggiungere.',
+    'Ha presenza vera.',
+    'Dettaglio centrato.',
+    'Più la guardi, più funziona.',
+    'Qui il livello sale.',
+    'Si capisce al primo sguardo.',
+    'Presenza netta.'
+  ];
+  const pools = { commonLong, commonShort };
+  pools.borseLong = [
+    'Sta bene nel look, ma si nota anche da sola.',
+    'Ha il tipo di presenza che completa tutto senza pesare.',
+    'C’è equilibrio, carattere e una linea fatta bene.',
+    'Più la guardi, più ti accorgi di quanto sia centrata.',
+    'Non accompagna soltanto. Firma il risultato.',
+    'Ha quella struttura che mette ordine senza togliere carattere.',
+    'Si porta con facilità, ma lascia un’impressione precisa.',
+    'Certe forme sembrano semplici finché non le vedi fatte bene.',
+    'Ha una presenza solida, ma un effetto molto pulito.',
+    'Riesce a dare tono senza diventare mai ingombrante.',
+    'Il punto forte è come tiene insieme eleganza e personalità.',
+    'Ha una linea che regge il look da sola.',
+    'Il profilo è pulito. L’effetto, tutt’altro che neutro.',
+    'Quando una forma è giusta, si capisce senza spiegazioni.',
+    'Ha il passo sicuro delle cose ben costruite.',
+    'Tiene insieme stile e presenza in un modo rarissimo.',
+    'Cura il dettaglio senza perdere forza.',
+    'La struttura è precisa. Il colpo d’occhio ancora di più.',
+    'Non si limita a completare. Definisce.',
+    'Ha quella presenza che rimette in asse tutto il look.'
+  ];
+  pools.scarpeLong = [
+    'Ha una linea che cambia tono a tutto il look.',
+    'Certe presenze si sentono ancora prima di provarle.',
+    'Ha slancio, misura e quel punto giusto di carattere.',
+    'Non forza nulla. Funziona e basta.',
+    'Sta in equilibrio perfetto tra presenza e pulizia.',
+    'Il profilo è netto. L’effetto ancora di più.',
+    'Sa allungare il look senza appesantirlo.',
+    'Ha una precisione nelle linee che si nota subito.',
+    'C’è una sicurezza silenziosa in come sta addosso.',
+    'Non è solo questione di forma. È proprio il suo atteggiamento.',
+    'Ha presenza, ma resta misurata nel punto giusto.',
+    'Qui la linea fa già metà del lavoro.',
+    'Una presenza elegante che cambia il passo di tutto.',
+    'Ha il carattere delle cose fatte con criterio.',
+    'Tiene il look alto senza farlo mai sembrare costruito.',
+    'L’effetto è deciso, ma niente è fuori posto.',
+    'Ha slancio, pulizia e un’identità precisa.',
+    'Si impone con una facilità che non ha bisogno di rumore.',
+    'Quando la linea è giusta, il resto segue.',
+    'Sta bene perché è pensata bene. E si sente.'
+  ];
+  pools.sneakerLong = [
+    'Ha energia nelle linee e carattere nei dettagli.',
+    'Si capisce subito che non è la solita scelta facile.',
+    'Ha un taglio moderno, ma con presenza vera.',
+    'Qui il dettaglio conta più del rumore.',
+    'Ha quella pulizia che rende tutto più attuale.',
+    'Tiene il look mosso, ma molto centrato.',
+    'Non cerca di strafare. Colpisce lo stesso.',
+    'Ha una costruzione visiva che si nota subito.',
+    'Sportiva sì, ma con una presenza studiata.',
+    'Riesce a essere fresca senza sembrare improvvisata.',
+    'Il profilo è dinamico, ma la sensazione è molto precisa.',
+    'Ha il tipo di energia che alza tutto il look.',
+    'C’è ritmo nelle linee e ordine nei dettagli.',
+    'Non fa la sportiva qualunque. Lo si vede.',
+    'Ha una forza visiva molto pulita.',
+    'Tiene insieme comfort e presenza in modo serio.',
+    'Ha il passo delle cose contemporanee fatte bene.',
+    'Si nota che non è stata pensata per essere banale.',
+    'Ha grinta senza diventare pesante.',
+    'Il dettaglio tecnico qui diventa stile.'
+  ];
+  pools.cintureLong = [
+    'A volte basta un dettaglio giusto per rimettere tutto in ordine.',
+    'Piccola presenza, effetto molto preciso.',
+    'Il genere di dettaglio che rifinisce davvero.',
+    'Quando il dettaglio è giusto, cambia tutto il resto.',
+    'Ha la misura delle cose pensate bene.',
+    'Non invade il look. Lo mette a fuoco.',
+    'È quel tipo di scelta che completa senza appesantire.',
+    'Sta al suo posto, ma fa una differenza enorme.',
+    'Il tono giusto spesso passa proprio da qui.',
+    'Non sembra protagonista, ma regge l’insieme.',
+    'Rifinisce con precisione, senza mai essere banale.',
+    'Ha una presenza sottile, ma molto chiara.',
+    'Qui il dettaglio non è secondario. È decisivo.',
+    'Fa ordine nel look con una naturalezza rara.',
+    'Tiene insieme tutto con un gesto preciso.',
+    'Piccola in volume, molto forte nel risultato.',
+    'È il tipo di finitura che cambia davvero il tono finale.',
+    'Una scelta minuta solo in apparenza.',
+    'Quando c’è criterio, si vede anche nei dettagli più piccoli.',
+    'Un dettaglio così non resta sullo sfondo.'
+  ];
+  pools.portafogliLong = [
+    'Compatto fuori, curato nel modo che conta.',
+    'Ordine, carattere e una linea pulita.',
+    'Si nota subito quando una cosa è pensata bene.',
+    'Ha il tipo di cura che si percepisce al primo sguardo.',
+    'Sta bene in mano e ancora meglio nell’insieme.',
+    'Tiene tutto in ordine con una presenza tutt’altro che banale.',
+    'La praticità qui ha preso una piega decisamente elegante.',
+    'Ha una pulizia che fa subito livello alto.',
+    'Ogni dettaglio sembra messo dove deve stare.',
+    'È essenziale, ma non anonimo nemmeno per un secondo.',
+    'Compatto sì, ma con una presenza molto precisa.',
+    'Il profilo è ordinato, l’effetto molto più forte.',
+    'Ha quel tipo di precisione che si apprezza subito.',
+    'Non riempie spazio. Lo organizza con stile.',
+    'La differenza qui sta nella cura, non nel rumore.',
+    'Si sente costruito con testa, non per caso.',
+    'Quando una forma è giusta, tutto il resto torna.',
+    'Tiene insieme praticità e carattere senza fatica.',
+    'Ha una compostezza che colpisce.',
+    'Si nota che non è stato pensato per essere qualsiasi.'
+  ];
+  pools.accessoriLong = [
+    'È il dettaglio a spostare davvero il risultato finale.',
+    'Piccolo, ma con una presenza molto precisa.',
+    'Ha il tocco giusto per farsi ricordare.',
+    'Non invade il look. Lo completa nel modo giusto.',
+    'I dettagli giusti hanno sempre un peso diverso.',
+    'C’è più carattere qui che in tanti pezzi molto più vistosi.',
+    'È una scelta discreta solo in apparenza.',
+    'Rifinisce senza interrompere l’equilibrio.',
+    'Sa stare al suo posto e farsi notare lo stesso.',
+    'Il tipo di dettaglio che lascia il segno senza rumore.',
+    'Ha la misura perfetta del dettaglio riuscito.',
+    'Non serve tanto volume quando c’è questa precisione.',
+    'A volte basta questo per cambiare davvero il tono finale.',
+    'Dettaglio minuto, effetto molto più grande.',
+    'Ha una presenza sottile, ma molto riconoscibile.',
+    'Quando il dettaglio è curato, lo percepisci subito.',
+    'Mette un punto fermo al look con grande naturalezza.',
+    'È il genere di dettaglio che alza il livello senza sforzo.',
+    'Piccolo non vuol dire secondario. Qui si vede.',
+    'La differenza finale, spesso, parte proprio da qui.'
+  ];
+  pools.traits = {
+    nero: [
+      'Il nero qui non riempie. Definisce.',
+      'Quando il nero è fatto bene, il carattere esce da solo.',
+      'Ha la profondità giusta per farsi ricordare.',
+      'Pulito, netto, decisamente presente.',
+      'Il nero tiene tutto in asse. Qui lo fa benissimo.',
+      'Ha quel rigore che rende tutto più forte.'
+    ],
+    bianco: [
+      'Il chiaro qui non alleggerisce soltanto. Illumina.',
+      'Ha una luminosità molto precisa, niente di fragile.',
+      'Pulito, fresco, ma con carattere.',
+      'Il bianco qui è una scelta di presenza, non di timidezza.',
+      'Tiene il look aperto e molto deciso.',
+      'Chiaro fuori, forte nell’effetto.'
+    ],
+    beige: [
+      'Toni chiari, presenza altissima.',
+      'Ha una delicatezza fatta bene, non addomesticata.',
+      'Il beige qui sa di equilibrio alto.',
+      'Pulita, luminosa, molto centrata.',
+      'Ha il tono morbido delle cose riuscite bene.',
+      'Niente eccessi, solo armonia fatta bene.'
+    ],
+    cuoio: [
+      'I toni cuoio qui hanno una profondità che conta.',
+      'C’è calore nel colore e rigore nel risultato.',
+      'Quel tono giusto che dà subito sostanza.',
+      'Sa di materia, carattere e buon gusto.',
+      'Il cuoio quando funziona bene ha un altro passo.',
+      'Tonalità piene, effetto molto solido.'
+    ],
+    tacco: [
+      'Qui lo slancio ha una misura perfetta.',
+      'Ha altezza, ma soprattutto presenza.',
+      'La linea si allunga e il look cambia subito tono.',
+      'Il tacco qui non appesantisce. Rafforza.',
+      'C’è slancio, ma con un equilibrio molto chiaro.',
+      'Il dettaglio verticale fa tutta la differenza.'
+    ],
+    oversize: [
+      'Il volume qui è costruito bene, non messo a caso.',
+      'Più presenza, zero pesantezza.',
+      'L’oversize funziona davvero solo quando è pensato così.',
+      'Ha corpo, ma resta pulita.',
+      'La dimensione si sente. Il peso visivo no.',
+      'Grande sì, ma con un equilibrio notevole.'
+    ],
+    compatto: [
+      'Compatto nelle misure, preciso nell’effetto.',
+      'Piccolo fuori, molto centrato nel risultato.',
+      'Ha il fascino delle cose essenziali fatte bene.',
+      'Ridotto nel volume, pieno di carattere.',
+      'La misura è contenuta. La presenza no.',
+      'Tutto il necessario, niente di superfluo.'
+    ],
+    capiente: [
+      'Spazio pieno, linea ancora più forte.',
+      'Capiente sì, ma con una presenza tenuta benissimo.',
+      'Quando il volume è fatto bene, diventa stile.',
+      'Tiene tanto, ma visivamente resta molto pulita.',
+      'Qui la praticità entra con gran classe.',
+      'Generosa nelle dimensioni, precisa nell’effetto.'
+    ],
+    vitello: [
+      'La pelle di vitello qui alza subito il livello.',
+      'C’è una qualità di materia che si percepisce subito.',
+      'La base giusta si vede già dalla materia.',
+      'Quando la pelle parla bene, il resto la segue.',
+      'Ha una materia che dà sostanza al colpo d’occhio.',
+      'La qualità qui si sente prima ancora di toccarla.'
+    ],
+    impressa: [
+      'La superficie qui aggiunge carattere senza appesantire.',
+      'La texture si nota, ma resta molto elegante.',
+      'Ha un lavoro di superficie che dà subito tono.',
+      'Dettaglio materico preciso, effetto molto pulito.',
+      'La grana qui fa la differenza nel modo giusto.',
+      'C’è texture, ma con una disciplina visiva rara.'
+    ],
+    classico: [
+      'Ha il fascino delle cose che non stancano mai.',
+      'Un classico, ma con nerbo vero.',
+      'Non passa di moda quello che nasce già centrato.',
+      'La linea classica qui è tutt’altro che prevedibile.',
+      'Tradizione pulita, presenza contemporanea.',
+      'Certe linee durano perché funzionano davvero.'
+    ]
+  };
+  return pools;
+}
+function facebookGroupOpenings(a){
+  const pools = postPhrasePools('fb');
+  const flags = postTraitFlags(a);
+  const key = categoryKey(a?.categoria||'');
+  let list = [...pools.commonLong];
+  if(key.includes('sneaker')) list = [...pools.sneakerLong, ...list];
+  else if(key.includes('scarp')) list = [...pools.scarpeLong, ...list];
+  else if(key.includes('bors')) list = [...pools.borseLong, ...list];
+  else if(key.includes('cintur')) list = [...pools.cintureLong, ...list];
+  else if(key.includes('portafogl')) list = [...pools.portafogliLong, ...list];
+  else if(key.includes('accessor')) list = [...pools.accessoriLong, ...list];
+  Object.keys(flags).forEach(k=>{ if(flags[k] && pools.traits[k]) list = [...pools.traits[k], ...list]; });
+  return uniquePostLines(list);
+}
+function instagramCharacterPhrases(a){
+  const pools = postPhrasePools('ig');
+  const flags = postTraitFlags(a);
+  const key = categoryKey(a?.categoria||'');
+  let list = [...pools.commonShort, ...pools.commonLong.map(x=> x.replace(/[.!?]+$/,'') + '.').slice(0,40)];
+  if(key.includes('sneaker')) list = [
+    'Energia pulita.', 'Non è la solita scelta facile.', 'Grinta fatta bene.', 'Profilo forte.', 'Dettagli che spingono il look.',
+    'Sportiva, ma con testa.', 'Ha ritmo e presenza.', 'Si nota senza sforzo.', ...pools.sneakerLong.map(x=>x.replace(/[.!?]+$/,'')) , ...list
+  ];
+  else if(key.includes('scarp')) list = [
+    'Slancio, ma con misura.', 'Ha il passo giusto.', 'Eleganza che si sente.', 'Profilo che cambia tutto.', 'Linea netta.',
+    'Presenza molto chiara.', ...pools.scarpeLong.map(x=>x.replace(/[.!?]+$/,'')), ...list
+  ];
+  else if(key.includes('bors')) list = [
+    'Presenza piena.', 'Sta bene ovunque.', 'Linea che resta.', 'Carattere senza peso.', 'Equilibrio forte.',
+    'Dettaglio che firma il look.', ...pools.borseLong.map(x=>x.replace(/[.!?]+$/,'')), ...list
+  ];
+  else if(key.includes('cintur')) list = [
+    'Il dettaglio fa tutto.', 'Piccola presenza, grande effetto.', 'Rifinisce benissimo.', 'Qui il punto è il dettaglio.',
+    ...pools.cintureLong.map(x=>x.replace(/[.!?]+$/,'')), ...list
+  ];
+  else if(key.includes('portafogl')) list = [
+    'Compatto, ma con carattere.', 'Ordine fatto bene.', 'Pulito e centrato.', 'Dettaglio curato.',
+    ...pools.portafogliLong.map(x=>x.replace(/[.!?]+$/,'')), ...list
+  ];
+  else if(key.includes('accessor')) list = [
+    'Piccolo, ma si sente.', 'Dettaglio che conta.', 'Il tocco giusto.', 'Presenza sottile.',
+    ...pools.accessoriLong.map(x=>x.replace(/[.!?]+$/,'')), ...list
+  ];
+  Object.keys(flags).forEach(k=>{ if(flags[k] && pools.traits[k]) list = [...pools.traits[k].map(x=>x.replace(/[.!?]+$/,'')), ...list]; });
+  return uniquePostLines(list);
+}
+function buildPostFacebook(a){
+  if(!a?.codice) return '';
+  const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
+  const variante = safePostDetailValue(a?.variante||'', a);
+  const materiale = safePostDetailValue(a?.materiale||'', a);
+  const misura = safePostDetailValue(postSizeValue(a), a);
+  const colore = safePostDetailValue(a?.colore||'', a);
+  const closer = pickRandom([
+    'Per info scrivimi in privato 📩',
+    'Info in privato 📩',
+    'Scrivimi in privato 📩',
+    'Se ti interessa, privato 📩'
+  ]) || 'Per info scrivimi in privato 📩';
+  const lines=[...promoPostIntroLines(a)];
+  if(lines.length) lines.push('');
+  if(modelLine) lines.push(modelLine);
+  const seen = new Set();
+  const pushUnique = (value)=>{
+    const txt = compactPostValue(value||'');
+    if(!txt) return;
+    const key = normalizeTextKey(txt);
+    if(!key || seen.has(key)) return;
+    seen.add(key);
+    lines.push(txt);
+  };
+  pushUnique(variante);
+  pushUnique(materiale);
+  if(misura) lines.push(`Mis. ${misura}`);
+  if(colore) lines.push(`Colore: ${colore}`);
+  const prezzoFacebook = formatPostPrezzoVendita(currentPrice(a));
+  if(prezzoFacebook) lines.push(prezzoFacebook);
+  lines.push(`cod. ${a.codice}`);
+  if(closer) lines.push('', closer);
+  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+
+function buildPostInstagram(a){
+  if(!a?.codice) return '';
+  const lines=[...promoPostIntroLines(a)];
+  const modelLine = postNameWithQuality(a,'ig') || [postPrimaryName(a,'ig'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
+  if(lines.length) lines.push('');
+  if(modelLine) lines.push(modelLine);
+  lines.push(`Cod. ${a.codice}`);
+  const phrase = pickRandom(instagramCharacterPhrases(a)) || 'Ha presenza. Punto.';
+  const closers=[
+    'DM 📩',
+    'Scrivimi in DM 📩',
+    'Info in DM 📩',
+    'Se ti interessa, DM 📩',
+    'Dettagli in DM 📩',
+    'Disponibile. DM 📩',
+    'Disponibile ✨ DM 📩'
+  ];
+  if(phrase) lines.push('', phrase);
+  const closer = pickRandom(closers) || 'DM 📩';
+  if(closer) lines.push('', closer);
+  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+
+function buildPostTelegram(a){
+
   if(!a.codice) return '';
   const brand=(a.brand||'').trim();
   const modello=normalizePostLine(a.modello||'', brand);
@@ -1870,7 +3014,7 @@ function buildPost(a){
   const colori=normalizePostLine(a.colori||'', brand);
   const tracolla=normalizePostLine(a.tracolla||'', brand);
   const misura=normalizePostLine(a.misura||'', brand);
-  const taglia=normalizePostLine(a.taglia||'', brand);
+  const materialeCompat=normalizePostLine(a.materiale||a.taglia||'', brand);
   const qemoji=emojiQualityForPost(a);
   const lines=[];
   if(a.promoAttiva){
@@ -1880,7 +3024,7 @@ function buildPost(a){
       const [yyyy,mm,dd]=scadenzaRaw.split('-');
       scadenzaLabel=`${dd}/${mm}/${yyyy}`;
     }
-    const tipoMateriale=materiale || variante;
+    const tipoMateriale=materiale || materialeCompat || variante;
     lines.push('⭕️ PROMOZIONE ⭕️');
     if(scadenzaLabel) lines.push(`(fino al ${scadenzaLabel})`);
     if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
@@ -1894,12 +3038,11 @@ function buildPost(a){
   }
   if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
   if(descrizione) lines.push(descrizione);
-  if(taglia) lines.push(`Taglia ${taglia}`);
   if(variante) lines.push(variante);
   if(colore) lines.push(colore);
   if(misura) lines.push(formatPostMisura(misura));
   if(a.scatola) lines.push('Con scatola 🎁');
-  if(materiale) lines.push(`🧵 ${materiale}`);
+  if(materiale || materialeCompat) lines.push(`🧵 ${materiale || materialeCompat}`);
   if(colori) lines.push(colori);
   if(tracolla) lines.push(tracolla);
   const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita);
@@ -1915,6 +3058,7 @@ function buildCloudArticleMeta(art){
     descrizione: art?.descrizione||'',
     fornitore: art?.fornitore||'',
     fornitoreLink: art?.fornitoreLink||'',
+    materiale: art?.materiale||art?.taglia||'',
     taglia: art?.taglia||'',
     variante: art?.variante||'',
     colore: art?.colore||'',
@@ -2025,8 +3169,29 @@ window.addEventListener('popstate',(e)=>{
 });
 
 /* ====== UI helpers ====== */
-function show(id, push=true){ const el=document.getElementById(id); if(!el) return; el.style.display='flex'; activeModalId=id; if(push) history.pushState({page:location.hash.replace('#','')||'home', modal:id},'', location.href); }
-function hide(id, fromPop=false){ const el=document.getElementById(id); if(!el) return; el.style.display='none'; if(activeModalId===id) activeModalId=null; if(!fromPop && history.state && history.state.modal===id) history.back(); }
+function scheduleModalTextareaFit(id){
+  const root=document.getElementById(id);
+  if(!root) return;
+  const run=()=>root.querySelectorAll('textarea').forEach(el=>fitTextarea(el));
+  requestAnimationFrame(()=>requestAnimationFrame(run));
+  setTimeout(run, 40);
+  setTimeout(run, 160);
+}
+function show(id, push=true){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.style.display='flex';
+  activeModalId=id;
+  scheduleModalTextareaFit(id);
+  if(push) history.pushState({page:location.hash.replace('#','')||'home', modal:id},'', location.href);
+}
+function hide(id, fromPop=false){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.style.display='none';
+  if(activeModalId===id) activeModalId=null;
+  if(!fromPop && history.state && history.state.modal===id) history.back();
+}
 function toast(msg){
   let t=document.getElementById('vg_toast');
   if(!t){ t=document.createElement('div'); t.id='vg_toast';
@@ -2715,7 +3880,7 @@ function renderArt(){
   const items=db.articoli.filter(a=>{
     const catLabel=displayCategoryValue(a.categoria);
     const brandLabel=displayBrandValue(a.brand);
-    const hay=((a.codice||'')+' '+brandLabel+' '+(a.modello||'')+' '+catLabel+' '+(a.descrizione||'')+' '+(a.colore||'')+' '+(a.taglia||'')+' '+(a.variante||'')).toLowerCase();
+    const hay=((a.codice||'')+' '+brandLabel+' '+(a.modello||'')+' '+catLabel+' '+(a.descrizione||'')+' '+(a.colore||'')+' '+(a.materiale||a.taglia||'')+' '+(a.variante||'')).toLowerCase();
     const okText=!q || hay.includes(q);
     const okCat=!catFilter || displayCategoryValue(a.categoria)===displayCategoryValue(catFilter);
     return okText && okCat;
@@ -3060,11 +4225,16 @@ async function openArtView(id){
   document.getElementById('vArtPrezzoUse').textContent=money(currentPrice(a));
   const pill=document.getElementById('vArtPromoPill');
   pill.innerHTML = promoValid(a)?`<div class="pill promo" style="margin-top:6px"><span class="dot"></span>PROMO attiva</div>`:(a.promoAttiva?`<div class="pill" style="margin-top:6px">PROMO impostata</div>`:'');
-  document.getElementById('vArtPost').value=buildPost(a);
+  document.getElementById('vArtPost').value=buildPostTelegram(a);
   fitTextarea(document.getElementById('vArtPost'));
+  document.getElementById('vArtPostFb').value=buildPostFacebook(a);
+  fitTextarea(document.getElementById('vArtPostFb'));
+  document.getElementById('vArtPostIg').value=buildPostInstagram(a);
+  fitTextarea(document.getElementById('vArtPostIg'));
   const vArtSupplierLink=document.getElementById('vArtSupplierLink');
   if(vArtSupplierLink) vArtSupplierLink.value=(a.fornitoreLink||'').trim();
   show('mArtView');
+  scheduleModalTextareaFit('mArtView');
 }
 async function openArtEdit(id){
   const db=loadDB();
@@ -3076,7 +4246,7 @@ async function openArtEdit(id){
   const set=(k,v)=>document.getElementById(k).value=(v===0?0:(v||''));
 
   if(!a){
-    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_mis','a_usd','a_promo_price','a_promo_date','a_note','a_post','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
+    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_mis','a_usd','a_promo_price','a_promo_date','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
     .forEach(fid => document.getElementById(fid).value='');
     syncBrandField('');
     refreshArticleCategorySelects('');
@@ -3084,24 +4254,34 @@ async function openArtEdit(id){
     document.getElementById('a_photo').value='';
     currentArtExistingPics=[];
     renderArtPhotoPrev([]);
+    restoreArticleDraft('');
+    updateArticleCodeStatus();
     show('mArtEdit');
+    scheduleModalTextareaFit('mArtEdit');
     return;
   }
   set('a_cod', a?.codice); syncBrandField(a?.brand); set('a_mod', a?.modello);
   refreshArticleCategorySelects(a?.categoria||'');
   set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
-  set('a_taglia', a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore);
+  set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore);
   set('a_mis', a?.misura); set('a_usd', a?.costoUsd||'');
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
   set('a_promo_date', a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||'');
   document.getElementById('a_note').value=a?.note||'';
   document.getElementById('a_post').value=a?.post||'';
   fitTextarea(document.getElementById('a_post'));
+  document.getElementById('a_post_fb').value=buildPostFacebook(a||{});
+  fitTextarea(document.getElementById('a_post_fb'));
+  document.getElementById('a_post_ig').value=buildPostInstagram(a||{});
+  fitTextarea(document.getElementById('a_post_ig'));
   document.getElementById('a_photo').value='';
   renderArtAutoFields();
   currentArtExistingPics=await getArticlePics(a);
   renderArtPhotoPrev(currentArtExistingPics);
+  restoreArticleDraft(a?.id||'');
+  updateArticleCodeStatus();
   show('mArtEdit');
+  scheduleModalTextareaFit('mArtEdit');
 }
 function renderArtPhotoPrev(pics){
   const box=document.getElementById('a_photo_prev');
@@ -3140,8 +4320,20 @@ async function refreshArtPhotoPreviewFromInput(){
 }
 function fitTextarea(el){
   if(!el) return;
-  el.style.height='auto';
-  el.style.height=Math.max(el.scrollHeight,96)+'px';
+  const apply=()=>{
+    const style=getComputedStyle(el);
+    const lineHeight=parseFloat(style.lineHeight)||22;
+    const lineCount=Math.max(String(el.value||el.placeholder||'').split('\n').length, 4);
+    const border=(parseFloat(style.borderTopWidth)||0)+(parseFloat(style.borderBottomWidth)||0);
+    const padding=(parseFloat(style.paddingTop)||0)+(parseFloat(style.paddingBottom)||0);
+    const padded=Math.ceil((lineCount*lineHeight)+padding+border+18);
+    el.style.height='auto';
+    const visibleScroll=el.scrollHeight||0;
+    el.style.height=Math.max(visibleScroll,padded,140)+'px';
+  };
+  apply();
+  requestAnimationFrame(apply);
+  setTimeout(apply, 60);
 }
 function initTextareaAutosize(ids){
   ids.forEach(id=>{
@@ -3161,6 +4353,19 @@ function setArticlePostAuto(text){
   fitTextarea(el);
   el.scrollTop=prevScroll;
 }
+function setReadonlyArticlePost(id,text){
+  const el=document.getElementById(id);
+  if(!el) return;
+  const prevScroll=el.scrollTop;
+  el.value=text;
+  fitTextarea(el);
+  el.scrollTop=prevScroll;
+}
+function setArticleSocialPostsAuto(draft){
+  setArticlePostAuto(buildPostTelegram(draft));
+  setReadonlyArticlePost('a_post_fb', buildPostFacebook(draft));
+  setReadonlyArticlePost('a_post_ig', buildPostInstagram(draft));
+}
 function renderArtAutoFields(){
   const code=document.getElementById('a_cod').value.trim();
   const usdRaw=document.getElementById('a_usd').value.trim();
@@ -3178,6 +4383,8 @@ function renderArtAutoFields(){
     document.getElementById('a_margin_pct').textContent='';
     document.getElementById('a_post').value='';
     fitTextarea(document.getElementById('a_post'));
+    setReadonlyArticlePost('a_post_fb','');
+    setReadonlyArticlePost('a_post_ig','');
     return;
   }
 
@@ -3196,14 +4403,17 @@ function renderArtAutoFields(){
       scadenzaPromo:document.getElementById('a_promo_date').value.trim(),
       prezzoVendita:0,
       misura:document.getElementById('a_mis').value.trim(),
-      taglia:document.getElementById('a_taglia').value.trim(),
+      materiale:document.getElementById('a_taglia').value.trim(),
+      taglia:'',
       variante:document.getElementById('a_variante').value.trim(),
       colore:document.getElementById('a_colore').value.trim(),
       descrizione:document.getElementById('a_desc').value.trim(),
       fornitore:document.getElementById('a_forn').value.trim(),
-      materiale:'', colori:'', tracolla:'', scatola:false
+      colori:'', tracolla:'', scatola:false
     };
-    setArticlePostAuto(buildPost(draft));
+    setArticleSocialPostsAuto(draft);
+    updateArticleCodeStatus();
+    saveArticleDraft();
     return;
   }
 
@@ -3228,14 +4438,17 @@ function renderArtAutoFields(){
     promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate,
     prezzoVendita:r.sell,
     misura:document.getElementById('a_mis').value.trim(),
-    taglia:document.getElementById('a_taglia').value.trim(),
+    materiale:document.getElementById('a_taglia').value.trim(),
+    taglia:'',
     variante:document.getElementById('a_variante').value.trim(),
     colore:document.getElementById('a_colore').value.trim(),
     descrizione:document.getElementById('a_desc').value.trim(),
     fornitore:document.getElementById('a_forn').value.trim(),
-    materiale:'', colori:'', tracolla:'', scatola:false
+    colori:'', tracolla:'', scatola:false
   };
-  setArticlePostAuto(buildPost(draft));
+  setArticleSocialPostsAuto(draft);
+  updateArticleCodeStatus();
+  saveArticleDraft();
 }
 
 async function fileToDataURL(file){
@@ -3315,7 +4528,7 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_desc').value=clone.descrizione||'';
   updateSupplierField(clone.fornitore||'');
   document.getElementById('a_forn_link').value=clone.fornitoreLink||'';
-  document.getElementById('a_taglia').value=clone.taglia||'';
+  document.getElementById('a_taglia').value=clone.materiale||clone.taglia||'';
   document.getElementById('a_variante').value=clone.variante||'';
   document.getElementById('a_colore').value=clone.colore||'';
   document.getElementById('a_mis').value=clone.misura||'';
@@ -3326,11 +4539,17 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_note').value=clone.note||'';
   document.getElementById('a_post').value=clone.post||'';
   fitTextarea(document.getElementById('a_post'));
+  document.getElementById('a_post_fb').value=buildPostFacebook(clone||{});
+  fitTextarea(document.getElementById('a_post_fb'));
+  document.getElementById('a_post_ig').value=buildPostInstagram(clone||{});
+  fitTextarea(document.getElementById('a_post_ig'));
   document.getElementById('a_photo').value='';
   currentArtExistingPics=await getArticlePics(a);
   renderArtPhotoPrev(currentArtExistingPics);
   renderArtAutoFields();
+  updateArticleCodeStatus();
   show('mArtEdit');
+  scheduleModalTextareaFit('mArtEdit');
   toast('Articolo duplicato: cambia il codice e salva');
 }
 
@@ -3364,7 +4583,8 @@ async function saveArt(){
       descrizione: document.getElementById('a_desc').value.trim(),
       fornitore: document.getElementById('a_forn').value.trim(),
       fornitoreLink: document.getElementById('a_forn_link').value.trim(),
-      taglia: document.getElementById('a_taglia').value.trim(),
+      materiale: document.getElementById('a_taglia').value.trim(),
+      taglia: '',
       variante: document.getElementById('a_variante').value.trim(),
       colore: document.getElementById('a_colore').value.trim(),
       misura: document.getElementById('a_mis').value.trim(),
@@ -3426,6 +4646,7 @@ async function saveArt(){
     }
     currentArtDuplicateData=null;
     currentArtPhotosCleared=false;
+    clearArticleDraft();
     hide('mArtEdit');
     if(photoUploadWarning) toast('Articolo salvato. '+photoUploadWarning);
     else toast('Articolo salvato');
@@ -3458,9 +4679,11 @@ async function deleteArt(){
     db.articoli=db.articoli.filter(a=>a.id!==artId);
     currentArtId=null;
     if(!saveDB(db)) return;
+    clearArticleDraft();
     hide('mArtEdit');
     hide('mArtView');
     renderAll();
+initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship']);
     if(old && cloudEnabled()){
       try{
         await cloudDeleteOne('art', old);
@@ -3610,6 +4833,7 @@ function openCliEdit(id){
   document.getElementById('c_citta').value=c?.citta||'';
   document.getElementById('c_prov').value=c?.provincia||'';
   document.getElementById('c_note').value=c?.note||'';
+  restoreClientDraft(c?.id||'');
   refreshClientShipping();
   show('mCliEdit');
 }
@@ -3652,6 +4876,7 @@ async function saveCli(){
   const i=db.clienti.findIndex(x=>x.id===obj.id);
   if(i>=0) db.clienti[i]=obj; else db.clienti.unshift(obj);
   if(!saveDB(db)) return;
+  clearClientDraft();
   hide('mCliEdit');
   toast('Cliente salvato');
   if(cloudEnabled()){
@@ -3675,6 +4900,7 @@ async function deleteCli(){
   db.clienti=db.clienti.filter(c=>c.id!==currentCliId);
   if(!saveDB(db)) return;
   if(old && cloudEnabled()) await cloudDeleteOne('cli', old);
+  clearClientDraft();
   hide('mCliEdit');
   toast(cloudEnabled() ? 'Cliente eliminato anche dal cloud' : 'Cliente eliminato');
 }
@@ -3748,6 +4974,7 @@ async function openOrdEdit(id, prefillArticleId=null){
   updateOrderTotalsPreview();
   updateOrderShoeSizeState();
   await refreshOrdPhotoPreviewFromState();
+  restoreOrderDraft(o?.id||'', prefillArticleId);
   show('mOrdEdit');
 }
 function todayStr(){
@@ -3768,7 +4995,7 @@ function fillArtSelect(db, filter=''){
   const prev=Array.from(sel.selectedOptions||[]).map(o=>o.value);
   const q=filter.toLowerCase();
   const items=db.articoli.filter(a=>{
-    const hay=((a.codice||'')+' '+(a.brand||'')+' '+(a.modello||'')+' '+(a.categoria||'')+' '+(a.descrizione||'')+' '+(a.colore||'')+' '+(a.taglia||'')+' '+(a.variante||'')).toLowerCase();
+    const hay=((a.codice||'')+' '+(a.brand||'')+' '+(a.modello||'')+' '+(a.categoria||'')+' '+(a.descrizione||'')+' '+(a.colore||'')+' '+(a.materiale||a.taglia||'')+' '+(a.variante||'')).toLowerCase();
     return !q || hay.includes(q);
   });
   sel.innerHTML=items.map(a=>`<option value="${a.id}">${esc(a.brand||'')} ${esc(a.modello||'')} • ${esc(a.codice||'')}</option>`).join('');
@@ -3802,6 +5029,7 @@ function addRow(){
   fillArtSelect(db);
   renderOrdRows();
   updateOrderShoeSizeState();
+  saveOrderDraft();
 }
 function getTrackingValue(){
   const editVal=String(document.getElementById('o_tracking')?.value||'').trim();
@@ -3899,6 +5127,7 @@ async function saveOrd(){
   const i=db.ordini.findIndex(x=>x.id===obj.id);
   if(i>=0) db.ordini[i]=obj; else db.ordini.unshift(obj);
   if(!saveDB(db)) return;
+  clearOrderDraft();
   hide('mOrdEdit');
   toast(manualCount || articlePics.length ? 'Ordine salvato con foto' : 'Ordine salvato');
   if(cloudEnabled()){
@@ -3924,6 +5153,7 @@ async function deleteOrd(){
   db.ordini=db.ordini.filter(o=>o.id!==currentOrdId);
   if(!saveDB(db)) return;
   if(old && cloudEnabled()) await cloudDeleteOne('ord', old);
+  clearOrderDraft();
   hide('mOrdEdit');
   toast(cloudEnabled() ? 'Ordine eliminato anche dal cloud' : 'Ordine eliminato');
 }
@@ -4146,6 +5376,12 @@ document.addEventListener('click',(ev)=>{
   if(a==='renameBrand') return renameBrand(el.dataset.name||'');
   if(a==='deleteBrand') return deleteBrand(el.dataset.name||'');
   if(a==='copyPost') return copyTextFrom(document.getElementById('vArtPost'));
+  if(a==='copyPostFb') return copyTextFrom(document.getElementById('vArtPostFb'));
+  if(a==='copyPostIg') return copyTextFrom(document.getElementById('vArtPostIg'));
+  if(a==='copyPostTelegramEdit') return copyTextFrom(document.getElementById('a_post'));
+  if(a==='copyPostFbEdit') return copyTextFrom(document.getElementById('a_post_fb'));
+  if(a==='copyPostIgEdit') return copyTextFrom(document.getElementById('a_post_ig'));
+  if(a==='shareArtPhotos') return shareCurrentArticlePhotos();
   if(a==='downloadArtPhotos') return downloadCurrentArticlePhotos();
   if(a==='openSupplierLink'){ const link=String(document.getElementById('vArtSupplierLink')?.value||'').trim(); if(!link){ toast('Nessun link fornitore'); return; } const safe=/^https?:\/\//i.test(link)?link:'https://'+link; window.open(safe,'_blank'); return; }
   if(a==='copyCliShip') return copyTextFrom(document.getElementById('c_ship'));
@@ -4167,15 +5403,15 @@ document.addEventListener('click',(ev)=>{
   if(a==='duplicateArt') return duplicateCurrentArticle(el.dataset.id || null);
   if(a==='editFromView'){ hide('mArtView', true); return openArtEdit(currentArtId); }
   if(a==='closeView') return hide('mArtView');
-  if(a==='closeEdit') return hide('mArtEdit');
-  if(a==='clearArtPhotos'){ currentArtExistingPics=[]; currentArtPhotosCleared=true; document.getElementById('a_photo').value=''; renderArtPhotoPrev([]); toast('Foto attuali rimosse'); return; }
+  if(a==='closeEdit'){ saveArticleDraft(); return hide('mArtEdit'); }
+  if(a==='clearArtPhotos'){ currentArtExistingPics=[]; currentArtPhotosCleared=true; document.getElementById('a_photo').value=''; renderArtPhotoPrev([]); saveArticleDraft(); toast('Foto attuali rimosse'); return; }
   if(a==='saveArt') return saveArt();
   if(a==='deleteArt') return deleteArt();
   if(a==='saveCli') return saveCli();
-  if(a==='closeCli') return hide('mCliEdit');
+  if(a==='closeCli'){ saveClientDraft(); return hide('mCliEdit'); }
   if(a==='deleteCli') return deleteCli();
   if(a==='saveOrd') return saveOrd();
-  if(a==='closeOrd') return hide('mOrdEdit');
+  if(a==='closeOrd'){ saveOrderDraft(); return hide('mOrdEdit'); }
   if(a==='deleteOrd') return deleteOrd();
   if(a==='addRow') return addRow();
   if(a==='track17') return openTrack17();
@@ -4187,13 +5423,13 @@ document.addEventListener('click',(ev)=>{
   if(a==='closeCloudLogin') return hide('mCloudLogin');
   if(a==='confirmYes') return closeConfirm(true);
   if(a==='confirmNo') return closeConfirm(false);
-  if(a==='delRow'){ const i=Number(el.dataset.i); ordRows.splice(i,1); renderOrdRows(); updateOrderShoeSizeState(); return; }
+  if(a==='delRow'){ const i=Number(el.dataset.i); ordRows.splice(i,1); renderOrdRows(); updateOrderShoeSizeState(); saveOrderDraft(); return; }
 });
 
 bindSearchSuggest('qArt','qArtSuggest','art', ()=>renderArt());
 document.getElementById('qArtCat')?.addEventListener('change', renderArt);
 bindSearchSuggest('qCli','qCliSuggest','cli', ()=>renderCli());
-['c_nome','c_tel','c_ind','c_cap','c_citta','c_prov'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', refreshClientShipping); if(el) el.addEventListener('change', refreshClientShipping); });
+['c_nome','c_tel','c_ind','c_cap','c_citta','c_prov','c_note'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', ()=>{ refreshClientShipping(); saveClientDraft(); }); if(el) el.addEventListener('change', ()=>{ refreshClientShipping(); saveClientDraft(); }); });
 bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
@@ -4203,6 +5439,7 @@ document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.k
   const evt=(id==='a_promo_on' || id==='a_forn' || id==='a_brand') ? 'change' : 'input';
   el.addEventListener(evt, renderArtAutoFields);
   if(id==='a_cod') el.addEventListener('change', renderArtAutoFields);
+  if(id==='a_cod') el.addEventListener('input', updateArticleCodeStatus);
 });
 
 bindSearchSuggest('o_cli_q','oCliSuggest','orderCli', value=>fillClientSelect(loadDB(), value));
@@ -4210,19 +5447,22 @@ bindSearchSuggest('o_art_q','oArtSuggest','orderArt', value=>{
   fillArtSelect(loadDB(), value);
   updateOrderPriceFromSelection();
 });
-document.getElementById('o_art').addEventListener('change', updateOrderPriceFromSelection);
-document.getElementById('o_discount').addEventListener('input', updateOrderTotalsPreview);
+document.getElementById('o_art').addEventListener('change', ()=>{ updateOrderPriceFromSelection(); saveOrderDraft(); });
+document.getElementById('o_discount').addEventListener('input', ()=>{ updateOrderTotalsPreview(); saveOrderDraft(); });
+['o_cli','o_stato','o_data','o_note','o_mis','o_tracking','o_price'].forEach(id=>{ const el=document.getElementById(id); if(el) ['input','change'].forEach(evt=>el.addEventListener(evt, saveOrderDraft)); });
 
 document.getElementById('importFile').addEventListener('change',(e)=>{
   const f=e.target.files[0];
   if(f) importDB(f);
   e.target.value='';
 });
-document.getElementById('a_brand')?.addEventListener('change', handleBrandSelectionChange);
-document.getElementById('a_photo')?.addEventListener('change', refreshArtPhotoPreviewFromInput);
+document.getElementById('a_brand')?.addEventListener('change', ()=>{ handleBrandSelectionChange(); saveArticleDraft(); });
+document.getElementById('a_photo')?.addEventListener('change', ()=>{ refreshArtPhotoPreviewFromInput(); saveArticleDraft(); });
 document.getElementById('btnCloudLogin')?.addEventListener('click', ()=>show('mCloudLogin'));
 document.getElementById('btnCloudLogout')?.addEventListener('click', cloudLogout);
-document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) autoCloudPullNow('visible'); });
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) flushVisibleDrafts(); else autoCloudPullNow('visible'); });
+window.addEventListener('pagehide', flushVisibleDrafts);
+window.addEventListener('beforeunload', flushVisibleDrafts);
 window.addEventListener('focus', ()=>autoCloudPullNow('focus'));
 
 // Province select
@@ -4351,8 +5591,8 @@ async function upsertCloudArticle(art){
     categoria_id,
     marca: art.brand || null,
     colore: art.colore || null,
-    taglia: art.taglia || null,
-    materiale: art.variante || art.misura || null,
+    taglia: null,
+    materiale: art.materiale || art.taglia || art.variante || null,
     prezzo_acquisto: Number(art.costoEur || 0),
     prezzo_vendita: Number(art.prezzoVendita || 0),
     giacenza: 0,
@@ -4576,7 +5816,7 @@ async function pullCloudToLocal(opts={}){
         const pulledCostoUsd=firstFiniteNumber(meta.costoUsd, local?.costoUsd, 0);
         const pulledCostoEur=firstFiniteNumber(p.prezzo_acquisto, p.costo, p.costo_eur, meta.costoEur, local?.costoEur, 0);
         const pulledPrezzoVendita=firstFiniteNumber(p.prezzo_vendita, p.prezzo, p.prezzo_vendita_iva, meta.prezzoVendita, meta.prezzo, local?.prezzoVendita, 0);
-        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',taglia:meta.taglia||p.taglia||local?.taglia||'',variante:meta.variante||p.materiale||local?.variante||'',colore:meta.colore||p.colore||local?.colore||'',misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,6):[],_ts:Date.now(),_cloud:true};
+        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:meta.colore||p.colore||local?.colore||'',misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,6):[],_ts:Date.now(),_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(righeOrd); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:righeOrd,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,12):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,12):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(righeOrd, scontoCliente),_ts:Date.now(),_cloud:true}; })
@@ -4665,6 +5905,7 @@ async function cloudLogout(){
 
 /* init */
 renderAll();
+initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship']);
 renderDiagnostics();
 fillUiEditor();
 applyUiPrefs();
