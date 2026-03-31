@@ -1,5 +1,5 @@
-const CACHE_NAME='vg-cache-v10_5-postsocial-quality';
-const VERSION = 'v10_5';
+const CACHE_NAME='vg-cache-v11_6-materiale-guard';
+const VERSION = 'v11_6';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './manifest.json',
@@ -69,3 +69,4 @@ self.addEventListener('fetch', event => {
     return fresh;
   })());
 });
+
