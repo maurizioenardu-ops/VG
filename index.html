@@ -2122,20 +2122,20 @@ let __articlePhotoShareWarmPromise = null;
 function getArticlePhotoShareBaseName(art){
   return (art?.codice||art?.brand||art?.modello||'articolo').toString().trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'articolo';
 }
-function shouldShareArticlePhotosAsZip(files){
-  const list=Array.isArray(files) ? files.filter(Boolean) : [];
-  if(list.length<=1) return false;
-  if(list.length>ARTICLE_NATIVE_SHARE_MAX_FILES) return true;
-  try{
-    if(typeof navigator?.canShare==='function' && !navigator.canShare({ files:list })) return true;
-  }catch(_e){}
-  return false;
-}
 function getCachedArticlePhotoFilesForCtx(ctx){
   if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx?.cacheKey && Array.isArray(__articlePhotoShareCache.files) && __articlePhotoShareCache.files.length){
     return __articlePhotoShareCache.files;
   }
   return null;
+}
+function areCachedArticlePhotoFilesComplete(ctx){
+  return !!(
+    __articlePhotoShareCache
+    && __articlePhotoShareCache.key===ctx?.cacheKey
+    && __articlePhotoShareCache.complete===true
+    && Array.isArray(__articlePhotoShareCache.files)
+    && __articlePhotoShareCache.files.length===((Array.isArray(ctx?.pics) ? ctx.pics.length : 0) || __articlePhotoShareCache.files.length)
+  );
 }
 function getCachedArticlePhotoZipForCtx(ctx){
   if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx?.cacheKey && __articlePhotoShareCache.zipFile instanceof File){
@@ -2164,7 +2164,7 @@ async function warmCurrentArticlePhotoShare(ctx=null, opts={}){
   const targetCtx = ctx || getPreparedCurrentArticlePhotoContext() || await getCurrentArticlePhotoContext();
   if(!targetCtx) return [];
   const cached=getCachedArticlePhotoFilesForCtx(targetCtx);
-  if(cached?.length){
+  if(cached?.length && areCachedArticlePhotoFilesComplete(targetCtx)){
     if(cached.length>1 && !getCachedArticlePhotoZipForCtx(targetCtx)) ensureCurrentArticlePhotoZip(targetCtx, cached, { silent:true }).catch(()=>{});
     return cached;
   }
@@ -2182,11 +2182,14 @@ async function warmCurrentArticlePhotoShare(ctx=null, opts={}){
   return __articlePhotoShareWarmPromise;
 }
 
-const ARTICLE_NATIVE_SHARE_MAX_FILES = 3;
 function canNativeShareFiles(files){
+  const list=Array.isArray(files) ? files.filter(Boolean) : [];
   try{
-    if(typeof navigator==='undefined' || typeof navigator.share!=='function') return false;
-    return Array.isArray(files) && files.length>0;
+    if(typeof navigator==='undefined' || typeof navigator.share!=='function' || !list.length) return false;
+    if(typeof navigator.canShare==='function'){
+      try{ return !!navigator.canShare({ files:list }); }catch(_e){ return false; }
+    }
+    return true;
   }catch(_e){
     return false;
   }
@@ -2204,23 +2207,15 @@ function isShareActivationError(err){
     || msg.includes('must be handling a user gesture');
 }
 async function tryNativeShareArticleFiles(files, baseName){
-  if(!canNativeShareFiles(files)) return false;
-  const payload={
-    files:[...files],
-    title:`Foto ${baseName}`,
-    text: files.length===1
-      ? `Foto articolo ${baseName}`
-      : `Foto articolo ${baseName} (${files.length})`
-  };
+  const list=Array.isArray(files) ? files.filter(Boolean) : [];
+  if(!canNativeShareFiles(list)) return false;
+  const payload={ files:[...list] };
   try{
     await navigator.share(payload);
-    return files.length===1 ? 'single' : 'multi';
+    return list.length===1 ? 'single' : 'multi';
   }catch(err){
     if(isShareAbortError(err)) throw err;
     console.warn('Condivisione nativa foto fallita', err);
-    try{
-      if(Array.isArray(payload.files) && payload.files.length===1 && typeof navigator.canShare==='function' && !navigator.canShare({ files:payload.files })) return false;
-    }catch(_e){}
     return false;
   }
 }
@@ -2272,16 +2267,17 @@ async function getCurrentArticlePhotoContext(){
   return ctx;
 }
 async function ensureCurrentArticlePhotoFiles(ctx, opts={}){
-  if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx.cacheKey && Array.isArray(__articlePhotoShareCache.files) && __articlePhotoShareCache.files.length){
+  if(areCachedArticlePhotoFilesComplete(ctx)){
     return __articlePhotoShareCache.files;
   }
   const silent = !!opts?.silent;
   if(!silent) toast(`Preparo ${ctx.pics.length} foto...`);
   const files=await buildArticlePhotoFiles(ctx.art, ctx.pics, ctx.baseName);
+  const complete = files.length===ctx.pics.length;
   if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx.cacheKey){
-    __articlePhotoShareCache = { ...__articlePhotoShareCache, files, at: Date.now() };
+    __articlePhotoShareCache = { ...__articlePhotoShareCache, files, complete, at: Date.now() };
   }else if(files.length){
-    __articlePhotoShareCache = { key: ctx.cacheKey, files, zipFile:null, at: Date.now() };
+    __articlePhotoShareCache = { key: ctx.cacheKey, files, zipFile:null, complete, at: Date.now() };
   }
   return files;
 }
@@ -2296,7 +2292,7 @@ async function ensureCurrentArticlePhotoZip(ctx, files=null, opts={}){
   if(__articlePhotoShareCache && __articlePhotoShareCache.key===ctx.cacheKey){
     __articlePhotoShareCache = { ...__articlePhotoShareCache, zipFile, at: Date.now() };
   }else{
-    __articlePhotoShareCache = { key: ctx.cacheKey, files:list, zipFile, at: Date.now() };
+    __articlePhotoShareCache = { key: ctx.cacheKey, files:list, zipFile, complete:false, at: Date.now() };
   }
   return zipFile;
 }
@@ -2306,67 +2302,51 @@ async function shareCurrentArticlePhotos(){
   if(!ctx) ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
 
-  let files=getCachedArticlePhotoFilesForCtx(ctx) || [];
-  if(!files.length){
-    files=await ensureCurrentArticlePhotoFiles(ctx, { silent:true });
+  const cachedFiles=getCachedArticlePhotoFilesForCtx(ctx) || [];
+  const filesReady = areCachedArticlePhotoFilesComplete(ctx);
+
+  if(!filesReady){
+    warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(err=>console.warn('Warmup share foto on-demand fallito', err));
+    const readyCount=cachedFiles.length;
+    if(readyCount>0 && readyCount<ctx.pics.length){
+      toast(`Sto preparando tutte le foto: ${readyCount}/${ctx.pics.length} pronte. Premi Condividi tra un attimo.`);
+    }else{
+      toast(`Sto preparando ${ctx.pics.length} foto. Premi Condividi tra un attimo.`);
+    }
+    return;
   }
 
+  const files=cachedFiles;
   if(!files.length){
     toast('Nessuna foto condivisibile');
     return;
   }
 
-  if(files.length < ctx.pics.length){
-    toast(`Foto pronte: ${files.length} su ${ctx.pics.length}. Condivido solo quelle recuperate.`);
+  if(!canNativeShareFiles(files)){
+    toast(files.length>1
+      ? 'Questo browser non supporta la condivisione multipla di tutte le foto. Usa Scarica foto.'
+      : 'Questo browser non supporta la condivisione del file. Usa Scarica foto.');
+    return;
   }
 
-  const preferZip=shouldShareArticlePhotosAsZip(files);
-
   try{
-    if(!preferZip){
-      const sharedAll = await tryNativeShareArticleFiles(files, ctx.baseName);
-      if(sharedAll){
-        toast(files.length===1 ? 'Condivisione aperta.' : `Condivisione aperta per ${files.length} foto.`);
-        return;
-      }
+    const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
+    if(shared){
+      toast(files.length===1 ? 'Condivisione aperta.' : `Condivisione aperta per ${files.length} foto.`);
+      return;
     }
-
-    const zipFile = getCachedArticlePhotoZipForCtx(ctx) || await ensureCurrentArticlePhotoZip(ctx, files, { silent:true });
-    if(zipFile){
-      const zipShared = await tryNativeShareArticleFiles([zipFile], ctx.baseName);
-      if(zipShared){
-        toast(`Condivisione aperta con ZIP contenente ${files.length} foto.`);
-        return;
-      }
-    }
-
-    if(preferZip){
-      const sharedAll = await tryNativeShareArticleFiles(files, ctx.baseName);
-      if(sharedAll){
-        toast(files.length===1 ? 'Condivisione aperta.' : `Condivisione aperta per ${files.length} foto.`);
-        return;
-      }
-    }
-
-    toast('Condivisione foto non riuscita. Prova di nuovo oppure usa Scarica foto.');
+    toast('Condivisione foto non riuscita. Usa Scarica foto.');
   }catch(err){
     if(isShareAbortError(err)) return;
     console.warn('Condivisione foto articolo fallita', err);
-    try{
-      const fallbackZip = getCachedArticlePhotoZipForCtx(ctx) || await ensureCurrentArticlePhotoZip(ctx, files, { silent:true });
-      if(fallbackZip){
-        const zipShared = await tryNativeShareArticleFiles([fallbackZip], ctx.baseName);
-        if(zipShared){
-          toast(`Condivisione aperta con ZIP contenente ${files.length} foto.`);
-          return;
-        }
-      }
-    }catch(zipErr){
-      console.warn('Fallback ZIP share foto articolo fallito', zipErr);
+    if(isShareActivationError(err)){
+      toast('Le foto non erano ancora pronte al tocco. Premi di nuovo Condividi.');
+      return;
     }
     toast('Condivisione foto non riuscita. Usa Scarica foto.');
   }
 }
+
 const __zipCrcTable = (()=>{
   const table = new Uint32Array(256);
   for(let n=0;n<256;n++){
@@ -6849,8 +6829,10 @@ function bindSearchSuggest(inputId, boxId, kind, onApply){
 document.addEventListener('pointerdown',(ev)=>{
   const btn=ev.target?.closest?.('[data-action="shareArtPhotos"],[data-action="downloadArtPhotos"]');
   if(!btn) return;
-  const ctx=getPreparedCurrentArticlePhotoContext();
-  if(ctx) warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
+  Promise.resolve()
+    .then(()=>getPreparedCurrentArticlePhotoContext() || getCurrentArticlePhotoContext())
+    .then(ctx=>{ if(ctx) return warmCurrentArticlePhotoShare(ctx, { silent:true }); })
+    .catch(()=>{});
 });
 
 document.addEventListener('click',(ev)=>{
@@ -7090,7 +7072,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-03-31-essential-share-v24';
+const VG_BUILD='2026-03-31-essential-share-v27';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -7581,7 +7563,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v24', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v27', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
