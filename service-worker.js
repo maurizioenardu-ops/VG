@@ -1,4 +1,4 @@
-const VERSION = 'v24_0_essential_share';
+const VERSION = 'v25_0_essential_sharefix';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

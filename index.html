@@ -2154,9 +2154,7 @@ const ARTICLE_NATIVE_SHARE_MAX_FILES = 3;
 function canNativeShareFiles(files){
   try{
     if(typeof navigator==='undefined' || typeof navigator.share!=='function') return false;
-    if(!Array.isArray(files) || !files.length) return false;
-    if(typeof navigator.canShare!=='function') return true;
-    return navigator.canShare({ files:[...files] });
+    return Array.isArray(files) && files.length>0;
   }catch(_e){
     return false;
   }
@@ -2175,18 +2173,22 @@ function isShareActivationError(err){
 }
 async function tryNativeShareArticleFiles(files, baseName){
   if(!canNativeShareFiles(files)) return false;
+  const payload={
+    files:[...files],
+    title:`Foto ${baseName}`,
+    text: files.length===1
+      ? `Foto articolo ${baseName}`
+      : `Foto articolo ${baseName} (${files.length})`
+  };
   try{
-    await navigator.share({
-      files:[...files],
-      title:`Foto ${baseName}`,
-      text: files.length===1
-        ? `Foto articolo ${baseName}`
-        : `Foto articolo ${baseName} (${files.length})`
-    });
+    await navigator.share(payload);
     return files.length===1 ? 'single' : 'multi';
   }catch(err){
     if(isShareAbortError(err)) throw err;
     console.warn('Condivisione nativa foto fallita', err);
+    try{
+      if(Array.isArray(payload.files) && payload.files.length===1 && typeof navigator.canShare==='function' && !navigator.canShare({ files:payload.files })) return false;
+    }catch(_e){}
     return false;
   }
 }
@@ -2283,7 +2285,7 @@ async function shareCurrentArticlePhotos(){
       return;
     }
 
-    toast('Condivisione foto non disponibile su questo dispositivo. Usa Scarica foto.');
+    toast('Condivisione foto non riuscita. Prova di nuovo oppure usa Scarica foto.');
   }catch(err){
     if(isShareAbortError(err)) return;
     console.warn('Condivisione foto articolo fallita', err);
