@@ -1,4 +1,4 @@
-const VERSION = 'v31_0_cloud_merge_ts';
+const VERSION = 'v35_fix_file_dedupe';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

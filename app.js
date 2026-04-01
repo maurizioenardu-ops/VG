@@ -1208,13 +1208,24 @@ function canonicalPhotoSourceKey(src){
 function dedupePhotoSources(list=[], limit=Infinity){
   const out=[];
   const seen=new Set();
-  for(const src of (Array.isArray(list) ? list : [])){
-    const clean=String(src||'').trim();
-    if(!clean) continue;
-    const key=canonicalPhotoSourceKey(clean) || clean;
-    if(seen.has(key)) continue;
+  const items=Array.isArray(list) ? list : [];
+  for(const item of items){
+    if(item==null) continue;
+
+    let key='';
+    if(typeof File!=='undefined' && item instanceof File){
+      key=`file:${item.name||''}|${item.size||0}|${item.type||''}|${item.lastModified||0}`;
+    }else if(typeof Blob!=='undefined' && item instanceof Blob){
+      key=`blob:${item.size||0}|${item.type||''}`;
+    }else{
+      const clean=String(item||'').trim();
+      if(!clean) continue;
+      key=canonicalPhotoSourceKey(clean) || clean;
+    }
+
+    if(!key || seen.has(key)) continue;
     seen.add(key);
-    out.push(clean);
+    out.push(item);
     if(out.length>=limit) break;
   }
   return out;
@@ -6418,7 +6429,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-01-share-v34-dedupe-zip-fallback';
+const VG_BUILD='2026-04-01-share-v35-fix-file-dedupe';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -6918,7 +6929,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v28-dashboard-clicks', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v35-fix-file-dedupe', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
