@@ -1,4 +1,4 @@
-const VERSION = 'v35_fix_file_dedupe';
+const VERSION = 'v37_priority_sheet';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
