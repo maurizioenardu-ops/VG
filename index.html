@@ -89,6 +89,7 @@ body{-webkit-tap-highlight-color:transparent}
 .actions.compact{grid-template-columns:repeat(3,minmax(0,auto));justify-content:flex-start;gap:8px}
 .btn{border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px 14px;font-weight:1000;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:50px;text-align:center;box-shadow:0 3px 10px rgba(15,23,42,.04)}
 .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.success{background:#16a34a;border-color:#16a34a;color:#fff}
 .btn.danger{background:#fee2e2;border-color:#fca5a5}
 .btn.smallish{padding:9px 11px;min-height:40px;font-size:12px;border-radius:12px}
 .btn.orderAdd{background:#fff;border:1px solid var(--line);color:#111827;box-shadow:0 3px 10px rgba(15,23,42,.04)}
@@ -341,6 +342,7 @@ window.addEventListener('error',e=>{
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Ordini</div><button class="btn" type="button" data-action="newOrd">+ Nuovo</button></div>
       <div class="searchWrap"><input id="qOrd" placeholder="Cerca per cliente, stato, id..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qOrdSuggest" class="searchSuggest"></div></div>
+      <div id="ordBrowseHint" class="small" style="margin-top:8px;display:none"></div>
     </div>
     <div style="height:10px"></div>
     <div id="listOrd" class="list"></div>
@@ -526,7 +528,7 @@ window.addEventListener('error',e=>{
   <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
-    <button class="btn smallish" type="button" data-action="shareArtPhotos">Condividi foto</button>
+    <button class="btn success smallish" type="button" data-action="shareArtPhotos">Condividi foto</button>
     <button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button>
     <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
@@ -617,7 +619,6 @@ window.addEventListener('error',e=>{
       <div><div class="k">Promo attiva</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Attiva</label></div>
       <div><div class="k">Scadenza promo</div><input id="a_promo_date" type="date" autocomplete="off"/></div>
     </div>
-    <div style="margin-top:10px"><div class="k">Prezzo promo</div><input id="a_promo_price" inputmode="decimal" autocomplete="off"/></div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k">Costo USD promo</div><input id="a_promo_usd" inputmode="decimal" autocomplete="off"/></div>
       <div><div class="k">Costo EUR promo (auto)</div><input id="a_promo_eur" readonly/></div>
@@ -706,7 +707,7 @@ window.addEventListener('error',e=>{
   <div style="margin-top:10px"><div class="k">Tracking</div><div id="vOrdTrack" class="mutedBox">-</div></div>
   <div class="actions compact bottomMini" style="margin-top:8px">
     <button class="btn smallish" type="button" data-action="track17View">Traccia spedizione</button>
-    <button class="btn smallish" type="button" data-action="openParcelView">Apri Parcel</button>
+    <button class="btn primary smallish" type="button" data-action="openParcelView">Apri Parcel</button>
   </div>
   <div class="hr"></div>
   <div class="h2">Righe ordine</div>
@@ -783,7 +784,7 @@ window.addEventListener('error',e=>{
   <div class="orderSection">
     <div class="h3">Foto ordine</div>
     <div><div class="k">Aggiungi foto</div><input id="o_photo" type="file" accept="image/*"/><div class="small" style="margin-top:6px">Per ogni articolo viene copiata una sola foto, cercando quella del colore scelto. Se serve, puoi aggiungerne una manuale.</div><div id="o_photo_prev" class="orderPhotoGrid"></div></div>
-    <div class="orderTrackCard"><div class="k">Tracking</div><input id="o_tracking" placeholder="Inserisci tracking" autocomplete="off" autocapitalize="off" spellcheck="false"/><div class="orderTrackActions"><button class="btn smallish" type="button" data-action="track17">Traccia spedizione</button><button class="btn smallish" type="button" data-action="openParcel">Apri Parcel</button></div></div>
+    <div class="orderTrackCard"><div class="k">Tracking</div><input id="o_tracking" placeholder="Inserisci tracking" autocomplete="off" autocapitalize="off" spellcheck="false"/><div class="orderTrackActions"><button class="btn smallish" type="button" data-action="track17">Traccia spedizione</button><button class="btn primary smallish" type="button" data-action="openParcel">Apri Parcel</button></div></div>
   </div>
 
   <div class="actions bottomMini">
@@ -1749,7 +1750,6 @@ function collectArticleDraft(){
       costoUsd:document.getElementById('a_usd')?.value||'',
       promoCostoUsd:document.getElementById('a_promo_usd')?.value||'',
       promoAttiva:!!document.getElementById('a_promo_on')?.checked,
-      prezzoPromo:document.getElementById('a_promo_price')?.value||'',
       scadenzaPromo:document.getElementById('a_promo_date')?.value||'',
       note:document.getElementById('a_note')?.value||''
     }
@@ -1786,7 +1786,6 @@ function restoreArticleDraft(targetId=''){
   document.getElementById('a_usd').value=v.costoUsd||'';
   document.getElementById('a_promo_usd').value=v.promoCostoUsd||'';
   document.getElementById('a_promo_on').checked=!!v.promoAttiva;
-  document.getElementById('a_promo_price').value=v.prezzoPromo||'';
   document.getElementById('a_promo_date').value=v.scadenzaPromo||'';
   document.getElementById('a_note').value=v.note||'';
   renderArtAutoFields();
@@ -2982,7 +2981,7 @@ function formatPromoDateLabel(v=''){
   return `${dd}/${mm}/${yyyy}`;
 }
 function promoHasHistory(a){
-  return !!(a && (a.promoAttiva || Number(a.prezzoPromo||0)>0 || getPromoStartDate(a)));
+  return !!(a && (a.promoAttiva || Number(promoSupplierCostUsd(a)||0)>0 || Number(a.prezzoPromo||0)>0 || String(a.scadenzaPromo||'').trim().length>=8 || getPromoStartDate(a)));
 }
 function promoExpiredDisplay(a, today=todayStr()){
   const d=String(a?.scadenzaPromo||'').trim();
@@ -3012,18 +3011,29 @@ function promoInfoHtml(a,{marginTop='6px'}={}){
   return '';
 }
 function promoValid(a){
-  if(!a.promoAttiva) return false;
-  const p=Number(a.prezzoPromo||0);
-  const d=String(a.scadenzaPromo||'').trim(); // yyyy-mm-dd
-  if(!(p>0) || d.length<8) return false;
+  if(!a?.promoAttiva) return false;
+  const d=String(a?.scadenzaPromo||'').trim();
+  if(d.length<8) return false;
+  const promoUsd=Number(promoSupplierCostUsd(a)||0);
+  const legacyPromoPrice=Number(a?.prezzoPromo||0);
+  if(!(promoUsd>0) && !(legacyPromoPrice>0)) return false;
   const today=todayStr();
   return d>=today;
 }
 function currentPrice(a){
-  return promoValid(a) ? Number(a.prezzoPromo) : Number(a.prezzoVendita||0);
+  if(promoValid(a)){
+    const promoUsd=Number(promoSupplierCostUsd(a)||0);
+    if(promoUsd>0){
+      const promoSell=Number(calcFromUsd(promoUsd, qualityFromCode(a?.codice||'')).sell||0);
+      if(promoSell>0) return promoSell;
+    }
+    const legacyPromoPrice=Number(a?.prezzoPromo||0);
+    if(legacyPromoPrice>0) return legacyPromoPrice;
+  }
+  return Number(a?.prezzoVendita||0);
 }
 function resolvePromoStartDate(prevArticle, nextPromo){
-  const nextActive=!!nextPromo?.promoAttiva && Number(nextPromo?.prezzoPromo||0)>0 && String(nextPromo?.scadenzaPromo||'').trim().length>=8;
+  const nextActive=!!nextPromo?.promoAttiva && (Number(nextPromo?.promoCostoUsd||0)>0 || Number(nextPromo?.prezzoPromo||0)>0) && String(nextPromo?.scadenzaPromo||'').trim().length>=8;
   const prevStart=getPromoStartDate(prevArticle);
   if(!nextActive) return prevStart || '';
   if(prevArticle && promoValid(prevArticle) && prevStart) return prevStart;
@@ -4692,6 +4702,7 @@ function renderHome(){
       : {label:'Ultimo ordine: nessuno', sub:"Apri l'elenco ordini", go:'ordini'},
     {label:`Promozioni: ${promoItems.length}${exp?` attive • ${[exp.brand,exp.modello].filter(Boolean).join(' ')}`:' attive'}`, sub:'Apri solo gli articoli in promozione', action:'openPromoArticles'},
     {label:`Tutti gli articoli: ${(db.articoli||[]).length}`, sub:"Apri tutto l'archivio articoli", action:'openAllArticles'},
+    {label:`Ordini in corso: ${inCorso}`, sub:'Mostra solo gli ordini non ancora consegnati', action:'openOngoingOrders'},
     {label:`Ordini aperti: ${inCorso} • Incassato mese ${money(incMese)}`, sub:'Apri ordini e incassi del mese', go:'ordini'}
   ];
 
@@ -5387,14 +5398,32 @@ function renderCli(){
   `).join('') || `<div class="card"><div class="small">Nessun cliente</div></div>`;
 }
 
+let orderBrowseMode='all';
+function setOrderBrowseMode(mode='all'){
+  orderBrowseMode=(mode==='ongoing') ? 'ongoing' : 'all';
+}
+function renderOrderBrowseHint(){
+  const box=document.getElementById('ordBrowseHint');
+  if(!box) return;
+  if(orderBrowseMode==='ongoing'){
+    box.style.display='block';
+    box.innerHTML='Stai vedendo solo gli <b>ordini in corso</b>, cioè quelli non ancora consegnati.';
+    return;
+  }
+  box.style.display='none';
+  box.textContent='';
+}
 function renderOrd(){
   const db=loadDB();
   const q=document.getElementById('qOrd').value.trim().toLowerCase();
   const items=db.ordini.filter(o=>{
+    const stato=String(o?.stato||'').trim().toLowerCase();
+    if(orderBrowseMode==='ongoing' && (stato==='consegnato' || stato==='annullato')) return false;
     const c=db.clienti.find(x=>x.id===o.clienteId);
     const hay=((o.id||'')+' '+(o.stato||'')+' '+(c?c.nome:'')).toLowerCase();
     return !q || hay.includes(q);
   }).sort((a,b)=>String(b._ts||0).localeCompare(String(a._ts||0)));
+  renderOrderBrowseHint();
   const el=document.getElementById('listOrd');
   el.innerHTML=items.map(o=>{
     const c=db.clienti.find(x=>x.id===o.clienteId);
@@ -5414,7 +5443,7 @@ function renderOrd(){
       </div>
       <div class="pill">${esc(o.stato||'-')}</div>
     </div>`;
-  }).join('') || `<div class="card"><div class="small">Nessun ordine</div></div>`;
+  }).join('') || `<div class="card"><div class="small">${orderBrowseMode==='ongoing' ? 'Nessun ordine in corso' : 'Nessun ordine'}</div></div>`;
 }
 
 function renderBarChart(rows, moneyValues=true){
@@ -5692,7 +5721,7 @@ async function openArtEdit(id){
   const set=(k,v)=>document.getElementById(k).value=(v===0?0:(v||''));
 
   if(!a){
-    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_usd','a_promo_usd','a_promo_eur','a_promo_price','a_promo_date','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
+    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_usd','a_promo_usd','a_promo_eur','a_promo_date','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
     .forEach(fid => document.getElementById(fid).value='');
     document.getElementById('a_color_mode').value='single';
     document.getElementById('a_color_count').value='';
@@ -5718,7 +5747,7 @@ async function openArtEdit(id){
   set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
   set('a_mis', a?.misura); set('a_usd', a?.costoUsd||''); set('a_promo_usd', a?.promoCostoUsd||'');
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
-  set('a_promo_date', a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||'');
+  set('a_promo_date', a?.scadenzaPromo);
   document.getElementById('a_note').value=a?.note||'';
   document.getElementById('a_post').value=a?.post||'';
   fitTextarea(document.getElementById('a_post'));
@@ -5920,7 +5949,7 @@ function renderArtAutoFields(){
       brand:getArticleBrandValue(),
       modello:document.getElementById('a_mod').value.trim(),
       promoAttiva:document.getElementById('a_promo_on').checked,
-      prezzoPromo:Number(document.getElementById('a_promo_price').value||0),
+      prezzoPromo:(Number(document.getElementById('a_promo_usd').value||0)>0 ? Number(calcFromUsd(Number(document.getElementById('a_promo_usd').value||0), qual).sell||0) : 0),
       scadenzaPromo:document.getElementById('a_promo_date').value.trim(),
       promoCostoUsd:Number(document.getElementById('a_promo_usd').value||0),
       prezzoVendita:0,
@@ -5948,7 +5977,7 @@ function renderArtAutoFields(){
   document.getElementById('a_sell').value = isFinite(r.sell)?String(r.sell):'';
   document.getElementById('a_promo_eur').value = (promoCostCalc && isFinite(promoCostCalc.costo) && promoCostCalc.costo) ? money(promoCostCalc.costo) : '';
   const promoOn=document.getElementById('a_promo_on').checked;
-  const promoPrice=Number(document.getElementById('a_promo_price').value||0);
+  const promoPrice=(promoCostCalc && isFinite(promoCostCalc.sell) && promoCostCalc.sell>0) ? Number(promoCostCalc.sell) : 0;
   const promoDate=document.getElementById('a_promo_date').value.trim();
   const a={codice:code, costoUsd:usd, promoCostoUsd:promoUsd, prezzoVendita:r.sell, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate};
   const finalPrice = r.sell ? round5(currentPrice(a)) : 0;
@@ -6070,7 +6099,6 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_promo_usd').value=clone.promoCostoUsd||'';
   document.getElementById('a_promo_on').checked=!!clone.promoAttiva;
   document.getElementById('a_promo_date').value=clone.scadenzaPromo||'';
-  document.getElementById('a_promo_price').value=clone.prezzoPromo||'';
   document.getElementById('a_note').value=clone.note||'';
   document.getElementById('a_post').value=clone.post||'';
   fitTextarea(document.getElementById('a_post'));
@@ -6120,6 +6148,10 @@ async function saveArt(){
     const qual=qualityFromCode(code);
     const usd=Number(document.getElementById('a_usd').value||0);
     const promoUsd=Number(document.getElementById('a_promo_usd').value||0);
+    const promoOn=!!document.getElementById('a_promo_on').checked;
+    const promoDateValue=document.getElementById('a_promo_date').value.trim();
+    if(promoOn && !promoDateValue){ toast('Se la promo è attiva devi inserire la scadenza promo'); document.getElementById('a_promo_date')?.focus(); return; }
+    if(promoOn && !(promoUsd>0)){ toast('Se la promo è attiva devi inserire il costo USD promo'); document.getElementById('a_promo_usd')?.focus(); return; }
     const r=calcFromUsd(usd, qual);
     const promoR=(promoUsd>0) ? calcFromUsd(promoUsd, qual) : {costo:0,sell:0,marg:0};
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
@@ -6151,13 +6183,14 @@ async function saveArt(){
       promoCostoUsd: promoUsd,
       promoCostoEur: promoR.costo,
       prezzoVendita: r.sell,
-      promoAttiva: document.getElementById('a_promo_on').checked,
-      prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
-      scadenzaPromo: document.getElementById('a_promo_date').value.trim(),
+      promoAttiva: promoOn,
+      prezzoPromo: promoR.sell,
+      scadenzaPromo: promoDateValue,
       dataInizioPromo: resolvePromoStartDate(old, {
-        promoAttiva: document.getElementById('a_promo_on').checked,
-        prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
-        scadenzaPromo: document.getElementById('a_promo_date').value.trim()
+        promoAttiva: promoOn,
+        promoCostoUsd: promoUsd,
+        prezzoPromo: promoR.sell,
+        scadenzaPromo: promoDateValue
       }),
       post: document.getElementById('a_post').value,
       note: document.getElementById('a_note').value,
@@ -7165,7 +7198,7 @@ document.addEventListener('keydown',(ev)=>{
 document.addEventListener('click',(ev)=>{
   const el=ev.target.closest('[data-action],[data-go],[data-open]');
   if(!el) return;
-  if(el.dataset.go){ ev.preventDefault(); go(el.dataset.go); return; }
+  if(el.dataset.go){ ev.preventDefault(); if(el.dataset.go==='ordini') setOrderBrowseMode('all'); go(el.dataset.go); return; }
   if(el.dataset.open){
     const id=el.dataset.id;
     if(el.dataset.open==='art') openArtView(id);
@@ -7175,6 +7208,11 @@ document.addEventListener('click',(ev)=>{
   }
   const a=el.dataset.action;
   if(a==='newArt') return openArtEdit(null);
+  if(a==='openOngoingOrders'){
+    setOrderBrowseMode('ongoing');
+    go('ordini');
+    return renderOrd();
+  }
   if(a==='openPromoArticles'){
     const qArt=document.getElementById('qArt');
     const qArtCat=document.getElementById('qArtCat');
@@ -7188,7 +7226,7 @@ document.addEventListener('click',(ev)=>{
     go('articoli');
     return renderArt();
   }
-  if(a==='openDashboardMood'){ go('ordini'); return; }
+  if(a==='openDashboardMood'){ setOrderBrowseMode('all'); go('ordini'); return; }
   if(a==='openSuggestedArticle'){ const id=String(el.dataset.id||'').trim(); if(id){ go('articoli'); setArtBrowse('tutti'); renderArt(); return openArtView(id); } go('articoli'); setArtBrowse('tutti'); return renderArt(); }
   if(a==='openAllArticles'){
     const qArt=document.getElementById('qArt');
@@ -7346,7 +7384,7 @@ bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_usd','a_promo_on','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
   ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));
@@ -7399,7 +7437,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-01-v40-post-promo-fixes';
+const VG_BUILD='2026-04-01-v41-promo-required-orders-ui';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -7899,7 +7937,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=v40-post-promo-fixes', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=v41-promo-required-orders-ui', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

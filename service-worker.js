@@ -1,4 +1,4 @@
-const VERSION = 'v40_post_promo_fixes';
+const VERSION = 'v41_promo_required_orders_ui';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
