@@ -1,4 +1,4 @@
-const VERSION = 'v38_promo_cost_search_reset';
+const VERSION = 'v40_post_promo_fixes';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

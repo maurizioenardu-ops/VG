@@ -2685,11 +2685,15 @@ function pickFacebookDetailLines(a){
   if(descrizione && descrizione.length<=52) detailCandidates.push(`✔️ ${descrizione}`);
   return uniquePostLines(detailCandidates).slice(0,3);
 }
-function promoPostIntroLines(a){
-  if(!a?.promoAttiva) return [];
+function promoPostIntroLines(a, mode='fb'){
+  if(!promoValid(a)) return [];
   const lines=['⭕️ PROMOZIONE ⭕️'];
   const start=getPromoStartDate(a);
   const end=String(a?.scadenzaPromo||'').trim();
+  if(mode==='fb'){
+    if(end) lines.push(`(fino al ${formatPromoDateLabel(end)})`);
+    return lines;
+  }
   if(start && end) lines.push(`(dal ${formatPromoDateLabel(start)} al ${formatPromoDateLabel(end)})`);
   else if(end) lines.push(`(fino al ${formatPromoDateLabel(end)})`);
   return lines;
@@ -3113,7 +3117,7 @@ function buildPostFacebook(a){
     'Per tutte le info, scrivimi in privato',
     'Contattami per info su colori e disponibilità'
   ]) || 'Per info scrivimi in privato 📩';
-  const lines=[...promoPostIntroLines(a)];
+  const lines=[...promoPostIntroLines(a,'fb')];
   if(lines.length) lines.push('');
   if(modelLine) lines.push(smartSentenceCase(modelLine));
   if(premiumLine) lines.push(premiumLine);
@@ -3171,7 +3175,7 @@ function buildPostTelegram(a){
   const materialeCompat=normalizePostLine(a.materiale||a.taglia||'', brand);
   const qemoji=emojiQualityForPost(a);
   const lines=[];
-  if(a.promoAttiva){
+  if(promoValid(a)){
     const promoStart=getPromoStartDate(a);
     const scadenzaRaw=String(a.scadenzaPromo||'').trim();
     const tipoMateriale=materiale || materialeCompat || variante;
@@ -3182,7 +3186,7 @@ function buildPostTelegram(a){
     if(tipoMateriale) lines.push(tipoMateriale);
     if(colore) lines.push(colore);
     if(misura) lines.push(formatPostMisura(misura));
-    const prezzoVenditaPromo=formatPostPrezzoVendita(a.prezzoVendita);
+    const prezzoVenditaPromo=formatPostPrezzoVendita(currentPrice(a));
     if(prezzoVenditaPromo) lines.push(prezzoVenditaPromo);
     lines.push(`cod. ${a.codice}`);
     return uniquePostLines(lines).join('\n');
@@ -6525,7 +6529,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-01-v39-photo-gallery-picker';
+const VG_BUILD='2026-04-01-v40-post-promo-fixes';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
