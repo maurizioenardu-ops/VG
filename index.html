@@ -2257,22 +2257,26 @@ async function warmCurrentArticlePhotoShare(ctx=null, opts={}){
 function canNativeShareFiles(files){
   const list=Array.isArray(files) ? files.filter(Boolean) : [];
   try{
-    if(typeof navigator==='undefined' || typeof navigator.share!=='function' || !list.length) return false;
-    if(typeof navigator.canShare==='function'){
-      try{
-        if(navigator.canShare({ files:list })) return true;
-        const onlyImages=list.every(f=>String(f?.type||'').toLowerCase().startsWith('image/'));
-        if(onlyImages || list.length===1) return true;
-        return false;
-      }catch(_e){
-        const onlyImages=list.every(f=>String(f?.type||'').toLowerCase().startsWith('image/'));
-        return !!onlyImages || list.length===1;
-      }
-    }
-    return true;
+    return typeof navigator!=='undefined' && typeof navigator.share==='function' && list.length>0;
   }catch(_e){
     return false;
   }
+}
+function normalizePreparedPhotoFiles(list=[], limit=Infinity){
+  const out=[];
+  const seen=new Set();
+  for(const item of (Array.isArray(list) ? list : [])){
+    if(!(item instanceof Blob)) continue;
+    const name=(item instanceof File && item.name) ? String(item.name).trim() : '';
+    const type=String(item.type||'').trim().toLowerCase();
+    const size=Number(item.size||0);
+    const key=`${name}::${type}::${size}`;
+    if(seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+    if(out.length>=limit) break;
+  }
+  return out;
 }
 function isShareAbortError(err){
   return !!(err && err.name==='AbortError');
@@ -2400,7 +2404,7 @@ async function shareCurrentArticlePhotos(){
     return;
   }
 
-  const files=dedupePhotoSources(cachedFiles);
+  const files=normalizePreparedPhotoFiles(cachedFiles);
   if(!files.length){
     toast('Nessuna foto condivisibile');
     return;
@@ -2552,7 +2556,7 @@ async function downloadCurrentArticlePhotos(){
   if(!ctx) return;
 
   const preparedFiles=await ensureCurrentArticlePhotoFiles(ctx);
-  const files=dedupePhotoSources(preparedFiles);
+  const files=normalizePreparedPhotoFiles(preparedFiles);
   if(!files.length){
     toast('Download foto fallito');
     return;
@@ -7239,7 +7243,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-01-share-v34-dedupe-zip-fallback';
+const VG_BUILD='2026-04-01-share-v36-file-fix';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -7739,7 +7743,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v28-dashboard-clicks', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v36-file-fix', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

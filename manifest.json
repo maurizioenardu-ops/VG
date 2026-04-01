@@ -1,8 +1,8 @@
 {
-  "id": "./?v=v12_3_essential_share",
+  "id": "./?v=v36_share_file_fix",
   "name": "Vanity & Glamour",
   "short_name": "V&G",
-  "start_url": "./?v=v12_3_essential_share",
+  "start_url": "./?v=v36_share_file_fix",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0f172a",
