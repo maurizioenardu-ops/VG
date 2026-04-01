@@ -21,6 +21,12 @@ body{-webkit-tap-highlight-color:transparent}
 .cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}.cards.dashMain{grid-template-columns:1fr 1fr}.cards.dashMain .stat{min-height:96px}
 .stat,.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;box-shadow:0 10px 24px rgba(15,23,42,.05)}
 .stat{cursor:pointer}
+.stat.riskGreen{border-color:#86efac;background:#f0fdf4;box-shadow:0 10px 24px rgba(34,197,94,.10)}
+.stat.riskOrange{border-color:#fdba74;background:#fff7ed;box-shadow:0 10px 24px rgba(249,115,22,.10)}
+.stat.riskRed{border-color:#fca5a5;background:#fff1f2;box-shadow:0 10px 24px rgba(239,68,68,.12)}
+.stat.riskGreen .v,.stat.riskGreen .sub{color:#166534}
+.stat.riskOrange .v,.stat.riskOrange .sub{color:#c2410c}
+.stat.riskRed .v,.stat.riskRed .sub{color:#b91c1c}
 .k{font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:900}
 .v{font-size:22px;font-weight:900;margin-top:4px}
 #c_profit_month{color:#16a34a}
@@ -258,6 +264,7 @@ window.addEventListener('error',e=>{
       <div class="stat" data-go="finanze"><div class="k">Guadagno mese</div><div id="c_profit_month" class="v big">0</div><div class="sub">margine del mese corrente</div></div>
       <div class="stat" data-go="ordini"><div class="k">Media ordini</div><div id="c_avg_order" class="v big">0</div><div class="sub">valore medio per ordine</div></div>
       <div class="stat" data-go="finanze"><div class="k">Guadagno totale</div><div id="c_profit_total" class="v big">0</div><div class="sub">margine complessivo</div></div>
+      <div id="personalPromoStat" class="stat riskGreen" data-action="openPersonalPromoArticles"><div class="k">Sconti personali</div><div id="c_personal_promo_count" class="v big">0</div><div id="c_personal_promo_sub" class="sub">nessuno attivo</div></div>
     </div>
 
     <div class="card" style="margin-top:12px">
@@ -625,7 +632,7 @@ window.addEventListener('error',e=>{
       <div><div class="k">Costo EUR promo (auto)</div><input id="a_promo_eur" readonly/></div>
     </div>
     <div class="grid2" style="margin-top:10px">
-      <div><div class="k">Promo personale</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_personal_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Attiva</label><div class="miniNote">Sconto tuo, costo fornitore normale</div></div>
+      <div><div class="k">Promo personale</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_personal_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Attiva</label><div class="miniNote">Sconto tuo, costo fornitore normale. Può stare insieme alla promo fornitore.</div></div>
       <div><div class="k">Prezzo promo personale</div><input id="a_personal_promo_price" inputmode="decimal" autocomplete="off" placeholder="Es. 199"/></div>
     </div>
   </div>
@@ -3026,12 +3033,20 @@ function promoPeriodLabel(a){
   if(start) return `Promo dal ${formatPromoDateLabel(start)}`;
   return '';
 }
+function promoLabelMode(a,{history=false}={}){
+  const supplier=history ? (!!a?.promoAttiva || Number(promoSupplierCostUsd(a)||0)>0 || Number(a?.prezzoPromo||0)>0) : supplierPromoValid(a);
+  const personal=history ? (!!a?.promoPersonaleAttiva || Number(personalPromoPrice(a)||0)>0) : personalPromoValid(a);
+  if(supplier && personal) return 'PROMO fornitore + personale';
+  if(personal) return 'PROMO personale';
+  if(supplier) return 'PROMO fornitore';
+  return 'PROMO';
+}
 function promoInfoHtml(a,{marginTop='6px'}={}){
   const style=marginTop ? ` style="margin-top:${marginTop}"` : '';
   const note=promoPeriodLabel(a);
-  const currentLabel=personalPromoValid(a) ? 'PROMO personale' : 'PROMO attiva';
-  const expiredLabel=(a?.promoPersonaleAttiva || Number(personalPromoPrice(a)||0)>0) ? 'PROMO personale scaduta' : 'PROMO scaduta';
-  const pendingLabel=(a?.promoPersonaleAttiva || Number(personalPromoPrice(a)||0)>0) ? 'PROMO personale impostata' : 'PROMO impostata';
+  const currentLabel=promoLabelMode(a);
+  const expiredLabel=`${promoLabelMode(a,{history:true})} scaduta`;
+  const pendingLabel=`${promoLabelMode(a,{history:true})} impostata`;
   if(promoValid(a)){
     return `<div class="pill promo"${style}><span class="dot"></span>${esc(currentLabel)}</div>${note?`<div class="promoNote">${esc(note)}</div>`:''}`;
   }
@@ -3062,6 +3077,38 @@ function currentPrice(a){
     if(legacyPromoPrice>0) return legacyPromoPrice;
   }
   return Number(a?.prezzoVendita||0);
+}
+
+function personalPromoImpactMetrics(items=[]){
+  const active=(items||[]).filter(a=>personalPromoValid(a));
+  let totalReduction=0;
+  let totalNormalMargin=0;
+  let totalPromoMargin=0;
+  for(const a of active){
+    const normalPrice=Number(a?.prezzoVendita||0);
+    const promoPrice=Number(currentPrice(a)||0);
+    const cost=Number(effectiveSupplierCostEur(a)||0);
+    const normalMargin=Math.max(0, normalPrice-cost);
+    const promoMargin=Math.max(0, promoPrice-cost);
+    totalNormalMargin+=normalMargin;
+    totalPromoMargin+=promoMargin;
+    totalReduction+=Math.max(0, normalMargin-promoMargin);
+  }
+  const erosionPct=totalNormalMargin>0 ? Math.round((totalReduction/totalNormalMargin)*100) : 0;
+  let tone='green';
+  let label='Controllata';
+  if(totalReduction>0 && erosionPct>45){ tone='red'; label='Alta'; }
+  else if(totalReduction>0 && erosionPct>20){ tone='orange'; label='Da guardare'; }
+  return {
+    count:active.length,
+    totalReduction,
+    totalNormalMargin,
+    totalPromoMargin,
+    erosionPct,
+    tone,
+    label,
+    sub: active.length ? `Margine ridotto ${money(totalReduction)} • ${erosionPct}%` : 'nessuno attivo'
+  };
 }
 function resolvePromoStartDate(prevArticle, nextPromo){
   const nextActive=(!!nextPromo?.promoAttiva && (Number(nextPromo?.promoCostoUsd||0)>0 || Number(nextPromo?.prezzoPromo||0)>0) && String(nextPromo?.scadenzaPromo||'').trim().length>=8) || (!!nextPromo?.promoPersonaleAttiva && Number(nextPromo?.prezzoPromoPersonale||0)>0 && String(nextPromo?.scadenzaPromo||'').trim().length>=8);
@@ -4703,6 +4750,14 @@ function renderHome(){
   document.getElementById('c_profit_total').textContent=money(guadagnoTot);
   document.getElementById('c_inc_month').textContent=money(incMese);
   document.getElementById('c_due_total').textContent=money(daIncassare);
+  const personalImpact=personalPromoImpactMetrics(db.articoli||[]);
+  document.getElementById('c_personal_promo_count').textContent=String(personalImpact.count||0);
+  document.getElementById('c_personal_promo_sub').textContent=personalImpact.sub;
+  const personalStat=document.getElementById('personalPromoStat');
+  if(personalStat){
+    personalStat.classList.remove('riskGreen','riskOrange','riskRed');
+    personalStat.classList.add(personalImpact.tone==='red' ? 'riskRed' : (personalImpact.tone==='orange' ? 'riskOrange' : 'riskGreen'));
+  }
 
   const months=[];
   for(let i=5;i>=0;i--){
@@ -4734,6 +4789,7 @@ function renderHome(){
       ? {label:`Ultimo ordine: ${last.stato} • ${last.data||''}`, sub:"Apre direttamente l'ultimo ordine salvato", open:'ord', id:last.id||''}
       : {label:'Ultimo ordine: nessuno', sub:"Apri l'elenco ordini", go:'ordini'},
     {label:`Promozioni: ${promoItems.length}${exp?` attive • ${[exp.brand,exp.modello].filter(Boolean).join(' ')}`:' attive'}`, sub:'Apri solo gli articoli in promozione', action:'openPromoArticles'},
+    {label:`Sconti personali: ${personalImpact.count} attivi`, sub: personalImpact.count ? `${personalImpact.label} • margine ridotto ${money(personalImpact.totalReduction)}` : 'Apri gli articoli con promo personale attiva', action:'openPersonalPromoArticles'},
     {label:`Tutti gli articoli: ${(db.articoli||[]).length}`, sub:"Apri tutto l'archivio articoli", action:'openAllArticles'},
     {label:`Ordini in corso: ${inCorso}`, sub:'Mostra solo gli ordini non ancora consegnati', action:'openOngoingOrders'},
     {label:`Ordini aperti: ${inCorso} • Incassato mese ${money(incMese)}`, sub:'Apri ordini e incassi del mese', go:'ordini'}
@@ -5305,6 +5361,11 @@ function renderArtBreadcrumbs(){
     box.style.display='flex';
     return;
   }
+  if(artBrowseState.level==='personalPromo'){
+    box.innerHTML=`<span class="artCrumb active">Sconti personali attivi</span><button class="artCrumb" type="button" data-action="openAllArticles">Tutti gli articoli</button>`;
+    box.style.display='flex';
+    return;
+  }
   box.innerHTML='';
   box.style.display='none';
 }
@@ -5372,6 +5433,7 @@ function renderArt(){
   const brandFilter=String(document.getElementById('qArtBrand')?.value||'').trim();
   const qualityFilter=String(document.getElementById('qArtQuality')?.value||'').trim();
   const promoOnly=artBrowseState.level==='promo';
+  const personalPromoOnly=artBrowseState.level==='personalPromo';
   const items=db.articoli.filter(a=>{
     const hay=articleSearchHay(a);
     const okText=!q || hay.includes(q);
@@ -5379,11 +5441,12 @@ function renderArt(){
     const okBrand=!brandFilter || displayBrandValue(a.brand)===displayBrandValue(brandFilter);
     const okQuality=!qualityFilter || articleQualityLabel(a)===qualityFilter;
     const okPromo=!promoOnly || promoValid(a);
-    return okText && okCat && okBrand && okQuality && okPromo;
+    const okPersonal=!personalPromoOnly || personalPromoValid(a);
+    return okText && okCat && okBrand && okQuality && okPromo && okPersonal;
   }).sort((a,b)=>Number(b._ts||0)-Number(a._ts||0));
   const el=document.getElementById('listArt');
   renderArtBreadcrumbs();
-  const showOverview=!promoOnly && !q && !catFilter && !brandFilter && !qualityFilter;
+  const showOverview=!promoOnly && !personalPromoOnly && !q && !catFilter && !brandFilter && !qualityFilter;
   if(showOverview){
     renderCategoryOverview(items,{promoOnly,brandFilter,qualityFilter});
     return;
@@ -5392,10 +5455,10 @@ function renderArt(){
     const promo=pseudoPromoBadge(a);
     const unavailable=articleAvailabilityBadge(a);
     const blocked=isArticleUnavailable(a);
-    const metaLine=promoOnly ? `${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}` : `${esc(a.codice||'Senza codice')} • ${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
+    const metaLine=(promoOnly || personalPromoOnly) ? `${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}` : `${esc(a.codice||'Senza codice')} • ${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
     return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${unavailable}${promo}</div><div class="artPrice">${money(currentPrice(a))}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
   }).join('');
-  const emptyText=promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.';
+  const emptyText=promoOnly ? 'Nessuna promozione attiva.' : (personalPromoOnly ? 'Nessuno sconto personale attivo.' : 'Nessun articolo trovato.');
   el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
   hydrateArticleThumbs(items);
 }
@@ -6195,7 +6258,6 @@ async function saveArt(){
     const personalPromoOn=!!document.getElementById('a_personal_promo_on').checked;
     const personalPromoPriceValue=Number(document.getElementById('a_personal_promo_price').value||0);
     const promoDateValue=document.getElementById('a_promo_date').value.trim();
-    if(promoOn && personalPromoOn){ toast('Scegli una sola promo: fornitore oppure personale'); document.getElementById('a_personal_promo_on')?.focus(); return; }
     if((promoOn || personalPromoOn) && !promoDateValue){ toast('Se la promo è attiva devi inserire la scadenza promo'); document.getElementById('a_promo_date')?.focus(); return; }
     if(promoOn && !(promoUsd>0)){ toast('Se la promo è attiva devi inserire il costo USD promo'); document.getElementById('a_promo_usd')?.focus(); return; }
     if(personalPromoOn && !(personalPromoPriceValue>0)){ toast('Se attivi la promo personale devi inserire il prezzo promo personale'); document.getElementById('a_personal_promo_price')?.focus(); return; }
@@ -7277,6 +7339,19 @@ document.addEventListener('click',(ev)=>{
     go('articoli');
     return renderArt();
   }
+  if(a==='openPersonalPromoArticles'){
+    const qArt=document.getElementById('qArt');
+    const qArtCat=document.getElementById('qArtCat');
+    const qArtBrand=document.getElementById('qArtBrand');
+    const qArtQuality=document.getElementById('qArtQuality');
+    if(qArt) qArt.value='';
+    if(qArtCat) qArtCat.value='';
+    if(qArtBrand) qArtBrand.value='';
+    if(qArtQuality) qArtQuality.value='';
+    setArtBrowse('personalPromo');
+    go('articoli');
+    return renderArt();
+  }
   if(a==='openDashboardMood'){ setOrderBrowseMode('all'); go('ordini'); return; }
   if(a==='openSuggestedArticle'){ const id=String(el.dataset.id||'').trim(); if(id){ go('articoli'); setArtBrowse('tutti'); renderArt(); return openArtView(id); } go('articoli'); setArtBrowse('tutti'); return renderArt(); }
   if(a==='openAllArticles'){
@@ -7301,7 +7376,7 @@ document.addEventListener('click',(ev)=>{
     if(qArtCat) qArtCat.value='';
     if(qArtBrand) qArtBrand.value='';
     if(qArtQuality) qArtQuality.value='';
-    setArtBrowse(artBrowseState.level==='promo'?'promo':'tutti');
+    setArtBrowse(artBrowseState.level==='promo' ? 'promo' : (artBrowseState.level==='personalPromo' ? 'personalPromo' : 'tutti'));
     return renderArt();
   }
   if(a==='selectArtCategory'){ const sel=document.getElementById('qArtCat'); if(sel) sel.value=String(el.dataset.name||''); setArtBrowse('tutti'); return renderArt(); }
@@ -7466,16 +7541,10 @@ document.getElementById('importFile').addEventListener('change',(e)=>{
 document.getElementById('a_brand')?.addEventListener('change', ()=>{ handleBrandSelectionChange(); saveArticleDraft(); });
 document.getElementById('a_cat')?.addEventListener('change', ()=>{ updateArticleMeasureState(); renderArtAutoFields(); saveArticleDraft(); });
 document.getElementById('a_promo_on')?.addEventListener('change', ()=>{
-  if(document.getElementById('a_promo_on')?.checked){
-    document.getElementById('a_personal_promo_on').checked=false;
-  }
   renderArtAutoFields();
   saveArticleDraft();
 });
 document.getElementById('a_personal_promo_on')?.addEventListener('change', ()=>{
-  if(document.getElementById('a_personal_promo_on')?.checked){
-    document.getElementById('a_promo_on').checked=false;
-  }
   renderArtAutoFields();
   saveArticleDraft();
 });
@@ -7503,7 +7572,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-01-v42-promo-personale-edit-yellow';
+const VG_BUILD='2026-04-01-v43-promo-dashboard-combo';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -8005,7 +8074,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=v42-promo-personale-edit-yellow', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=v43-promo-dashboard-combo', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
