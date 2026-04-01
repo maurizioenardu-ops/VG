@@ -1996,12 +1996,61 @@ async function listCloudFotoPathsByCode(codice){
   }
 }
 
+function canonicalPhotoSourceKey(src){
+  const raw=String(src||'').trim();
+  if(!raw) return '';
+  if(/^data:/i.test(raw)){
+    const comma=raw.indexOf(',');
+    const meta=comma>=0 ? raw.slice(0, comma) : raw;
+    const body=comma>=0 ? raw.slice(comma+1, comma+161) : raw.slice(0,160);
+    return `${meta}::${body}`;
+  }
+  if(/^blob:/i.test(raw)) return raw;
+  if(/^https?:\/\//i.test(raw)){
+    try{
+      const u=new URL(raw, location.href);
+      const path=decodeURIComponent((u.pathname||'').replace(/\+/g,'/'));
+      const bucketSeg=`/${SUPABASE_BUCKET}/`;
+      const bucketIdx=path.indexOf(bucketSeg);
+      if(bucketIdx>=0) return path.slice(bucketIdx+bucketSeg.length).replace(/^\/+/, '');
+      const m=path.match(new RegExp(`/storage/v1/object/(?:public|sign|authenticated)/${SUPABASE_BUCKET}/(.+)$`));
+      if(m && m[1]) return m[1].replace(/^\/+/, '');
+      return `${u.origin}${path}`;
+    }catch(_e){
+      return raw.replace(/[?#].*$/,'');
+    }
+  }
+  try{
+    return decodeURIComponent(raw.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), ''));
+  }catch(_e){
+    return raw.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
+  }
+}
+function dedupePhotoSources(list=[], limit=Infinity){
+  const out=[];
+  const seen=new Set();
+  for(const src of (Array.isArray(list) ? list : [])){
+    const clean=String(src||'').trim();
+    if(!clean) continue;
+    const key=canonicalPhotoSourceKey(clean) || clean;
+    if(seen.has(key)) continue;
+    seen.add(key);
+    out.push(clean);
+    if(out.length>=limit) break;
+  }
+  return out;
+}
+
 async function getArticlePics(a){
   if(!a) return [];
   const out=[];
+  const seen=new Set();
   const pushPic=(src)=>{
     const clean=String(src||'').trim();
-    if(!clean || out.includes(clean)) return;
+    if(!clean) return;
+    const key=canonicalPhotoSourceKey(clean) || clean;
+    if(seen.has(key)) return;
+    seen.add(key);
     out.push(clean);
   };
   if(Array.isArray(a.foto) && a.foto.length){
@@ -2025,12 +2074,15 @@ async function getArticlePics(a){
 async function getArticleCloudSyncSources(a){
   if(!a) return [];
   const out=[];
+  const seen=new Set();
   const pushRef=(src)=>{
     const clean=String(src||'').trim();
-    if(!clean || out.includes(clean)) return;
-    if(/^data:|^blob:/i.test(clean)) out.push(clean);
-    else if(/^https?:\/\//i.test(clean)) out.push(clean);
-    else out.push(clean.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), ''));
+    if(!clean) return;
+    const normalized=(/^data:|^blob:|^https?:\/\//i.test(clean)) ? clean : clean.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
+    const key=canonicalPhotoSourceKey(normalized) || normalized;
+    if(seen.has(key)) return;
+    seen.add(key);
+    out.push(normalized);
   };
 
   try{
@@ -2207,7 +2259,15 @@ function canNativeShareFiles(files){
   try{
     if(typeof navigator==='undefined' || typeof navigator.share!=='function' || !list.length) return false;
     if(typeof navigator.canShare==='function'){
-      try{ return !!navigator.canShare({ files:list }); }catch(_e){ return false; }
+      try{
+        if(navigator.canShare({ files:list })) return true;
+        const onlyImages=list.every(f=>String(f?.type||'').toLowerCase().startsWith('image/'));
+        if(onlyImages || list.length===1) return true;
+        return false;
+      }catch(_e){
+        const onlyImages=list.every(f=>String(f?.type||'').toLowerCase().startsWith('image/'));
+        return !!onlyImages || list.length===1;
+      }
     }
     return true;
   }catch(_e){
@@ -2229,7 +2289,11 @@ function isShareActivationError(err){
 async function tryNativeShareArticleFiles(files, baseName){
   const list=Array.isArray(files) ? files.filter(Boolean) : [];
   if(!canNativeShareFiles(list)) return false;
-  const payload={ files:[...list] };
+  const payload={
+    files:[...list],
+    title:`Foto ${baseName||'articolo'}`,
+    text:list.length===1 ? `Foto articolo ${baseName||'articolo'}` : `Foto articolo ${baseName||'articolo'} (${list.length})`
+  };
   try{
     await navigator.share(payload);
     return list.length===1 ? 'single' : 'multi';
@@ -2336,25 +2400,32 @@ async function shareCurrentArticlePhotos(){
     return;
   }
 
-  const files=cachedFiles;
+  const files=dedupePhotoSources(cachedFiles);
   if(!files.length){
     toast('Nessuna foto condivisibile');
     return;
   }
 
-  if(!canNativeShareFiles(files)){
-    toast(files.length>1
-      ? 'Questo browser non supporta la condivisione multipla di tutte le foto. Usa Scarica foto.'
-      : 'Questo browser non supporta la condivisione del file. Usa Scarica foto.');
-    return;
-  }
-
+  const cachedZip=getCachedArticlePhotoZipForCtx(ctx);
   try{
     const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
     if(shared){
       toast(files.length===1 ? 'Condivisione aperta.' : `Condivisione aperta per ${files.length} foto.`);
       return;
     }
+
+    if(cachedZip){
+      const zipShared = await tryNativeShareArticleFiles([cachedZip], `${ctx.baseName||'articolo'}_foto`);
+      if(zipShared){
+        toast(`Condivisione aperta con pacchetto ZIP di ${files.length} foto.`);
+        return;
+      }
+    }else if(files.length>1){
+      ensureCurrentArticlePhotoZip(ctx, files, { silent:true }).catch(err=>console.warn('Preparazione ZIP share fallita', err));
+      toast('Le foto sono pronte, sto chiudendo il pacchetto di condivisione. Premi Condividi tra un attimo.');
+      return;
+    }
+
     toast('Condivisione foto non riuscita. Usa Scarica foto.');
   }catch(err){
     if(isShareAbortError(err)) return;
@@ -2362,6 +2433,18 @@ async function shareCurrentArticlePhotos(){
     if(isShareActivationError(err)){
       toast('Le foto non erano ancora pronte al tocco. Premi di nuovo Condividi.');
       return;
+    }
+    if(cachedZip){
+      try{
+        const zipShared = await tryNativeShareArticleFiles([cachedZip], `${ctx.baseName||'articolo'}_foto`);
+        if(zipShared){
+          toast(`Condivisione aperta con pacchetto ZIP di ${files.length} foto.`);
+          return;
+        }
+      }catch(zipErr){
+        if(isShareAbortError(zipErr)) return;
+        console.warn('Fallback ZIP share foto articolo fallito', zipErr);
+      }
     }
     toast('Condivisione foto non riuscita. Usa Scarica foto.');
   }
@@ -2468,7 +2551,8 @@ async function downloadCurrentArticlePhotos(){
   const ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
 
-  const files=await ensureCurrentArticlePhotoFiles(ctx);
+  const preparedFiles=await ensureCurrentArticlePhotoFiles(ctx);
+  const files=dedupePhotoSources(preparedFiles);
   if(!files.length){
     toast('Download foto fallito');
     return;
@@ -2482,7 +2566,7 @@ async function downloadCurrentArticlePhotos(){
     }
 
     toast(`Preparo ZIP con ${files.length} foto...`);
-    const zipFile = await buildZipFromFiles(files, `${ctx.baseName || 'articolo'}_foto.zip`);
+    const zipFile = getCachedArticlePhotoZipForCtx(ctx) || await buildZipFromFiles(files, `${ctx.baseName || 'articolo'}_foto.zip`);
     triggerBlobDownload(zipFile, zipFile.name);
     toast(`Scaricate ${files.length} foto in un file ZIP. Lo trovi nei Download.`);
   }catch(err){
@@ -7155,7 +7239,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-03-31-essential-share-v31-cloud-merge-ts';
+const VG_BUILD='2026-04-01-share-v34-dedupe-zip-fallback';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
