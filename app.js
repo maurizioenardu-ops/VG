@@ -4904,6 +4904,32 @@ function renderCurrentArtPhotoPreview(){
   renderArtPhotoPrev(mergePreviewPics(currentArtExistingPics, currentArtPendingPreviewUrls));
   updateArtPhotoStatus();
 }
+function prepareArticlePhotoInput(){
+  const input=document.getElementById('a_photo');
+  if(!input) return null;
+  input.setAttribute('accept','image/*');
+  input.multiple=true;
+  try{ input.removeAttribute('capture'); }catch(_e){}
+  return input;
+}
+function openArticlePhotoPicker(){
+  const input=prepareArticlePhotoInput();
+  if(!input) return;
+  try{
+    if(typeof input.showPicker==='function'){
+      input.showPicker();
+      return;
+    }
+  }catch(err){
+    console.warn('showPicker foto articolo fallito, provo click()', err);
+  }
+  try{
+    input.click();
+  }catch(err){
+    console.warn('Apertura picker foto articolo fallita', err);
+    toast('Non sono riuscita ad aprire la galleria foto');
+  }
+}
 function updateArtPhotoStatus(){
   const box=document.getElementById('a_photo_status');
   if(!box) return;
@@ -6411,7 +6437,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='duplicateArt') return duplicateCurrentArticle(el.dataset.id || null);
   if(a==='editFromView'){ hide('mArtView', true); return openArtEdit(currentArtId); }
   if(a==='closeView') return hide('mArtView');
-  if(a==='pickMoreArtPhotos'){ document.getElementById('a_photo')?.click(); return; }
+  if(a==='pickMoreArtPhotos'){ openArticlePhotoPicker(); return; }
   if(a==='clearPendingArtPhotos'){ resetPendingArtPhotoFiles(); renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Nuove foto annullate'); return; }
   if(a==='closeEdit'){ saveArticleDraft(); return hide('mArtEdit'); }
   if(a==='clearArtPhotos'){ currentArtExistingPics=[]; currentArtPhotosCleared=true; document.getElementById('a_photo').value=''; renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Foto attuali rimosse'); return; }
@@ -6499,7 +6525,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-01-share-v35-fix-file-dedupe';
+const VG_BUILD='2026-04-01-v39-photo-gallery-picker';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;

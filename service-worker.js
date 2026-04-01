@@ -1,4 +1,4 @@
-const VERSION = 'v37_priority_sheet';
+const VERSION = 'v38_promo_cost_search_reset';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

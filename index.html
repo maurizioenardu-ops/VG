@@ -618,6 +618,10 @@ window.addEventListener('error',e=>{
       <div><div class="k">Scadenza promo</div><input id="a_promo_date" type="date" autocomplete="off"/></div>
     </div>
     <div style="margin-top:10px"><div class="k">Prezzo promo</div><input id="a_promo_price" inputmode="decimal" autocomplete="off"/></div>
+    <div class="grid2" style="margin-top:10px">
+      <div><div class="k">Costo USD promo</div><input id="a_promo_usd" inputmode="decimal" autocomplete="off"/></div>
+      <div><div class="k">Costo EUR promo (auto)</div><input id="a_promo_eur" readonly/></div>
+    </div>
   </div>
 
   <div class="formBlock postblk inputSoft">
@@ -628,7 +632,7 @@ window.addEventListener('error',e=>{
     <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Aggiungi foto</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 9 foto totali per articolo.</div></div>
+    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Apri galleria</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 9 foto totali per articolo.</div></div>
     <div id="a_photo_prev" class="thumbs"></div>
   </div>
 
@@ -918,6 +922,8 @@ function normalizeDBShape(o){
     ...deriveColorShape(x),
     costoUsd:firstFiniteNumber(x?.costoUsd, x?.costoUSD, x?.usd, 0),
     costoEur:firstFiniteNumber(x?.costoEur, x?.costoEUR, x?.prezzo_acquisto, x?.costo, x?.costo_eur, 0),
+    promoCostoUsd:firstFiniteNumber(x?.promoCostoUsd, x?.costoUsdPromo, x?.promoCostUsd, x?.promo_usd, 0),
+    promoCostoEur:firstFiniteNumber(x?.promoCostoEur, x?.costoEurPromo, x?.promoCostEur, x?.promo_costo_eur, 0),
     prezzoVendita:firstFiniteNumber(x?.prezzoVendita, x?.prezzo_vendita, x?.prezzo, x?.prezzo_vendita_iva, 0),
     promoAttiva:(typeof x?.promoAttiva==='boolean') ? x.promoAttiva : !!x?.promo_on,
     prezzoPromo:firstFiniteNumber(x?.prezzoPromo, x?.promoPrezzo, x?.promo_price, 0),
@@ -1547,6 +1553,8 @@ function mergeArticleRecords(prev,item){
   merged.categoria=normalizeSpaceText(merged?.categoria||'');
   merged.costoUsd=firstFiniteNumber(merged?.costoUsd, merged?.costoUSD, item?.costoUsd, item?.costoUSD, prev?.costoUsd, prev?.costoUSD, 0);
   merged.costoEur=firstFiniteNumber(merged?.costoEur, merged?.costoEUR, item?.costoEur, item?.costoEUR, item?.prezzo_acquisto, item?.costo, item?.costo_eur, prev?.costoEur, prev?.costoEUR, prev?.prezzo_acquisto, prev?.costo, prev?.costo_eur, 0);
+  merged.promoCostoUsd=firstFiniteNumber(merged?.promoCostoUsd, merged?.costoUsdPromo, item?.promoCostoUsd, item?.costoUsdPromo, prev?.promoCostoUsd, prev?.costoUsdPromo, 0);
+  merged.promoCostoEur=firstFiniteNumber(merged?.promoCostoEur, merged?.costoEurPromo, item?.promoCostoEur, item?.costoEurPromo, prev?.promoCostoEur, prev?.costoEurPromo, 0);
   merged.prezzoVendita=firstFiniteNumber(merged?.prezzoVendita, merged?.prezzo_vendita, item?.prezzoVendita, item?.prezzo_vendita, item?.prezzo, item?.prezzo_vendita_iva, prev?.prezzoVendita, prev?.prezzo_vendita, prev?.prezzo, prev?.prezzo_vendita_iva, 0);
   merged.promoAttiva=(typeof merged?.promoAttiva==='boolean') ? merged.promoAttiva : ((typeof item?.promoAttiva==='boolean') ? item.promoAttiva : ((typeof prev?.promoAttiva==='boolean') ? prev.promoAttiva : false));
   merged.prezzoPromo=firstFiniteNumber(merged?.prezzoPromo, merged?.promoPrezzo, item?.prezzoPromo, item?.promoPrezzo, prev?.prezzoPromo, prev?.promoPrezzo, 0);
@@ -1739,6 +1747,7 @@ function collectArticleDraft(){
       nonDisponibile:!!document.getElementById('a_unavailable')?.checked,
       misura:document.getElementById('a_mis')?.value||'',
       costoUsd:document.getElementById('a_usd')?.value||'',
+      promoCostoUsd:document.getElementById('a_promo_usd')?.value||'',
       promoAttiva:!!document.getElementById('a_promo_on')?.checked,
       prezzoPromo:document.getElementById('a_promo_price')?.value||'',
       scadenzaPromo:document.getElementById('a_promo_date')?.value||'',
@@ -1775,6 +1784,7 @@ function restoreArticleDraft(targetId=''){
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=v.misura||'';
   document.getElementById('a_usd').value=v.costoUsd||'';
+  document.getElementById('a_promo_usd').value=v.promoCostoUsd||'';
   document.getElementById('a_promo_on').checked=!!v.promoAttiva;
   document.getElementById('a_promo_price').value=v.prezzoPromo||'';
   document.getElementById('a_promo_date').value=v.scadenzaPromo||'';
@@ -2938,6 +2948,26 @@ function calcFromUsd(usd, qual){
     return {costo, sell, marg};
   }
 }
+function promoSupplierCostUsd(a){
+  return firstFiniteNumber(a?.promoCostoUsd, a?.costoUsdPromo, a?.promoCostUsd, a?.promo_usd, 0);
+}
+function effectiveSupplierCostUsd(a){
+  const promoUsd=promoSupplierCostUsd(a);
+  if(promoValid(a) && promoUsd>0) return promoUsd;
+  return firstFiniteNumber(a?.costoUsd, a?.costoUSD, a?.usd, 0);
+}
+function effectiveSupplierCostEur(a){
+  const qual=qualityFromCode(a?.codice||'');
+  const promoUsd=promoSupplierCostUsd(a);
+  if(promoValid(a) && promoUsd>0){
+    const promoCost=calcFromUsd(promoUsd, qual).costo;
+    if(isFinite(promoCost) && promoCost>0) return promoCost;
+    return firstFiniteNumber(a?.promoCostoEur, a?.costoEurPromo, 0);
+  }
+  const baseCost=calcFromUsd(firstFiniteNumber(a?.costoUsd, a?.costoUSD, a?.usd, 0), qual).costo;
+  if(isFinite(baseCost) && baseCost>0) return baseCost;
+  return firstFiniteNumber(a?.costoEur, a?.costoEUR, 0);
+}
 function normalizePromoStartDate(v=''){
   const raw=String(v||'').trim();
   return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : '';
@@ -3018,7 +3048,7 @@ function orderMargin(o, db){
   for(const r of righe){
     const prezzo=Number(r?.prezzo||0);
     const art=(db?.articoli||[]).find(x=>x.id===r.articoloId || (r.codice && x.codice===r.codice));
-    const costo=Number(art?.costoEur||r?.costoEur||0);
+    const costo=Number(art ? effectiveSupplierCostEur(art) : (r?.costoEur||0));
     margin += Math.max(0, prezzo - costo);
   }
   return margin;
@@ -4029,6 +4059,8 @@ function buildCloudArticleMeta(art){
     misura: art?.misura||'',
     costoUsd: Number(art?.costoUsd||0),
     costoEur: Number(art?.costoEur||0),
+    promoCostoUsd: Number(art?.promoCostoUsd||0),
+    promoCostoEur: Number(art?.promoCostoEur||0),
     prezzoVendita: Number(art?.prezzoVendita||0),
     promoAttiva: !!art?.promoAttiva,
     prezzoPromo: Number(art?.prezzoPromo||0),
@@ -4108,7 +4140,21 @@ function refreshClientShipping(){
 
 /* ====== NAV ====== */
 let activeModalId=null;
+let currentPageName='home';
+function resetArticleSearchUI(){
+  const qArt=document.getElementById('qArt');
+  const qArtCat=document.getElementById('qArtCat');
+  const qArtBrand=document.getElementById('qArtBrand');
+  const qArtQuality=document.getElementById('qArtQuality');
+  if(qArt) qArt.value='';
+  if(qArtCat) qArtCat.value='';
+  if(qArtBrand) qArtBrand.value='';
+  if(qArtQuality) qArtQuality.value='';
+  setArtBrowse('tutti','','', false);
+  hideSearchSuggest('qArtSuggest');
+}
 function renderPageState(name){
+  currentPageName=name;
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   const sec=document.getElementById('sec_'+name); if(sec) sec.classList.add('active');
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.go===name));
@@ -4118,6 +4164,7 @@ function currentHistoryPage(){
   return (history.state&&history.state.page) || location.hash.replace('#','') || 'home';
 }
 function go(name, push=true){
+  if(currentPageName==='articoli' && name!=='articoli') resetArticleSearchUI();
   renderPageState(name);
   const state={page:name};
   if(name==='articoli') state.artBrowse={...artBrowseState};
@@ -4128,10 +4175,11 @@ window.addEventListener('popstate',(e)=>{
   if(activeModalId){ const mid=activeModalId; activeModalId=null; document.getElementById(mid).style.display='none'; return; }
   const state=e.state||{};
   const page=state.page || location.hash.replace('#','') || 'home';
+  if(currentPageName==='articoli' && page!=='articoli') resetArticleSearchUI();
   renderPageState(page);
   if(page==='articoli'){
-    const b=state.artBrowse||{level:'categorie',categoria:'',brand:''};
-    setArtBrowse(b.level||'categorie', b.categoria||'', b.brand||'', false);
+    const b=state.artBrowse||{level:'tutti',categoria:'',brand:''};
+    setArtBrowse(b.level||'tutti', b.categoria||'', b.brand||'', false);
     renderArt();
   }
 });
@@ -5640,7 +5688,7 @@ async function openArtEdit(id){
   const set=(k,v)=>document.getElementById(k).value=(v===0?0:(v||''));
 
   if(!a){
-    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_usd','a_promo_price','a_promo_date','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
+    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_usd','a_promo_usd','a_promo_eur','a_promo_price','a_promo_date','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
     .forEach(fid => document.getElementById(fid).value='');
     document.getElementById('a_color_mode').value='single';
     document.getElementById('a_color_count').value='';
@@ -5664,7 +5712,7 @@ async function openArtEdit(id){
   refreshArticleCategorySelects(a?.categoria||'');
   set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
   set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
-  set('a_mis', a?.misura); set('a_usd', a?.costoUsd||'');
+  set('a_mis', a?.misura); set('a_usd', a?.costoUsd||''); set('a_promo_usd', a?.promoCostoUsd||'');
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
   set('a_promo_date', a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||'');
   document.getElementById('a_note').value=a?.note||'';
@@ -5713,6 +5761,32 @@ function resetPendingArtPhotoFiles(){
 function renderCurrentArtPhotoPreview(){
   renderArtPhotoPrev(mergePreviewPics(currentArtExistingPics, currentArtPendingPreviewUrls));
   updateArtPhotoStatus();
+}
+function prepareArticlePhotoInput(){
+  const input=document.getElementById('a_photo');
+  if(!input) return null;
+  input.setAttribute('accept','image/*');
+  input.multiple=true;
+  try{ input.removeAttribute('capture'); }catch(_e){}
+  return input;
+}
+function openArticlePhotoPicker(){
+  const input=prepareArticlePhotoInput();
+  if(!input) return;
+  try{
+    if(typeof input.showPicker==='function'){
+      input.showPicker();
+      return;
+    }
+  }catch(err){
+    console.warn('showPicker foto articolo fallito, provo click()', err);
+  }
+  try{
+    input.click();
+  }catch(err){
+    console.warn('Apertura picker foto articolo fallita', err);
+    toast('Non sono riuscita ad aprire la galleria foto');
+  }
 }
 function updateArtPhotoStatus(){
   const box=document.getElementById('a_photo_status');
@@ -5809,6 +5883,7 @@ function renderArtAutoFields(){
   updateArticleColorModeUI();
   const code=document.getElementById('a_cod').value.trim();
   const usdRaw=document.getElementById('a_usd').value.trim();
+  const promoUsdRaw=document.getElementById('a_promo_usd').value.trim();
   const hasCode=code!=='';
   const hasUsd=usdRaw!=='' && !Number.isNaN(Number(usdRaw));
   const qual=hasCode ? qualityFromCode(code) : '';
@@ -5821,6 +5896,7 @@ function renderArtAutoFields(){
     document.getElementById('a_final').value='';
     document.getElementById('a_margin').value='';
     document.getElementById('a_margin_pct').textContent='';
+    document.getElementById('a_promo_eur').value='';
     document.getElementById('a_post').value='';
     fitTextarea(document.getElementById('a_post'));
     setReadonlyArticlePost('a_post_fb','');
@@ -5834,6 +5910,7 @@ function renderArtAutoFields(){
     document.getElementById('a_final').value='';
     document.getElementById('a_margin').value='';
     document.getElementById('a_margin_pct').textContent='';
+    document.getElementById('a_promo_eur').value='';
     const draft={
       codice:code,
       brand:getArticleBrandValue(),
@@ -5841,6 +5918,7 @@ function renderArtAutoFields(){
       promoAttiva:document.getElementById('a_promo_on').checked,
       prezzoPromo:Number(document.getElementById('a_promo_price').value||0),
       scadenzaPromo:document.getElementById('a_promo_date').value.trim(),
+      promoCostoUsd:Number(document.getElementById('a_promo_usd').value||0),
       prezzoVendita:0,
       misura:document.getElementById('a_mis').value.trim(),
       materiale:document.getElementById('a_taglia').value.trim(),
@@ -5858,24 +5936,27 @@ function renderArtAutoFields(){
   }
 
   const usd=Number(usdRaw);
-  if(usdRaw===''){ document.getElementById('a_eur').value=''; document.getElementById('a_sell').value=''; document.getElementById('a_final').value=''; document.getElementById('a_margin').value=''; document.getElementById('a_margin_pct').textContent=''; return; }
+  const promoUsd=promoUsdRaw!=='' && !Number.isNaN(Number(promoUsdRaw)) ? Number(promoUsdRaw) : 0;
+  if(usdRaw===''){ document.getElementById('a_eur').value=''; document.getElementById('a_sell').value=''; document.getElementById('a_final').value=''; document.getElementById('a_margin').value=''; document.getElementById('a_margin_pct').textContent=''; document.getElementById('a_promo_eur').value=''; return; }
   const r=calcFromUsd(usd, qual);
+  const promoCostCalc=(promoUsd>0) ? calcFromUsd(promoUsd, qual) : null;
   document.getElementById('a_eur').value = isFinite(r.costo)?money(r.costo):'';
   document.getElementById('a_sell').value = isFinite(r.sell)?String(r.sell):'';
+  document.getElementById('a_promo_eur').value = (promoCostCalc && isFinite(promoCostCalc.costo) && promoCostCalc.costo) ? money(promoCostCalc.costo) : '';
   const promoOn=document.getElementById('a_promo_on').checked;
   const promoPrice=Number(document.getElementById('a_promo_price').value||0);
   const promoDate=document.getElementById('a_promo_date').value.trim();
-  const a={codice:code, prezzoVendita:r.sell, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate};
+  const a={codice:code, costoUsd:usd, promoCostoUsd:promoUsd, prezzoVendita:r.sell, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate};
   const finalPrice = r.sell ? round5(currentPrice(a)) : 0;
+  const currentCost = (promoValid(a) && promoCostCalc && isFinite(promoCostCalc.costo) && promoCostCalc.costo>0) ? Number(promoCostCalc.costo) : Number(r.costo||0);
   document.getElementById('a_final').value = finalPrice ? String(finalPrice) : '';
-  const margin = Math.max(0, finalPrice - (Number(r.costo)||0));
+  const margin = Math.max(0, finalPrice - currentCost);
   document.getElementById('a_margin').value = margin ? money(margin) : '';
   document.getElementById('a_margin_pct').textContent = (finalPrice && margin) ? ('Margine ' + Math.round((margin/finalPrice)*100) + '%') : '';
-  // auto post
   const draft={
     codice:code, brand:getArticleBrandValue(),
     modello:document.getElementById('a_mod').value.trim(),
-    promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate,
+    promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate, promoCostoUsd:promoUsd,
     prezzoVendita:r.sell,
     misura:document.getElementById('a_mis').value.trim(),
     materiale:document.getElementById('a_taglia').value.trim(),
@@ -5982,6 +6063,7 @@ async function duplicateCurrentArticle(sourceId=null){
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=clone.misura||'';
   document.getElementById('a_usd').value=clone.costoUsd||'';
+  document.getElementById('a_promo_usd').value=clone.promoCostoUsd||'';
   document.getElementById('a_promo_on').checked=!!clone.promoAttiva;
   document.getElementById('a_promo_date').value=clone.scadenzaPromo||'';
   document.getElementById('a_promo_price').value=clone.prezzoPromo||'';
@@ -6033,7 +6115,9 @@ async function saveArt(){
     }
     const qual=qualityFromCode(code);
     const usd=Number(document.getElementById('a_usd').value||0);
+    const promoUsd=Number(document.getElementById('a_promo_usd').value||0);
     const r=calcFromUsd(usd, qual);
+    const promoR=(promoUsd>0) ? calcFromUsd(promoUsd, qual) : {costo:0,sell:0,marg:0};
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
     const keptFoto=currentArtPhotosCleared ? [] : (Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : []);
     const keptPhotoIds=currentArtPhotosCleared ? [] : (Array.isArray(old?.photoIds) ? old.photoIds.filter(Boolean).slice() : []);
@@ -6060,6 +6144,8 @@ async function saveArt(){
       misura: misuraValue,
       costoUsd: usd,
       costoEur: r.costo,
+      promoCostoUsd: promoUsd,
+      promoCostoEur: promoR.costo,
       prezzoVendita: r.sell,
       promoAttiva: document.getElementById('a_promo_on').checked,
       prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
@@ -7221,7 +7307,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='duplicateArt') return duplicateCurrentArticle(el.dataset.id || null);
   if(a==='editFromView'){ hide('mArtView', true); return openArtEdit(currentArtId); }
   if(a==='closeView') return hide('mArtView');
-  if(a==='pickMoreArtPhotos'){ document.getElementById('a_photo')?.click(); return; }
+  if(a==='pickMoreArtPhotos'){ openArticlePhotoPicker(); return; }
   if(a==='clearPendingArtPhotos'){ resetPendingArtPhotoFiles(); renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Nuove foto annullate'); return; }
   if(a==='closeEdit'){ saveArticleDraft(); return hide('mArtEdit'); }
   if(a==='clearArtPhotos'){ currentArtExistingPics=[]; currentArtPhotosCleared=true; document.getElementById('a_photo').value=''; renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Foto attuali rimosse'); return; }
@@ -7256,7 +7342,7 @@ bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
   ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));
@@ -7309,7 +7395,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-01-share-v37-priority-sheet';
+const VG_BUILD='2026-04-01-v39-photo-gallery-picker';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -7667,7 +7753,7 @@ async function pullCloudToLocal(opts={}){
         const colorShape=deriveColorShape({ colorMode:meta.colorMode||local?.colorMode, colorType:meta.colorType||local?.colorType, colorCount:meta.colorCount||local?.colorCount, colorLabels:meta.colorLabels||local?.colorLabels });
         const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
         const cloudTs=parseTimestampLike(meta._ts, p.updated_at, p.created_at, local?._ts, Date.now());
-        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],_ts:cloudTs,_cloud:true};
+        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,promoCostoUsd:pulledPromoCostoUsd,promoCostoEur:pulledPromoCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],_ts:cloudTs,_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; })
@@ -7809,7 +7895,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v37-priority-sheet', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=v39-photo-gallery-picker', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
