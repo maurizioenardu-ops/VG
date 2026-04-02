@@ -1,4 +1,4 @@
-const VERSION = 'v44_article_buttons_colors';
+const VERSION = 'v47_all_edit_buttons_yellow';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

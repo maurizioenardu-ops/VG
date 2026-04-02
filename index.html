@@ -100,7 +100,7 @@ body{-webkit-tap-highlight-color:transparent}
 .btn.shareBtn{background:#15803d;border-color:#15803d;color:#fff}
 .btn.downloadBtn{background:#fff;border-color:var(--line);color:#111827;box-shadow:0 3px 10px rgba(15,23,42,.04)}
 .btn.duplicateBtn{background:#475569;border-color:#475569;color:#fff}
-.btn.editBtn{background:#eab308;border-color:#ca8a04;color:#111827}
+.btn.editBtn,.btn[data-action="editCliFromView"],.btn[data-action="editOrdFromView"],.btn[data-action="renameCategory"],.btn[data-action="renameBrand"]{background:#eab308;border-color:#ca8a04;color:#111827}
 .btn.closeBtn{background:#2563eb;border-color:#2563eb;color:#fff}
 .btn.addOrderBtn{background:#ca8a04;border-color:#ca8a04;color:#111827}
 .btn.danger{background:#fee2e2;border-color:#fca5a5}
@@ -7578,7 +7578,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-02-v44-article-buttons-colors';
+const VG_BUILD='2026-04-02-v47-all-edit-buttons-yellow';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -8080,7 +8080,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=v44-article-buttons-colors', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=v47-all-edit-buttons-yellow', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
