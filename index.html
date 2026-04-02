@@ -98,13 +98,14 @@ body{-webkit-tap-highlight-color:transparent}
 .btn.success{background:#16a34a;border-color:#16a34a;color:#fff}
 .btn.warning{background:#facc15;border-color:#eab308;color:#111827}
 .btn.shareBtn{background:#15803d;border-color:#15803d;color:#fff}
-.btn.downloadBtn{background:#2563eb;border-color:#2563eb;color:#fff}
+.btn.downloadBtn{background:#fff;border-color:var(--line);color:#111827;box-shadow:0 3px 10px rgba(15,23,42,.04)}
 .btn.duplicateBtn{background:#475569;border-color:#475569;color:#fff}
 .btn.editBtn{background:#eab308;border-color:#ca8a04;color:#111827}
+.btn.closeBtn{background:#ea580c;border-color:#dc2626;color:#fff}
 .btn.addOrderBtn{background:#ca8a04;border-color:#ca8a04;color:#111827}
 .btn.danger{background:#fee2e2;border-color:#fca5a5}
 .btn.smallish{padding:9px 11px;min-height:40px;font-size:12px;border-radius:12px}
-.btn.orderAdd{background:#fff;border:1px solid var(--line);color:#111827;box-shadow:0 3px 10px rgba(15,23,42,.04)}
+.btn.orderAdd{background:#15803d;border:1px solid #15803d;color:#fff;box-shadow:0 3px 10px rgba(21,128,61,.18)}
 .btn.orderAdd.small{padding:10px 12px;border-radius:14px;font-size:13px;min-height:46px;line-height:1.15}
 .orderAddWrap{margin-top:10px;display:flex;justify-content:flex-start}.orderAddWrap .btn{width:100%}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -546,7 +547,7 @@ window.addEventListener('error',e=>{
     <button class="btn duplicateBtn smallish" type="button" data-action="duplicateArt">Duplica</button>
     <button class="btn editBtn smallish" type="button" data-action="editFromView">Modifica</button>
     <button class="btn addOrderBtn smallish" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button>
-    <button class="btn smallish" type="button" data-action="closeView">Chiudi</button>
+    <button class="btn closeBtn smallish" type="button" data-action="closeView">Chiudi</button>
   </div>
 </div></div>
 
