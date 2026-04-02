@@ -97,6 +97,11 @@ body{-webkit-tap-highlight-color:transparent}
 .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
 .btn.success{background:#16a34a;border-color:#16a34a;color:#fff}
 .btn.warning{background:#facc15;border-color:#eab308;color:#111827}
+.btn.shareBtn{background:#15803d;border-color:#15803d;color:#fff}
+.btn.downloadBtn{background:#2563eb;border-color:#2563eb;color:#fff}
+.btn.duplicateBtn{background:#475569;border-color:#475569;color:#fff}
+.btn.editBtn{background:#eab308;border-color:#ca8a04;color:#111827}
+.btn.addOrderBtn{background:#ca8a04;border-color:#ca8a04;color:#111827}
 .btn.danger{background:#fee2e2;border-color:#fca5a5}
 .btn.smallish{padding:9px 11px;min-height:40px;font-size:12px;border-radius:12px}
 .btn.orderAdd{background:#fff;border:1px solid var(--line);color:#111827;box-shadow:0 3px 10px rgba(15,23,42,.04)}
@@ -536,11 +541,11 @@ window.addEventListener('error',e=>{
   <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
-    <button class="btn success smallish" type="button" data-action="shareArtPhotos">Condividi foto</button>
-    <button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button>
-    <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
-    <button class="btn warning smallish" type="button" data-action="editFromView">Modifica</button>
-    <button class="btn smallish" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button>
+    <button class="btn shareBtn smallish" type="button" data-action="shareArtPhotos">Condividi foto</button>
+    <button class="btn downloadBtn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button>
+    <button class="btn duplicateBtn smallish" type="button" data-action="duplicateArt">Duplica</button>
+    <button class="btn editBtn smallish" type="button" data-action="editFromView">Modifica</button>
+    <button class="btn addOrderBtn smallish" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button>
     <button class="btn smallish" type="button" data-action="closeView">Chiudi</button>
   </div>
 </div></div>
@@ -7572,7 +7577,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-01-v43-promo-dashboard-combo';
+const VG_BUILD='2026-04-02-v44-article-buttons-colors';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -8074,7 +8079,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=v43-promo-dashboard-combo', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=v44-article-buttons-colors', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

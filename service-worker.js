@@ -1,4 +1,4 @@
-const VERSION = 'v43_promo_dashboard_combo';
+const VERSION = 'v44_article_buttons_colors';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
