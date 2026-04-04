@@ -3,479 +3,319 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Gestionale Maurizio</title>
-<meta name="theme-color" content="#081633"/>
+<title>Vanity & Glamour</title>
 <link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0f172a"/>
 <style>
-:root{
-  --navy:#081633;
-  --navy2:#0d234a;
-  --bg:#eceef3;
-  --card:#ffffff;
-  --line:#d7dae3;
-  --muted:#72798b;
-  --text:#0f1830;
-  --blue:#3369e7;
-  --blue-soft:#e8efff;
-  --gold:#e1a11a;
-  --gold-soft:#fff4cf;
-  --green:#17a34a;
-  --green-soft:#e9f8ef;
-  --orange:#d45d00;
-  --orange-soft:#fff2e8;
-  --red:#db2f2f;
-  --red-soft:#fff0f0;
-}
+:root{--navy:#0f172a;--bg:#f5f7fb;--card:#fff;--line:#e5e7eb;--muted:#6b7280;--blue:#2563eb;--red:#dc2626}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text);font-family:"Trebuchet MS","Arial Rounded MT Bold","Comic Sans MS",system-ui,sans-serif}
+html,body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#111827}
 body{-webkit-tap-highlight-color:transparent}
-button,input,select,textarea{font:inherit}
-button{cursor:pointer}
-.hidden{display:none!important}
-.topbar{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,var(--navy),#07112a);color:#fff;padding:18px 18px 20px;border-bottom-left-radius:28px;border-bottom-right-radius:28px;box-shadow:0 10px 24px rgba(8,22,51,.15)}
-.topbar h1{margin:0;font-size:24px;line-height:1.05;font-weight:1000;letter-spacing:.2px}
-.topbar .date{margin-top:8px;font-size:12px;opacity:.95;font-weight:700}
-.app{max-width:760px;margin:0 auto;padding:14px 14px 92px}
-.panelTabs{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:4px 0 14px}
-.panelTab,.bottomNav button{border:1.5px solid var(--line);background:#fff;color:var(--text);border-radius:22px;padding:14px 10px;font-weight:1000;min-height:58px}
-.panelTab.active{background:var(--gold-soft);border-color:var(--gold)}
+.top{position:sticky;top:0;background:var(--navy);color:#fff;padding:16px 14px 14px;z-index:10}
+.top h1{margin:0;font-size:20px;font-weight:900}
+.date{margin-top:4px;font-size:12px;opacity:.86}
+.app{max-width:560px;margin:0 auto;min-height:100vh;padding:12px 12px 84px}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}
+.tab{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;font-weight:900;text-align:center;cursor:pointer}
+.tab.active{background:#fef3c7;border-color:#f59e0b}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat,.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 8px 18px rgba(15,23,42,.05)}
+.stat{cursor:pointer}
+.k{font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:900}
+.v{font-size:22px;font-weight:900;margin-top:4px}
+.h2{font-size:16px;font-weight:900;margin:2px 0 10px}
+.small{font-size:12px;color:var(--muted)}
+.btnGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btnBig{border:0;border-radius:14px;padding:14px 12px;font-weight:1000;font-size:14px;cursor:pointer;touch-action:manipulation}
+.btnBig.primary{background:var(--blue);color:#fff}
+.btnBig.gray{background:#eef2ff;color:#111827}
 .section{display:none}
 .section.active{display:block}
-.card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:16px;box-shadow:0 8px 20px rgba(15,24,48,.04)}
-.card + .card{margin-top:14px}
-.sectionTitle{font-size:22px;font-weight:1000;margin:0 0 14px}
-.sub{font-size:12px;color:var(--muted);font-weight:700}
-.search{width:100%;padding:16px 18px;border:1.5px solid var(--line);border-radius:22px;background:#fff;color:var(--text);font-weight:900;outline:none}
-.search:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(225,161,26,.1)}
-.miniBars{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;align-items:end;height:130px;margin-top:6px}
-.barCol{display:flex;flex-direction:column;align-items:center;gap:8px}
-.barWrap{height:96px;display:flex;align-items:flex-end;width:100%}
-.bar{width:100%;border-radius:18px;background:linear-gradient(180deg,#4f85ff,#2457d7);min-height:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
-.bar.isZero{background:#cad4ef}
-.bar.highlight{background:linear-gradient(180deg,#f4ba33,#d89400)}
-.barLabel{font-size:11px;color:var(--muted);font-weight:1000;text-transform:capitalize}
-.barValue{font-size:10px;color:var(--muted);font-weight:900;min-height:12px}
-.grid2,.grid3{display:grid;gap:14px}
-.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}
-.grid3{grid-template-columns:repeat(3,minmax(0,1fr))}
-.metricCard{min-height:132px;display:flex;flex-direction:column;justify-content:space-between}
-.metricK{font-size:12px;color:var(--muted);font-weight:1000;text-transform:uppercase;line-height:1.05}
-.metricV{font-size:30px;font-weight:1000;line-height:.95;margin-top:8px}
-.metricHelp{font-size:12px;color:var(--muted);font-weight:800;margin-top:10px;line-height:1.2}
-.metricGreen .metricV{color:var(--green)}
-.metricOrange{background:#fffaf5;border-color:#f0cfa8}
-.metricOrange .metricV,.metricOrange .metricHelp strong{color:var(--orange)}
-.metricBlue{background:#f9fbff}
-.metricRed{background:#fff8f8;border-color:#f3cbcb}
-.metricRed .metricV{color:var(--red)}
-.quickButtons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.qbtn{border:none;border-radius:22px;padding:18px 12px;font-size:16px;font-weight:1000}
-.qbtn.primary{background:var(--blue);color:#fff}
-.qbtn.soft{background:#edf1fb;color:var(--text)}
-.infoList{display:flex;flex-direction:column;gap:12px}
-.infoItem{border:1px solid var(--line);border-radius:20px;padding:16px 18px;background:#fff}
-.infoItem button{all:unset;display:block;width:100%;cursor:pointer;font-weight:1000;font-size:16px;line-height:1.15}
-.list{display:flex;flex-direction:column;gap:14px}
-.rowCard{background:#fff;border:1px solid var(--line);border-radius:24px;padding:14px 16px;display:grid;grid-template-columns:84px 1fr auto;gap:14px;align-items:center;box-shadow:0 8px 20px rgba(15,24,48,.03)}
-.rowCard.noImg{grid-template-columns:1fr auto}
-.thumb{width:84px;height:84px;border-radius:20px;object-fit:cover;border:1px solid var(--line);background:#edf1f7}
-.rowTitle{font-size:18px;font-weight:1000;line-height:1.05}
-.rowMeta{font-size:12px;color:var(--muted);font-weight:900;line-height:1.25;margin-top:6px}
-.rowAside{text-align:right}
-.rowPriceK{font-size:12px;color:var(--muted);font-weight:1000;text-transform:uppercase}
-.rowPrice{font-size:20px;font-weight:1000;line-height:1}
-.badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.badge{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:999px;border:1px solid var(--line);font-size:11px;font-weight:1000;background:#fff}
-.badge.gold{background:var(--gold-soft);border-color:var(--gold)}
-.badge.green{background:var(--green-soft);border-color:#b7e6c8;color:#126a32}
-.badge.orange{background:var(--orange-soft);border-color:#f1c7ab;color:#a34900}
-.badge.red{background:var(--red-soft);border-color:#f3c1c1;color:#a91f1f}
-.bottomNav{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:8px 10px 12px;z-index:25}
-.bottomNav .inner{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
-.bottomNav button{background:transparent;border:none;border-radius:16px;padding:10px 4px 12px;min-height:auto;color:var(--muted);font-size:12px}
-.bottomNav button.active{color:var(--blue)}
-.toolbar{display:flex;gap:10px;flex-wrap:wrap}
-.toolbar .pillBtn{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:10px 14px;font-weight:1000}
-.toolbar .pillBtn.active{background:var(--gold-soft);border-color:var(--gold)}
-.modalWrap{position:fixed;inset:0;background:rgba(8,22,51,.45);display:none;align-items:center;justify-content:center;padding:14px;z-index:40}
-.modal{background:#fff;width:100%;max-width:760px;border-radius:26px;border:1px solid var(--line);padding:16px;max-height:88vh;overflow:auto;box-shadow:0 24px 60px rgba(8,22,51,.26)}
-.modalTitle{font-size:24px;font-weight:1000;margin:0 0 14px}
-.label{font-size:11px;color:var(--muted);font-weight:1000;text-transform:uppercase;margin:0 0 6px;padding-left:2px}
-.field{margin-bottom:12px}
-.gridForm2,.gridForm3{display:grid;gap:12px}
-.gridForm2{grid-template-columns:repeat(2,minmax(0,1fr))}
-.gridForm3{grid-template-columns:repeat(3,minmax(0,1fr))}
-.input, .select, .textarea{width:100%;padding:14px 16px;border:1.5px solid var(--line);border-radius:18px;background:#fff;color:var(--text);outline:none;font-weight:900}
-.input:focus,.select:focus,.textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(51,105,231,.1)}
-.textarea{min-height:96px;resize:vertical}
-.infoBox{border-radius:20px;padding:14px;border:1.5px solid var(--line);background:#f9fbff}
-.infoBox.good{background:var(--green-soft);border-color:#b7e6c8}
-.infoBox.warn{background:var(--orange-soft);border-color:#f1c7ab}
-.infoBox.bad{background:var(--red-soft);border-color:#f3c1c1}
-.infoBox .smallK{font-size:11px;color:var(--muted);font-weight:1000;text-transform:uppercase}
-.infoBox .bigV{font-size:24px;font-weight:1000;margin-top:4px}
-.infoBox .tiny{font-size:12px;color:var(--muted);font-weight:800;margin-top:6px;line-height:1.2}
-.switchPill{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--line);border-radius:999px;padding:10px 14px;background:#fff;font-weight:1000}
-.switchPill input{width:18px;height:18px}
-.modalActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-.actionBtn{border:none;border-radius:18px;padding:14px 16px;font-weight:1000}
-.actionBtn.primary{background:var(--blue);color:#fff}
-.actionBtn.soft{background:#eef2fb;color:var(--text)}
-.actionBtn.danger{background:#feeaea;color:#b21d1d}
-.hr{height:1px;background:var(--line);margin:14px 0}
-.hero{width:100%;height:240px;object-fit:cover;border:1px solid var(--line);border-radius:22px;background:#edf1f7}
-.thumbs{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-.thumbs img{width:76px;height:76px;border-radius:18px;object-fit:cover;border:1px solid var(--line);background:#edf1f7;cursor:pointer}
-.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#10192f;color:#fff;padding:12px 16px;border-radius:18px;font-weight:1000;z-index:99;display:none;max-width:88vw;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,.25)}
-.empty{padding:22px;text-align:center;color:var(--muted);font-weight:900;border:1px dashed var(--line);border-radius:22px;background:#fff}
-.smallText{font-size:12px;color:var(--muted);font-weight:800;line-height:1.3}
-.statusPill{padding:10px 14px;border-radius:999px;border:1px solid var(--line);font-weight:1000;background:#fff;font-size:12px;display:inline-block}
-.status-paid{background:var(--green-soft);border-color:#b7e6c8;color:#126a32}
-.status-open{background:#f5f6fb}
-.status-work{background:var(--gold-soft);border-color:#e8c15a}
-.inlineNote{font-size:13px;font-weight:900;color:var(--orange);margin-top:8px}
-.installRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-@media (max-width:640px){
-  .panelTabs{grid-template-columns:repeat(4,1fr);overflow:auto}
-  .grid2,.grid3,.quickButtons,.gridForm2,.gridForm3{grid-template-columns:1fr}
-  .rowCard{grid-template-columns:72px 1fr auto}
-  .thumb{width:72px;height:72px}
-  .metricCard{min-height:118px}
-}
+.list{display:flex;flex-direction:column;gap:10px}
+.row{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px}
+.thumb{width:64px;height:64px;border-radius:14px;border:1px solid var(--line);background:#f3f4f6;object-fit:cover}
+.t{font-weight:1000}
+.s{font-size:12px;color:var(--muted);margin-top:2px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:1000;border:1px solid var(--line);background:#fff}
+.pill.promo{border-color:#fecaca;background:#fff1f2;color:#991b1b}
+.dot{width:10px;height:10px;border-radius:999px;background:#16a34a;display:inline-block}
+.priceHot{color:var(--red);font-weight:1000}
+.navBottom{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:8px 10px;z-index:20}
+.navBottom .inner{max-width:560px;margin:0 auto;display:flex;justify-content:space-between}
+.navBottom button{border:none;background:none;padding:10px 6px 12px;font-weight:900;color:var(--muted);font-size:11px;touch-action:manipulation}
+.navBottom button.active{color:var(--blue)}
+/* modal */
+.modalwrap{position:fixed;inset:0;background:rgba(15,23,42,.4);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}
+.modal{background:#fff;width:100%;max-width:560px;border-radius:20px;border:1px solid var(--line);padding:14px;max-height:85vh;overflow:auto}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.btn{border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px 14px;font-weight:1000;cursor:pointer}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.danger{background:#fee2e2;border-color:#fecaca}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;font-weight:700;font-size:14px}
+textarea{min-height:90px;resize:vertical}
+.hero{width:100%;height:190px;border-radius:16px;object-fit:cover;border:1px solid var(--line);background:#f3f4f6}
+.thumbs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.thumbs img{width:70px;height:70px;border-radius:12px;object-fit:cover;border:1px solid var(--line);cursor:pointer}
+.hr{height:1px;background:var(--line);margin:12px 0}
 </style>
+<script>
+window.addEventListener('error',e=>{
+  const x=document.getElementById('dateLine');
+  if(x) x.textContent='ERRORE JS: '+(e.message||e);
+});
+</script>
 </head>
 <body>
-<div class="topbar">
-  <h1 id="appTitle">Gestionale Maurizio</h1>
-  <div id="dateLine" class="date">--</div>
+<div class="top">
+  <h1>Vanity &amp; Glamour</h1>
+  <div id="dateLine" class="date">--/--/----</div>
 </div>
 
 <div class="app">
-  <div class="panelTabs">
-    <button class="panelTab active" data-go="dashboard">Dashboard</button>
-    <button class="panelTab" data-go="articoli">Articoli</button>
-    <button class="panelTab" data-go="clienti">Clienti</button>
-    <button class="panelTab" data-go="ordini">Ordini</button>
+  <div class="tabs">
+    <div class="tab active" data-go="home">Dashboard</div>
+    <div class="tab" data-go="articoli">Articoli</div>
+    <div class="tab" data-go="clienti">Clienti</div>
+    <div class="tab" data-go="ordini">Ordini</div>
   </div>
 
-  <section id="sec_dashboard" class="section active">
-    <div class="card">
-      <div class="sectionTitle">Andamento ultimi 6 mesi</div>
-      <div class="sub">Margine ordini per mese. Perché a occhio poi ci si raccontano minchiate ai numeri.</div>
-      <div id="monthBars" class="miniBars"></div>
-    </div>
-
-    <div class="grid2" style="margin-top:14px">
-      <div class="card metricCard metricBlue">
-        <div>
-          <div class="metricK">Ordini in corso</div>
-          <div id="dashOpenOrders" class="metricV">0</div>
-        </div>
-        <div class="metricHelp">non ancora consegnati</div>
-      </div>
-      <div class="card metricCard metricGreen">
-        <div>
-          <div class="metricK">Guadagno mese</div>
-          <div id="dashMonthMargin" class="metricV">0,00</div>
-        </div>
-        <div class="metricHelp">margine del mese corrente</div>
-      </div>
-      <div class="card metricCard metricBlue">
-        <div>
-          <div class="metricK">Media ordini</div>
-          <div id="dashAvgOrder" class="metricV">0,00</div>
-        </div>
-        <div class="metricHelp">valore medio per ordine</div>
-      </div>
-      <div class="card metricCard metricGreen">
-        <div>
-          <div class="metricK">Guadagno totale</div>
-          <div id="dashTotalMargin" class="metricV">0,00</div>
-        </div>
-        <div class="metricHelp">margine complessivo</div>
-      </div>
-      <div class="card metricCard metricOrange">
-        <div>
-          <div class="metricK">Sconti personali</div>
-          <div id="dashPromoCount" class="metricV">0</div>
-        </div>
-        <div id="dashPromoHelp" class="metricHelp">nessun promo personale attivo</div>
-      </div>
-      <div class="card metricCard metricBlue">
-        <div>
-          <div class="metricK">Incassato mese</div>
-          <div id="dashMonthPaid" class="metricV">0,00</div>
-        </div>
-        <div class="metricHelp">ordini segnati come pagati</div>
-      </div>
-      <div class="card metricCard metricRed">
-        <div>
-          <div class="metricK">Da incassare</div>
-          <div id="dashToCollect" class="metricV">0,00</div>
-        </div>
-        <div class="metricHelp">ordini non pagati</div>
-      </div>
+  <div id="sec_home" class="section active">
+    <div class="cards">
+      <div class="stat" data-go="articoli"><div class="k">Articoli</div><div id="c_art" class="v">0</div></div>
+      <div class="stat" data-go="clienti"><div class="k">Clienti</div><div id="c_cli" class="v">0</div></div>
+      <div class="stat" data-go="ordini"><div class="k">Ordini</div><div id="c_ord" class="v">0</div></div>
+      <div class="stat" data-go="articoli"><div class="k">Promo</div><div id="c_promo" class="v">0</div></div>
     </div>
 
     <div class="card">
-      <div class="sectionTitle">Azioni rapide</div>
-      <div class="quickButtons">
-        <button class="qbtn primary" data-action="newArt">Nuovo articolo</button>
-        <button class="qbtn soft" data-action="newOrd">Nuovo ordine</button>
-        <button class="qbtn soft" data-action="newCli">Nuovo cliente</button>
-        <button class="qbtn soft" data-go="impostazioni">Impostazioni</button>
+      <div class="h2">Azioni rapide</div>
+      <div class="btnGrid">
+        <button class="btnBig primary" data-action="newArt">Nuovo articolo</button>
+        <button class="btnBig gray" data-action="newCli">Nuovo cliente</button>
+        <button class="btnBig gray" data-action="newOrd">Nuovo ordine</button>
+        <button class="btnBig gray" data-go="impostazioni">Impostazioni</button>
       </div>
     </div>
 
-    <div class="card">
-      <div class="sectionTitle">Info rapide</div>
-      <div id="dashInfo" class="infoList"></div>
+    <div class="card" style="margin-top:12px">
+      <div class="h2">Info rapide (cliccabili)</div>
+      <div id="dashList" class="list"></div>
     </div>
-  </section>
+  </div>
 
-  <section id="sec_articoli" class="section">
+  <div id="sec_articoli" class="section">
     <div class="card">
-      <div class="sectionTitle">Articoli</div>
-      <input id="qArt" class="search" placeholder="Cerca per codice, brand, modello..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
-      <div class="toolbar" style="margin-top:12px">
-        <button class="pillBtn active" data-art-filter="all">Tutti</button>
-        <button class="pillBtn" data-art-filter="promo">Con promo</button>
-        <button class="pillBtn" data-art-filter="warning">Margine basso</button>
-      </div>
+      <div class="h2">Articoli</div>
+      <input id="qArt" placeholder="Cerca per codice, brand, modello..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
     </div>
-    <div id="listArt" class="list" style="margin-top:14px"></div>
-  </section>
+    <div style="height:10px"></div>
+    <div id="listArt" class="list"></div>
+  </div>
 
-  <section id="sec_clienti" class="section">
+  <div id="sec_clienti" class="section">
     <div class="card">
-      <div class="sectionTitle">Clienti</div>
-      <input id="qCli" class="search" placeholder="Cerca per nome, telefono, città..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
+      <div class="h2">Clienti</div>
+      <input id="qCli" placeholder="Cerca per nome, telefono, città..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
     </div>
-    <div id="listCli" class="list" style="margin-top:14px"></div>
-  </section>
+    <div style="height:10px"></div>
+    <div id="listCli" class="list"></div>
+  </div>
 
-  <section id="sec_ordini" class="section">
+  <div id="sec_ordini" class="section">
     <div class="card">
-      <div class="sectionTitle">Ordini</div>
-      <input id="qOrd" class="search" placeholder="Cerca per cliente, stato, id..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
-      <div class="toolbar" style="margin-top:12px">
-        <button class="pillBtn active" data-order-filter="all">Tutti</button>
-        <button class="pillBtn" data-order-filter="open">Aperti</button>
-        <button class="pillBtn" data-order-filter="paid">Pagati</button>
-      </div>
+      <div class="h2">Ordini</div>
+      <input id="qOrd" placeholder="Cerca per cliente, stato, id..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
     </div>
-    <div id="listOrd" class="list" style="margin-top:14px"></div>
-  </section>
+    <div style="height:10px"></div>
+    <div id="listOrd" class="list"></div>
+  </div>
 
-  <section id="sec_conti" class="section">
+  <div id="sec_impostazioni" class="section">
     <div class="card">
-      <div class="sectionTitle">Conti</div>
-      <div class="sub">Riepilogo economico vero. Non quello raccontato al bar con la memoria ballerina.</div>
-    </div>
-    <div class="grid2" style="margin-top:14px">
-      <div class="card metricCard metricGreen"><div><div class="metricK">Incassato totale</div><div id="contiIncassatoTot" class="metricV">0,00</div></div><div class="metricHelp">ordini pagati</div></div>
-      <div class="card metricCard metricRed"><div><div class="metricK">Da incassare totale</div><div id="contiDaIncassareTot" class="metricV">0,00</div></div><div class="metricHelp">ancora aperto</div></div>
-      <div class="card metricCard metricBlue"><div><div class="metricK">Margine medio</div><div id="contiMargineMedio" class="metricV">0,00</div></div><div class="metricHelp">margine medio per ordine</div></div>
-      <div class="card metricCard metricBlue"><div><div class="metricK">Ordini pagati</div><div id="contiOrdPagati" class="metricV">0</div></div><div class="metricHelp">con incasso confermato</div></div>
-    </div>
-    <div class="card">
-      <div class="sectionTitle">Ultimi movimenti</div>
-      <div id="contiList" class="list"></div>
-    </div>
-  </section>
-
-  <section id="sec_impostazioni" class="section">
-    <div class="card">
-      <div class="sectionTitle">Impostazioni</div>
-      <div class="gridForm2">
-        <div class="field"><div class="label">Titolo app</div><input id="set_title" class="input"/></div>
-        <div class="field"><div class="label">Margine minimo promo personale</div><input id="set_min_margin" class="input" inputmode="decimal"/></div>
-        <div class="field"><div class="label">Moltiplicatore USD → EUR</div><input id="set_fx" class="input" inputmode="decimal"/></div>
-        <div class="field"><div class="label">Costo fisso aggiuntivo</div><input id="set_fee" class="input" inputmode="decimal"/></div>
+      <div class="h2">Impostazioni</div>
+      <div class="small">Backup e strumenti</div>
+      <div class="actions">
+        <button class="btn" data-action="exportFull">Export DB (tutto)</button>
+        <button class="btn" data-action="exportLite">Export DB (senza foto)</button>
+        <label class="btn" style="display:inline-block">
+          Import JSON<input id="importFile" type="file" accept="application/json" style="display:none"/>
+        </label>
+        <button class="btn danger" data-action="hardReset">Reset totale</button>
       </div>
-      <div class="modalActions">
-        <button class="actionBtn primary" data-action="saveSettings">Salva impostazioni</button>
-      </div>
-      <div class="installRow">
-        <button id="installBtn" class="actionBtn soft hidden" type="button">Installa app</button>
-      </div>
-      <div class="hr"></div>
-      <div class="modalActions">
-        <button class="actionBtn soft" data-action="exportFull">Export completo</button>
-        <button class="actionBtn soft" data-action="exportLite">Export senza foto</button>
-        <label class="actionBtn soft" style="display:inline-flex;align-items:center;justify-content:center">Import JSON<input id="importFile" type="file" accept="application/json" class="hidden"/></label>
-        <button class="actionBtn danger" data-action="hardReset">Reset totale</button>
-      </div>
-      <div id="importHint" class="inlineNote"></div>
+      <div class="small" style="margin-top:10px" id="importHint"></div>
     </div>
-  </section>
+  </div>
 </div>
 
-<div class="bottomNav">
+<div class="navBottom">
   <div class="inner">
-    <button class="active" data-go="dashboard">Dashboard</button>
+    <button class="active" data-go="home">Home</button>
     <button data-go="articoli">Articoli</button>
     <button data-go="clienti">Clienti</button>
     <button data-go="ordini">Ordini</button>
-    <button data-go="conti">Conti</button>
     <button data-go="impostazioni">Impost.</button>
   </div>
 </div>
 
-<div id="mArtView" class="modalWrap"><div class="modal">
-  <div class="modalTitle">Dettaglio articolo</div>
-  <img id="vArtHero" class="hero hidden" alt=""/>
+<!-- MODALS -->
+<div id="mArtView" class="modalwrap"><div class="modal">
+  <div class="h2">Dettaglio articolo</div>
+  <img id="vArtHero" class="hero" alt=""/>
   <div id="vArtThumbs" class="thumbs"></div>
-  <div class="gridForm2" style="margin-top:14px">
-    <div class="infoBox"><div class="smallK">Codice</div><div id="v_code" class="bigV">-</div></div>
-    <div class="infoBox"><div class="smallK">Qualità</div><div id="v_quality" class="bigV">-</div></div>
-    <div class="infoBox"><div class="smallK">Prezzo vendita</div><div id="v_sell" class="bigV">-</div></div>
-    <div class="infoBox"><div class="smallK">Prezzo finale in uso</div><div id="v_final" class="bigV">-</div></div>
-    <div class="infoBox"><div class="smallK">Costo reale attivo</div><div id="v_cost" class="bigV">-</div></div>
-    <div id="v_margin_box" class="infoBox"><div class="smallK">Margine attivo</div><div id="v_margin" class="bigV">-</div><div id="v_margin_pct" class="tiny">-</div></div>
-  </div>
   <div class="hr"></div>
-  <div class="field"><div class="label">Dettagli utili per il post</div><textarea id="v_details" class="textarea" readonly></textarea></div>
-  <div class="field"><div class="label">Post automatico</div><textarea id="v_post" class="textarea" readonly></textarea></div>
-  <div class="modalActions">
-    <button class="actionBtn primary" type="button" data-action="copyPost">Copia post</button>
-    <button class="actionBtn soft" type="button" data-action="editFromView">Modifica</button>
-    <button class="actionBtn soft" type="button" data-action="quickOrderFromView">Aggiungi a ordine</button>
-    <button class="actionBtn soft" type="button" data-action="closeView">Chiudi</button>
+  <div class="grid2">
+    <div><div class="k">Codice</div><div id="vArtCod" class="t">-</div></div>
+    <div><div class="k">Qualità</div><div id="vArtQual" class="t">-</div></div>
+  </div>
+  <div class="grid2" style="margin-top:10px">
+    <div><div class="k">Prezzo vendita</div><div id="vArtPrezzo" class="t">-</div></div>
+    <div><div class="k">Prezzo in uso</div><div id="vArtPrezzoUse" class="priceHot">-</div><div id="vArtPromoPill"></div></div>
+  </div>
+  <div style="margin-top:10px"><div class="k">Post</div><textarea id="vArtPost" readonly></textarea></div>
+  <div class="actions">
+    <button class="btn primary" type="button" data-action="copyPost">Copia post</button>
+    <button class="btn" type="button" data-action="editFromView">Modifica</button>
+    <button class="btn" type="button" data-action="closeView">Chiudi</button>
   </div>
 </div></div>
 
-<div id="mArtEdit" class="modalWrap"><div class="modal">
-  <div id="artModalTitle" class="modalTitle">Nuovo articolo</div>
-  <div class="gridForm2">
-    <div class="field"><div class="label">Codice articolo</div><input id="a_code" class="input" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div class="field"><div class="label">Brand</div><input id="a_brand" class="input" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div class="field"><div class="label">Modello</div><input id="a_model" class="input" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div class="field"><div class="label">Categoria</div><input id="a_cat" class="input" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div class="field"><div class="label">Descrizione</div><input id="a_desc" class="input" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div class="field"><div class="label">Fornitore</div><input id="a_supplier" class="input" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div class="field"><div class="label">Misura</div><input id="a_size" class="input" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div class="field"><div class="label">Costo USD normale</div><input id="a_usd" class="input" inputmode="decimal"/></div>
-    <div class="field"><div class="label">Costo EUR auto</div><input id="a_eur" class="input" readonly/></div>
-    <div class="field"><div class="label">Prezzo vendita auto</div><input id="a_sell" class="input" readonly/></div>
+<div id="mArtEdit" class="modalwrap"><div class="modal">
+  <div class="h2" id="artEditTitle">Nuovo articolo</div>
+  <div class="grid2">
+    <div><div class="k">Codice articolo</div><input id="a_cod" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+    <div><div class="k">Brand</div><input id="a_brand" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
   </div>
-
-  <div class="gridForm3">
-    <div class="infoBox good"><div class="smallK">Margine standard</div><div id="a_margin_base" class="bigV">0,00</div><div id="a_margin_base_pct" class="tiny">0%</div></div>
-    <div class="infoBox"><div class="smallK">Costo reale attivo</div><div id="a_cost_active" class="bigV">0,00</div><div class="tiny">base o promo fornitore</div></div>
-    <div id="a_margin_box" class="infoBox"><div class="smallK">Margine attivo</div><div id="a_margin_active" class="bigV">0,00</div><div id="a_margin_active_pct" class="tiny">0%</div></div>
+  <div class="grid2" style="margin-top:10px">
+    <div><div class="k">Modello</div><input id="a_mod" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+    <div><div class="k">Categoria</div><input id="a_cat" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
   </div>
-
+  <div style="margin-top:10px"><div class="k">Descrizione</div><input id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+  <div class="grid2" style="margin-top:10px">
+    <div><div class="k">Fornitore</div><input id="a_forn" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+    <div><div class="k">Qualità (auto)</div><input id="a_qual" readonly/></div>
+  </div>
+  <div class="grid2" style="margin-top:10px">
+    <div><div class="k">Misura</div><input id="a_mis" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+    <div><div class="k">Costo USD</div><input id="a_usd" inputmode="decimal" autocomplete="off"/></div>
+  </div>
+  <div class="grid2" style="margin-top:10px">
+    <div><div class="k">Costo EUR (auto)</div><input id="a_eur" readonly/></div>
+    <div><div class="k">Prezzo vendita (auto)</div><input id="a_sell" readonly/></div>
+  </div>
+  <div style="margin-top:10px"><div class="k">Prezzo finale in uso</div><input id="a_final" readonly/></div>
   <div class="hr"></div>
-  <div class="gridForm2">
-    <div class="field">
-      <div class="label">Promo fornitore</div>
-      <label class="switchPill"><input id="a_supplier_promo_on" type="checkbox"/>Attiva</label>
-    </div>
-    <div class="field"><div class="label">Scadenza promo</div><input id="a_promo_expiry" type="date" class="input"/></div>
-    <div class="field"><div class="label">Costo USD promo fornitore</div><input id="a_supplier_promo_usd" class="input" inputmode="decimal"/></div>
-    <div class="field"><div class="label">Costo EUR promo auto</div><input id="a_supplier_promo_eur" class="input" readonly/></div>
+  <div class="grid2">
+    <div><div class="k">Promo attiva</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Attiva</label></div>
+    <div><div class="k">Scadenza promo</div><input id="a_promo_date" type="date" autocomplete="off"/></div>
   </div>
-
-  <div class="gridForm2">
-    <div class="field">
-      <div class="label">Promo personale</div>
-      <label class="switchPill"><input id="a_personal_promo_on" type="checkbox"/>Attiva</label>
-    </div>
-    <div class="field"><div class="label">Prezzo promo personale</div><input id="a_personal_promo_price" class="input" inputmode="decimal"/></div>
-  </div>
-
-  <div class="gridForm3">
-    <div class="infoBox"><div class="smallK">Prezzo finale in uso</div><div id="a_final_price" class="bigV">0,00</div><div class="tiny">quello che vede il cliente</div></div>
-    <div class="infoBox"><div class="smallK">Prezzo minimo sicuro</div><div id="a_min_safe" class="bigV">0,00</div><div class="tiny">margine minimo impostato</div></div>
-    <div id="a_alert_box" class="infoBox"><div class="smallK">Controllo promo</div><div id="a_alert_text" class="bigV" style="font-size:18px">OK</div><div id="a_alert_help" class="tiny">Puoi salvare.</div></div>
-  </div>
-
-  <div class="field" style="margin-top:12px"><div class="label">Dettagli utili per il post</div><textarea id="a_details" class="textarea" placeholder="Es. Promo Pasqua, spedizione 24h, borsa bestseller..."></textarea></div>
-  <div class="field"><div class="label">Post automatico</div><textarea id="a_post" class="textarea" readonly></textarea></div>
-  <div class="field"><div class="label">Note</div><textarea id="a_note" class="textarea"></textarea></div>
-  <div class="field"><div class="label">Foto articolo</div><input id="a_photo" type="file" accept="image/*" class="input"/></div>
+  <div style="margin-top:10px"><div class="k">Prezzo promo</div><input id="a_promo_price" inputmode="decimal" autocomplete="off"/></div>
+  <div class="hr"></div>
+  <div><div class="k">Post</div><textarea id="a_post" placeholder="Qui il post (auto)"></textarea></div>
+  <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
+  <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*"/></div>
   <div id="a_photo_prev" class="thumbs"></div>
-
-  <div class="modalActions">
-    <button class="actionBtn primary" type="button" data-action="saveArt">Salva articolo</button>
-    <button class="actionBtn soft" type="button" data-action="closeArtEdit">Annulla</button>
-    <button class="actionBtn danger" type="button" data-action="deleteArt">Elimina</button>
+  <div class="actions">
+    <button class="btn primary" type="button" data-action="saveArt">Salva</button>
+    <button class="btn" type="button" data-action="closeEdit">Annulla</button>
+    <button class="btn danger" type="button" data-action="deleteArt">Elimina</button>
   </div>
 </div></div>
 
-<div id="mCliEdit" class="modalWrap"><div class="modal">
-  <div id="cliModalTitle" class="modalTitle">Nuovo cliente</div>
-  <div class="gridForm2">
-    <div class="field"><div class="label">Nome</div><input id="c_name" class="input"/></div>
-    <div class="field"><div class="label">Telefono</div><input id="c_phone" class="input" inputmode="tel"/></div>
-    <div class="field"><div class="label">Indirizzo</div><input id="c_address" class="input"/></div>
-    <div class="field"><div class="label">Città</div><input id="c_city" class="input"/></div>
-    <div class="field"><div class="label">CAP</div><input id="c_cap" class="input" inputmode="numeric"/></div>
-    <div class="field"><div class="label">Provincia</div><select id="c_province" class="select"></select></div>
+<div id="mCliEdit" class="modalwrap"><div class="modal">
+  <div class="h2" id="cliEditTitle">Nuovo cliente</div>
+  <div class="grid2">
+    <div><div class="k">Nome</div><input id="c_nome" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+    <div><div class="k">Telefono</div><input id="c_tel" inputmode="tel" autocomplete="off"/></div>
   </div>
-  <div class="field"><div class="label">Note</div><textarea id="c_note" class="textarea"></textarea></div>
-  <div class="modalActions">
-    <button class="actionBtn primary" type="button" data-action="saveCli">Salva cliente</button>
-    <button class="actionBtn soft" type="button" data-action="closeCli">Annulla</button>
-    <button class="actionBtn danger" type="button" data-action="deleteCli">Elimina</button>
+  <div style="margin-top:10px"><div class="k">Indirizzo</div><input id="c_ind" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+  <div class="grid2" style="margin-top:10px">
+    <div><div class="k">CAP</div><input id="c_cap" inputmode="numeric" autocomplete="off"/></div>
+    <div><div class="k">Città</div><input id="c_citta" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+  </div>
+  <div style="margin-top:10px"><div class="k">Provincia</div><select id="c_prov"></select></div>
+  <div style="margin-top:10px"><div class="k">Note</div><textarea id="c_note"></textarea></div>
+  <div class="actions">
+    <button class="btn primary" type="button" data-action="saveCli">Salva</button>
+    <button class="btn" type="button" data-action="closeCli">Annulla</button>
+    <button class="btn danger" type="button" data-action="deleteCli">Elimina</button>
   </div>
 </div></div>
 
-<div id="mOrdEdit" class="modalWrap"><div class="modal">
-  <div id="ordModalTitle" class="modalTitle">Nuovo ordine</div>
-  <div class="gridForm2">
-    <div class="field"><div class="label">Cliente</div><input id="o_cli_q" class="input" placeholder="Cerca cliente..."/><select id="o_client" class="select" style="margin-top:8px"></select></div>
-    <div class="field"><div class="label">Stato</div><select id="o_status" class="select"><option>Richiesto</option><option>In attesa di pagamento</option><option>Pagato</option><option>In lavorazione</option><option>Spedito</option><option>Consegnato</option><option>Annullato</option></select></div>
-    <div class="field"><div class="label">Data</div><input id="o_date" type="date" class="input"/></div>
-    <div class="field"><div class="label">Pagato</div><label class="switchPill"><input id="o_paid" type="checkbox"/>Incasso confermato</label></div>
+<div id="mOrdEdit" class="modalwrap"><div class="modal">
+  <div class="h2" id="ordEditTitle">Nuovo ordine</div>
+  <div class="grid2">
+    <div><div class="k">Cliente (cerca)</div><input id="o_cli_q" placeholder="Cerca cliente..." autocomplete="off" autocapitalize="off" spellcheck="false"/><select id="o_cli"></select></div>
+    <div><div class="k">Stato</div>
+      <select id="o_stato">
+        <option>Richiesto</option>
+        <option>In attesa di pagamento</option>
+        <option>Pagato</option>
+        <option>In lavorazione</option>
+        <option>Spedito</option>
+        <option>Consegnato</option>
+      </select>
+    </div>
   </div>
-  <div class="field"><div class="label">Note</div><input id="o_note" class="input"/></div>
+  <div class="grid2" style="margin-top:10px">
+    <div><div class="k">Data</div><input id="o_data" type="date" autocomplete="off"/></div>
+    <div><div class="k">Note</div><input id="o_note" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+  </div>
   <div class="hr"></div>
-  <div class="gridForm2">
-    <div class="field"><div class="label">Articolo</div><input id="o_art_q" class="input" placeholder="Cerca articolo..."/><select id="o_art" class="select" style="margin-top:8px"></select></div>
-    <div class="field"><div class="label">Prezzo riga</div><input id="o_price" class="input" inputmode="decimal"/></div>
+  <div class="h2">Righe ordine</div>
+  <div class="grid2">
+    <div><div class="k">Articolo (cerca)</div><input id="o_art_q" placeholder="Cerca articolo..." autocomplete="off" autocapitalize="off" spellcheck="false"/><select id="o_art"></select></div>
+    <div><div class="k">Prezzo</div><input id="o_price" inputmode="decimal" autocomplete="off"/></div>
   </div>
-  <div class="modalActions"><button class="actionBtn soft" type="button" data-action="addRow">Aggiungi riga</button></div>
+  <div class="actions">
+    <button class="btn" type="button" data-action="addRow">Aggiungi riga</button>
+  </div>
   <div id="o_rows" class="list"></div>
-  <div class="gridForm3" style="margin-top:12px">
-    <div class="infoBox"><div class="smallK">Totale ordine</div><div id="o_tot" class="bigV">0,00</div></div>
-    <div class="infoBox"><div class="smallK">Costo ordine</div><div id="o_cost" class="bigV">0,00</div></div>
-    <div class="infoBox good"><div class="smallK">Margine ordine</div><div id="o_margin" class="bigV">0,00</div></div>
-  </div>
-  <div class="modalActions">
-    <button class="actionBtn primary" type="button" data-action="saveOrd">Salva ordine</button>
-    <button class="actionBtn soft" type="button" data-action="closeOrd">Annulla</button>
-    <button class="actionBtn danger" type="button" data-action="deleteOrd">Elimina</button>
+  <div class="card" style="margin-top:10px"><div class="k">Totale</div><div id="o_tot" class="priceHot">0</div></div>
+  <div class="actions">
+    <button class="btn primary" type="button" data-action="saveOrd">Salva</button>
+    <button class="btn" type="button" data-action="closeOrd">Annulla</button>
+    <button class="btn danger" type="button" data-action="deleteOrd">Elimina</button>
   </div>
 </div></div>
-
-<div id="toast" class="toast"></div>
 
 <script>
-const STORAGE_KEYS=['vg_db_full_v5','vg_db_full_v6'];
-const ACTIVE_KEY='vg_db_full_v6';
-const PROVINCES=["AG","AL","AN","AO","AP","AQ","AR","AT","AV","BA","BG","BI","BL","BN","BO","BR","BS","BT","BZ","CA","CB","CE","CH","CL","CN","CO","CR","CS","CT","CZ","EN","FC","FE","FG","FI","FM","FR","GE","GO","GR","IM","IS","KR","LC","LE","LI","LO","LT","LU","MB","MC","ME","MI","MN","MO","MS","MT","NA","NO","NU","OR","PA","PC","PD","PE","PG","PI","PN","PO","PR","PT","PU","PV","PZ","RA","RC","RE","RG","RI","RM","RN","RO","SA","SI","SO","SP","SR","SS","SU","SV","TA","TE","TN","TO","TP","TR","TS","TV","UD","VA","VB","VC","VE","VI","VR","VT","VV"];
+/* ====== DB ====== */
+const KEY='vg_db_full_v6';
+const PROVINCE=[ "AG","AL","AN","AO","AP","AQ","AR","AT","AV","BA","BG","BI","BL","BN","BO","BR","BS","BT","BZ","CA","CB","CE","CH","CL","CN","CO","CR","CS","CT","CZ","EN","FC","FE","FG","FI","FM","FR","GE","GO","GR","IM","IS","KR","LC","LE","LI","LO","LT","LU","MB","MC","ME","MI","MN","MO","MS","MT","NA","NO","NU","OR","PA","PC","PD","PE","PG","PI","PN","PO","PR","PT","PU","PV","PZ","RA","RC","RE","RG","RI","RM","RN","RO","SA","SI","SO","SP","SR","SS","SU","SV","TA","TE","TN","TO","TP","TR","TS","TV","UD","VA","VB","VC","VE","VI","VR","VT","VV" ];
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
-const esc=s=>String(s??'').replace(/[&<>\"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
 const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
-const num=v=>{ const n=parseFloat(String(v??'').replace(',','.')); return isFinite(n)?n:0; };
-const todayStr=()=>{ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
-const monthNames=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
-let currentSection='dashboard';
-let currentArtId=null, currentCliId=null, currentOrdId=null, currentArtFilter='all', currentOrderFilter='all';
-let orderRows=[];
-let deferredPrompt=null;
+const round5=n=>Math.round(n/5)*5;
 
-function defaultSettings(){
-  return {appTitle:'Gestionale Maurizio',fxRate:0.90,fixedFee:5,minMargin:50};
+function defDB(){
+  return {version:'v6',articoli:[],clienti:[],ordini:[],createdAt:new Date().toISOString()};
 }
-function defaultDB(){
-  return {version:'v6',settings:defaultSettings(),articoli:[],clienti:[],ordini:[],createdAt:new Date().toISOString()};
+function loadDB(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(!raw) return defDB();
+    const o=JSON.parse(raw);
+    if(!o || !Array.isArray(o.articoli) || !Array.isArray(o.clienti) || !Array.isArray(o.ordini)) return defDB();
+    return o;
+  }catch(e){ return defDB(); }
 }
-function calcEurFromUsd(usd, settings){
-  return +(num(usd)*num(settings.fxRate||0.9)+num(settings.fixedFee||0)).toFixed(2);
+function saveDB(db){ localStorage.setItem(KEY, JSON.stringify(db)); renderAll(); }
+
+/* ====== DATE LINE ====== */
+function setDateLine(){
+  const x=document.getElementById('dateLine');
+  if(!x) return;
+  const d=new Date();
+  const days=["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"];
+  const dd=String(d.getDate()).padStart(2,'0');
+  const mm=String(d.getMonth()+1).padStart(2,'0');
+  const yyyy=d.getFullYear();
+  x.textContent=`${days[d.getDay()]} ${dd}/${mm}/${yyyy} • ${d.toLocaleTimeString('it-IT')}`;
 }
+setInterval(setDateLine, 1000); document.addEventListener('DOMContentLoaded', setDateLine);
+
+/* ====== QUALITY + PRICE RULES ====== */
 function qualityFromCode(code){
   const c=String(code||'').trim();
   if(!c) return '';
@@ -484,727 +324,601 @@ function qualityFromCode(code){
   if(first==='1' || /[A-Za-z]/.test(first)) return 'STANDARD';
   return 'STANDARD';
 }
-function round5(n){ return Math.round(num(n)/5)*5; }
-function calcAutoSell(costEur, quality){
-  let margin=0;
-  if(quality==='ORIGINALE'){
-    margin=costEur*0.30;
-    if(margin<60) margin=60;
-    if(margin>75) margin=75;
+function calcFromUsd(usd, qual){
+  const costo=(Number(usd||0)*0.90)+5;
+  if(!isFinite(costo)) return {costo:0, sell:0, marg:0};
+  if(qual==='ORIGINALE'){
+    let guad=costo*0.30;
+    if(guad<60) guad=60;
+    if(guad>75) guad=75;
+    const sell=round5(costo+guad);
+    return {costo, sell, marg:guad};
   }else{
-    margin=costEur*0.55;
-    if(margin<50) margin=50;
-    if(margin>60) margin=60;
+    let marg=costo*0.55;
+    if(marg<50) marg=50;
+    if(marg>60) marg=60;
+    const sell=round5(costo+marg);
+    return {costo, sell, marg};
   }
-  const sell=round5(costEur+margin);
-  return {sell, margin:+(sell-costEur).toFixed(2)};
 }
-function isDateActive(d){
-  const s=String(d||'').trim();
-  if(!s) return true;
-  return s>=todayStr();
+function promoValid(a){
+  if(!a.promoAttiva) return false;
+  const p=Number(a.prezzoPromo||0);
+  const d=String(a.scadenzaPromo||'').trim(); // yyyy-mm-dd
+  if(!(p>0) || d.length<8) return false;
+  const today=todayStr();
+  return d>=today;
 }
-function basePrice(article){
-  if(article.prezzoVenditaAuto>0) return num(article.prezzoVenditaAuto);
-  const cost=article.costoEurNormale>0?num(article.costoEurNormale):calcEurFromUsd(article.costoUsdNormale, loadDB().settings);
-  return calcAutoSell(cost, qualityFromCode(article.codice)).sell;
+function currentPrice(a){
+  return promoValid(a) ? Number(a.prezzoPromo) : Number(a.prezzoVendita||0);
 }
-function supplierPromoActive(article){ return !!article.promoFornitoreAttiva && num(article.costoUsdPromo)>0 && isDateActive(article.scadenzaPromo); }
-function personalPromoActive(article){ return !!article.promoPersonaleAttiva && num(article.prezzoPromoPersonale)>0 && isDateActive(article.scadenzaPromo); }
-function realActiveCost(article){ return supplierPromoActive(article) ? num(article.costoEurPromo) : num(article.costoEurNormale); }
-function finalPrice(article){ return personalPromoActive(article) ? num(article.prezzoPromoPersonale) : num(article.prezzoVenditaAuto); }
-function marginValue(article){ return +(finalPrice(article)-realActiveCost(article)).toFixed(2); }
-function marginPct(article){ const fp=finalPrice(article); return fp>0?Math.round((marginValue(article)/fp)*100):0; }
-function standardMargin(article){ return +(num(article.prezzoVenditaAuto)-num(article.costoEurNormale)).toFixed(2); }
-function minSafePrice(article, settings){ return +(realActiveCost(article)+num(settings.minMargin)).toFixed(2); }
-function statusClass(status, paid){
-  if(paid) return 'status-paid';
-  if(['In lavorazione','Spedito'].includes(status)) return 'status-work';
-  return 'status-open';
+
+function orderMargin(order, db){
+  const righe=Array.isArray(order?.righe)?order.righe:[];
+  return righe.reduce((sum,r)=>{
+    const art=db.articoli.find(a=>a.id===r.articoloId);
+    const costo=Number(art?.costoEur||0);
+    const prezzo=Number(r?.prezzo||0);
+    return sum + Math.max(0, prezzo - costo);
+  },0);
 }
-function buildPost(article, settings){
-  const lines=[];
-  const brand=(article.brand||'').trim();
-  const model=(article.modello||'').trim();
-  const qual=qualityFromCode(article.codice);
-  const promoDetails=(article.dettagliPost||'').trim();
-  if(personalPromoActive(article) || supplierPromoActive(article)) lines.push('🕊 PROMO ATTIVA 🕊');
-  if(promoDetails) lines.push(promoDetails);
-  lines.push(([brand,model].filter(Boolean).join(' ')||article.codice||'Articolo').trim());
-  if(qual) lines.push('Qualità '+qual);
-  if(article.misura) lines.push('Mis. '+article.misura);
-  lines.push('Cod. '+(article.codice||'-'));
-  lines.push('Prezzo: € '+money(finalPrice(article)));
-  if(personalPromoActive(article)) lines.push('Promo personale attiva');
-  if(supplierPromoActive(article)) lines.push('Promo fornitore attiva');
+function startOfToday(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
+function tsFromDateStr(s){
+  if(!s) return 0;
+  const d=new Date(String(s));
+  const t=d.getTime();
+  return Number.isFinite(t)?t:0;
+}
+function profitTotals(db){
+  const now=startOfToday();
+  const weekStart=new Date(now); weekStart.setDate(now.getDate()-6);
+  const monthStart=new Date(now.getFullYear(), now.getMonth(), 1);
+  const yearStart=new Date(now.getFullYear(), 0, 1);
+  let week=0, month=0, year=0;
+  db.ordini.forEach(o=>{
+    const ts=tsFromDateStr(o.data) || Number(o._ts||0);
+    if(!ts) return;
+    const margin=orderMargin(o, db);
+    if(ts>=weekStart.getTime()) week+=margin;
+    if(ts>=monthStart.getTime()) month+=margin;
+    if(ts>=yearStart.getTime()) year+=margin;
+  });
+  return {week, month, year};
+}
+
+/* ====== POST (rules) ====== */
+function emojiQualityForPost(a){
+  const q=qualityFromCode(a.codice);
+  return (q==='ORIGINALE') ? '🥇' : '🔝💯';
+}
+function buildPost(a){
+  const brand=(a.brand||'').trim();
+  const modello=(a.modello||'').trim();
+  if(!a.codice) return '';
+  const qemoji=emojiQualityForPost(a);
+  let lines=[];
+  // no promo header unless user sets promoAttiva? we only show if promoAttiva true
+  if(a.promoAttiva) lines.push('🔥PROMOZIONE🔥');
+  lines.push(`${brand} ${modello} ${qemoji}`.trim());
+  if(qualityFromCode(a.codice)==='ORIGINALE') lines.push('QUALITÀ SUPERIORE');
+  if(a.scatola) lines.push('Con scatola 🎁');
+  if(a.materiale) lines.push(`🧵 ${a.materiale}`);
+  if(a.misura) lines.push(`Mis. ${a.misura}`);
+  if(a.colori) lines.push(a.colori);
+  if(a.tracolla) lines.push(a.tracolla);
+  
+  lines.push(`cod. ${a.codice}`);
   return lines.join('\n');
 }
-function normalizeArticle(a, settings){
-  const costoUsdNormale=num(a.costoUsdNormale ?? a.costoUsd ?? 0);
-  const costoEurNormale=+(num(a.costoEurNormale ?? a.costoEur) || calcEurFromUsd(costoUsdNormale, settings)).toFixed(2);
-  const auto=calcAutoSell(costoEurNormale, qualityFromCode(a.codice));
-  const prezzoVenditaAuto=num((a.prezzoVenditaAuto ?? a.prezzoVendita ?? auto.sell ?? 0)) || auto.sell;
-  const costoUsdPromo=num(a.costoUsdPromo ?? 0);
-  const costoEurPromo=+(num(a.costoEurPromo) || (costoUsdPromo>0?calcEurFromUsd(costoUsdPromo, settings):0)).toFixed(2);
-  const promoPersonaleAttiva=!!(a.promoPersonaleAttiva ?? a.promoAttiva ?? false);
-  const prezzoPromoPersonale=num(a.prezzoPromoPersonale ?? a.prezzoPromo ?? 0);
-  return {
-    id:a.id||uid(),
-    codice:String(a.codice||'').trim(),
-    brand:a.brand||'',
-    modello:a.modello||a.model||'',
-    categoria:a.categoria||'',
-    descrizione:a.descrizione||a.desc||'',
-    fornitore:a.fornitore||a.supplier||'',
-    misura:a.misura||a.size||'',
-    costoUsdNormale,
-    costoEurNormale,
-    prezzoVenditaAuto,
-    promoFornitoreAttiva:!!a.promoFornitoreAttiva,
-    costoUsdPromo,
-    costoEurPromo,
-    promoPersonaleAttiva,
-    prezzoPromoPersonale,
-    scadenzaPromo:a.scadenzaPromo||a.promoScadenza||'',
-    dettagliPost:a.dettagliPost||a.descrizionePost||'',
-    post:a.post||'',
-    note:a.note||'',
-    foto:Array.isArray(a.foto)?a.foto.slice(0,8):[],
-    _ts:a._ts||Date.now()
-  };
+
+/* ====== NAV ====== */
+function go(name){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec_'+name).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.go===name));
+  document.querySelectorAll('.navBottom button').forEach(b=>b.classList.toggle('active', b.dataset.go===name));
+  history.pushState({page:name},'', '#'+name);
 }
-function rowSnapshotFromArticle(article, price){
-  const p=num(price||finalPrice(article));
-  const cost=realActiveCost(article);
-  return {articoloId:article.id,codice:article.codice,modello:article.modello,price:p,cost,margin:+(p-cost).toFixed(2)};
-}
-function normalizeOrder(o, articles){
-  const rows=(Array.isArray(o.righe)?o.righe:[]).map(r=>{
-    const art=articles.find(a=>a.id===r.articoloId);
-    const fallback=art?rowSnapshotFromArticle(art, r.prezzo ?? r.price):{articoloId:r.articoloId||'',codice:r.codice||'',modello:r.modello||'',price:num(r.prezzo ?? r.price),cost:num(r.cost),margin:num(r.margin)};
-    return {
-      articoloId:fallback.articoloId,
-      codice:r.codice||fallback.codice,
-      modello:r.modello||fallback.modello,
-      price:num(r.prezzo ?? r.price ?? fallback.price),
-      cost:num(r.cost ?? fallback.cost),
-      margin:num(r.margin ?? (num(r.prezzo ?? r.price ?? fallback.price)-num(r.cost ?? fallback.cost)))
-    };
-  });
-  const total=+rows.reduce((s,r)=>s+num(r.price),0).toFixed(2);
-  const totalCost=+rows.reduce((s,r)=>s+num(r.cost),0).toFixed(2);
-  const totalMargin=+rows.reduce((s,r)=>s+num(r.margin),0).toFixed(2);
-  const paid=typeof o.pagato==='boolean'?o.pagato:['Pagato','Spedito','Consegnato'].includes(o.stato);
-  return {
-    id:o.id||('ORD-'+uid().slice(0,6).toUpperCase()),
-    clienteId:o.clienteId||'',
-    stato:o.stato||'Richiesto',
-    data:o.data||todayStr(),
-    note:o.note||'',
-    pagato:paid,
-    righe:rows,
-    totale:total,
-    costoTotale:totalCost,
-    margineTotale:totalMargin,
-    _ts:o._ts||Date.now()
-  };
-}
-function normalizeClient(c){
-  return {id:c.id||uid(),nome:c.nome||'',telefono:c.telefono||'',indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:c._ts||Date.now()};
-}
-function loadDB(){
-  for(const key of [ACTIVE_KEY,...STORAGE_KEYS]){
-    try{
-      const raw=localStorage.getItem(key);
-      if(!raw) continue;
-      const parsed=JSON.parse(raw);
-      const settings={...defaultSettings(),...(parsed.settings||{})};
-      const articoli=(parsed.articoli||[]).map(a=>normalizeArticle(a, settings));
-      const clienti=(parsed.clienti||[]).map(normalizeClient);
-      const ordini=(parsed.ordini||[]).map(o=>normalizeOrder(o, articoli));
-      return {version:'v6',settings,articoli,clienti,ordini,createdAt:parsed.createdAt||new Date().toISOString()};
-    }catch(e){}
-  }
-  return defaultDB();
-}
-function saveDB(db){
-  db.version='v6';
-  localStorage.setItem(ACTIVE_KEY, JSON.stringify(db));
-  localStorage.setItem('vg_db_full_v5', JSON.stringify(db));
-  renderAll();
-}
-function toast(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.style.display='block';
-  clearTimeout(window.__toast); window.__toast=setTimeout(()=>t.style.display='none',1600);
-}
+window.addEventListener('popstate',(e)=>{
+  const page=(e.state&&e.state.page) || location.hash.replace('#','') || 'home';
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  const sec=document.getElementById('sec_'+page); if(sec) sec.classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.go===page));
+  document.querySelectorAll('.navBottom button').forEach(b=>b.classList.toggle('active', b.dataset.go===page));
+});
+
+/* ====== UI helpers ====== */
 function show(id){ document.getElementById(id).style.display='flex'; }
 function hide(id){ document.getElementById(id).style.display='none'; }
-function updateDate(){
-  const d=new Date();
-  const days=['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
-  const text=days[d.getDay()]+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()+' • '+d.toLocaleTimeString('it-IT');
-  document.getElementById('dateLine').textContent=text;
-}
-setInterval(updateDate,1000);
-
-function getMetrics(db){
-  const now=new Date();
-  const monthKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-  const orders=db.ordini.slice();
-  const openOrders=orders.filter(o=>!['Consegnato','Annullato'].includes(o.stato)).length;
-  const monthOrders=orders.filter(o=>String(o.data||'').slice(0,7)===monthKey);
-  const totalMargin=+orders.reduce((s,o)=>s+num(o.margineTotale),0).toFixed(2);
-  const monthMargin=+monthOrders.reduce((s,o)=>s+num(o.margineTotale),0).toFixed(2);
-  const avgOrder=orders.length?+(orders.reduce((s,o)=>s+num(o.totale),0)/orders.length).toFixed(2):0;
-  const personalPromos=db.articoli.filter(a=>personalPromoActive(a));
-  const lowMarginPromos=personalPromos.filter(a=>marginValue(a)<num(db.settings.minMargin));
-  const monthPaid=+monthOrders.filter(o=>o.pagato).reduce((s,o)=>s+num(o.totale),0).toFixed(2);
-  const toCollect=+orders.filter(o=>!o.pagato && o.stato!=='Annullato').reduce((s,o)=>s+num(o.totale),0).toFixed(2);
-  const paidTotal=+orders.filter(o=>o.pagato).reduce((s,o)=>s+num(o.totale),0).toFixed(2);
-  const avgMargin=orders.length?+(orders.reduce((s,o)=>s+num(o.margineTotale),0)/orders.length).toFixed(2):0;
-  return {openOrders,monthMargin,avgOrder,totalMargin,personalPromos,lowMarginPromos,monthPaid,toCollect,paidTotal,avgMargin};
-}
-function getMonthsSeries(db){
-  const out=[];
-  const now=new Date();
-  for(let i=5;i>=0;i--){
-    const d=new Date(now.getFullYear(), now.getMonth()-i, 1);
-    const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-    const label=monthNames[d.getMonth()];
-    const value=+db.ordini.filter(o=>String(o.data||'').slice(0,7)===key).reduce((s,o)=>s+num(o.margineTotale),0).toFixed(2);
-    out.push({key,label,value,current:i===0});
+function toast(msg){
+  let t=document.getElementById('vg_toast');
+  if(!t){ t=document.createElement('div'); t.id='vg_toast';
+    t.style.cssText='position:fixed;left:50%;bottom:78px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 12px;border-radius:12px;font-weight:900;font-size:12px;z-index:9999;box-shadow:0 12px 24px rgba(0,0,0,.25);max-width:90vw;text-align:center;display:none';
+    document.body.appendChild(t);
   }
-  return out;
+  t.textContent=msg; t.style.display='block';
+  clearTimeout(window.__t); window.__t=setTimeout(()=>t.style.display='none',1400);
 }
-function go(section){
-  currentSection=section;
-  document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active', s.id==='sec_'+section));
-  document.querySelectorAll('.panelTab').forEach(b=>b.classList.toggle('active', b.dataset.go===section));
-  document.querySelectorAll('.bottomNav button').forEach(b=>b.classList.toggle('active', b.dataset.go===section));
-  history.replaceState({section},'', '#'+section);
+function copyTextFrom(el){
+  const t=el.value||el.textContent||'';
+  if(!t) return alert('Niente da copiare.');
+  navigator.clipboard?.writeText(t).then(()=>toast('Copiato')).catch(()=>{ try{ el.select(); document.execCommand('copy'); toast('Copiato'); }catch(e){ alert('Copia non disponibile'); } });
 }
-function renderDashboard(db){
-  const metrics=getMetrics(db);
-  document.getElementById('dashOpenOrders').textContent=metrics.openOrders;
-  document.getElementById('dashMonthMargin').textContent=money(metrics.monthMargin);
-  document.getElementById('dashAvgOrder').textContent=money(metrics.avgOrder);
-  document.getElementById('dashTotalMargin').textContent=money(metrics.totalMargin);
-  document.getElementById('dashPromoCount').textContent=metrics.personalPromos.length;
-  document.getElementById('dashPromoHelp').innerHTML=metrics.personalPromos.length
-    ? (metrics.lowMarginPromos.length
-      ? 'Margine ridotto <strong>'+money(Math.min(...metrics.lowMarginPromos.map(marginValue)))+'</strong>'
-      : 'Margini promo sotto controllo')
-    : 'nessun promo personale attivo';
-  document.getElementById('dashMonthPaid').textContent=money(metrics.monthPaid);
-  document.getElementById('dashToCollect').textContent=money(metrics.toCollect);
 
-  const series=getMonthsSeries(db);
-  const max=Math.max(1,...series.map(s=>s.value));
-  document.getElementById('monthBars').innerHTML=series.map(s=>{
-    const h=Math.max(12, Math.round((s.value/max)*96));
-    return `<div class="barCol"><div class="barWrap"><div class="bar ${s.value===0?'isZero':''} ${s.current?'highlight':''}" style="height:${h}px"></div></div><div class="barLabel">${esc(s.label)}</div><div class="barValue">${s.value?money(s.value):''}</div></div>`;
-  }).join('');
+/* ====== RENDER ====== */
+function renderHome(){
+  const db=loadDB();
+  document.getElementById('c_art').textContent=db.articoli.length;
+  document.getElementById('c_cli').textContent=db.clienti.length;
+  document.getElementById('c_ord').textContent=db.ordini.length;
+  document.getElementById('c_promo').textContent=db.articoli.filter(promoValid).length;
 
-  const lastOrder=db.ordini.slice().sort((a,b)=>(b._ts||0)-(a._ts||0))[0];
-  const nextPromo=db.articoli.filter(a=>supplierPromoActive(a)||personalPromoActive(a)).sort((a,b)=>String(a.scadenzaPromo||'9999-12-31').localeCompare(String(b.scadenzaPromo||'9999-12-31')))[0];
-  const lowPromo=db.articoli.filter(a=>personalPromoActive(a) && marginValue(a)<num(db.settings.minMargin)).sort((a,b)=>marginValue(a)-marginValue(b))[0];
-  const info=[
-    {label:lastOrder?`Ultimo ordine: ${clientName(db,lastOrder.clienteId)} • ${lastOrder.stato} • ${lastOrder.data}`:'Ultimo ordine: nessuno', target:'ordini'},
-    {label:nextPromo?`Promo in scadenza: ${nextPromo.brand||''} ${nextPromo.modello||''} • ${nextPromo.scadenzaPromo||'senza data'}`:'Promo in scadenza: nessuna', target:'articoli'},
-    {label:lowPromo?`Attenzione promo: ${lowPromo.brand||''} ${lowPromo.modello||''} • margine ${money(marginValue(lowPromo))}`:'Margini promo: tutto pulito', target:'articoli'},
+  const totals=profitTotals(db);
+  const last=db.ordini.slice().sort((a,b)=>(b._ts||0)-(a._ts||0))[0];
+  const lines=[
+    {text:`Guadagno settimanale: ${money(totals.week)}`, target:'ordini'},
+    {text:`Guadagno mensile: ${money(totals.month)}`, target:'ordini'},
+    {text:`Guadagno annuale: ${money(totals.year)}`, target:'ordini'},
+    {text:last?`Ultimo ordine: ${last.stato} • ${last.data||''}`:'Ultimo ordine: nessuno', target:'ordini'}
   ];
-  document.getElementById('dashInfo').innerHTML=info.map(i=>`<div class="infoItem"><button data-go="${i.target}">${esc(i.label)}</button></div>`).join('');
+
+  const list=document.getElementById('dashList');
+  list.innerHTML=lines.map(item=>{
+    return `<div class="row" data-go="${item.target}" style="grid-template-columns:1fr"><div class="main"><div class="t">${esc(item.text)}</div></div></div>`;
+  }).join('');
 }
-function articleBadges(a, db){
-  const badges=[];
-  if(supplierPromoActive(a)) badges.push('<span class="badge green">Promo fornitore</span>');
-  else if(a.promoFornitoreAttiva) badges.push('<span class="badge">Promo fornitore impostata</span>');
-  if(personalPromoActive(a)) badges.push('<span class="badge orange">Promo personale</span>');
-  else if(a.promoPersonaleAttiva) badges.push('<span class="badge">Promo personale impostata</span>');
-  if(marginValue(a)<num(db.settings.minMargin)) badges.push('<span class="badge red">Margine basso</span>');
-  return badges.join('');
-}
-function renderArticles(db){
+
+function renderArt(){
+  const db=loadDB();
   const q=document.getElementById('qArt').value.trim().toLowerCase();
-  let items=db.articoli.filter(a=>{
-    const hay=(a.codice+' '+a.brand+' '+a.modello+' '+a.categoria).toLowerCase();
+  const items=db.articoli.filter(a=>{
+    const hay=((a.codice||'')+' '+(a.brand||'')+' '+(a.modello||'')).toLowerCase();
     return !q || hay.includes(q);
-  });
-  if(currentArtFilter==='promo') items=items.filter(a=>supplierPromoActive(a)||personalPromoActive(a));
-  if(currentArtFilter==='warning') items=items.filter(a=>marginValue(a)<num(db.settings.minMargin));
-  items=items.sort((a,b)=>(b._ts||0)-(a._ts||0));
-  document.getElementById('listArt').innerHTML=items.length?items.map(a=>`
-    <div class="rowCard" data-open="art" data-id="${a.id}">
-      <img class="thumb" src="${(a.foto&&a.foto[0])||''}" onerror="this.src='';this.classList.add('hidden')"/>
+  }).sort((a,b)=>String(b._ts||0).localeCompare(String(a._ts||0)));
+  const el=document.getElementById('listArt');
+  el.innerHTML=items.map(a=>{
+    const promo=pseudoPromoBadge(a);
+    const img=(a.foto&&a.foto[0])||'';
+    return `<div class="row" data-open="art" data-id="${a.id}">
+      <img class="thumb" src="${img}" onerror="this.style.display='none'"/>
       <div>
-        <div class="rowTitle">${esc(a.modello||a.descrizione||a.codice||'Articolo')}</div>
-        <div class="rowMeta">${esc(a.brand||'-')} • ${esc(a.codice||'-')} • ${esc(qualityFromCode(a.codice)||'-')}</div>
-        <div class="badges">${articleBadges(a,db)}</div>
+        <div class="t">${esc(a.modello||'-')}</div>
+        <div class="s">${esc(a.brand||'')} • ${esc(a.codice||'')} • ${esc(qualityFromCode(a.codice))}</div>
+        ${promo}
       </div>
-      <div class="rowAside">
-        <div class="rowPriceK">Prezzo</div>
-        <div class="rowPrice">${money(finalPrice(a))}</div>
-        <div class="rowMeta">Margine ${money(marginValue(a))}</div>
+      <div style="text-align:right">
+        <div class="k">Prezzo</div><div class="t">${money(currentPrice(a))}</div>
       </div>
-    </div>
-  `).join(''):'<div class="empty">Nessun articolo trovato</div>';
+    </div>`;
+  }).join('') || `<div class="card"><div class="small">Nessun articolo</div></div>`;
 }
-function renderClients(db){
+function pseudoPromoBadge(a){
+  if(!a.promoAttiva) return '';
+  const ok=promoValid(a);
+  if(ok) return `<div class="pill promo" style="margin-top:6px"><span class="dot"></span>PROMO attiva</div>`;
+  return `<div class="pill" style="margin-top:6px">PROMO impostata</div>`;
+}
+
+function renderCli(){
+  const db=loadDB();
   const q=document.getElementById('qCli').value.trim().toLowerCase();
   const items=db.clienti.filter(c=>{
-    const hay=(c.nome+' '+c.telefono+' '+c.citta+' '+c.provincia).toLowerCase();
+    const hay=((c.nome||'')+' '+(c.telefono||'')+' '+(c.citta||'')+' '+(c.provincia||'')).toLowerCase();
     return !q || hay.includes(q);
-  }).sort((a,b)=>(b._ts||0)-(a._ts||0));
-  document.getElementById('listCli').innerHTML=items.length?items.map(c=>`
-    <div class="rowCard noImg" data-open="cli" data-id="${c.id}">
+  }).sort((a,b)=>String(b._ts||0).localeCompare(String(a._ts||0)));
+  const el=document.getElementById('listCli');
+  el.innerHTML=items.map(c=>`
+    <div class="row" data-open="cli" data-id="${c.id}" style="grid-template-columns:1fr auto">
       <div>
-        <div class="rowTitle">${esc(c.nome||'-')}</div>
-        <div class="rowMeta">${esc(c.telefono||'')} • ${esc(c.citta||'')} (${esc(c.provincia||'')})</div>
+        <div class="t">${esc(c.nome||'-')}</div>
+        <div class="s">${esc(c.telefono||'')} • ${esc(c.citta||'')} (${esc(c.provincia||'')})</div>
       </div>
-      <div class="statusPill">${esc(c.provincia||'-')}</div>
+      <div class="pill">${esc(c.provincia||'-')}</div>
     </div>
-  `).join(''):'<div class="empty">Nessun cliente trovato</div>';
-}
-function clientName(db, id){ const c=db.clienti.find(x=>x.id===id); return c?c.nome:'Cliente'; }
-function renderOrders(db){
-  const q=document.getElementById('qOrd').value.trim().toLowerCase();
-  let items=db.ordini.filter(o=>{
-    const hay=(o.id+' '+o.stato+' '+clientName(db,o.clienteId)).toLowerCase();
-    return !q || hay.includes(q);
-  });
-  if(currentOrderFilter==='open') items=items.filter(o=>!o.pagato && o.stato!=='Annullato');
-  if(currentOrderFilter==='paid') items=items.filter(o=>o.pagato);
-  items=items.sort((a,b)=>(b._ts||0)-(a._ts||0));
-  document.getElementById('listOrd').innerHTML=items.length?items.map(o=>`
-    <div class="rowCard noImg" data-open="ord" data-id="${o.id}">
-      <div>
-        <div class="rowTitle">${esc(clientName(db,o.clienteId))} • <span style="color:var(--red)">${money(o.totale)}</span></div>
-        <div class="rowMeta">Margine ${money(o.margineTotale)} • ${esc(o.stato)} • ${esc(o.data)}</div>
-      </div>
-      <div class="statusPill ${statusClass(o.stato,o.pagato)}">${o.pagato?'Pagato':esc(o.stato)}</div>
-    </div>
-  `).join(''):'<div class="empty">Nessun ordine trovato</div>';
-}
-function renderConti(db){
-  const metrics=getMetrics(db);
-  document.getElementById('contiIncassatoTot').textContent=money(metrics.paidTotal);
-  document.getElementById('contiDaIncassareTot').textContent=money(metrics.toCollect);
-  document.getElementById('contiMargineMedio').textContent=money(metrics.avgMargin);
-  document.getElementById('contiOrdPagati').textContent=db.ordini.filter(o=>o.pagato).length;
-  const items=db.ordini.slice().sort((a,b)=>(b._ts||0)-(a._ts||0)).slice(0,8);
-  document.getElementById('contiList').innerHTML=items.length?items.map(o=>`
-    <div class="rowCard noImg" data-open="ord" data-id="${o.id}">
-      <div>
-        <div class="rowTitle">${esc(clientName(db,o.clienteId))}</div>
-        <div class="rowMeta">${esc(o.data)} • Totale ${money(o.totale)} • Margine ${money(o.margineTotale)}</div>
-      </div>
-      <div class="statusPill ${statusClass(o.stato,o.pagato)}">${o.pagato?'Incassato':'Da incassare'}</div>
-    </div>
-  `).join(''):'<div class="empty">Ancora nessun movimento</div>';
-}
-function renderSettings(db){
-  document.getElementById('appTitle').textContent=db.settings.appTitle||'Gestionale Maurizio';
-  document.title=db.settings.appTitle||'Gestionale Maurizio';
-  document.getElementById('set_title').value=db.settings.appTitle||'';
-  document.getElementById('set_min_margin').value=num(db.settings.minMargin||50);
-  document.getElementById('set_fx').value=num(db.settings.fxRate||0.9);
-  document.getElementById('set_fee').value=num(db.settings.fixedFee||5);
-}
-function renderAll(){
-  const db=loadDB();
-  renderSettings(db);
-  renderDashboard(db);
-  renderArticles(db);
-  renderClients(db);
-  renderOrders(db);
-  renderConti(db);
+  `).join('') || `<div class="card"><div class="small">Nessun cliente</div></div>`;
 }
 
-function setInfoBoxState(box, val, minMargin){
-  box.classList.remove('good','warn','bad');
-  if(val>=minMargin) box.classList.add('good');
-  else if(val>=Math.max(minMargin-5,0)) box.classList.add('warn');
-  else box.classList.add('bad');
-}
-function renderArticlePreview(){
+function renderOrd(){
   const db=loadDB();
-  const settings=db.settings;
-  const code=document.getElementById('a_code').value.trim();
-  const quality=qualityFromCode(code);
-  const costUsd=num(document.getElementById('a_usd').value);
-  const costEur=calcEurFromUsd(costUsd, settings);
-  const auto=calcAutoSell(costEur, quality);
-  const supplierPromoUsd=num(document.getElementById('a_supplier_promo_usd').value);
-  const supplierPromoOn=document.getElementById('a_supplier_promo_on').checked;
-  const supplierPromoEur=supplierPromoUsd>0?calcEurFromUsd(supplierPromoUsd, settings):0;
-  const personalPromoOn=document.getElementById('a_personal_promo_on').checked;
-  const personalPromoPrice=num(document.getElementById('a_personal_promo_price').value);
-  const expiry=document.getElementById('a_promo_expiry').value;
-  document.getElementById('a_eur').value=money(costEur);
-  document.getElementById('a_sell').value=String(auto.sell);
-  document.getElementById('a_supplier_promo_eur').value=supplierPromoUsd?money(supplierPromoEur):'';
-  const draft=normalizeArticle({
-    id:currentArtId||uid(),
-    codice:code,
-    brand:document.getElementById('a_brand').value.trim(),
-    modello:document.getElementById('a_model').value.trim(),
-    categoria:document.getElementById('a_cat').value.trim(),
-    descrizione:document.getElementById('a_desc').value.trim(),
-    fornitore:document.getElementById('a_supplier').value.trim(),
-    misura:document.getElementById('a_size').value.trim(),
-    costoUsdNormale:costUsd,
-    costoEurNormale:costEur,
-    prezzoVenditaAuto:auto.sell,
-    promoFornitoreAttiva:supplierPromoOn,
-    costoUsdPromo:supplierPromoUsd,
-    costoEurPromo:supplierPromoEur,
-    promoPersonaleAttiva:personalPromoOn,
-    prezzoPromoPersonale:personalPromoPrice,
-    scadenzaPromo:expiry,
-    dettagliPost:document.getElementById('a_details').value.trim(),
-    note:document.getElementById('a_note').value
-  }, settings);
-  const baseMargin=standardMargin(draft);
-  const activeCost=realActiveCost(draft);
-  const activeMargin=marginValue(draft);
-  const activePct=marginPct(draft);
-  document.getElementById('a_margin_base').textContent=money(baseMargin);
-  document.getElementById('a_margin_base_pct').textContent=(draft.prezzoVenditaAuto?Math.round((baseMargin/draft.prezzoVenditaAuto)*100):0)+'%';
-  document.getElementById('a_cost_active').textContent=money(activeCost);
-  document.getElementById('a_margin_active').textContent=money(activeMargin);
-  document.getElementById('a_margin_active_pct').textContent=activePct+'%';
-  document.getElementById('a_final_price').textContent=money(finalPrice(draft));
-  document.getElementById('a_min_safe').textContent=money(minSafePrice(draft, settings));
-  document.getElementById('a_post').value=buildPost(draft, settings);
-  setInfoBoxState(document.getElementById('a_margin_box'), activeMargin, num(settings.minMargin));
-  const alertBox=document.getElementById('a_alert_box');
-  const alertText=document.getElementById('a_alert_text');
-  const alertHelp=document.getElementById('a_alert_help');
-  alertBox.classList.remove('good','warn','bad');
-  if(personalPromoActive(draft) && activeMargin < num(settings.minMargin)){
-    if(activeMargin >= Math.max(num(settings.minMargin)-5,0)){
-      alertBox.classList.add('warn');
-      alertText.textContent='Attento';
-      alertHelp.textContent='Sei sotto il margine minimo impostato. Ora blocco il salvataggio, così non fai il benefattore.';
-    }else{
-      alertBox.classList.add('bad');
-      alertText.textContent='Bloccato';
-      alertHelp.textContent='Promo personale troppo bassa. Alza il prezzo o abbassa la fantasia.';
-    }
-  }else{
-    alertBox.classList.add('good');
-    alertText.textContent='OK';
-    alertHelp.textContent='Margine coerente. Qui almeno i numeri non bestemmiano.';
-  }
+  const q=document.getElementById('qOrd').value.trim().toLowerCase();
+  const items=db.ordini.filter(o=>{
+    const c=db.clienti.find(x=>x.id===o.clienteId);
+    const hay=((o.id||'')+' '+(o.stato||'')+' '+(c?c.nome:'')).toLowerCase();
+    return !q || hay.includes(q);
+  }).sort((a,b)=>String(b._ts||0).localeCompare(String(a._ts||0)));
+  const el=document.getElementById('listOrd');
+  el.innerHTML=items.map(o=>{
+    const c=db.clienti.find(x=>x.id===o.clienteId);
+    return `<div class="row" data-open="ord" data-id="${o.id}" style="grid-template-columns:1fr auto">
+      <div>
+        <div class="t">${esc(c?c.nome:'-')} • <span class="priceHot">${money(o.totale||0)}</span></div>
+        <div class="s">${esc(o.stato||'-')} • ${esc(o.data||'')}</div>
+      </div>
+      <div class="pill">${esc(o.stato||'-')}</div>
+    </div>`;
+  }).join('') || `<div class="card"><div class="small">Nessun ordine</div></div>`;
 }
-function openArticleEdit(id){
+
+function renderAll(){ renderHome(); renderArt(); renderCli(); renderOrd(); }
+
+/* ====== ART view/edit ====== */
+let currentArtId=null;
+function openArtView(id){
+  const db=loadDB(); const a=db.articoli.find(x=>x.id===id); if(!a) return;
+  currentArtId=id;
+  const pics=a.foto||[];
+  const hero=document.getElementById('vArtHero');
+  const thumbs=document.getElementById('vArtThumbs');
+  hero.src=pics[0]||''; hero.style.display=pics[0]?'block':'none';
+  thumbs.innerHTML=pics.map(src=>`<img src="${src}" onclick="document.getElementById('vArtHero').src='${src}'"/>`).join('');
+  document.getElementById('vArtCod').textContent=a.codice||'-';
+  document.getElementById('vArtQual').textContent=qualityFromCode(a.codice)||'-';
+  document.getElementById('vArtPrezzo').textContent=money(a.prezzoVendita||0);
+  document.getElementById('vArtPrezzoUse').textContent=money(currentPrice(a));
+  const pill=document.getElementById('vArtPromoPill');
+  pill.innerHTML = promoValid(a)?`<div class="pill promo" style="margin-top:6px"><span class="dot"></span>PROMO attiva</div>`:(a.promoAttiva?`<div class="pill" style="margin-top:6px">PROMO impostata</div>`:'');
+  document.getElementById('vArtPost').value=buildPost(a);
+  show('mArtView');
+}
+function openArtEdit(id){
   const db=loadDB();
   const a=id?db.articoli.find(x=>x.id===id):null;
   currentArtId=id||null;
-  document.getElementById('artModalTitle').textContent=a?'Modifica articolo':'Nuovo articolo';
-  const set=(k,v)=>document.getElementById(k).value=v??'';
-  set('a_code',a?.codice); set('a_brand',a?.brand); set('a_model',a?.modello); set('a_cat',a?.categoria); set('a_desc',a?.descrizione);
-  set('a_supplier',a?.fornitore); set('a_size',a?.misura); set('a_usd',a?.costoUsdNormale); set('a_supplier_promo_usd',a?.costoUsdPromo);
-  set('a_promo_expiry',a?.scadenzaPromo); set('a_personal_promo_price',a?.prezzoPromoPersonale); set('a_details',a?.dettagliPost); set('a_note',a?.note);
-  document.getElementById('a_supplier_promo_on').checked=!!a?.promoFornitoreAttiva;
-  document.getElementById('a_personal_promo_on').checked=!!a?.promoPersonaleAttiva;
+  document.getElementById('artEditTitle').textContent = a?'Modifica articolo':'Nuovo articolo';
+
+  if(!a){
+    ['a_cod','a_brand','a_mod','a_cat','a_desc','a_forn','a_mis','a_usd','a_promo_price','a_promo_date','a_note','a_post']
+    .forEach(id => document.getElementById(id).value='');
+    document.getElementById('a_promo_on').checked=false;
+  }
+  const set=(k,v)=>document.getElementById(k).value=v||'';
+  set('a_cod', a?.codice); set('a_brand', a?.brand); set('a_mod', a?.modello);
+  set('a_cat', a?.categoria); set('a_desc', a?.descrizione); set('a_forn', a?.fornitore);
+  set('a_mis', a?.misura); set('a_usd', a?.costoUsd||'');
+  document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
+  set('a_promo_date', a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||'');
+  document.getElementById('a_note').value=a?.note||'';
+  document.getElementById('a_post').value=a?.post||'';
   document.getElementById('a_photo').value='';
-  renderPhotoPrev(a?.foto||[]);
-  renderArticlePreview();
+  renderArtAutoFields();
+  renderArtPhotoPrev(a?.foto||[]);
   show('mArtEdit');
 }
-function renderPhotoPrev(arr){ document.getElementById('a_photo_prev').innerHTML=(arr||[]).map(src=>`<img src="${src}"/>`).join(''); }
-async function fileToDataURL(file){ return await new Promise((resolve,reject)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=()=>reject(r.error); r.readAsDataURL(file); }); }
-async function saveArticle(){
+function renderArtPhotoPrev(pics){
+  const box=document.getElementById('a_photo_prev');
+  box.innerHTML=(pics||[]).map(src=>`<img src="${src}"/>`).join('');
+}
+function renderArtAutoFields(){
+  const code=document.getElementById('a_cod').value.trim();
+  const usd=Number(document.getElementById('a_usd').value||0);
+  const qual=qualityFromCode(code);
+  document.getElementById('a_qual').value=qual||'';
+  const r=calcFromUsd(usd, qual);
+  document.getElementById('a_eur').value = isFinite(r.costo)?money(r.costo):'';
+  document.getElementById('a_sell').value = isFinite(r.sell)?String(r.sell):'';
+  const promoOn=document.getElementById('a_promo_on').checked;
+  const promoPrice=Number(document.getElementById('a_promo_price').value||0);
+  const promoDate=document.getElementById('a_promo_date').value.trim();
+  const a={codice:code, prezzoVendita:r.sell, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate};
+  document.getElementById('a_final').value = String(round5(currentPrice(a)));
+  // auto post
+  const draft={
+    codice:code, brand:document.getElementById('a_brand').value.trim(),
+    modello:document.getElementById('a_mod').value.trim(),
+    promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate,
+    prezzoVendita:r.sell,
+    misura:document.getElementById('a_mis').value.trim(),
+    fornitore:document.getElementById('a_forn').value.trim(),
+    materiale:'', colori:'', tracolla:'', scatola:false
+  };
+  document.getElementById('a_post').value = buildPost(draft);
+}
+
+async function fileToDataURL(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result);
+    r.onerror=()=>rej(r.error);
+    r.readAsDataURL(file);
+  });
+}
+
+async function saveArt(){
   const db=loadDB();
-  const settings=db.settings;
-  const code=document.getElementById('a_code').value.trim();
-  if(!code) return alert('Codice articolo obbligatorio');
-  const dup=db.articoli.find(a=>a.codice.toLowerCase()===code.toLowerCase() && a.id!==currentArtId);
-  if(dup) return alert('Codice articolo già esistente');
-  renderArticlePreview();
-  const draft=normalizeArticle({
-    id:currentArtId||uid(),
-    codice:code,
-    brand:document.getElementById('a_brand').value.trim(),
-    modello:document.getElementById('a_model').value.trim(),
-    categoria:document.getElementById('a_cat').value.trim(),
-    descrizione:document.getElementById('a_desc').value.trim(),
-    fornitore:document.getElementById('a_supplier').value.trim(),
-    misura:document.getElementById('a_size').value.trim(),
-    costoUsdNormale:num(document.getElementById('a_usd').value),
-    promoFornitoreAttiva:document.getElementById('a_supplier_promo_on').checked,
-    costoUsdPromo:num(document.getElementById('a_supplier_promo_usd').value),
-    promoPersonaleAttiva:document.getElementById('a_personal_promo_on').checked,
-    prezzoPromoPersonale:num(document.getElementById('a_personal_promo_price').value),
-    scadenzaPromo:document.getElementById('a_promo_expiry').value,
-    dettagliPost:document.getElementById('a_details').value.trim(),
-    note:document.getElementById('a_note').value,
-    foto:(currentArtId?(db.articoli.find(x=>x.id===currentArtId)?.foto||[]):[])
-  }, settings);
-  draft.post=buildPost(draft, settings);
-  if(personalPromoActive(draft) && marginValue(draft) < num(settings.minMargin)){
-    alert('Promo personale bloccata: con questo prezzo il margine scende sotto '+money(settings.minMargin)+' euro.');
+  const code=document.getElementById('a_cod').value.trim();
+  if(!code){ alert('Codice articolo obbligatorio'); return; }
+
+  const exists = db.articoli.find(a => 
+    a.codice.toLowerCase() === code.toLowerCase() 
+    && a.id !== currentArtId
+  );
+  if(exists){
+    alert('Codice articolo già esistente');
     return;
   }
-  const file=document.getElementById('a_photo').files[0];
-  if(file){
-    const data=await fileToDataURL(file);
-    draft.foto=[data,...(draft.foto||[])].slice(0,8);
+  const qual=qualityFromCode(code);
+  const usd=Number(document.getElementById('a_usd').value||0);
+  const r=calcFromUsd(usd, qual);
+  const obj={
+    id: currentArtId||uid(),
+    codice: code,
+    brand: document.getElementById('a_brand').value.trim(),
+    modello: document.getElementById('a_mod').value.trim(),
+    categoria: document.getElementById('a_cat').value.trim(),
+    descrizione: document.getElementById('a_desc').value.trim(),
+    fornitore: document.getElementById('a_forn').value.trim(),
+    misura: document.getElementById('a_mis').value.trim(),
+    costoUsd: usd,
+    costoEur: r.costo,
+    prezzoVendita: r.sell,
+    promoAttiva: document.getElementById('a_promo_on').checked,
+    prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
+    scadenzaPromo: document.getElementById('a_promo_date').value.trim(),
+    post: document.getElementById('a_post').value,
+    note: document.getElementById('a_note').value,
+    foto: []
+  };
+  // keep existing photos if editing
+  const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):null;
+  obj.foto = (old?.foto||[]).slice();
+  const f=document.getElementById('a_photo').files[0];
+  if(f){
+    const data=await fileToDataURL(f);
+    obj.foto.unshift(data);
+    obj.foto=obj.foto.slice(0,6);
   }
-  draft._ts=Date.now();
-  const idx=db.articoli.findIndex(x=>x.id===draft.id);
-  if(idx>=0) db.articoli[idx]=draft; else db.articoli.unshift(draft);
-  saveDB(db); hide('mArtEdit'); toast('Articolo salvato');
+  obj._ts=Date.now();
+  const i=db.articoli.findIndex(x=>x.id===obj.id);
+  if(i>=0) db.articoli[i]=obj; else db.articoli.unshift(obj);
+  saveDB(db);
+  hide('mArtEdit');
+  toast('Salvato');
 }
-function deleteArticle(){
+function deleteArt(){
   if(!currentArtId) return hide('mArtEdit');
-  if(!confirm('Eliminare questo articolo?')) return;
+  if(!confirm('Eliminare articolo?')) return;
   const db=loadDB();
   db.articoli=db.articoli.filter(a=>a.id!==currentArtId);
-  saveDB(db); hide('mArtEdit'); toast('Articolo eliminato');
-}
-function openArticleView(id){
-  const db=loadDB(); const a=db.articoli.find(x=>x.id===id); if(!a) return;
-  currentArtId=id;
-  const hero=document.getElementById('vArtHero');
-  const pics=a.foto||[];
-  if(pics[0]){ hero.src=pics[0]; hero.classList.remove('hidden'); } else { hero.classList.add('hidden'); hero.src=''; }
-  document.getElementById('vArtThumbs').innerHTML=pics.map(src=>`<img src="${src}" onclick="document.getElementById('vArtHero').src='${src}'"/>`).join('');
-  document.getElementById('v_code').textContent=a.codice||'-';
-  document.getElementById('v_quality').textContent=qualityFromCode(a.codice)||'-';
-  document.getElementById('v_sell').textContent=money(a.prezzoVenditaAuto||0);
-  document.getElementById('v_final').textContent=money(finalPrice(a));
-  document.getElementById('v_cost').textContent=money(realActiveCost(a));
-  document.getElementById('v_margin').textContent=money(marginValue(a));
-  document.getElementById('v_margin_pct').textContent=marginPct(a)+'%';
-  document.getElementById('v_details').value=a.dettagliPost||'';
-  document.getElementById('v_post').value=a.post||buildPost(a, db.settings);
-  setInfoBoxState(document.getElementById('v_margin_box'), marginValue(a), num(db.settings.minMargin));
-  show('mArtView');
-}
-function copyPost(){
-  const t=document.getElementById('v_post').value||'';
-  navigator.clipboard?.writeText(t).then(()=>toast('Post copiato')).catch(()=>alert('Copia non disponibile'));
+  saveDB(db);
+  hide('mArtEdit');
 }
 
-function fillClientSelect(query=''){
-  const db=loadDB(); const q=query.toLowerCase();
-  const items=db.clienti.filter(c=>!q || (c.nome+' '+c.telefono+' '+c.citta).toLowerCase().includes(q));
-  document.getElementById('o_client').innerHTML='<option value="">Seleziona cliente</option>'+items.map(c=>`<option value="${c.id}">${esc(c.nome)} • ${esc(c.provincia||'')}</option>`).join('');
-}
-function fillArtSelect(query=''){
-  const db=loadDB(); const q=query.toLowerCase();
-  const items=db.articoli.filter(a=>!q || (a.codice+' '+a.brand+' '+a.modello).toLowerCase().includes(q));
-  document.getElementById('o_art').innerHTML='<option value="">Seleziona articolo</option>'+items.map(a=>`<option value="${a.id}">${esc(a.brand||'')} ${esc(a.modello||'')} • ${esc(a.codice||'')}</option>`).join('');
-}
-function renderOrderRows(){
-  const box=document.getElementById('o_rows');
-  box.innerHTML=orderRows.length?orderRows.map((r,i)=>`
-    <div class="rowCard noImg">
-      <div>
-        <div class="rowTitle">${esc(r.codice)} • ${esc(r.modello)}</div>
-        <div class="rowMeta">Prezzo ${money(r.price)} • Costo ${money(r.cost)} • Margine ${money(r.margin)}</div>
-      </div>
-      <button class="actionBtn danger" data-action="delRow" data-i="${i}">Rimuovi</button>
-    </div>`).join(''):'<div class="empty">Nessuna riga nell\'ordine</div>';
-  const total=+orderRows.reduce((s,r)=>s+num(r.price),0).toFixed(2);
-  const cost=+orderRows.reduce((s,r)=>s+num(r.cost),0).toFixed(2);
-  const margin=+orderRows.reduce((s,r)=>s+num(r.margin),0).toFixed(2);
-  document.getElementById('o_tot').textContent=money(total);
-  document.getElementById('o_cost').textContent=money(cost);
-  document.getElementById('o_margin').textContent=money(margin);
-}
-function openOrderEdit(id, presetArticleId=null){
-  const db=loadDB(); const o=id?db.ordini.find(x=>x.id===id):null;
-  currentOrdId=id||null;
-  document.getElementById('ordModalTitle').textContent=o?'Modifica ordine':'Nuovo ordine';
-  fillClientSelect(); fillArtSelect();
-  document.getElementById('o_cli_q').value=''; document.getElementById('o_art_q').value='';
-  document.getElementById('o_client').value=o?.clienteId||'';
-  document.getElementById('o_status').value=o?.stato||'Richiesto';
-  document.getElementById('o_date').value=o?.data||todayStr();
-  document.getElementById('o_paid').checked=!!o?.pagato;
-  document.getElementById('o_note').value=o?.note||'';
-  orderRows=(o?.righe||[]).map(r=>({articoloId:r.articoloId,codice:r.codice,modello:r.modello,price:num(r.price),cost:num(r.cost),margin:num(r.margin)}));
-  if(!o && presetArticleId){ document.getElementById('o_art').value=presetArticleId; }
-  renderOrderRows();
-  show('mOrdEdit');
-}
-function addOrderRow(){
-  const db=loadDB();
-  const artId=document.getElementById('o_art').value;
-  if(!artId) return alert('Seleziona un articolo');
-  const art=db.articoli.find(a=>a.id===artId); if(!art) return;
-  const row=rowSnapshotFromArticle(art, num(document.getElementById('o_price').value)||finalPrice(art));
-  orderRows.push(row);
-  document.getElementById('o_price').value='';
-  renderOrderRows();
-}
-function saveOrder(){
-  const db=loadDB();
-  const clientId=document.getElementById('o_client').value;
-  if(!clientId) return alert('Seleziona un cliente');
-  if(!orderRows.length) return alert('Aggiungi almeno una riga');
-  const obj=normalizeOrder({
-    id:currentOrdId||('ORD-'+uid().slice(0,6).toUpperCase()),
-    clienteId:clientId,
-    stato:document.getElementById('o_status').value,
-    data:document.getElementById('o_date').value||todayStr(),
-    note:document.getElementById('o_note').value.trim(),
-    pagato:document.getElementById('o_paid').checked,
-    righe:orderRows,
-    _ts:Date.now()
-  }, db.articoli);
-  const idx=db.ordini.findIndex(x=>x.id===obj.id);
-  if(idx>=0) db.ordini[idx]=obj; else db.ordini.unshift(obj);
-  saveDB(db); hide('mOrdEdit'); toast('Ordine salvato');
-}
-function deleteOrder(){
-  if(!currentOrdId) return hide('mOrdEdit');
-  if(!confirm('Eliminare questo ordine?')) return;
-  const db=loadDB(); db.ordini=db.ordini.filter(o=>o.id!==currentOrdId); saveDB(db); hide('mOrdEdit'); toast('Ordine eliminato');
-}
-
-function openClientEdit(id){
+/* ====== CLIENTI ====== */
+let currentCliId=null;
+function openCliEdit(id){
   const db=loadDB(); const c=id?db.clienti.find(x=>x.id===id):null;
   currentCliId=id||null;
-  document.getElementById('cliModalTitle').textContent=c?'Modifica cliente':'Nuovo cliente';
-  document.getElementById('c_name').value=c?.nome||'';
-  document.getElementById('c_phone').value=c?.telefono||'';
-  document.getElementById('c_address').value=c?.indirizzo||'';
-  document.getElementById('c_city').value=c?.citta||'';
+  document.getElementById('cliEditTitle').textContent=c?'Modifica cliente':'Nuovo cliente';
+  document.getElementById('c_nome').value=c?.nome||'';
+  document.getElementById('c_tel').value=c?.telefono||'';
+  document.getElementById('c_ind').value=c?.indirizzo||'';
   document.getElementById('c_cap').value=c?.cap||'';
-  document.getElementById('c_province').value=c?.provincia||'';
+  document.getElementById('c_citta').value=c?.citta||'';
+  document.getElementById('c_prov').value=c?.provincia||'';
   document.getElementById('c_note').value=c?.note||'';
   show('mCliEdit');
 }
-function saveClient(){
+function saveCli(){
   const db=loadDB();
-  const nome=document.getElementById('c_name').value.trim();
-  if(!nome) return alert('Nome cliente obbligatorio');
-  const dup=db.clienti.find(c=>c.nome.toLowerCase()===nome.toLowerCase() && c.id!==currentCliId);
-  if(dup) return alert('Cliente già esistente');
-  const obj=normalizeClient({
-    id:currentCliId||uid(),
+  const nome=document.getElementById('c_nome').value.trim();
+  if(!nome){ alert('Nome obbligatorio'); return; }
+
+  const exists = db.clienti.find(c =>
+    c.nome.toLowerCase() === nome.toLowerCase()
+    && c.id !== currentCliId
+  );
+  if(exists){
+    alert('Cliente già esistente');
+    return;
+  }
+  const obj={
+    id: currentCliId||uid(),
     nome,
-    telefono:document.getElementById('c_phone').value.trim(),
-    indirizzo:document.getElementById('c_address').value.trim(),
-    citta:document.getElementById('c_city').value.trim(),
-    cap:document.getElementById('c_cap').value.trim(),
-    provincia:document.getElementById('c_province').value,
-    note:document.getElementById('c_note').value,
-    _ts:Date.now()
-  });
-  const idx=db.clienti.findIndex(x=>x.id===obj.id);
-  if(idx>=0) db.clienti[idx]=obj; else db.clienti.unshift(obj);
-  saveDB(db); hide('mCliEdit'); toast('Cliente salvato');
-}
-function deleteClient(){
-  if(!currentCliId) return hide('mCliEdit');
-  if(!confirm('Eliminare questo cliente?')) return;
-  const db=loadDB(); db.clienti=db.clienti.filter(c=>c.id!==currentCliId); saveDB(db); hide('mCliEdit'); toast('Cliente eliminato');
-}
-function saveSettings(){
-  const db=loadDB();
-  db.settings={
-    appTitle:document.getElementById('set_title').value.trim()||'Gestionale Maurizio',
-    minMargin:num(document.getElementById('set_min_margin').value)||50,
-    fxRate:num(document.getElementById('set_fx').value)||0.9,
-    fixedFee:num(document.getElementById('set_fee').value)||5,
+    telefono: document.getElementById('c_tel').value.trim(),
+    indirizzo: document.getElementById('c_ind').value.trim(),
+    cap: document.getElementById('c_cap').value.trim(),
+    citta: document.getElementById('c_citta').value.trim(),
+    provincia: document.getElementById('c_prov').value,
+    note: document.getElementById('c_note').value,
+    _ts: Date.now()
   };
-  db.articoli=db.articoli.map(a=>normalizeArticle(a, db.settings));
-  db.ordini=db.ordini.map(o=>normalizeOrder(o, db.articoli));
-  saveDB(db); toast('Impostazioni salvate');
+  const i=db.clienti.findIndex(x=>x.id===obj.id);
+  if(i>=0) db.clienti[i]=obj; else db.clienti.unshift(obj);
+  saveDB(db); hide('mCliEdit'); toast('Salvato');
 }
+function deleteCli(){
+  if(!currentCliId) return hide('mCliEdit');
+  if(!confirm('Eliminare cliente?')) return;
+  const db=loadDB();
+  db.clienti=db.clienti.filter(c=>c.id!==currentCliId);
+  saveDB(db); hide('mCliEdit');
+}
+
+/* ====== ORDINI ====== */
+let currentOrdId=null;
+let ordRows=[];
+function openOrdEdit(id){
+  const db=loadDB(); const o=id?db.ordini.find(x=>x.id===id):null;
+  currentOrdId=id||null;
+  document.getElementById('ordEditTitle').textContent=o?'Modifica ordine':'Nuovo ordine';
+  fillClientSelect(db);
+  fillArtSelect(db);
+  document.getElementById('o_cli').value=o?.clienteId||'';
+  document.getElementById('o_stato').value=o?.stato||'Richiesto';
+  document.getElementById('o_data').value=o?.data||todayStr();
+  document.getElementById('o_note').value=o?.note||'';
+  ordRows=(o?.righe||[]).slice();
+  renderOrdRows();
+  show('mOrdEdit');
+}
+function todayStr(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function fillClientSelect(db, filter=''){
+  const sel=document.getElementById('o_cli');
+  const q=filter.toLowerCase();
+  const items=db.clienti.filter(c=>{
+    const hay=(c.nome+' '+(c.telefono||'')+' '+(c.citta||'')).toLowerCase();
+    return !q || hay.includes(q);
+  });
+  sel.innerHTML='<option value="">Seleziona</option>'+items.map(c=>`<option value="${c.id}">${esc(c.nome)} • ${esc(c.provincia||'')}</option>`).join('');
+}
+function fillArtSelect(db, filter=''){
+  const sel=document.getElementById('o_art');
+  const q=filter.toLowerCase();
+  const items=db.articoli.filter(a=>{
+    const hay=((a.codice||'')+' '+(a.brand||'')+' '+(a.modello||'')).toLowerCase();
+    return !q || hay.includes(q);
+  });
+  sel.innerHTML='<option value="">Seleziona</option>'+items.map(a=>`<option value="${a.id}">${esc(a.brand||'')} ${esc(a.modello||'')} • ${esc(a.codice||'')}</option>`).join('');
+}
+function addRow(){
+  const db=loadDB();
+  const artId=document.getElementById('o_art').value;
+  if(!artId){ alert('Seleziona un articolo'); return; }
+  const a=db.articoli.find(x=>x.id===artId);
+  const prezzo=Number(document.getElementById('o_price').value||currentPrice(a)||0);
+  ordRows.push({articoloId:artId, codice:a?.codice||'', modello:a?.modello||'', prezzo});
+  document.getElementById('o_price').value='';
+  renderOrdRows();
+}
+function renderOrdRows(){
+  const box=document.getElementById('o_rows');
+  box.innerHTML=ordRows.map((r,i)=>`<div class="row" style="grid-template-columns:1fr auto">
+    <div><div class="t">${esc(r.codice)} • ${esc(r.modello)}</div><div class="s">${money(r.prezzo||0)}</div></div>
+    <button class="btn danger" data-action="delRow" data-i="${i}">X</button>
+  </div>`).join('') || `<div class="small">Nessuna riga</div>`;
+  const tot=ordRows.reduce((s,r)=>s+Number(r.prezzo||0),0);
+  document.getElementById('o_tot').textContent=money(tot);
+}
+function saveOrd(){
+  const db=loadDB();
+  const cli=document.getElementById('o_cli').value;
+  if(!cli){ alert('Seleziona un cliente'); return; }
+  if(!ordRows.length){ alert('Aggiungi almeno una riga'); return; }
+  const tot=ordRows.reduce((s,r)=>s+Number(r.prezzo||0),0);
+  const obj={
+    id: currentOrdId||('ORD-'+uid().slice(0,6).toUpperCase()),
+    clienteId: cli,
+    stato: document.getElementById('o_stato').value,
+    data: document.getElementById('o_data').value.trim()||todayStr(),
+    note: document.getElementById('o_note').value.trim(),
+    righe: ordRows.slice(),
+    totale: tot,
+    _ts: Date.now()
+  };
+  const i=db.ordini.findIndex(x=>x.id===obj.id);
+  if(i>=0) db.ordini[i]=obj; else db.ordini.unshift(obj);
+  saveDB(db); hide('mOrdEdit'); toast('Salvato');
+}
+function deleteOrd(){
+  if(!currentOrdId) return hide('mOrdEdit');
+  if(!confirm('Eliminare ordine?')) return;
+  const db=loadDB();
+  db.ordini=db.ordini.filter(o=>o.id!==currentOrdId);
+  saveDB(db); hide('mOrdEdit');
+}
+
+/* ====== IMPORT/EXPORT ====== */
 function exportDB(mode){
   const db=loadDB();
   const out=JSON.parse(JSON.stringify(db));
-  if(mode==='lite') out.articoli=out.articoli.map(a=>({...a,foto:[]}));
+  if(mode==='lite'){
+    out.articoli=out.articoli.map(a=>{ a.foto=[]; return a; });
+  }
   out.exportedAt=new Date().toISOString();
   const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
   const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob); a.download=`gestionale_maurizio_${mode}_${Date.now()}.json`; a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-  document.getElementById('importHint').textContent='Export creato: '+mode+'.';
+  a.href=URL.createObjectURL(blob);
+  a.download=`vanity_glamour_${mode}_${Date.now()}.json`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  document.getElementById('importHint').textContent = `Export fatto (${mode}). Questo JSON contiene TUTTO il database (clienti+articoli+ordini).`;
 }
 function importDB(file){
   const r=new FileReader();
   r.onload=()=>{
     try{
-      const parsed=JSON.parse(r.result);
-      const settings={...defaultSettings(),...(parsed.settings||{})};
-      const db={
-        version:'v6',
-        settings,
-        articoli:(parsed.articoli||[]).map(a=>normalizeArticle(a, settings)),
-        clienti:(parsed.clienti||[]).map(normalizeClient),
-        ordini:[],
-        createdAt:parsed.createdAt||new Date().toISOString()
-      };
-      db.ordini=(parsed.ordini||[]).map(o=>normalizeOrder(o, db.articoli));
-      saveDB(db);
-      document.getElementById('importHint').textContent='Import riuscito.';
+      const o=JSON.parse(r.result);
+      if(!o || !Array.isArray(o.articoli)||!Array.isArray(o.clienti)||!Array.isArray(o.ordini)) throw new Error('JSON non compatibile');
+      // default: SOSTITUISCI
+      localStorage.setItem(KEY, JSON.stringify(o));
+      renderAll();
+      document.getElementById('importHint').textContent = 'Import OK. Operazione: SOSTITUISCI (database rimpiazzato).';
       toast('Import OK');
-    }catch(e){ alert('Import fallito: '+(e.message||e)); }
+    }catch(e){
+      alert('Import fallito: '+(e.message||e));
+    }
   };
   r.readAsText(file);
 }
 
-window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferredPrompt=e; document.getElementById('installBtn').classList.remove('hidden'); });
-document.getElementById('installBtn').addEventListener('click', async ()=>{ if(!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; document.getElementById('installBtn').classList.add('hidden'); });
-if('serviceWorker' in navigator){ window.addEventListener('load', ()=>navigator.serviceWorker.register('./sw.js').catch(()=>{})); }
-
-document.addEventListener('click', e=>{
-  const t=e.target.closest('[data-go],[data-open],[data-action],[data-art-filter],[data-order-filter]');
-  if(!t) return;
-  if(t.dataset.go){ go(t.dataset.go); return; }
-  if(t.dataset.artFilter){ currentArtFilter=t.dataset.artFilter; document.querySelectorAll('[data-art-filter]').forEach(b=>b.classList.toggle('active', b.dataset.artFilter===currentArtFilter)); renderArticles(loadDB()); return; }
-  if(t.dataset.orderFilter){ currentOrderFilter=t.dataset.orderFilter; document.querySelectorAll('[data-order-filter]').forEach(b=>b.classList.toggle('active', b.dataset.orderFilter===currentOrderFilter)); renderOrders(loadDB()); return; }
-  if(t.dataset.open){
-    if(t.dataset.open==='art') return openArticleView(t.dataset.id);
-    if(t.dataset.open==='cli') return openClientEdit(t.dataset.id);
-    if(t.dataset.open==='ord') return openOrderEdit(t.dataset.id);
+/* ====== EVENTS ====== */
+document.addEventListener('click',(ev)=>{
+  const el=ev.target.closest('[data-action],[data-go],[data-open]');
+  if(!el) return;
+  if(el.dataset.go){ ev.preventDefault(); go(el.dataset.go); return; }
+  if(el.dataset.open){
+    const id=el.dataset.id;
+    if(el.dataset.open==='art') openArtView(id);
+    if(el.dataset.open==='cli') openCliEdit(id);
+    if(el.dataset.open==='ord') openOrdEdit(id);
+    return;
   }
-  switch(t.dataset.action){
-    case 'newArt': return openArticleEdit();
-    case 'newCli': return openClientEdit();
-    case 'newOrd': return openOrderEdit();
-    case 'saveArt': return saveArticle();
-    case 'closeArtEdit': return hide('mArtEdit');
-    case 'deleteArt': return deleteArticle();
-    case 'copyPost': return copyPost();
-    case 'closeView': return hide('mArtView');
-    case 'editFromView': hide('mArtView'); return openArticleEdit(currentArtId);
-    case 'quickOrderFromView': hide('mArtView'); return openOrderEdit(null,currentArtId);
-    case 'saveCli': return saveClient();
-    case 'closeCli': return hide('mCliEdit');
-    case 'deleteCli': return deleteClient();
-    case 'addRow': return addOrderRow();
-    case 'delRow': orderRows.splice(Number(t.dataset.i),1); return renderOrderRows();
-    case 'saveOrd': return saveOrder();
-    case 'closeOrd': return hide('mOrdEdit');
-    case 'deleteOrd': return deleteOrder();
-    case 'saveSettings': return saveSettings();
-    case 'exportFull': return exportDB('full');
-    case 'exportLite': return exportDB('lite');
-    case 'hardReset': if(confirm('Reset totale? Cancella tutto il database locale.')){ localStorage.removeItem(ACTIVE_KEY); localStorage.removeItem('vg_db_full_v5'); location.reload(); } return;
-  }
+  const a=el.dataset.action;
+  if(a==='newArt') return openArtEdit(null);
+  if(a==='newCli') return openCliEdit(null);
+  if(a==='newOrd') return openOrdEdit(null);
+  if(a==='exportFull') return exportDB('full');
+  if(a==='exportLite') return exportDB('lite');
+  if(a==='hardReset'){ if(confirm('Reset totale?')){ localStorage.removeItem(KEY); location.reload(); } return; }
+  if(a==='copyPost') return copyTextFrom(document.getElementById('vArtPost'));
+  if(a==='editFromView'){ hide('mArtView'); return openArtEdit(currentArtId); }
+  if(a==='closeView') return hide('mArtView');
+  if(a==='closeEdit') return hide('mArtEdit');
+  if(a==='saveArt') return saveArt();
+  if(a==='deleteArt') return deleteArt();
+  if(a==='saveCli') return saveCli();
+  if(a==='closeCli') return hide('mCliEdit');
+  if(a==='deleteCli') return deleteCli();
+  if(a==='saveOrd') return saveOrd();
+  if(a==='closeOrd') return hide('mOrdEdit');
+  if(a==='deleteOrd') return deleteOrd();
+  if(a==='addRow') return addRow();
+  if(a==='delRow'){ const i=Number(el.dataset.i); ordRows.splice(i,1); renderOrdRows(); return; }
 });
-['qArt','qCli','qOrd'].forEach(id=>document.getElementById(id).addEventListener('input',()=>renderAll()));
-['a_code','a_brand','a_model','a_cat','a_desc','a_supplier','a_size','a_usd','a_supplier_promo_usd','a_promo_expiry','a_personal_promo_price','a_details','a_note'].forEach(id=>document.getElementById(id).addEventListener('input', renderArticlePreview));
-['a_supplier_promo_on','a_personal_promo_on'].forEach(id=>document.getElementById(id).addEventListener('change', renderArticlePreview));
-document.getElementById('o_cli_q').addEventListener('input',e=>fillClientSelect(e.target.value));
-document.getElementById('o_art_q').addEventListener('input',e=>fillArtSelect(e.target.value));
-document.getElementById('o_art').addEventListener('change',()=>{ const db=loadDB(); const a=db.articoli.find(x=>x.id===document.getElementById('o_art').value); document.getElementById('o_price').value=a?finalPrice(a):''; });
-document.getElementById('o_status').addEventListener('change',e=>{ if(['Pagato','Spedito','Consegnato'].includes(e.target.value)) document.getElementById('o_paid').checked=true; });
-document.getElementById('importFile').addEventListener('change',e=>{ const f=e.target.files[0]; if(f) importDB(f); e.target.value=''; });
-document.getElementById('c_province').innerHTML='<option value="">Seleziona</option>'+PROVINCES.map(p=>`<option value="${p}">${p}</option>`).join('');
-updateDate();
+
+document.getElementById('qArt').addEventListener('input', renderArt);
+document.getElementById('qCli').addEventListener('input', renderCli);
+document.getElementById('qOrd').addEventListener('input', renderOrd);
+
+['a_cod','a_brand','a_mod','a_mis','a_usd','a_promo_on','a_promo_price','a_promo_date','a_forn'].forEach(id=>{
+  const el=document.getElementById(id);
+  el.addEventListener(id==='a_promo_on'?'change':'input', renderArtAutoFields);
+});
+
+document.getElementById('o_cli_q').addEventListener('input',()=>fillClientSelect(loadDB(), document.getElementById('o_cli_q').value));
+document.getElementById('o_art_q').addEventListener('input',()=>fillArtSelect(loadDB(), document.getElementById('o_art_q').value));
+
+document.getElementById('importFile').addEventListener('change',(e)=>{
+  const f=e.target.files[0];
+  if(f) importDB(f);
+  e.target.value='';
+});
+
+// Province select
+const provSel=document.getElementById('c_prov');
+provSel.innerHTML='<option value="">Seleziona</option>'+PROVINCE.map(p=>`<option value="${p}">${p}</option>`).join('');
+
+/* init */
 renderAll();
-const initial=(location.hash||'#dashboard').replace('#','');
-go(document.getElementById('sec_'+initial)?initial:'dashboard');
+const initial=location.hash.replace('#','')||'home';
+history.replaceState({page:initial},'', '#'+initial);
+go(initial);
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
+}
 </script>
 </body>
 </html>
