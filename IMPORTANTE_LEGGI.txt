@@ -1,0 +1,23 @@
+VERSIONE FINALE PULITA - Vanity & Glamour
+
+Contenuto del pacchetto:
+- app completa avanzata con grafica originale
+- cloud Supabase attivo
+- dashboard completa
+- reset cache PWA
+- SQL Supabase per foto/storage
+- backup JSON incluso
+
+Migliorie applicate in questa build:
+- chiarito il testo degli sconti personali in dashboard
+- blocco salvataggio della promo personale quando il margine reale scende sotto 50 euro
+- service worker aggiornato per forzare il refresh della PWA
+
+Pubblicazione consigliata:
+1) carica QUESTI file nella root del sito/repository
+2) non mischiarli con versioni vecchie
+3) dopo il deploy apri reset-cache.html una volta, poi riapri index.html
+4) se usi il cloud, tieni anche i file SQL e supabaseClient.js
+
+Nota:
+Il backup JSON non sostituisce il cloud. Serve come sicurezza in più.

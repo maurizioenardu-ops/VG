@@ -3105,6 +3105,8 @@ function personalPromoImpactMetrics(items=[]){
   let label='Controllata';
   if(totalReduction>0 && erosionPct>45){ tone='red'; label='Alta'; }
   else if(totalReduction>0 && erosionPct>20){ tone='orange'; label='Da guardare'; }
+  const reductionLabel=money(totalReduction);
+  const promoMarginLabel=money(totalPromoMargin);
   return {
     count:active.length,
     totalReduction,
@@ -3113,7 +3115,7 @@ function personalPromoImpactMetrics(items=[]){
     erosionPct,
     tone,
     label,
-    sub: active.length ? `Margine ridotto ${money(totalReduction)} • ${erosionPct}%` : 'nessuno attivo'
+    sub: active.length ? `Riduzione margine ${reductionLabel} • attuale ${promoMarginLabel}` : 'nessuno attivo'
   };
 }
 function resolvePromoStartDate(prevArticle, nextPromo){
@@ -6316,6 +6318,15 @@ async function saveArt(){
       foto: keptFoto,
       photoIds: keptPhotoIds
     });
+    const promoFinalPrice=Number(currentPrice(obj)||0);
+    const promoRealCost=Number(effectiveSupplierCostEur(obj)||0);
+    const promoMargin=Math.max(0, promoFinalPrice-promoRealCost);
+    const safeMinPrice=round5(promoRealCost+50);
+    if(personalPromoOn && promoFinalPrice>0 && promoMargin<50){
+      toast(`Promo personale troppo bassa: margine ${money(promoMargin)}. Prezzo minimo sicuro ${safeMinPrice}`);
+      document.getElementById('a_personal_promo_price')?.focus();
+      return;
+    }
     const selectedFiles=Array.from(currentArtPendingFiles||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
     let photoUploadWarning='';
     if(selectedFiles.length){
@@ -8080,7 +8091,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=v47-all-edit-buttons-yellow', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=v48-final-cloud-restore', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

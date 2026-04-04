@@ -1,4 +1,4 @@
-const VERSION = 'v47_all_edit_buttons_yellow';
+const VERSION = 'v48_final_cloud_restore';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
