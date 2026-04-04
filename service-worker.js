@@ -1,4 +1,4 @@
-const VERSION = 'v48_final_cloud_restore';
+const VERSION = 'v48_ordini_promo_fix';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

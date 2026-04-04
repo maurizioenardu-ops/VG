@@ -3084,40 +3084,49 @@ function currentPrice(a){
   }
   return Number(a?.prezzoVendita||0);
 }
+function articleMarginSnapshot(a){
+  const cost=Number(effectiveSupplierCostEur(a)||0);
+  const normalPrice=Number(a?.prezzoVendita||0);
+  const promoPrice=Number(currentPrice(a)||0);
+  const normalMargin=Math.max(0, normalPrice-cost);
+  const promoMargin=Math.max(0, promoPrice-cost);
+  return { cost, normalPrice, promoPrice, normalMargin, promoMargin, reduction:Math.max(0, normalMargin-promoMargin) };
+}
 
 function personalPromoImpactMetrics(items=[]){
   const active=(items||[]).filter(a=>personalPromoValid(a));
   let totalReduction=0;
   let totalNormalMargin=0;
   let totalPromoMargin=0;
-  for(const a of active){
-    const normalPrice=Number(a?.prezzoVendita||0);
-    const promoPrice=Number(currentPrice(a)||0);
-    const cost=Number(effectiveSupplierCostEur(a)||0);
-    const normalMargin=Math.max(0, normalPrice-cost);
-    const promoMargin=Math.max(0, promoPrice-cost);
-    totalNormalMargin+=normalMargin;
-    totalPromoMargin+=promoMargin;
-    totalReduction+=Math.max(0, normalMargin-promoMargin);
-  }
+  let minPromoMargin=0;
+  let belowMinCount=0;
+  active.forEach((a, idx)=>{
+    const snap=articleMarginSnapshot(a);
+    totalReduction+=snap.reduction;
+    totalNormalMargin+=snap.normalMargin;
+    totalPromoMargin+=snap.promoMargin;
+    if(idx===0 || snap.promoMargin<minPromoMargin) minPromoMargin=snap.promoMargin;
+    if(snap.promoMargin + 0.001 < PERSONAL_PROMO_MIN_MARGIN) belowMinCount++;
+  });
   const erosionPct=totalNormalMargin>0 ? Math.round((totalReduction/totalNormalMargin)*100) : 0;
-  let tone='green';
-  let label='Controllata';
-  if(totalReduction>0 && erosionPct>45){ tone='red'; label='Alta'; }
-  else if(totalReduction>0 && erosionPct>20){ tone='orange'; label='Da guardare'; }
-  const reductionLabel=money(totalReduction);
-  const promoMarginLabel=money(totalPromoMargin);
+  const tone=belowMinCount>0 ? 'orange' : 'green';
+  const label=!active.length ? 'Nessuno attivo' : (belowMinCount>0 ? 'Da rivedere' : 'Sotto controllo');
   return {
     count:active.length,
     totalReduction,
     totalNormalMargin,
     totalPromoMargin,
     erosionPct,
+    minPromoMargin,
+    belowMinCount,
     tone,
     label,
-    sub: active.length ? `Riduzione margine ${reductionLabel} • attuale ${promoMarginLabel}` : 'nessuno attivo'
+    sub: active.length
+      ? `Margine minimo ${money(minPromoMargin)} • riduzione totale ${money(totalReduction)}`
+      : 'nessuno attivo'
   };
 }
+
 function resolvePromoStartDate(prevArticle, nextPromo){
   const nextActive=(!!nextPromo?.promoAttiva && (Number(nextPromo?.promoCostoUsd||0)>0 || Number(nextPromo?.prezzoPromo||0)>0) && String(nextPromo?.scadenzaPromo||'').trim().length>=8) || (!!nextPromo?.promoPersonaleAttiva && Number(nextPromo?.prezzoPromoPersonale||0)>0 && String(nextPromo?.scadenzaPromo||'').trim().length>=8);
   const prevStart=getPromoStartDate(prevArticle);
@@ -4797,7 +4806,7 @@ function renderHome(){
       ? {label:`Ultimo ordine: ${last.stato} • ${last.data||''}`, sub:"Apre direttamente l'ultimo ordine salvato", open:'ord', id:last.id||''}
       : {label:'Ultimo ordine: nessuno', sub:"Apri l'elenco ordini", go:'ordini'},
     {label:`Promozioni: ${promoItems.length}${exp?` attive • ${[exp.brand,exp.modello].filter(Boolean).join(' ')}`:' attive'}`, sub:'Apri solo gli articoli in promozione', action:'openPromoArticles'},
-    {label:`Sconti personali: ${personalImpact.count} attivi`, sub: personalImpact.count ? `${personalImpact.label} • margine ridotto ${money(personalImpact.totalReduction)}` : 'Apri gli articoli con promo personale attiva', action:'openPersonalPromoArticles'},
+    {label:`Sconti personali: ${personalImpact.count} attivi`, sub: personalImpact.count ? `${personalImpact.label} • margine minimo ${money(personalImpact.minPromoMargin||0)}` : 'Apri gli articoli con promo personale attiva', action:'openPersonalPromoArticles'},
     {label:`Tutti gli articoli: ${(db.articoli||[]).length}`, sub:"Apri tutto l'archivio articoli", action:'openAllArticles'},
     {label:`Ordini in corso: ${inCorso}`, sub:'Mostra solo gli ordini non ancora consegnati', action:'openOngoingOrders'},
     {label:`Ordini aperti: ${inCorso} • Incassato mese ${money(incMese)}`, sub:'Apri ordini e incassi del mese', go:'ordini'}
@@ -6096,8 +6105,11 @@ function renderArtAutoFields(){
   const currentCost = (supplierPromoValid(a) && promoCostCalc && isFinite(promoCostCalc.costo) && promoCostCalc.costo>0) ? Number(promoCostCalc.costo) : Number(r.costo||0);
   document.getElementById('a_final').value = finalPrice ? String(finalPrice) : '';
   const margin = Math.max(0, finalPrice - currentCost);
+  const personalMarginLow=personalPromoOn && personalPromoPriceValue>0 && margin + 0.001 < PERSONAL_PROMO_MIN_MARGIN;
   document.getElementById('a_margin').value = margin ? money(margin) : '';
-  document.getElementById('a_margin_pct').textContent = (finalPrice && margin) ? ('Margine ' + Math.round((margin/finalPrice)*100) + '%') : '';
+  document.getElementById('a_margin_pct').textContent = (finalPrice && margin)
+    ? ('Margine ' + Math.round((margin/finalPrice)*100) + '%' + (personalPromoOn ? (' • minimo promo ' + money(PERSONAL_PROMO_MIN_MARGIN)) : '') + (personalMarginLow ? ' • da rivedere' : ''))
+    : '';
   const draft={
     codice:code, brand:getArticleBrandValue(),
     modello:document.getElementById('a_mod').value.trim(),
@@ -6271,6 +6283,25 @@ async function saveArt(){
     if(personalPromoOn && !(personalPromoPriceValue>0)){ toast('Se attivi la promo personale devi inserire il prezzo promo personale'); document.getElementById('a_personal_promo_price')?.focus(); return; }
     const r=calcFromUsd(usd, qual);
     const promoR=(promoUsd>0) ? calcFromUsd(promoUsd, qual) : {costo:0,sell:0,marg:0};
+    const promoCheckArticle={
+      codice: code,
+      costoUsd: usd,
+      costoEur: r.costo,
+      prezzoVendita: r.sell,
+      promoAttiva: promoOn,
+      promoCostoUsd: promoUsd,
+      promoCostoEur: promoR.costo,
+      prezzoPromo: promoR.sell,
+      promoPersonaleAttiva: personalPromoOn,
+      prezzoPromoPersonale: personalPromoPriceValue,
+      scadenzaPromo: promoDateValue
+    };
+    const promoMarginCheck=articleMarginSnapshot(promoCheckArticle).promoMargin;
+    if(personalPromoOn && promoMarginCheck + 0.001 < PERSONAL_PROMO_MIN_MARGIN){
+      toast(`Con la promo personale il guadagno minimo deve restare almeno ${money(PERSONAL_PROMO_MIN_MARGIN)}`);
+      document.getElementById('a_personal_promo_price')?.focus();
+      return;
+    }
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
     const keptFoto=currentArtPhotosCleared ? [] : (Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : []);
     const keptPhotoIds=currentArtPhotosCleared ? [] : (Array.isArray(old?.photoIds) ? old.photoIds.filter(Boolean).slice() : []);
@@ -6318,15 +6349,6 @@ async function saveArt(){
       foto: keptFoto,
       photoIds: keptPhotoIds
     });
-    const promoFinalPrice=Number(currentPrice(obj)||0);
-    const promoRealCost=Number(effectiveSupplierCostEur(obj)||0);
-    const promoMargin=Math.max(0, promoFinalPrice-promoRealCost);
-    const safeMinPrice=round5(promoRealCost+50);
-    if(personalPromoOn && promoFinalPrice>0 && promoMargin<50){
-      toast(`Promo personale troppo bassa: margine ${money(promoMargin)}. Prezzo minimo sicuro ${safeMinPrice}`);
-      document.getElementById('a_personal_promo_price')?.focus();
-      return;
-    }
     const selectedFiles=Array.from(currentArtPendingFiles||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
     let photoUploadWarning='';
     if(selectedFiles.length){
@@ -6704,6 +6726,7 @@ function updateArticleMeasureState(){
 let currentOrdId=null;
 let ordRows=[];
 const ORDER_SHOE_SIZES=['34','35','36','37','38','39','40','41','42','43','44','45'];
+const PERSONAL_PROMO_MIN_MARGIN=45;
 function orderRowNeedsShoeSize(row, db){
   const art=(db?.articoli||[]).find(a=>a.id===row?.articoloId || (row?.codice && a.codice===row.codice));
   const cat=normalizeTextKey(art?.categoria||row?.categoria||'');
@@ -6766,12 +6789,8 @@ async function openOrdEdit(id, prefillArticleId=null){
   document.getElementById('o_art_pick').value='';
   document.getElementById('o_photo').value='';
   currentOrdExistingManualPhotos=isEditing ? await getOrderManualPics(o) : [];
-  ordRows=isEditing ? (o?.righe||[]).slice() : [];
-  if(isEditing){
-    restoreOrderDraft(o?.id||'', null);
-  }else{
-    clearOrderDraft();
-  }
+  ordRows=isEditing ? JSON.parse(JSON.stringify(o?.righe||[])) : [];
+  clearOrderDraft();
   if(prefillArticleId){
     const a=db.articoli.find(x=>String(x.id)===String(prefillArticleId));
     if(a && !ordRows.some(r=>String(r.articoloId)===String(prefillArticleId))){
@@ -8091,7 +8110,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=v48-final-cloud-restore', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=v47-all-edit-buttons-yellow', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
