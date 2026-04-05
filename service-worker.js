@@ -1,4 +1,4 @@
-const VERSION = 'v48_promo_doppia_scadenza';
+const VERSION = 'v49_edit_view_visual_split';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
