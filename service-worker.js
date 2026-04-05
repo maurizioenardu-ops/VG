@@ -1,4 +1,4 @@
-const VERSION = 'v51_foto_toast_top';
+const VERSION = 'v48_layout_ordered_modals';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
