@@ -4442,14 +4442,33 @@ function hide(id, fromPop=false){
   if(activeModalId===id) activeModalId=null;
   if(!fromPop && history.state && history.state.modal===id) history.back();
 }
-function toast(msg){
+function toast(msg, opts={}){
   let t=document.getElementById('vg_toast');
-  if(!t){ t=document.createElement('div'); t.id='vg_toast';
-    t.style.cssText='position:fixed;left:50%;bottom:78px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 12px;border-radius:12px;font-weight:900;font-size:12px;z-index:9999;box-shadow:0 12px 24px rgba(0,0,0,.25);max-width:90vw;text-align:center;display:none';
+  if(!t){
+    t=document.createElement('div');
+    t.id='vg_toast';
+    t.style.cssText='position:fixed;left:50%;transform:translateX(-50%);color:#fff;padding:11px 14px;border-radius:14px;font-weight:900;font-size:12px;z-index:9999;box-shadow:0 12px 24px rgba(0,0,0,.22);max-width:min(92vw,560px);text-align:center;display:none;line-height:1.35;border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(8px)';
     document.body.appendChild(t);
   }
-  t.textContent=msg; t.style.display='block';
-  clearTimeout(window.__t); window.__t=setTimeout(()=>t.style.display='none',1400);
+  const text=String(msg||'').trim();
+  const level=String(opts?.level||'').toLowerCase();
+  const position=String(opts?.position||'').toLowerCase();
+  const isError = position==='top' || level==='error' || /errore|fallit|obbligator|devi|minim|limite|blocc|manc|quota|vuot|pien|duplicat|inserire|scegli|scrivi|non\s+(?:riusc|trovat|disponibile|aggiornat|valido|salvat|lettur|autorizzat|conness)|gi[aà]|sotto/i.test(text);
+  t.textContent=text;
+  t.style.display='block';
+  if(isError){
+    t.style.top='max(14px, calc(env(safe-area-inset-top, 0px) + 10px))';
+    t.style.bottom='';
+    t.style.background='rgba(153, 27, 27, 0.96)';
+    t.style.borderColor='rgba(254, 202, 202, 0.35)';
+  }else{
+    t.style.top='';
+    t.style.bottom='78px';
+    t.style.background='rgba(17, 24, 39, 0.96)';
+    t.style.borderColor='rgba(255,255,255,.14)';
+  }
+  clearTimeout(window.__t);
+  window.__t=setTimeout(()=>{ t.style.display='none'; }, isError ? 2200 : 1600);
 }
 let confirmCallback=null;
 function askConfirm(text, cb, title='Conferma'){ document.getElementById('confirmTitle').textContent=title; document.getElementById('confirmText').textContent=text; confirmCallback=cb; show('mConfirm'); }
@@ -6346,7 +6365,7 @@ async function saveArt(){
     const r=calcFromUsd(usd, qual);
     const promoR=(promoUsd>0) ? calcFromUsd(promoUsd, qual) : {costo:0,sell:0,marg:0};
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
-    const keptFoto=currentArtPhotosCleared ? [] : (Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : []);
+    const keptFoto=currentArtPhotosCleared ? [] : (Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && String(x).trim()).slice(0,MAX_ARTICLE_PHOTOS) : []);
     const keptPhotoIds=currentArtPhotosCleared ? [] : (Array.isArray(old?.photoIds) ? old.photoIds.filter(Boolean).slice() : []);
     const obj=normalizeArticlePromoState({
       id: currentArtId||uid(),
@@ -6406,8 +6425,8 @@ async function saveArt(){
     const selectedFiles=Array.from(currentArtPendingFiles||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
     let photoUploadWarning='';
     if(selectedFiles.length){
-      obj.foto = Array.isArray(obj.foto) ? obj.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')) : [];
-      obj.photoIds = Array.isArray(obj.photoIds) ? obj.photoIds.filter(Boolean) : [];
+      obj.foto = Array.isArray(obj.foto) ? obj.foto.filter(x=>typeof x==='string' && String(x).trim()).slice(0,MAX_ARTICLE_PHOTOS) : [];
+      obj.photoIds = Array.isArray(obj.photoIds) ? obj.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS) : [];
       const existingCount=Math.max((obj.foto||[]).length, (obj.photoIds||[]).length);
       const maxNew=Math.max(0, MAX_ARTICLE_PHOTOS - existingCount);
       const filesToSave=selectedFiles.slice(0,maxNew);
@@ -6415,27 +6434,46 @@ async function saveArt(){
 
       if(filesToSave.length){
         const localPhotoIds=[];
+        let embeddedCount=0;
         for(const file of filesToSave){
+          let dataUrl='';
           try{
             const blob=await compressImageBlob(file);
             const pid='ph_'+uid();
             await idbSet(pid, blob);
             localPhotoIds.push(pid);
+            continue;
           }catch(localErr){
             console.warn('Salvataggio foto locale fallito', localErr);
-            try{
-              const dataUrl=await compressImageFile(file);
-              const pid='ph_'+uid();
-              await idbSet(pid, dataUrl);
-              localPhotoIds.push(pid);
-              photoUploadWarning='Una o più foto salvate in modalità compatibile';
-            }catch(fallbackErr){
-              console.warn('Fallback foto fallito', fallbackErr);
-              photoUploadWarning='Una o più foto non salvate';
+          }
+          try{
+            dataUrl=await compressImageFile(file);
+            const pid='ph_'+uid();
+            await idbSet(pid, dataUrl);
+            localPhotoIds.push(pid);
+            photoUploadWarning='Una o più foto salvate in modalità compatibile';
+            continue;
+          }catch(fallbackErr){
+            console.warn('Fallback foto IndexedDB fallito', fallbackErr);
+          }
+          try{
+            if(!dataUrl) dataUrl=await compressImageFile(file);
+            if(dataUrl){
+              obj.foto=[...new Set([...(obj.foto||[]), dataUrl])].slice(0,MAX_ARTICLE_PHOTOS);
+              embeddedCount++;
             }
+          }catch(embedErr){
+            console.warn('Fallback foto incorporata fallito', embedErr);
           }
         }
         obj.photoIds=[...new Set([...(obj.photoIds||[]), ...localPhotoIds])].slice(0,MAX_ARTICLE_PHOTOS);
+        if(embeddedCount){
+          photoUploadWarning=embeddedCount===filesToSave.length && !localPhotoIds.length
+            ? "Foto salvate dentro l'articolo"
+            : "Alcune foto salvate dentro l'articolo";
+        }else if(filesToSave.length && !localPhotoIds.length && !photoUploadWarning){
+          photoUploadWarning='Una o più foto non salvate';
+        }
       }
     }
     obj._ts=Date.now();
@@ -7667,7 +7705,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-05-v48-promo-doppia-scadenza';
+const VG_BUILD='2026-04-05-v51-foto-toast-top';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -8169,7 +8207,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=v48-promo-doppia-scadenza', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=v51-foto-toast-top', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

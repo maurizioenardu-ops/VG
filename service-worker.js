@@ -1,4 +1,4 @@
-const VERSION = 'v50_edit_view_gradients';
+const VERSION = 'v51_foto_toast_top';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
