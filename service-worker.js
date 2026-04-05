@@ -1,4 +1,4 @@
-const VERSION = 'v48_ordini_promo_fix';
+const VERSION = 'v48_promo_doppia_scadenza';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
