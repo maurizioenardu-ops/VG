@@ -1,4 +1,4 @@
-const VERSION = 'v48_layout_ordered_modals';
+const VERSION = 'v49_detail_blocks_edit_bg';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

@@ -126,6 +126,37 @@ select[multiple]{min-height:150px}
 .sparkTitle{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px}.sparkTitle span{font-size:11px;text-transform:uppercase;color:#64748b;font-weight:1000}
 .sparkBars{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:end;height:92px}.sparkCol{display:flex;flex-direction:column;align-items:center;gap:6px}.sparkBarWrap{height:68px;width:100%;display:flex;align-items:flex-end}.sparkBarBtn{appearance:none;border:0;background:transparent;padding:0;margin:0;width:100%;height:100%;display:flex;align-items:flex-end;cursor:pointer}.sparkBarBtn:focus-visible{outline:2px solid var(--navy);outline-offset:3px;border-radius:16px}.sparkBar{width:100%;border-radius:14px 14px 8px 8px;background:linear-gradient(180deg,#60a5fa,#1d4ed8)}.sparkBar.soft{background:linear-gradient(180deg,#fbbf24,#f59e0b)}.sparkLbl{font-size:10px;color:#64748b;font-weight:900}.shipAlert{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 12px;cursor:pointer}.shipAlerts{display:flex;flex-direction:column;gap:10px}.shipAlert .meta{font-size:12px;color:#475569;font-weight:900;margin-top:4px}.shipAlertEmpty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:12px;color:var(--muted)}.quickCard .h2{margin-bottom:8px}.substats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.micro{background:#f8fafc;border:1px solid #edf2f7;border-radius:14px;padding:10px 12px}.micro[data-go],.heroSpot[data-action],#dashList .row[data-action],#dashList .row[data-go],#dashList .row[data-open],#dashTips .row[data-action],.stat[data-go]{cursor:pointer}.dashTap .chev{font-size:24px;line-height:1;color:#94a3b8;font-weight:900}.dashTap .s{margin-top:4px;color:#64748b;font-size:12px;font-weight:800}.micro .k{font-size:10px}.micro .v{font-size:16px;margin-top:2px}.stat .v.big{font-size:24px}.stat .sub{margin-top:4px;font-size:11px;color:#64748b;font-weight:800}.agendaComposer{display:grid;grid-template-columns:1fr 150px 170px auto;gap:8px;align-items:center}.agendaMiniBtn{padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:#fff;font-weight:900}.agendaList{display:flex;flex-direction:column;gap:8px}.agendaItem{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:16px;background:#fff}.agendaDot{width:12px;height:12px;border-radius:999px;background:#f59e0b;margin-top:6px}.agendaItem.done .agendaDot{background:#16a34a}.agendaItem.overdue .agendaDot{background:#dc2626}.agendaTitle{font-weight:900;color:#0f172a}.agendaMeta{font-size:12px;color:#64748b;font-weight:800;margin-top:2px}.agendaActions{display:flex;gap:6px;align-items:center}.agendaBtn{padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:900}.agendaEmpty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:12px;color:var(--muted)}.urgentBoard{display:flex;flex-direction:column;gap:10px}.urgentItem{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:flex-start;padding:12px;border:1px solid #fecaca;border-radius:16px;background:#fff5f5}.urgentDot{width:12px;height:12px;border-radius:999px;background:#dc2626;margin-top:6px;box-shadow:0 0 0 4px rgba(220,38,38,.12)}.urgentTitle{font-weight:900;color:#7f1d1d}.urgentMeta{font-size:12px;color:#991b1b;font-weight:800;margin-top:2px}.urgentEmpty{background:#fff;border:1px dashed #fecaca;border-radius:16px;padding:12px;color:#991b1b}.orderPrimaryRow aside{display:flex;flex-direction:column;gap:10px}.orderHintSoft{font-size:12px;color:#64748b;font-weight:800}.orderTrackCard{margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:12px}.orderTrackActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}@media (max-width:760px){.agendaComposer{grid-template-columns:1fr 1fr}.agendaComposer .full{grid-column:1/-1}.urgentItem{grid-template-columns:auto 1fr}}
 
+
+.formBlock{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:12px;box-shadow:0 8px 20px rgba(15,23,42,.05)}
+.formBlock:first-of-type{margin-top:10px}
+.blockTitle{font-size:13px;font-weight:1000;color:#0f172a;margin:0 0 12px;letter-spacing:.2px}
+.viewModal{background:linear-gradient(180deg,#ffffff 0%,#f7fbff 100%);border-color:#dbe7f7;box-shadow:0 18px 36px rgba(37,99,235,.08)}
+.editModal{background:linear-gradient(180deg,#fff8ef 0%,#fff2df 100%);border-color:#f2d2a4;box-shadow:0 18px 36px rgba(234,136,8,.12)}
+.editModal .h2{color:#9a3412}
+.editModal input,.editModal select,.editModal textarea{background:rgba(255,255,255,.92);border-color:#e6d2ba}
+.editModal .card,.editModal .orderSection,.editModal .formBlock{background:rgba(255,255,255,.84);border-color:#efd8b5}
+.editModal .mutedBox{background:#fffaf4;border-color:#ead7bc}
+.modalModePill{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;font-size:11px;font-weight:1000;letter-spacing:.3px;text-transform:uppercase;margin-bottom:10px;border:1px solid transparent}
+.modalModePill.view{background:#eef5ff;border-color:#bfdbfe;color:#1d4ed8}
+.modalModePill.edit{background:#fff1dd;border-color:#fdba74;color:#c2410c}
+.detailStack{display:flex;flex-direction:column;gap:12px}
+.detailBlock{background:#fff;border:1px solid #dbe6f4;border-radius:18px;padding:14px;box-shadow:0 8px 20px rgba(15,23,42,.05)}
+.detailBlockTitle{font-size:13px;font-weight:1000;color:#0f172a;margin:0 0 12px;letter-spacing:.2px}
+.detailField{background:#fff;border:1px solid #e6eef9;border-radius:14px;padding:10px 12px;min-height:72px}
+.detailField .k{margin-bottom:6px}
+.detailField .t,.detailField .priceHot,.detailField .pricePaid{font-size:15px}
+.detailHeroBlock{padding:12px}
+.detailHeroBlock .hero{height:240px}
+.viewModal .thumbs{margin-top:12px}
+.detailPosts{display:flex;flex-direction:column;gap:10px}
+.detailPostCard{background:#fff;border:1px solid #e6eef9;border-radius:14px;padding:10px 12px}
+.detailPostCard textarea{background:#fbfdff}
+.detailPromoBox{display:flex;flex-direction:column;gap:8px}
+@media (max-width:520px){
+  .detailField{min-height:auto}
+  .detailHeroBlock .hero{height:190px}
+}
+
 #mArtView .modal,#mArtEdit .modal{max-width:760px}
 
 #vArtPost,#vArtPostFb,#vArtPostIg,#a_post,#a_post_fb,#a_post_ig,#c_ship{overflow:hidden;resize:none;scrollbar-width:none;-ms-overflow-style:none}
@@ -230,48 +261,6 @@ select[multiple]{min-height:150px}
 .searchSuggest button+button{border-top:1px solid #eef2f7}
 .searchSuggest button:hover{background:#f8fafc}
 
-
-
-/* ordine visivo e modalità modifica */
-.sectionStack,.browseShell,.dashboardBoard{display:flex;flex-direction:column;gap:12px}
-.browsePanel{background:linear-gradient(135deg,#fffdf8 0%,#f8fbff 100%);border:1px solid #d9e3f1;border-radius:22px;padding:14px;box-shadow:0 12px 28px rgba(15,23,42,.06)}
-.browsePanel .sectionLead{font-size:12px;color:#64748b;font-weight:800;line-height:1.35;margin:2px 0 10px}
-.sectionHeaderRow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.sectionHeaderRow .h2{margin:0}
-.modal.modeView{background:linear-gradient(180deg,#f8fbff 0%,#eef4ff 100%);border-color:#c9d8f0;box-shadow:0 18px 38px rgba(37,99,235,.10)}
-.modal.modeEdit{background:linear-gradient(180deg,#fffaf2 0%,#fff2df 100%);border-color:#f0cf98;box-shadow:0 18px 38px rgba(234,179,8,.14)}
-.modeBanner{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:18px;border:1px solid transparent;margin-bottom:12px}
-.modeBanner.view{background:linear-gradient(135deg,#e9f1ff 0%,#f7fbff 100%);border-color:#c9d8f0}
-.modeBanner.edit{background:linear-gradient(135deg,#fff3da 0%,#fffaf2 100%);border-color:#f2cf94}
-.modeBanner .modeText{min-width:0}
-.modeEyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;font-weight:1000;margin-bottom:4px}
-.modeTitle{font-size:17px;font-weight:1000;line-height:1.1;color:#0f172a}
-.modeSub{font-size:12px;color:#475569;font-weight:700;line-height:1.35;margin-top:4px}
-.modePill{display:inline-flex;align-items:center;gap:6px;padding:8px 11px;border-radius:999px;font-size:11px;font-weight:1000;border:1px solid transparent;white-space:nowrap}
-.modeBanner.view .modePill{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8}
-.modeBanner.edit .modePill{background:#fef3c7;border-color:#f59e0b;color:#92400e}
-.viewSection,.editSection,.dashboardSection{background:rgba(255,255,255,.88);border:1px solid #d9e3f1;border-radius:18px;padding:12px;box-shadow:0 8px 20px rgba(15,23,42,.04)}
-.modeEdit .editSection,.modeEdit .orderSection{background:rgba(255,255,255,.75);border-color:#edd3ad;box-shadow:0 8px 18px rgba(180,83,9,.06)}
-.viewSection+.viewSection,.editSection+.editSection,.dashboardSection+.dashboardSection{margin-top:12px}
-.sectionMiniTitle{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;font-weight:1000;margin:0 0 10px}
-.infoGrid,.statsGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.fieldCard{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;min-width:0}
-.modeEdit .fieldCard{border-color:#f2dfbd;background:#fffdfa}
-.fieldCard .k{margin-bottom:4px}
-.viewSection textarea[readonly],.modeView .mutedBox,.modeView .linkRow input{background:#fff}
-.formBlock.editSection{padding:14px;border-radius:20px}
-.formBlock.editSection .blockTitle,.orderSection .h3{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:1000;margin:0 0 10px;color:#0f172a}
-.formBlock.editSection .blockTitle::before,.orderSection .h3::before{content:'';width:10px;height:10px;border-radius:999px;background:linear-gradient(180deg,#f59e0b,#fbbf24);box-shadow:0 0 0 4px rgba(245,158,11,.12)}
-.modeView .sectionMiniTitle::before{content:'';display:inline-block;width:8px;height:8px;border-radius:999px;background:#60a5fa;margin-right:8px;vertical-align:middle}
-.browsePanel .searchWrap + .grid2,.browsePanel .searchWrap + .artFilterGrid{margin-top:10px}
-.dashMain .stat{min-height:102px}
-.dashboardBoard .quickCard{order:3}
-.dashboardBoard .urgentCard{order:4}
-.dashboardBoard .shipCard{order:5}
-.dashboardBoard .agendaCard{order:6}
-.dashboardBoard .infoCard{order:7}
-@media (max-width:520px){.infoGrid,.statsGrid{grid-template-columns:1fr}.sectionHeaderRow{align-items:flex-start}.modeBanner{padding:11px 12px}}
-
 </style>
 <script>
 window.addEventListener('error',e=>{
@@ -299,112 +288,109 @@ window.addEventListener('error',e=>{
   </div>
 
   <div id="sec_home" class="section active">
-    <div class="sectionStack dashboardBoard">
-      <div class="heroSpot" data-action="openDashboardMood" role="button" tabindex="0">
-        <div class="eyebrow">Novità in primo piano</div>
-        <div id="homeMood" class="title">Si parte bene</div>
-        <div id="homeMoodSub" class="desc">Panoramica vendite del momento.</div>
-        <div class="sparkTitle"><span>Andamento ultimi 6 mesi</span><span id="sparkHint">incassato</span></div>
-        <div id="homeSpark" class="sparkBars"></div>
-      </div>
+    <div class="heroSpot" data-action="openDashboardMood" role="button" tabindex="0">
+      <div class="eyebrow">Novità in primo piano</div>
+      <div id="homeMood" class="title">Si parte bene</div>
+      <div id="homeMoodSub" class="desc">Panoramica vendite del momento.</div>
+      <div class="sparkTitle"><span>Andamento ultimi 6 mesi</span><span id="sparkHint">incassato</span></div>
+      <div id="homeSpark" class="sparkBars"></div>
+    </div>
 
-      <div class="cards dashMain">
-        <div class="stat" data-go="ordini"><div class="k">Ordini in corso</div><div id="c_open_orders" class="v big">0</div><div class="sub">non ancora consegnati</div></div>
-        <div class="stat" data-go="finanze"><div class="k">Guadagno mese</div><div id="c_profit_month" class="v big">0</div><div class="sub">margine del mese corrente</div></div>
-        <div class="stat" data-go="ordini"><div class="k">Media ordini</div><div id="c_avg_order" class="v big">0</div><div class="sub">valore medio per ordine</div></div>
-        <div class="stat" data-go="finanze"><div class="k">Guadagno totale</div><div id="c_profit_total" class="v big">0</div><div class="sub">margine complessivo</div></div>
-        <div id="personalPromoStat" class="stat riskGreen" data-action="openPersonalPromoArticles"><div class="k">Sconti personali</div><div id="c_personal_promo_count" class="v big">0</div><div id="c_personal_promo_sub" class="sub">nessuno attivo</div></div>
-      </div>
+    <div class="cards dashMain">
+      <div class="stat" data-go="ordini"><div class="k">Ordini in corso</div><div id="c_open_orders" class="v big">0</div><div class="sub">non ancora consegnati</div></div>
+      <div class="stat" data-go="finanze"><div class="k">Guadagno mese</div><div id="c_profit_month" class="v big">0</div><div class="sub">margine del mese corrente</div></div>
+      <div class="stat" data-go="ordini"><div class="k">Media ordini</div><div id="c_avg_order" class="v big">0</div><div class="sub">valore medio per ordine</div></div>
+      <div class="stat" data-go="finanze"><div class="k">Guadagno totale</div><div id="c_profit_total" class="v big">0</div><div class="sub">margine complessivo</div></div>
+      <div id="personalPromoStat" class="stat riskGreen" data-action="openPersonalPromoArticles"><div class="k">Sconti personali</div><div id="c_personal_promo_count" class="v big">0</div><div id="c_personal_promo_sub" class="sub">nessuno attivo</div></div>
+    </div>
 
-      <div class="card quickCard dashboardSection">
-        <div class="sectionHeaderRow"><div><div class="h2">Azioni rapide</div><div class="small">Le cose utili subito, senza cercarle in mezzo al casino.</div></div></div>
-        <div class="btnGrid" style="margin-top:10px">
-          <button class="btnBig primary" data-action="newArt">Nuovo articolo</button>
-          <button class="btnBig gray" data-action="newOrd">Nuovo ordine</button>
-          <button class="btnBig gray" data-action="newCli">Nuovo cliente</button>
-          <button class="btnBig gray" data-go="impostazioni">Impostazioni</button>
-        </div>
-        <div class="substats">
-          <div class="micro" data-go="finanze"><div class="k">Incassato mese</div><div id="c_inc_month" class="v">0</div></div>
-          <div class="micro" data-go="ordini"><div class="k">Da incassare</div><div id="c_due_total" class="v">0</div></div>
-        </div>
-      </div>
+    <div class="card" style="margin-top:12px">
+      <div class="h2">Da fare</div>
+      <div id="dashUrgent" class="urgentBoard"><div class="urgentEmpty">Nessuna urgenza in evidenza.</div></div>
+    </div>
 
-      <div class="card urgentCard dashboardSection">
-        <div class="h2">Da fare</div>
-        <div id="dashUrgent" class="urgentBoard"><div class="urgentEmpty">Nessuna urgenza in evidenza.</div></div>
+    <div class="card quickCard">
+      <div class="h2">Azioni rapide</div>
+      <div class="btnGrid">
+        <button class="btnBig primary" data-action="newArt">Nuovo articolo</button>
+        <button class="btnBig gray" data-action="newOrd">Nuovo ordine</button>
+        <button class="btnBig gray" data-action="newCli">Nuovo cliente</button>
+        <button class="btnBig gray" data-go="impostazioni">Impostazioni</button>
       </div>
+      <div class="substats">
+        <div class="micro" data-go="finanze"><div class="k">Incassato mese</div><div id="c_inc_month" class="v">0</div></div>
+        <div class="micro" data-go="ordini"><div class="k">Da incassare</div><div id="c_due_total" class="v">0</div></div>
+      </div>
+    </div>
 
-      <div class="card shipCard dashboardSection">
-        <div class="h2">Avvisi spedizioni</div>
-        <div id="shipAlerts" class="shipAlerts"><div class="shipAlertEmpty">Nessun aggiornamento spedizioni.</div></div>
-      </div>
+    <div class="card" style="margin-top:12px">
+      <div class="h2">Avvisi spedizioni</div>
+      <div id="shipAlerts" class="shipAlerts"><div class="shipAlertEmpty">Nessun aggiornamento spedizioni.</div></div>
+    </div>
 
-      <div class="card agendaCard dashboardSection">
-        <div class="h2">Agenda e scadenze</div>
-        <div class="agendaComposer" style="margin-top:8px">
-          <input id="agendaText" class="full" placeholder="Scrivi cosa devi fare..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
-          <input id="agendaDate" type="date" autocomplete="off"/>
-          <select id="agendaPreset" aria-label="Periodo rapido">
-            <option value="">Periodo rapido</option>
-            <option value="0">Oggi</option>
-            <option value="1">Domani</option>
-            <option value="3">Tra 3 giorni</option>
-            <option value="7">Tra 7 giorni</option>
-            <option value="10">Tra 10 giorni</option>
-            <option value="15">Tra 15 giorni</option>
-            <option value="30">Tra 30 giorni</option>
-            <option value="fine_mese">Fine mese</option>
-            <option value="custom">Scelgo io la data</option>
-          </select>
-          <button class="agendaMiniBtn" type="button" data-action="addAgenda">Aggiungi</button>
-        </div>
-        <div id="dashAgenda" class="agendaList" style="margin-top:10px"></div>
-      </div>
+    <div class="card" style="margin-top:12px">
+      <div class="h2">Info rapide</div>
+      <div id="dashList" class="list"></div>
+    </div>
 
-      <div class="card infoCard dashboardSection">
-        <div class="h2">Info rapide</div>
-        <div id="dashList" class="list"></div>
+    <div class="card" style="margin-top:12px">
+      <div class="h2">Agenda e scadenze</div>
+      <div class="agendaComposer" style="margin-top:8px">
+        <input id="agendaText" class="full" placeholder="Scrivi cosa devi fare..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
+        <input id="agendaDate" type="date" autocomplete="off"/>
+        <select id="agendaPreset" aria-label="Periodo rapido">
+          <option value="">Periodo rapido</option>
+          <option value="0">Oggi</option>
+          <option value="1">Domani</option>
+          <option value="3">Tra 3 giorni</option>
+          <option value="7">Tra 7 giorni</option>
+          <option value="10">Tra 10 giorni</option>
+          <option value="15">Tra 15 giorni</option>
+          <option value="30">Tra 30 giorni</option>
+          <option value="fine_mese">Fine mese</option>
+          <option value="custom">Scelgo io la data</option>
+        </select>
+        <button class="agendaMiniBtn" type="button" data-action="addAgenda">Aggiungi</button>
       </div>
+      <div id="dashAgenda" class="agendaList" style="margin-top:10px"></div>
     </div>
   </div>
 
   <div id="sec_articoli" class="section">
-    <div class="browseShell">
-      <div class="browsePanel">
-        <div class="sectionHeaderRow"><div><div class="h2">Articoli</div><div class="sectionLead">Ricerca, filtri e pulsante nuovo nello stesso punto. Una volta tanto l'ordine serve davvero.</div></div><button class="btn" type="button" data-action="newArt">+ Nuovo</button></div>
-        <div class="searchWrap" style="margin-top:10px"><input id="qArt" placeholder="Cerca per codice, marca, modello, categoria, qualità, colore, materiale, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
-        <div class="grid2 artFilterGrid">
-          <div><select id="qArtCat"><option value="">Tutte le categorie</option></select></div>
-          <div><select id="qArtBrand"><option value="">Tutte le marche</option></select></div>
-          <div><select id="qArtQuality"><option value="">Tutte le qualità</option></select></div>
-        </div>
-        <div style="margin-top:10px"><button class="btn" type="button" data-action="clearArtFilters">Anteprime complete</button></div>
-        <div id="artBreadcrumbs" class="artBreadcrumbs" style="display:none"></div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Articoli</div><button class="btn" type="button" data-action="newArt">+ Nuovo</button></div>
+      <div style="margin-top:10px">
+        <div class="searchWrap"><input id="qArt" placeholder="Cerca per codice, marca, modello, categoria, qualità, colore, materiale, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
       </div>
-      <div id="listArt" class="artGrid"></div>
+      <div class="grid2 artFilterGrid" style="margin-top:10px">
+        <div><select id="qArtCat"><option value="">Tutte le categorie</option></select></div>
+        <div><select id="qArtBrand"><option value="">Tutte le marche</option></select></div>
+        <div><select id="qArtQuality"><option value="">Tutte le qualità</option></select></div>
+      </div>
+      <div style="margin-top:10px"><button class="btn" type="button" data-action="clearArtFilters">Anteprime complete</button></div>
+      <div id="artBreadcrumbs" class="artBreadcrumbs" style="display:none"></div>
     </div>
+    <div style="height:10px"></div>
+    <div id="listArt" class="artGrid"></div>
   </div>
 
   <div id="sec_clienti" class="section">
-    <div class="browseShell">
-      <div class="browsePanel">
-        <div class="sectionHeaderRow"><div><div class="h2">Clienti</div><div class="sectionLead">Anagrafica sopra, elenco sotto. Così non sembri di passare da un cassetto all'altro a caso.</div></div><button class="btn" type="button" data-action="newCli">+ Nuovo</button></div>
-        <div class="searchWrap" style="margin-top:10px"><input id="qCli" placeholder="Cerca per nome, telefono, città..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qCliSuggest" class="searchSuggest"></div></div>
-      </div>
-      <div id="listCli" class="list"></div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Clienti</div><button class="btn" type="button" data-action="newCli">+ Nuovo</button></div>
+      <div class="searchWrap"><input id="qCli" placeholder="Cerca per nome, telefono, città..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qCliSuggest" class="searchSuggest"></div></div>
     </div>
+    <div style="height:10px"></div>
+    <div id="listCli" class="list"></div>
   </div>
 
   <div id="sec_ordini" class="section">
-    <div class="browseShell">
-      <div class="browsePanel">
-        <div class="sectionHeaderRow"><div><div class="h2">Ordini</div><div class="sectionLead">Ricerca, stato e note rapide nello stesso pannello. Finalmente non sparsi in mezzo al deserto.</div></div><button class="btn" type="button" data-action="newOrd">+ Nuovo</button></div>
-        <div class="searchWrap" style="margin-top:10px"><input id="qOrd" placeholder="Cerca per cliente, stato, id..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qOrdSuggest" class="searchSuggest"></div></div>
-        <div id="ordBrowseHint" class="small" style="margin-top:8px;display:none"></div>
-      </div>
-      <div id="listOrd" class="list"></div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Ordini</div><button class="btn" type="button" data-action="newOrd">+ Nuovo</button></div>
+      <div class="searchWrap"><input id="qOrd" placeholder="Cerca per cliente, stato, id..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qOrdSuggest" class="searchSuggest"></div></div>
+      <div id="ordBrowseHint" class="small" style="margin-top:8px;display:none"></div>
     </div>
+    <div style="height:10px"></div>
+    <div id="listOrd" class="list"></div>
   </div>
 
 
@@ -558,67 +544,89 @@ window.addEventListener('error',e=>{
 </div>
 
 <!-- MODALS -->
-<div id="mArtView" class="modalwrap"><div class="modal modeView articleViewModal">
-  <div class="modeBanner view">
-    <div class="modeText"><div class="modeEyebrow">Articolo</div><div class="modeTitle">Dettaglio articolo</div><div class="modeSub">Qui guardi soltanto. Nessun dubbio tra vista e modifica.</div></div>
-    <div class="modePill">👁️ Visualizzazione</div>
-  </div>
-  <img id="vArtHero" class="hero" alt=""/>
-  <div id="vArtThumbs" class="thumbs"></div>
+<div id="mArtView" class="modalwrap"><div class="modal viewModal articleViewModal">
+  <div class="modalModePill view">👁️ Visualizzazione articolo</div>
+  <div class="h2">Dettaglio articolo</div>
 
-  <div class="viewSection">
-    <div class="sectionMiniTitle">Identità articolo</div>
-    <div class="infoGrid">
-      <div class="fieldCard"><div class="k">Codice</div><div id="vArtCod" class="t">-</div></div>
-      <div class="fieldCard"><div class="k">Modello</div><div id="vArtModel" class="t">-</div></div>
-      <div class="fieldCard"><div class="k">Qualità</div><div id="vArtQual" class="t">-</div></div>
-      <div class="fieldCard"><div class="k">Marca</div><div id="vArtBrand" class="t">-</div></div>
+  <div class="detailStack">
+    <div class="detailBlock detailHeroBlock">
+      <img id="vArtHero" class="hero" alt=""/>
+      <div id="vArtThumbs" class="thumbs"></div>
     </div>
-  </div>
 
-  <div class="viewSection">
-    <div class="sectionMiniTitle">Varianti e fornitore</div>
-    <div class="fieldCard"><div class="k">Fornitore</div><div id="vArtForn" class="t">-</div></div>
-    <div class="fieldCard" style="margin-top:10px"><div class="k" id="vArtColorsLabel">Colori disponibili</div><div id="vArtColors" class="t">-</div></div>
-  </div>
-
-  <div class="viewSection">
-    <div class="sectionMiniTitle">Prezzi e promo</div>
-    <div class="infoGrid">
-      <div class="fieldCard"><div class="k">Prezzo vendita</div><div id="vArtPrezzo" class="t">-</div></div>
-      <div class="fieldCard"><div class="k">Prezzo in uso</div><div id="vArtPrezzoUse" class="priceHot">-</div><div id="vArtPromoPill" style="margin-top:8px"></div></div>
+    <div class="detailBlock">
+      <div class="detailBlockTitle">Identità articolo</div>
+      <div class="grid2">
+        <div class="detailField"><div class="k">Codice</div><div id="vArtCod" class="t">-</div></div>
+        <div class="detailField"><div class="k">Modello</div><div id="vArtModel" class="t">-</div></div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="detailField"><div class="k">Qualità</div><div id="vArtQual" class="t">-</div></div>
+        <div class="detailField"><div class="k">Marca</div><div id="vArtBrand" class="t">-</div></div>
+      </div>
     </div>
-  </div>
 
-  <div class="viewSection">
-    <div class="sectionMiniTitle">Post automatici</div>
-    <div class="fieldCard"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button></div></div>
-    <div class="fieldCard" style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button></div></div>
-    <div class="fieldCard" style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button></div></div>
-  </div>
+    <div class="detailBlock">
+      <div class="detailBlockTitle">Disponibilità e fornitore</div>
+      <div class="grid2">
+        <div class="detailField"><div class="k">Disponibilità</div><div id="vArtAvailability" class="t">-</div></div>
+        <div class="detailField"><div class="k">Fornitore</div><div id="vArtForn" class="t">-</div></div>
+      </div>
+      <div class="detailField" style="margin-top:10px"><div class="k" id="vArtColorsLabel">Colori disponibili</div><div id="vArtColors" class="t">-</div></div>
+      <div class="detailField" style="margin-top:10px">
+        <div class="k">Pagina fornitore</div>
+        <div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div>
+      </div>
+    </div>
 
-  <div class="viewSection">
-    <div class="sectionMiniTitle">Link fornitore</div>
-    <div class="fieldCard"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
-  </div>
+    <div class="detailBlock">
+      <div class="detailBlockTitle">Prezzi e promo</div>
+      <div class="grid2">
+        <div class="detailField"><div class="k">Prezzo vendita</div><div id="vArtPrezzo" class="t">-</div></div>
+        <div class="detailField detailPromoBox">
+          <div><div class="k">Prezzo in uso</div><div id="vArtPrezzoUse" class="priceHot">-</div></div>
+          <div id="vArtPromoPill"></div>
+        </div>
+      </div>
+    </div>
 
-  <div class="actions compact viewBottomSpace">
-    <button class="btn shareBtn smallish" type="button" data-action="shareArtPhotos">Condividi foto</button>
-    <button class="btn downloadBtn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button>
-    <button class="btn duplicateBtn smallish" type="button" data-action="duplicateArt">Duplica</button>
-    <button class="btn editBtn smallish" type="button" data-action="editFromView">Modifica</button>
-    <button class="btn addOrderBtn smallish" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button>
-    <button class="btn closeBtn smallish" type="button" data-action="closeView">Chiudi</button>
+    <div class="detailBlock">
+      <div class="detailBlockTitle">Contenuti per i post</div>
+      <div class="detailPosts">
+        <div class="detailPostCard">
+          <div class="k">Post Facebook (FB)</div>
+          <textarea id="vArtPostFb" readonly></textarea>
+          <div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button></div>
+        </div>
+        <div class="detailPostCard">
+          <div class="k">Post Telegram</div>
+          <textarea id="vArtPost" readonly></textarea>
+          <div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button></div>
+        </div>
+        <div class="detailPostCard">
+          <div class="k">Post Instagram (IG)</div>
+          <textarea id="vArtPostIg" readonly></textarea>
+          <div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions compact viewBottomSpace">
+      <button class="btn shareBtn smallish" type="button" data-action="shareArtPhotos">Condividi foto</button>
+      <button class="btn downloadBtn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button>
+      <button class="btn duplicateBtn smallish" type="button" data-action="duplicateArt">Duplica</button>
+      <button class="btn editBtn smallish" type="button" data-action="editFromView">Modifica</button>
+      <button class="btn addOrderBtn smallish" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button>
+      <button class="btn closeBtn smallish" type="button" data-action="closeView">Chiudi</button>
+    </div>
   </div>
 </div></div>
 
-<div id="mArtEdit" class="modalwrap"><div class="modal artModal modeEdit">
-  <div class="modeBanner edit">
-    <div class="modeText"><div class="modeEyebrow">Articolo</div><div class="modeTitle" id="artEditTitle">Nuovo articolo</div><div class="modeSub">Qui stai modificando davvero i dati. Sfondo caldo e blocchi ordinati, così non ti confondi più.</div></div>
-    <div class="modePill">✏️ Modifica</div>
-  </div>
+<div id="mArtEdit" class="modalwrap"><div class="modal artModal editModal">
+  <div class="modalModePill edit">✏️ Schermata di modifica</div>
+  <div class="h2" id="artEditTitle">Nuovo articolo</div>
 
-  <div class="formBlock editSection dati inputSoft">
+  <div class="formBlock dati inputSoft">
     <div class="blockTitle">Dati articolo</div>
     <div class="grid2">
       <div><div class="k">Codice articolo</div><input id="a_cod" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="a_cod_hint" class="date" style="margin-top:6px"></div></div>
@@ -639,7 +647,7 @@ window.addEventListener('error',e=>{
     <div style="margin-top:10px"><div class="k">Fornitore</div><select id="a_forn"></select><div id="a_forn_hint" class="date" style="margin-top:6px">Scelta automatica dal codice articolo.</div></div>
   </div>
 
-  <div class="formBlock editSection varianti inputSoft">
+  <div class="formBlock varianti inputSoft">
     <div class="blockTitle">Varianti e dettagli</div>
     <div class="grid2">
       <div><div class="k">Materiale</div><input id="a_taglia" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Es. Pelle di vitello impressa"/></div>
@@ -678,7 +686,7 @@ window.addEventListener('error',e=>{
     </div>
   </div>
 
-  <div class="formBlock editSection prezzi inputSoft">
+  <div class="formBlock prezzi inputSoft">
     <div class="blockTitle">Prezzi e margine</div>
     <div class="grid2">
       <div><div class="k">Qualità (auto)</div><input id="a_qual" readonly/></div>
@@ -707,7 +715,7 @@ window.addEventListener('error',e=>{
     </div>
   </div>
 
-  <div class="formBlock editSection postblk inputSoft">
+  <div class="formBlock postblk inputSoft">
     <div class="blockTitle">Post e contenuti</div>
     <div><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Dettagli utili per il post..."></textarea></div>
     <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="a_post_fb" readonly placeholder="Qui il post Facebook (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbEdit">Copia FB</button></div></div>
@@ -726,88 +734,44 @@ window.addEventListener('error',e=>{
   </div>
 </div></div>
 
-<div id="mCliView" class="modalwrap"><div class="modal modeView">
-  <div class="modeBanner view">
-    <div class="modeText"><div class="modeEyebrow">Cliente</div><div class="modeTitle">Dettaglio cliente</div><div class="modeSub">Vista ordinata: dati, indirizzi, storico e margini senza mischiare tutto.</div></div>
-    <div class="modePill">👁️ Visualizzazione</div>
+<div id="mCliView" class="modalwrap"><div class="modal viewModal">
+  <div class="modalModePill view">👁️ Visualizzazione</div>
+  <div class="h2">Dettaglio cliente</div>
+  <div class="grid2">
+    <div><div class="k">Nome</div><div id="vCliNome" class="t">-</div></div>
+    <div><div class="k">Telefono</div><div id="vCliTel" class="t">-</div></div>
   </div>
-
-  <div class="viewSection">
-    <div class="sectionMiniTitle">Anagrafica</div>
-    <div class="infoGrid">
-      <div class="fieldCard"><div class="k">Nome</div><div id="vCliNome" class="t">-</div></div>
-      <div class="fieldCard"><div class="k">Telefono</div><div id="vCliTel" class="t">-</div></div>
-      <div class="fieldCard"><div class="k">CAP</div><div id="vCliCap" class="t">-</div></div>
-      <div class="fieldCard"><div class="k">Città</div><div id="vCliCity" class="t">-</div></div>
-    </div>
-    <div class="fieldCard" style="margin-top:10px"><div class="k">Provincia</div><div id="vCliProv" class="t">-</div></div>
+  <div style="margin-top:10px"><div class="k">Indirizzo</div><div id="vCliInd" class="mutedBox">-</div></div>
+  <div class="grid2" style="margin-top:10px">
+    <div><div class="k">CAP</div><div id="vCliCap" class="t">-</div></div>
+    <div><div class="k">Città</div><div id="vCliCity" class="t">-</div></div>
   </div>
-
-  <div class="viewSection">
-    <div class="sectionMiniTitle">Indirizzi e note</div>
-    <div class="fieldCard"><div class="k">Indirizzo</div><div id="vCliInd" class="mutedBox">-</div></div>
-    <div class="fieldCard" style="margin-top:10px"><div class="k">Note</div><div id="vCliNote" class="mutedBox">-</div></div>
-    <div class="fieldCard" style="margin-top:10px"><div class="k">Indirizzo spedizione</div><textarea id="vCliShip" readonly placeholder="Shipping Address"></textarea></div>
+  <div style="margin-top:10px"><div class="k">Provincia</div><div id="vCliProv" class="t">-</div></div>
+  <div style="margin-top:10px"><div class="k">Note</div><div id="vCliNote" class="mutedBox">-</div></div>
+  <div style="margin-top:10px"><div class="k">Indirizzo spedizione</div><textarea id="vCliShip" readonly placeholder="Shipping Address"></textarea></div>
+  <div style="margin-top:10px"><div class="k">Acquisti effettuati</div><div id="vCliOrders" class="list"></div></div>
+  <div class="grid2" style="margin-top:10px">
+    <div><div class="k">Guadagno totale</div><div id="vCliProfitTotal" class="t pricePaid">-</div></div>
+    <div><div class="k">Guadagno annuale</div><div id="vCliProfitYear" class="t pricePaid">-</div></div>
   </div>
-
-  <div class="viewSection">
-    <div class="sectionMiniTitle">Storico cliente</div>
-    <div class="fieldCard"><div class="k">Acquisti effettuati</div><div id="vCliOrders" class="list"></div></div>
-  </div>
-
-  <div class="viewSection">
-    <div class="sectionMiniTitle">Margini</div>
-    <div class="infoGrid">
-      <div class="fieldCard"><div class="k">Guadagno totale</div><div id="vCliProfitTotal" class="t pricePaid">-</div></div>
-      <div class="fieldCard"><div class="k">Guadagno annuale</div><div id="vCliProfitYear" class="t pricePaid">-</div></div>
-    </div>
-  </div>
-
   <div class="actions compact bottomMini">
     <button class="btn primary smallish" type="button" data-action="copyCliShipView">Copia indirizzo</button>
-    <button class="btn editBtn smallish" type="button" data-action="editCliFromView">Modifica</button>
-    <button class="btn closeBtn smallish" type="button" data-action="closeCliView">Chiudi</button>
+    <button class="btn smallish" type="button" data-action="editCliFromView">Modifica</button>
+    <button class="btn smallish" type="button" data-action="closeCliView">Chiudi</button>
   </div>
 </div></div>
 
-<div id="mCliEdit" class="modalwrap"><div class="modal modeEdit">
-  <div class="modeBanner edit">
-    <div class="modeText"><div class="modeEyebrow">Cliente</div><div class="modeTitle" id="cliEditTitle">Nuovo cliente</div><div class="modeSub">Anagrafica sopra, indirizzo in mezzo, note e spedizione sotto. Finalmente segue una logica umana.</div></div>
-    <div class="modePill">✏️ Modifica</div>
+<div id="mCliEdit" class="modalwrap"><div class="modal editModal">
+  <div class="modalModePill edit">✏️ Schermata di modifica</div>
+  <div class="h2" id="cliEditTitle">Nuovo cliente</div>
+  <div class="grid2">
+    <div><div class="k">Nome</div><input id="c_nome" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+    <div><div class="k">Telefono</div><input id="c_tel" inputmode="tel" autocomplete="off"/></div>
   </div>
-
-  <div class="editSection">
-    <div class="sectionMiniTitle">Anagrafica</div>
-    <div class="grid2">
-      <div><div class="k">Nome</div><input id="c_nome" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-      <div><div class="k">Telefono</div><input id="c_tel" inputmode="tel" autocomplete="off"/></div>
-    </div>
-    <div class="grid2" style="margin-top:10px">
-      <div><div class="k">CAP</div><input id="c_cap" inputmode="numeric" autocomplete="off"/></div>
-      <div><div class="k">Città</div><input id="c_citta" list="c_citta_list" autocomplete="off" autocapitalize="off" spellcheck="false"/><datalist id="c_citta_list"></datalist><div id="c_cap_hint" class="helper">Il CAP viene proposto automaticamente in base alla città, usando un archivio comuni + CAP.</div></div>
-    </div>
-    <div style="margin-top:10px"><div class="k">Provincia</div><select id="c_prov"></select></div>
-  </div>
-
-  <div class="editSection">
-    <div class="sectionMiniTitle">Indirizzo e spedizione</div>
-    <div><div class="k">Indirizzo</div><input id="c_ind" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div style="margin-top:10px"><div class="k">Indirizzo spedizione</div><textarea id="c_ship" readonly placeholder="Shipping Address"></textarea></div>
-  </div>
-
-  <div class="editSection">
-    <div class="sectionMiniTitle">Note e azioni</div>
-    <div><div class="k">Note</div><textarea id="c_note"></textarea></div>
-    <div class="actions compact bottomMini">
-      <button class="btn primary smallish" type="button" data-action="copyCliShip">Copia indirizzo</button>
-      <button class="btn primary smallish" type="button" data-action="saveCli">Salva</button>
-      <button class="btn closeBtn smallish" type="button" data-action="closeCli">Annulla</button>
-    </div>
-    <div class="actions compact" style="margin-top:8px">
-      <button class="btn danger smallish" type="button" data-action="deleteCli">Elimina</button>
-    </div>
-  </div>
-</div></div>
+  <div style="margin-top:10px"><div class="k">Indirizzo</div><input id="c_ind" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+  <div class="grid2" style="margin-top:10px">
+    <div><div class="k">CAP</div><input id="c_cap" inputmode="numeric" autocomplete="off"/></div>
+    <div><div class="k">Città</div><input id="c_citta" list="c_citta_list" autocomplete="off" autocapitalize="off" spellcheck="false"/><datalist id="c_citta_list"></datalist><div id="c_cap_hint" class="helper">Il CAP viene proposto automaticamente in base alla città, usando un archivio comuni + CAP.</div></div>
   </div>
   <div style="margin-top:10px"><div class="k">Provincia</div><select id="c_prov"></select></div>
   <div style="margin-top:10px"><div class="k">Note</div><textarea id="c_note"></textarea></div>
@@ -822,126 +786,49 @@ window.addEventListener('error',e=>{
   </div>
 </div></div>
 
-<div id="mOrdView" class="modalwrap"><div class="modal modeView">
-  <div class="modeBanner view">
-    <div class="modeText"><div class="modeEyebrow">Ordine</div><div class="modeTitle">Dettaglio ordine</div><div class="modeSub">Riepilogo pulito: cliente e stato sopra, righe e totali sotto. Finalmente non devi cacciare le informazioni col machete.</div></div>
-    <div class="modePill">👁️ Visualizzazione</div>
+<div id="mOrdView" class="modalwrap"><div class="modal viewModal">
+  <div class="modalModePill view">👁️ Visualizzazione</div>
+  <div class="h2">Dettaglio ordine</div>
+  <div class="grid2">
+    <div><div class="k">Cliente</div><div id="vOrdCli" class="t">-</div></div>
+    <div><div class="k">Stato</div><div id="vOrdStato" class="pill">-</div></div>
   </div>
-
-  <div class="viewSection">
-    <div class="sectionMiniTitle">Intestazione ordine</div>
-    <div class="infoGrid">
-      <div class="fieldCard"><div class="k">Cliente</div><div id="vOrdCli" class="t">-</div></div>
-      <div class="fieldCard"><div class="k">Stato</div><div id="vOrdStato" class="pill">-</div></div>
-      <div class="fieldCard"><div class="k">Data</div><div id="vOrdData" class="t">-</div></div>
-      <div class="fieldCard"><div class="k">Mis.</div><div id="vOrdMis" class="t">-</div></div>
-    </div>
+  <div class="grid2" style="margin-top:10px">
+    <div><div class="k">Data</div><div id="vOrdData" class="t">-</div></div>
+    <div><div class="k">Mis.</div><div id="vOrdMis" class="t">-</div></div>
   </div>
-
-  <div class="viewSection">
-    <div class="sectionMiniTitle">Spedizione e tracking</div>
-    <div class="fieldCard"><div class="k">Tracking</div><div id="vOrdTrack" class="mutedBox">-</div></div>
-    <div class="actions compact bottomMini" style="margin-top:8px">
-      <button class="btn smallish" type="button" data-action="track17View">Traccia spedizione</button>
-      <button class="btn primary smallish" type="button" data-action="openParcelView">Apri Parcel</button>
-    </div>
+  <div style="margin-top:10px"><div class="k">Tracking</div><div id="vOrdTrack" class="mutedBox">-</div></div>
+  <div class="actions compact bottomMini" style="margin-top:8px">
+    <button class="btn smallish" type="button" data-action="track17View">Traccia spedizione</button>
+    <button class="btn primary smallish" type="button" data-action="openParcelView">Apri Parcel</button>
   </div>
-
-  <div class="viewSection">
-    <div class="sectionMiniTitle">Articoli ordine</div>
-    <div id="vOrdRows" class="list"></div>
+  <div class="hr"></div>
+  <div class="h2">Righe ordine</div>
+  <div id="vOrdRows" class="list"></div>
+  <div style="margin-top:10px"><div class="k">Foto ordine</div><div id="vOrdPhotos" class="orderPhotoGrid"></div><div id="vOrdPhotosEmpty" class="small" style="margin-top:6px">Nessuna foto ordine</div></div>
+  <div style="margin-top:10px"><div class="k">Note</div><div id="vOrdNote" class="mutedBox">-</div></div>
+  <div class="grid2" style="margin-top:10px">
+    <div><div class="k">Subtotale righe</div><div id="vOrdSub" class="t">-</div></div>
+    <div><div class="k">Sconto cliente</div><div id="vOrdDiscount" class="t">-</div></div>
   </div>
-
-  <div class="viewSection">
-    <div class="sectionMiniTitle">Foto e note</div>
-    <div class="fieldCard"><div class="k">Foto ordine</div><div id="vOrdPhotos" class="orderPhotoGrid"></div><div id="vOrdPhotosEmpty" class="small" style="margin-top:6px">Nessuna foto ordine</div></div>
-    <div class="fieldCard" style="margin-top:10px"><div class="k">Note</div><div id="vOrdNote" class="mutedBox">-</div></div>
+  <div class="grid2" style="margin-top:10px">
+    <div><div class="k">Totale pagato</div><div id="vOrdTot" class="t priceHot">-</div></div>
+    <div><div class="k">Guadagno</div><div id="vOrdProfit" class="t pricePaid">-</div></div>
   </div>
-
-  <div class="viewSection">
-    <div class="sectionMiniTitle">Totali</div>
-    <div class="infoGrid">
-      <div class="fieldCard"><div class="k">Subtotale righe</div><div id="vOrdSub" class="t">-</div></div>
-      <div class="fieldCard"><div class="k">Sconto cliente</div><div id="vOrdDiscount" class="t">-</div></div>
-      <div class="fieldCard"><div class="k">Totale pagato</div><div id="vOrdTot" class="t priceHot">-</div></div>
-      <div class="fieldCard"><div class="k">Guadagno</div><div id="vOrdProfit" class="t pricePaid">-</div></div>
-    </div>
-    <div id="vOrdCumMeta" class="small" style="margin-top:8px;display:none"></div>
-  </div>
-
+  <div id="vOrdCumMeta" class="small" style="margin-top:8px;display:none"></div>
   <div class="actions compact bottomMini">
-    <button class="btn editBtn smallish" type="button" data-action="editOrdFromView">Modifica</button>
-    <button class="btn closeBtn smallish" type="button" data-action="closeOrdView">Chiudi</button>
+    <button class="btn smallish" type="button" data-action="editOrdFromView">Modifica</button>
+    <button class="btn smallish" type="button" data-action="closeOrdView">Chiudi</button>
   </div>
 </div></div>
 
-<div id="mOrdEdit" class="modalwrap"><div class="modal modeEdit">
-  <div class="modeBanner edit">
-    <div class="modeText"><div class="modeEyebrow">Ordine</div><div class="modeTitle" id="ordEditTitle">Nuovo ordine</div><div class="modeSub">Cliente, dati ordine, articoli, foto e salvataggio. Tutto in fila, che non è chiedere troppo.</div></div>
-    <div class="modePill">✏️ Modifica</div>
-  </div>
+<div id="mOrdEdit" class="modalwrap"><div class="modal editModal">
+  <div class="modalModePill edit">✏️ Schermata di modifica</div>
+  <div class="h2" id="ordEditTitle">Nuovo ordine</div>
 
   <div class="orderSection">
     <div class="h3">Cliente</div>
     <div><div class="k">Cerca e seleziona cliente</div><div class="searchWrap"><input id="o_cli_q" placeholder="Cerca cliente per nome, telefono o città..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="oCliSuggest" class="searchSuggest"></div></div><select id="o_cli"></select><div id="o_cli_summary" class="orderClientSummary empty">Seleziona un cliente per vedere subito nome, telefono e città.</div></div>
-  </div>
-
-  <div class="orderSection">
-    <div class="h3">Dati ordine</div>
-    <div class="grid2">
-      <div><div class="k">Stato</div>
-        <select id="o_stato">
-          <option>Richiesto</option>
-          <option>In attesa di pagamento</option>
-          <option>Pagato</option>
-          <option>In lavorazione</option>
-          <option>Spedito</option>
-          <option>Consegnato</option>
-          <option>Annullato</option>
-        </select>
-      </div>
-      <div><div class="k">Data</div><input id="o_data" type="date" autocomplete="off"/></div>
-    </div>
-    <div class="grid2" style="margin-top:10px">
-      <div><div class="k">Sconto cliente (€)</div><input id="o_discount" inputmode="decimal" placeholder="0" autocomplete="off"/></div>
-      <div class="card" style="margin-top:0"><div class="k">Riepilogo ordine</div><div id="o_tot" class="priceHot">0</div><div id="o_tot_meta" class="small" style="margin-top:6px">Subtotale €0,00 • Sconto €0,00</div></div>
-    </div>
-    <div style="margin-top:10px"><div class="k">Note</div><input id="o_note" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Aggiungi una nota utile per questo ordine"/></div>
-  </div>
-
-  <div class="orderSection">
-    <div class="h3">Articoli ordine</div>
-    <div class="orderPrimaryRow">
-      <div>
-        <div class="k">Articolo</div>
-        <div class="searchWrap"><input id="o_art_q" placeholder="Cerca per codice, nome, qualità o colore" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="oArtSuggest" class="searchSuggest"></div></div>
-        <select id="o_art_pick"><option value="">Seleziona articolo</option></select>
-        <select id="o_art" multiple hidden></select>
-        <div class="helper">Cerca per codice o nome e scegli dalla tendina.</div>
-        <div id="o_art_selected_summary" class="orderSelectedSummary empty">Cerca un articolo e poi aggiungilo.</div>
-      </div>
-      <aside>
-        <div id="o_pick_color_wrap" style="display:none"><div class="k">Colore</div><select id="o_pick_color"></select><div id="o_pick_color_hint" class="orderHintSoft">Scegli il colore e poi aggiungi l'articolo.</div></div>
-        <div><div class="k">Misura</div><select id="o_mis" autocomplete="off"><option value="">Non necessaria</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option></select><div id="o_mis_hint" class="helper">Usala solo per scarpe.</div></div>
-      </aside>
-    </div>
-    <div class="actions bottomMini"><button class="btn" type="button" data-action="addRow">Aggiungi</button></div>
-    <div id="o_rows_summary" class="orderRowsSummary">Ancora nessun articolo nell'ordine.</div>
-    <div id="o_rows" class="list"></div>
-  </div>
-
-  <div class="orderSection">
-    <div class="h3">Foto ordine e tracking</div>
-    <div><div class="k">Aggiungi foto</div><input id="o_photo" type="file" accept="image/*"/><div class="small" style="margin-top:6px">Per ogni articolo viene copiata una sola foto, cercando quella del colore scelto. Se serve, puoi aggiungerne una manuale.</div><div id="o_photo_prev" class="orderPhotoGrid"></div></div>
-    <div class="orderTrackCard"><div class="k">Tracking</div><input id="o_tracking" placeholder="Inserisci tracking" autocomplete="off" autocapitalize="off" spellcheck="false"/><div class="orderTrackActions"><button class="btn smallish" type="button" data-action="track17">Traccia spedizione</button><button class="btn primary smallish" type="button" data-action="openParcel">Apri Parcel</button></div></div>
-  </div>
-
-  <div class="actions bottomMini">
-    <button class="btn primary" type="button" data-action="saveOrd">Salva</button>
-    <button class="btn closeBtn" type="button" data-action="closeOrd">Annulla</button>
-    <button class="btn danger" type="button" data-action="deleteOrd">Elimina</button>
-  </div>
-</div></div><select id="o_cli"></select><div id="o_cli_summary" class="orderClientSummary empty">Seleziona un cliente per vedere subito nome, telefono e città.</div></div>
   </div>
 
   <div class="orderSection">
@@ -2988,6 +2875,40 @@ function fmtMB(n){ return (n/1024/1024).toFixed(2)+' MB'; }
 function isTemporaryLocalPhotoRef(src){
   return /^(?:blob:|data:|file:|filesystem:)/i.test(String(src||'').trim());
 }
+
+function normalizeSavedArticleFotoRefs(list=[], limit=MAX_ARTICLE_PHOTOS){
+  const out=[];
+  for(const raw of (Array.isArray(list)?list:[])){
+    const clean=String(raw||'').trim();
+    if(!clean || /^blob:|^file:|^filesystem:/i.test(clean) || out.includes(clean)) continue;
+    out.push(clean);
+    if(out.length>=limit) break;
+  }
+  return out;
+}
+async function persistArticlePhotoFile(file, prefix='ph_'){
+  const pid=`${prefix}${uid()}`;
+  try{
+    const blob=await compressImageBlob(file, 1600, 0.78);
+    await idbSet(pid, blob);
+    return { photoId: pid, inlineSrc: '', mode: 'idb-blob' };
+  }catch(primaryErr){
+    console.warn('Salvataggio foto su IndexedDB fallito, provo compatibilità', primaryErr);
+  }
+  try{
+    const dataUrl=await compressImageFile(file, 1280, 0.68);
+    try{
+      await idbSet(pid, dataUrl);
+      return { photoId: pid, inlineSrc: '', mode: 'idb-data' };
+    }catch(idbStringErr){
+      console.warn('IndexedDB non disponibile anche in fallback, salvo la foto dentro l\'articolo', idbStringErr);
+      return { photoId: '', inlineSrc: dataUrl, mode: 'inline-data' };
+    }
+  }catch(fallbackErr){
+    console.warn('Fallback compatibile foto fallito', fallbackErr);
+    return { photoId: '', inlineSrc: '', mode: 'failed' };
+  }
+}
 function isLikelyCloudPhotoPath(src){
   const clean=String(src||'').trim().replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
   if(!clean || isTemporaryLocalPhotoRef(clean) || /^https?:\/\//i.test(clean)) return false;
@@ -4497,14 +4418,24 @@ function hide(id, fromPop=false){
   if(activeModalId===id) activeModalId=null;
   if(!fromPop && history.state && history.state.modal===id) history.back();
 }
-function toast(msg){
+function toast(msg, opts={}){
+  const text=String(msg==null?'':msg);
+  const forceTop=!!opts.top;
+  const forceBottom=!!opts.bottom;
+  const isErrorLike=!forceBottom && (forceTop || /(?:^|\b)(errore|fallit|fallita|fallito|impossibile|obbligator|attenzione|manca|mancano|devi|non puoi|non sono riuscita|non disponibile|non trovato|non valida|blocc|limite|massimo|archivio locale pieno|cloud non aggiornato)(?:\b|$)/i.test(text));
   let t=document.getElementById('vg_toast');
-  if(!t){ t=document.createElement('div'); t.id='vg_toast';
-    t.style.cssText='position:fixed;left:50%;bottom:78px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 12px;border-radius:12px;font-weight:900;font-size:12px;z-index:9999;box-shadow:0 12px 24px rgba(0,0,0,.25);max-width:90vw;text-align:center;display:none';
+  if(!t){
+    t=document.createElement('div');
+    t.id='vg_toast';
+    t.style.cssText='position:fixed;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 12px;border-radius:12px;font-weight:900;font-size:12px;z-index:9999;box-shadow:0 12px 24px rgba(0,0,0,.25);max-width:90vw;text-align:center;display:none';
     document.body.appendChild(t);
   }
-  t.textContent=msg; t.style.display='block';
-  clearTimeout(window.__t); window.__t=setTimeout(()=>t.style.display='none',1400);
+  t.textContent=text;
+  t.style.top=isErrorLike ? '12px' : '';
+  t.style.bottom=isErrorLike ? '' : '78px';
+  t.style.display='block';
+  clearTimeout(window.__t);
+  window.__t=setTimeout(()=>t.style.display='none', isErrorLike ? 2200 : 1400);
 }
 let confirmCallback=null;
 function askConfirm(text, cb, title='Conferma'){ document.getElementById('confirmTitle').textContent=title; document.getElementById('confirmText').textContent=text; confirmCallback=cb; show('mConfirm'); }
@@ -6459,7 +6390,7 @@ async function saveArt(){
     const r=calcFromUsd(usd, qual);
     const promoR=(promoUsd>0) ? calcFromUsd(promoUsd, qual) : {costo:0,sell:0,marg:0};
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
-    const keptFoto=currentArtPhotosCleared ? [] : (Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : []);
+    const keptFoto=currentArtPhotosCleared ? [] : normalizeSavedArticleFotoRefs(old?.foto, MAX_ARTICLE_PHOTOS);
     const keptPhotoIds=currentArtPhotosCleared ? [] : (Array.isArray(old?.photoIds) ? old.photoIds.filter(Boolean).slice() : []);
     const obj=normalizeArticlePromoState({
       id: currentArtId||uid(),
@@ -6517,27 +6448,21 @@ async function saveArt(){
 
       if(filesToSave.length){
         const localPhotoIds=[];
+        const inlinePhotoRefs=[];
+        let compatCount=0;
+        let failedCount=0;
         for(const file of filesToSave){
-          try{
-            const blob=await compressImageBlob(file);
-            const pid='ph_'+uid();
-            await idbSet(pid, blob);
-            localPhotoIds.push(pid);
-          }catch(localErr){
-            console.warn('Salvataggio foto locale fallito', localErr);
-            try{
-              const dataUrl=await compressImageFile(file);
-              const pid='ph_'+uid();
-              await idbSet(pid, dataUrl);
-              localPhotoIds.push(pid);
-              photoUploadWarning='Una o più foto salvate in modalità compatibile';
-            }catch(fallbackErr){
-              console.warn('Fallback foto fallito', fallbackErr);
-              photoUploadWarning='Una o più foto non salvate';
-            }
-          }
+          const savedPhoto=await persistArticlePhotoFile(file, 'ph_');
+          if(savedPhoto.photoId) localPhotoIds.push(savedPhoto.photoId);
+          else if(savedPhoto.inlineSrc) inlinePhotoRefs.push(savedPhoto.inlineSrc);
+          if(savedPhoto.mode==='idb-data' || savedPhoto.mode==='inline-data') compatCount++;
+          if(savedPhoto.mode==='failed') failedCount++;
         }
         obj.photoIds=[...new Set([...(obj.photoIds||[]), ...localPhotoIds])].slice(0,MAX_ARTICLE_PHOTOS);
+        obj.foto=mergeUniquePics(obj.foto||[], inlinePhotoRefs).slice(0,MAX_ARTICLE_PHOTOS);
+        if(failedCount && !obj.photoIds.length && !obj.foto.length) photoUploadWarning='Articolo salvato ma le foto non sono state salvate';
+        else if(failedCount) photoUploadWarning='Alcune foto non sono state salvate';
+        else if(compatCount) photoUploadWarning='Una o più foto salvate in modalità compatibile';
       }
     }
     obj._ts=Date.now();
@@ -7254,21 +7179,9 @@ async function saveOrd(){
   const newManualIds=[];
   const newManualLegacy=[];
   for(const file of selectedFiles.slice(0,maxNew)){
-    try{
-      const blob=await compressImageBlob(file);
-      const pid='oph_'+uid();
-      await idbSet(pid, blob);
-      newManualIds.push(pid);
-    }catch(err){
-      console.warn('Compressione foto ordine fallita', err);
-      try{
-        const dataUrl=await compressImageFile(file, 1400, 0.76);
-        const pid='oph_'+uid();
-        await idbSet(pid, dataUrl);
-        newManualIds.push(pid);
-        newManualLegacy.push(dataUrl);
-      }catch(_e){}
-    }
+    const savedPhoto=await persistArticlePhotoFile(file, 'oph_');
+    if(savedPhoto.photoId) newManualIds.push(savedPhoto.photoId);
+    else if(savedPhoto.inlineSrc) newManualLegacy.push(savedPhoto.inlineSrc);
   }
   const manualCount=existingManualCount + newManualIds.length;
   const allOrderPics=mergeUniquePics(articlePics, currentOrdExistingManualPhotos).slice(0, articlePics.length + 1);
