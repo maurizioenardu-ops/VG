@@ -500,7 +500,6 @@ window.addEventListener('error',e=>{
   <div id="vArtThumbs" class="thumbs"></div>
   <div class="hr"></div>
   <div class="grid2">
-    <div><div class="k">Codice</div><div id="vArtCod" class="t">-</div></div>
     <div><div class="k">Qualità</div><div id="vArtQual" class="t">-</div></div>
   </div>
   <div class="grid2" style="margin-top:10px">
@@ -4837,7 +4836,7 @@ function renderArt(){
     const promo=pseudoPromoBadge(a);
     const unavailable=articleAvailabilityBadge(a);
     const blocked=isArticleUnavailable(a);
-    const metaLine=promoOnly ? `${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}` : `${esc(a.codice||'Senza codice')} • ${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
+    const metaLine=`${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
     return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${unavailable}${promo}</div><div class="artPrice">${money(currentPrice(a))}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
   }).join('');
   const emptyText=promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.';
@@ -5119,7 +5118,6 @@ async function openArtView(id){
   const thumbs=document.getElementById('vArtThumbs');
   hero.src=pics[0]||''; hero.style.display=pics[0]?'block':'none';
   thumbs.innerHTML=pics.map(src=>`<img src="${src}" onclick="document.getElementById('vArtHero').src='${src}'"/>`).join('');
-  document.getElementById('vArtCod').textContent=a.codice||'-';
   document.getElementById('vArtQual').textContent=articleQualityLabel(a)||'-';
   document.getElementById('vArtBrand').textContent=a.brand||'-';
   document.getElementById('vArtForn').textContent=a.fornitore||'-';
