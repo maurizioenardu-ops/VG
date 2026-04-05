@@ -3746,9 +3746,40 @@ function pickFacebookDetailLines(a){
   if(descrizione && descrizione.length<=52) detailCandidates.push(`✔️ ${descrizione}`);
   return uniquePostLines(detailCandidates).slice(0,3);
 }
+function promoCampaignMeta(a){
+  const source=[
+    a?.descrizione||'',
+    a?.note||'',
+    a?.post||'',
+    a?.modello||'',
+    a?.categoria||'',
+    a?.materiale||'',
+    a?.variante||'',
+    a?.colore||''
+  ].join(' ').toLowerCase();
+  const defs=[
+    {re:/black\s*friday/, title:'PROMO BLACK FRIDAY', emoji:'🖤'},
+    {re:/pasqua/, title:'PROMO PASQUA', emoji:'🐣'},
+    {re:/natale/, title:'PROMO NATALE', emoji:'🎄'},
+    {re:/estate|summer/, title:'PROMO ESTATE', emoji:'☀️'},
+    {re:/primavera|spring/, title:'PROMO PRIMAVERA', emoji:'🌸'},
+    {re:/autunno|fall/, title:'PROMO AUTUNNO', emoji:'🍁'},
+    {re:/inverno|winter/, title:'PROMO INVERNO', emoji:'❄️'},
+    {re:/san\s*valentino|valentine/, title:'PROMO SAN VALENTINO', emoji:'💘'},
+    {re:/mamma|festa\s+della\s+mamma/, title:'PROMO FESTA DELLA MAMMA', emoji:'🌷'},
+    {re:/saldi/, title:'PROMO SALDI', emoji:'🛍️'}
+  ];
+  const hit=defs.find(d=>d.re.test(source));
+  return hit || {title:'PROMOZIONE', emoji:'⭕️'};
+}
+function promoHeadlineText(a){
+  const meta=promoCampaignMeta(a);
+  if(meta.title==='PROMOZIONE') return '⭕️ PROMOZIONE ⭕️';
+  return `${meta.emoji} ${meta.title} ${meta.emoji}`;
+}
 function promoPostIntroLines(a, mode='fb'){
   if(!promoValid(a)) return [];
-  const lines=['⭕️ PROMOZIONE ⭕️'];
+  const lines=[promoHeadlineText(a)];
   const start=getPromoStartDate(a);
   const end=String(a?.scadenzaPromo||'').trim();
   if(mode==='fb'){
@@ -4240,7 +4271,7 @@ function buildPostTelegram(a){
     const promoStart=getPromoStartDate(a);
     const scadenzaRaw=String(a.scadenzaPromo||'').trim();
     const tipoMateriale=materiale || materialeCompat || variante;
-    lines.push('⭕️ PROMOZIONE ⭕️');
+    lines.push(promoHeadlineText(a));
     if(promoStart && scadenzaRaw) lines.push(`(dal ${formatPromoDateLabel(promoStart)} al ${formatPromoDateLabel(scadenzaRaw)})`);
     else if(scadenzaRaw) lines.push(`(fino al ${formatPromoDateLabel(scadenzaRaw)})`);
     if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
