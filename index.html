@@ -92,24 +92,27 @@ body{-webkit-tap-highlight-color:transparent}
 .modalwrap{position:fixed;inset:0;background:rgba(15,23,42,.4);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}
 .modal{background:#fff;width:100%;max-width:560px;border-radius:20px;border:1px solid var(--line);padding:14px;max-height:85vh;overflow:auto}
 
-.modalwrap.modeView{background:rgba(15,23,42,.46)}
-.modalwrap.modeEdit{background:linear-gradient(180deg,rgba(217,119,6,.18),rgba(245,158,11,.10))}
-.modalwrap.modeEdit .modal{background:linear-gradient(180deg,#fffdf7 0%,#ffffff 18%);border-color:#f3c16e;box-shadow:0 24px 60px rgba(217,119,6,.16)}
-.modalwrap.modeView .modal{background:linear-gradient(180deg,#f8fbff 0%,#ffffff 16%);border-color:#cbd5e1;box-shadow:0 20px 48px rgba(15,23,42,.14)}
+.modalwrap.modeView{background:linear-gradient(180deg,rgba(30,64,175,.16) 0%,rgba(148,163,184,.18) 52%,rgba(15,23,42,.32) 100%)}
+.modalwrap.modeEdit{background:linear-gradient(180deg,rgba(245,158,11,.20) 0%,rgba(251,191,36,.14) 46%,rgba(194,65,12,.12) 100%)}
+.modalwrap.modeEdit .modal{background:linear-gradient(180deg,#fff9ef 0%,#fffefb 22%,#ffffff 100%);border-color:#f3c16e;box-shadow:0 24px 60px rgba(217,119,6,.16)}
+.modalwrap.modeView .modal{background:linear-gradient(180deg,#eef5ff 0%,#f8fbff 18%,#ffffff 100%);border-color:#bfd5ff;box-shadow:0 20px 48px rgba(15,23,42,.14)}
 .modeHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:18px;margin-bottom:12px;border:1px solid transparent}
 .modeHeader .copy{min-width:0}
 .modeBadge{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;font-size:11px;font-weight:1000;letter-spacing:.04em;text-transform:uppercase}
 .modeSub{margin-top:7px;font-size:12px;line-height:1.35;font-weight:800}
-.modeHeaderView{background:#eef6ff;border-color:#bfdbfe}
-.modeHeaderView .modeBadge{background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd}
+.modeHeaderView{background:linear-gradient(180deg,#e7f0ff 0%,#f2f7ff 100%);border-color:#b7d2ff}
+.modeHeaderView .modeBadge{background:#d9e8ff;color:#1d4ed8;border:1px solid #93c5fd}
 .modeHeaderView .modeSub{color:#1e40af}
-.modeHeaderEdit{background:#fff7ed;border-color:#fdba74}
+.modeHeaderEdit{background:linear-gradient(180deg,#fff1dd 0%,#fff7ed 100%);border-color:#fdba74}
 .modeHeaderEdit .modeBadge{background:#ffedd5;color:#c2410c;border:1px solid #fdba74}
 .modeHeaderEdit .modeSub{color:#9a3412}
 .modeHeader .modeAccent{font-size:24px;line-height:1;filter:saturate(1.05)}
-.modeEdit .formBlock,.modeEdit .orderSection{background:rgba(255,255,255,.96);border-color:#f6d39c;box-shadow:0 10px 24px rgba(217,119,6,.08)}
+.modeView .formBlock,.modeView .orderSection{background:linear-gradient(180deg,rgba(255,255,255,.96) 0%,rgba(239,246,255,.92) 100%);border-color:#cfe0ff;box-shadow:0 10px 22px rgba(37,99,235,.08)}
+.modeEdit .formBlock,.modeEdit .orderSection{background:linear-gradient(180deg,rgba(255,255,255,.98) 0%,rgba(255,247,237,.94) 100%);border-color:#f6d39c;box-shadow:0 10px 24px rgba(217,119,6,.08)}
+.modeView .formBlock .blockTitle,.modeView .orderSection .h3{color:#1d4ed8}
 .modeEdit .formBlock .blockTitle,.modeEdit .orderSection .h3{color:#9a3412}
-.modeEdit input,.modeEdit select,.modeEdit textarea{background:#fffefb}
+.modeView input,.modeView select,.modeView textarea{background:linear-gradient(180deg,#ffffff 0%,#f7fbff 100%);border-color:#cfe0ff}
+.modeEdit input,.modeEdit select,.modeEdit textarea{background:linear-gradient(180deg,#fffefb 0%,#fff9f0 100%);border-color:#f3d4a4}
 .modeEdit .actions.bottomMini,.modeEdit .actions.compact.bottomMini{border-top:1px solid #fde7c2;padding-top:12px}
 .modeView .actions.compact.bottomMini{border-top:1px solid #dbeafe;padding-top:12px}
 .modeEdit .h2,.modeEdit .h3{color:#7c2d12}

@@ -1,4 +1,4 @@
-const VERSION = 'v49_edit_view_visual_split';
+const VERSION = 'v50_edit_view_gradients';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
