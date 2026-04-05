@@ -152,6 +152,13 @@ select[multiple]{min-height:150px}
 .detailPostCard{background:#fff;border:1px solid #e6eef9;border-radius:14px;padding:10px 12px}
 .detailPostCard textarea{background:#fbfdff}
 .detailPromoBox{display:flex;flex-direction:column;gap:8px}
+.marginPill{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 14px;border-radius:999px;font-size:13px;font-weight:1000;line-height:1;border:1px solid var(--line);background:#fff;color:#0f172a;min-height:40px;box-shadow:0 8px 18px rgba(15,23,42,.06)}
+.marginPill.green{background:#ecfdf5;border-color:#86efac;color:#166534;box-shadow:0 8px 18px rgba(34,197,94,.12)}
+.marginPill.yellow{background:#fefce8;border-color:#fde68a;color:#a16207;box-shadow:0 8px 18px rgba(234,179,8,.14)}
+.marginPill.orange{background:#fff7ed;border-color:#fdba74;color:#c2410c;box-shadow:0 8px 18px rgba(249,115,22,.12)}
+.marginPill.red{background:#fff1f2;border-color:#fca5a5;color:#b91c1c;box-shadow:0 8px 18px rgba(239,68,68,.14)}
+.marginPillWrap{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.detailNote{font-size:12px;color:#64748b;font-weight:800;line-height:1.35}
 @media (max-width:520px){
   .detailField{min-height:auto}
   .detailHeroBlock .hero{height:190px}
@@ -586,6 +593,16 @@ window.addEventListener('error',e=>{
         <div class="detailField detailPromoBox">
           <div><div class="k">Prezzo in uso</div><div id="vArtPrezzoUse" class="priceHot">-</div></div>
           <div id="vArtPromoPill"></div>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="detailField"><div class="k">Costo reale attivo</div><div id="vArtCostoAttivo" class="t">-</div></div>
+        <div class="detailField">
+          <div class="k">Margine attuale</div>
+          <div class="marginPillWrap">
+            <div id="vArtMarginPill" class="marginPill">-</div>
+            <div id="vArtMarginNote" class="detailNote">Calcolato sul prezzo di vendita attuale</div>
+          </div>
         </div>
       </div>
     </div>
@@ -5914,7 +5931,23 @@ async function openArtView(id){
     }
   }
   document.getElementById('vArtPrezzo').textContent=money(a.prezzoVendita||0);
-  document.getElementById('vArtPrezzoUse').textContent=money(currentPrice(a));
+  const viewFinalPrice=Number(currentPrice(a)||0);
+  document.getElementById('vArtPrezzoUse').textContent=money(viewFinalPrice);
+  const activeCost=Number(effectiveSupplierCostEur(a)||0);
+  const activeMargin=Math.max(0, viewFinalPrice - activeCost);
+  const costEl=document.getElementById('vArtCostoAttivo');
+  if(costEl) costEl.textContent=money(activeCost);
+  const marginPillEl=document.getElementById('vArtMarginPill');
+  const marginNoteEl=document.getElementById('vArtMarginNote');
+  if(marginPillEl){
+    const marginCls = activeMargin > 59 ? 'green' : (activeMargin >= 50 ? 'yellow' : (activeMargin >= 45 ? 'orange' : 'red'));
+    marginPillEl.className = 'marginPill ' + marginCls;
+    marginPillEl.textContent = activeMargin > 0 ? ('Margine ' + money(activeMargin)) : 'Margine non disponibile';
+  }
+  if(marginNoteEl){
+    const viewCostText = activeCost > 0 ? money(activeCost) : 'n.d.';
+    marginNoteEl.textContent = 'Prezzo attuale ' + money(viewFinalPrice) + ' • costo attivo ' + viewCostText;
+  }
   const pill=document.getElementById('vArtPromoPill');
   pill.innerHTML = promoInfoHtml(a,{marginTop:'6px'});
   document.getElementById('vArtPost').value=buildPostTelegram(a);
