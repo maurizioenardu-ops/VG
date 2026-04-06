@@ -1,4 +1,4 @@
-const VERSION = 'v37_priority_sheet';
+const VERSION = 'v50_margin_pill_article_detail';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
