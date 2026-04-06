@@ -5026,7 +5026,7 @@ async function setModalEditMode(modalId, isEdit){
   if(modal) modal.classList.toggle('edit-mode', !!isEdit);
 }
 
-async function openArtEdit(id){
+function openArtEdit(id){
   const db=loadDB();
   const a=id?db.articoli.find(x=>x.id===id):null;
   currentArtId=id||null;
