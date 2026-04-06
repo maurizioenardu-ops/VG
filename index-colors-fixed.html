@@ -68,7 +68,7 @@ body{-webkit-tap-highlight-color:transparent}
 .pill.cloudBtn.primary{background:#e0ecff;border-color:#93c5fd;color:#0f172a}
 .pill.cloudBtn.secondary{background:#fff;border-color:#cbd5e1;color:#0f172a}
 .pricePaid{color:#16a34a!important;font-weight:1000}
-.pill.promo{border-color:#fecaca;background:#fff1f2;color:#991b1b}
+.pill.promo{border-color:#86efac;background:#dcfce7;color:#166534}
 .dot{width:10px;height:10px;border-radius:999px;background:#16a34a;display:inline-block}
 .priceHot{color:var(--red);font-weight:1000}
 .navBottom{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:8px 10px;z-index:20}
@@ -108,6 +108,7 @@ select[multiple]{min-height:150px}
 .sparkBars{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:end;height:92px}.sparkCol{display:flex;flex-direction:column;align-items:center;gap:6px}.sparkBarWrap{height:68px;width:100%;display:flex;align-items:flex-end}.sparkBarBtn{appearance:none;border:0;background:transparent;padding:0;margin:0;width:100%;height:100%;display:flex;align-items:flex-end;cursor:pointer}.sparkBarBtn:focus-visible{outline:2px solid var(--navy);outline-offset:3px;border-radius:16px}.sparkBar{width:100%;border-radius:14px 14px 8px 8px;background:linear-gradient(180deg,#60a5fa,#1d4ed8)}.sparkBar.soft{background:linear-gradient(180deg,#fbbf24,#f59e0b)}.sparkLbl{font-size:10px;color:#64748b;font-weight:900}.shipAlert{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 12px;cursor:pointer}.shipAlerts{display:flex;flex-direction:column;gap:10px}.shipAlert .meta{font-size:12px;color:#475569;font-weight:900;margin-top:4px}.shipAlertEmpty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:12px;color:var(--muted)}.quickCard .h2{margin-bottom:8px}.substats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.micro{background:#f8fafc;border:1px solid #edf2f7;border-radius:14px;padding:10px 12px}.micro[data-go],.heroSpot[data-action],#dashList .row[data-action],#dashTips .row[data-action],.stat[data-go]{cursor:pointer}.micro .k{font-size:10px}.micro .v{font-size:16px;margin-top:2px}.stat .v.big{font-size:24px}.stat .sub{margin-top:4px;font-size:11px;color:#64748b;font-weight:800}.agendaComposer{display:grid;grid-template-columns:1fr 150px 170px auto;gap:8px;align-items:center}.agendaMiniBtn{padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:#fff;font-weight:900}.agendaList{display:flex;flex-direction:column;gap:8px}.agendaItem{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:16px;background:#fff}.agendaDot{width:12px;height:12px;border-radius:999px;background:#f59e0b;margin-top:6px}.agendaItem.done .agendaDot{background:#16a34a}.agendaItem.overdue .agendaDot{background:#dc2626}.agendaTitle{font-weight:900;color:#0f172a}.agendaMeta{font-size:12px;color:#64748b;font-weight:800;margin-top:2px}.agendaActions{display:flex;gap:6px;align-items:center}.agendaBtn{padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:900}.agendaEmpty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:12px;color:var(--muted)}.urgentBoard{display:flex;flex-direction:column;gap:10px}.urgentItem{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:flex-start;padding:12px;border:1px solid #fecaca;border-radius:16px;background:#fff5f5}.urgentDot{width:12px;height:12px;border-radius:999px;background:#dc2626;margin-top:6px;box-shadow:0 0 0 4px rgba(220,38,38,.12)}.urgentTitle{font-weight:900;color:#7f1d1d}.urgentMeta{font-size:12px;color:#991b1b;font-weight:800;margin-top:2px}.urgentEmpty{background:#fff;border:1px dashed #fecaca;border-radius:16px;padding:12px;color:#991b1b}.orderPrimaryRow aside{display:flex;flex-direction:column;gap:10px}.orderHintSoft{font-size:12px;color:#64748b;font-weight:800}.orderTrackCard{margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:12px}.orderTrackActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}@media (max-width:760px){.agendaComposer{grid-template-columns:1fr 1fr}.agendaComposer .full{grid-column:1/-1}.urgentItem{grid-template-columns:auto 1fr}}
 
 #mArtView .modal,#mArtEdit .modal{max-width:760px}
+#mArtEdit .modal{background:linear-gradient(180deg,#f0fdf4 0%, #ffffff 28%);border-color:#bbf7d0;box-shadow:0 18px 40px rgba(34,197,94,.12)}
 
 #vArtPost,#vArtPostFb,#vArtPostIg,#a_post,#a_post_fb,#a_post_ig,#c_ship{overflow:hidden;resize:none;scrollbar-width:none;-ms-overflow-style:none}
 #vArtPost,#vArtPostFb,#vArtPostIg,#a_post,#a_post_fb,#a_post_ig{min-height:190px;line-height:1.45}
@@ -255,7 +256,7 @@ window.addEventListener('error',e=>{
 
     <div class="card" style="margin-top:12px">
       <div class="h2">Attenzione subito</div>
-      <div id="dashUrgent" class="urgentBoard"><div class="urgentEmpty">Nessuna urgenza in evidenza.</div></div>
+      <div id="dashUrgent" class="urgentBoard"></div>
     </div>
 
     <div class="card quickCard">
@@ -283,7 +284,7 @@ window.addEventListener('error',e=>{
     </div>
 
     <div class="card" style="margin-top:12px">
-      <div class="h2">Agenda e scadenze</div>
+      <div class="h2">Cose da fare</div>
       <div class="agendaComposer" style="margin-top:8px">
         <input id="agendaText" class="full" placeholder="Scrivi cosa devi fare..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
         <input id="agendaDate" type="date" autocomplete="off"/>
@@ -3996,24 +3997,29 @@ function renderDashboardAgenda(){
   if(dateEl && !dateEl.value) dateEl.value=agendaDayOffset(0);
   if(presetEl && !presetEl.value) presetEl.value='0';
   if(!box) return;
-  const items=(Array.isArray(db.agenda)?db.agenda:[]).slice().sort((a,b)=>{
-    if(!!a.fatto!==!!b.fatto) return a.fatto?1:-1;
-    return String(a.data||'').localeCompare(String(b.data||'')) || String(b.createdAt||'').localeCompare(String(a.createdAt||''));
-  });
+  const today=agendaDayOffset(0);
+  const items=(Array.isArray(db.agenda)?db.agenda:[])
+    .filter(item=>!item.fatto && item.data)
+    .map(item=>{
+      const diff=Math.round((new Date(String(item.data)+'T12:00:00') - new Date(today+'T12:00:00'))/86400000);
+      return {item, diff};
+    })
+    .filter(row=>!isNaN(row.diff) && row.diff>=0 && row.diff<=7)
+    .sort((a,b)=>a.diff-b.diff || String(a.item.data||'').localeCompare(String(b.item.data||'')) || String(b.item.createdAt||'').localeCompare(String(a.item.createdAt||'')));
   if(!items.length){
-    box.innerHTML='<div class="agendaEmpty">Nessuna scadenza. Puoi segnarti richiami clienti, consegne o cose da fare con un periodo rapido.</div>';
+    box.innerHTML='';
     return;
   }
-  const today=agendaDayOffset(0);
-  box.innerHTML=items.slice(0,8).map(item=>{
-    const stateClass=item.fatto ? 'done' : (String(item.data||'')<today ? 'overdue' : '');
-    return `<div class="agendaItem ${stateClass}"><div class="agendaDot"></div><div><div class="agendaTitle">${esc(item.testo)}</div><div class="agendaMeta">${esc(agendaDateLabel(item.data))}</div></div><div class="agendaActions"><button class="agendaBtn" type="button" data-action="toggleAgendaDone" data-id="${esc(item.id)}">${item.fatto?'Riapri':'Fatto'}</button><button class="agendaBtn" type="button" data-action="deleteAgenda" data-id="${esc(item.id)}">Elimina</button></div></div>`;
+  box.innerHTML=items.slice(0,6).map(({item,diff})=>{
+    const label = diff===0 ? 'Oggi' : diff===1 ? 'Domani' : `Tra ${diff} giorni`;
+    return `<div class="agendaItem"><div class="agendaDot"></div><div><div class="agendaTitle">${esc(item.testo)}</div><div class="agendaMeta">${esc(label)}${item.data ? ' • ' + esc(formatAgendaDate(item.data)) : ''}</div></div><div class="agendaActions"><button class="agendaBtn" type="button" data-action="toggleAgendaDone" data-id="${esc(item.id)}">${item.fatto?'Riapri':'Fatto'}</button><button class="agendaBtn" type="button" data-action="deleteAgenda" data-id="${esc(item.id)}">Elimina</button></div></div>`;
   }).join('');
 }
 function renderDashboardUrgent(){
   const db=loadDB();
   const box=document.getElementById('dashUrgent');
   if(!box) return;
+  const card=box.closest('.card');
   const today=new Date(agendaDayOffset(0)+'T12:00:00');
   const urgent=[];
   (Array.isArray(db.agenda)?db.agenda:[]).filter(item=>!item?.fatto && item?.data).forEach(item=>{
@@ -4025,8 +4031,9 @@ function renderDashboardUrgent(){
     }
   });
   urgent.sort((a,b)=>a.score-b.score || String(a.title||'').localeCompare(String(b.title||''),'it',{sensitivity:'base'}));
+  if(card) card.style.display = urgent.length ? '' : 'none';
   if(!urgent.length){
-    box.innerHTML='<div class="urgentEmpty">Nessuna scadenza imminente.</div>';
+    box.innerHTML='';
     return;
   }
   box.innerHTML=urgent.slice(0,6).map(item=>`<div class="urgentItem"><div class="urgentDot"></div><div><div class="urgentTitle">${esc(item.title)}</div><div class="urgentMeta">${esc(item.meta)}</div></div><div class="agendaMeta">Scadenza</div></div>`).join('');
@@ -4697,7 +4704,7 @@ function renderArt(){
   }
   const cards=items.map(a=>{
     const promo=pseudoPromoBadge(a);
-    const metaLine=promoOnly ? `${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}` : `${esc(a.codice||'Senza codice')} • ${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
+    const metaLine=`${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
     return `<div class="artCard tight" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${promo}</div><div class="artPrice">${money(currentPrice(a))}</div><div class="artActions"><button class="btn orderAdd small" type="button" data-action="addArtToOrder" data-id="${a.id}">Aggiungi a ordine</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
   }).join('');
   const emptyText=promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.';
