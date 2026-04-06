@@ -1,4 +1,4 @@
-const VERSION = 'v48_layout_ordered_modals';
+const VERSION = 'v51_promo_campaign_headline';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
