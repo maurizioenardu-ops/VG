@@ -77,9 +77,7 @@ body{-webkit-tap-highlight-color:transparent}
 .navBottom button.active{color:var(--blue)}
 /* modal */
 .modalwrap{position:fixed;inset:0;background:rgba(15,23,42,.4);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}
-.modalwrap.edit-mode{background:rgba(37,99,235,.14)}
 .modal{background:#fff;width:100%;max-width:560px;border-radius:20px;border:1px solid var(--line);padding:14px;max-height:85vh;overflow:auto}
-.modal.edit-mode{background:#eff6ff;border-color:#93c5fd;box-shadow:0 20px 40px rgba(37,99,235,.15)}
 .actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
 .actions.bottomMini .btn{min-height:42px;padding:9px 10px;font-size:13px;border-radius:12px}
 .actions.bottomMini{gap:8px}
@@ -4699,7 +4697,7 @@ function renderArt(){
   }
   const cards=items.map(a=>{
     const promo=pseudoPromoBadge(a);
-    const metaLine=promoOnly ? `${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}` : `${esc(a.codice||'Senza codice')} • ${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
+    const metaLine=`${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
     return `<div class="artCard tight" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${promo}</div><div class="artPrice">${money(currentPrice(a))}</div><div class="artActions"><button class="btn orderAdd small" type="button" data-action="addArtToOrder" data-id="${a.id}">Aggiungi a ordine</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
   }).join('');
   const emptyText=promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.';
@@ -5018,22 +5016,13 @@ async function openArtView(id){
   show('mArtView');
   scheduleModalTextareaFit('mArtView');
 }
-async function setModalEditMode(modalId, isEdit){
-  const wrap=document.getElementById(modalId);
-  if(!wrap) return;
-  wrap.classList.toggle('edit-mode', !!isEdit);
-  const modal=wrap.querySelector('.modal');
-  if(modal) modal.classList.toggle('edit-mode', !!isEdit);
-}
-
-function openArtEdit(id){
+async function openArtEdit(id){
   const db=loadDB();
   const a=id?db.articoli.find(x=>x.id===id):null;
   currentArtId=id||null;
   currentArtDuplicateData=null;
   currentArtPhotosCleared=false;
   document.getElementById('artEditTitle').textContent = a?'Modifica articolo':'Nuovo articolo';
-  setModalEditMode('mArtEdit', !!a);
   const set=(k,v)=>document.getElementById(k).value=(v===0?0:(v||''));
 
   if(!a){
@@ -5674,7 +5663,6 @@ function openCliEdit(id){
   const db=loadDB(); const c=id?db.clienti.find(x=>x.id===id):null;
   currentCliId=id||null;
   document.getElementById('cliEditTitle').textContent=c?'Modifica cliente':'Nuovo cliente';
-  setModalEditMode('mCliEdit', !!c);
   document.getElementById('c_nome').value=c?.nome||'';
   document.getElementById('c_tel').value=c?.telefono||'';
   document.getElementById('c_ind').value=c?.indirizzo||'';
