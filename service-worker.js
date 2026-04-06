@@ -1,4 +1,4 @@
-const VERSION = 'v50_margin_pill_article_detail';
+const VERSION = 'v41_promo_required_orders_ui';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

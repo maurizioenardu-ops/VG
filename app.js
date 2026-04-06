@@ -2685,11 +2685,15 @@ function pickFacebookDetailLines(a){
   if(descrizione && descrizione.length<=52) detailCandidates.push(`✔️ ${descrizione}`);
   return uniquePostLines(detailCandidates).slice(0,3);
 }
-function promoPostIntroLines(a){
-  if(!a?.promoAttiva) return [];
+function promoPostIntroLines(a, mode='fb'){
+  if(!promoValid(a)) return [];
   const lines=['⭕️ PROMOZIONE ⭕️'];
   const start=getPromoStartDate(a);
   const end=String(a?.scadenzaPromo||'').trim();
+  if(mode==='fb'){
+    if(end) lines.push(`(fino al ${formatPromoDateLabel(end)})`);
+    return lines;
+  }
   if(start && end) lines.push(`(dal ${formatPromoDateLabel(start)} al ${formatPromoDateLabel(end)})`);
   else if(end) lines.push(`(fino al ${formatPromoDateLabel(end)})`);
   return lines;
@@ -3113,7 +3117,7 @@ function buildPostFacebook(a){
     'Per tutte le info, scrivimi in privato',
     'Contattami per info su colori e disponibilità'
   ]) || 'Per info scrivimi in privato 📩';
-  const lines=[...promoPostIntroLines(a)];
+  const lines=[...promoPostIntroLines(a,'fb')];
   if(lines.length) lines.push('');
   if(modelLine) lines.push(smartSentenceCase(modelLine));
   if(premiumLine) lines.push(premiumLine);
@@ -3171,7 +3175,7 @@ function buildPostTelegram(a){
   const materialeCompat=normalizePostLine(a.materiale||a.taglia||'', brand);
   const qemoji=emojiQualityForPost(a);
   const lines=[];
-  if(a.promoAttiva){
+  if(promoValid(a)){
     const promoStart=getPromoStartDate(a);
     const scadenzaRaw=String(a.scadenzaPromo||'').trim();
     const tipoMateriale=materiale || materialeCompat || variante;
@@ -3182,7 +3186,7 @@ function buildPostTelegram(a){
     if(tipoMateriale) lines.push(tipoMateriale);
     if(colore) lines.push(colore);
     if(misura) lines.push(formatPostMisura(misura));
-    const prezzoVenditaPromo=formatPostPrezzoVendita(a.prezzoVendita);
+    const prezzoVenditaPromo=formatPostPrezzoVendita(currentPrice(a));
     if(prezzoVenditaPromo) lines.push(prezzoVenditaPromo);
     lines.push(`cod. ${a.codice}`);
     return uniquePostLines(lines).join('\n');
@@ -4904,6 +4908,32 @@ function renderCurrentArtPhotoPreview(){
   renderArtPhotoPrev(mergePreviewPics(currentArtExistingPics, currentArtPendingPreviewUrls));
   updateArtPhotoStatus();
 }
+function prepareArticlePhotoInput(){
+  const input=document.getElementById('a_photo');
+  if(!input) return null;
+  input.setAttribute('accept','image/*');
+  input.multiple=true;
+  try{ input.removeAttribute('capture'); }catch(_e){}
+  return input;
+}
+function openArticlePhotoPicker(){
+  const input=prepareArticlePhotoInput();
+  if(!input) return;
+  try{
+    if(typeof input.showPicker==='function'){
+      input.showPicker();
+      return;
+    }
+  }catch(err){
+    console.warn('showPicker foto articolo fallito, provo click()', err);
+  }
+  try{
+    input.click();
+  }catch(err){
+    console.warn('Apertura picker foto articolo fallita', err);
+    toast('Non sono riuscita ad aprire la galleria foto');
+  }
+}
 function updateArtPhotoStatus(){
   const box=document.getElementById('a_photo_status');
   if(!box) return;
@@ -6411,7 +6441,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='duplicateArt') return duplicateCurrentArticle(el.dataset.id || null);
   if(a==='editFromView'){ hide('mArtView', true); return openArtEdit(currentArtId); }
   if(a==='closeView') return hide('mArtView');
-  if(a==='pickMoreArtPhotos'){ document.getElementById('a_photo')?.click(); return; }
+  if(a==='pickMoreArtPhotos'){ openArticlePhotoPicker(); return; }
   if(a==='clearPendingArtPhotos'){ resetPendingArtPhotoFiles(); renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Nuove foto annullate'); return; }
   if(a==='closeEdit'){ saveArticleDraft(); return hide('mArtEdit'); }
   if(a==='clearArtPhotos'){ currentArtExistingPics=[]; currentArtPhotosCleared=true; document.getElementById('a_photo').value=''; renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Foto attuali rimosse'); return; }
@@ -6499,7 +6529,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-01-share-v35-fix-file-dedupe';
+const VG_BUILD='2026-04-01-v40-post-promo-fixes';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
