@@ -3049,12 +3049,20 @@ function promoLabelMode(a,{history=false}={}){
 }
 function promoInfoHtml(a,{marginTop='6px'}={}){
   const style=marginTop ? ` style="margin-top:${marginTop}"` : '';
+  const note=promoPeriodLabel(a);
   const currentLabel=promoLabelMode(a);
   const expiredLabel=`${promoLabelMode(a,{history:true})} scaduta`;
   const pendingLabel=`${promoLabelMode(a,{history:true})} impostata`;
-  if(promoValid(a)) return `<div class="pill promo"${style}><span class="dot"></span>${esc(currentLabel)}</div>`;
-  if(promoExpiredDisplay(a)) return `<div class="pill promoExpired"${style}>${esc(expiredLabel)}</div>`;
-  if(a?.promoAttiva || a?.promoPersonaleAttiva) return `<div class="pill"${style}>${esc(pendingLabel)}</div>`;
+  if(promoValid(a)){
+    return `<div class="pill promo"${style}><span class="dot"></span>${esc(currentLabel)}</div>${note?`<div class="promoNote">${esc(note)}</div>`:''}`;
+  }
+  if(promoExpiredDisplay(a)){
+    const when=formatPromoDateLabel(a?.scadenzaPromo||'');
+    return `<div class="pill promoExpired"${style}>${esc(expiredLabel)}</div>${when?`<div class="promoNote expired">Scaduta il ${esc(when)}</div>`:''}`;
+  }
+  if(a?.promoAttiva || a?.promoPersonaleAttiva){
+    return `<div class="pill"${style}>${esc(pendingLabel)}</div>${note?`<div class="promoNote">${esc(note)}</div>`:''}`;
+  }
   return '';
 }
 function promoValid(a){
@@ -5453,7 +5461,7 @@ function renderArt(){
     const promo=pseudoPromoBadge(a);
     const unavailable=articleAvailabilityBadge(a);
     const blocked=isArticleUnavailable(a);
-    const metaLine=`${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
+    const metaLine=(promoOnly || personalPromoOnly) ? `${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}` : `${esc(a.codice||'Senza codice')} • ${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
     return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${unavailable}${promo}</div><div class="artPrice">${money(currentPrice(a))}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
   }).join('');
   const emptyText=promoOnly ? 'Nessuna promozione attiva.' : (personalPromoOnly ? 'Nessuno sconto personale attivo.' : 'Nessun articolo trovato.');
