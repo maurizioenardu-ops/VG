@@ -233,6 +233,13 @@ select[multiple]{min-height:150px}
 .searchSuggest button+button{border-top:1px solid #eef2f7}
 .searchSuggest button:hover{background:#f8fafc}
 
+
+/* Pulsanti foto personalizzati */
+.btn.btn-share{background:#0f766e;border-color:#0f766e;color:#fff}
+.btn.btn-share:hover{background:#115e59;border-color:#115e59}
+.btn.btn-download{background:#b45309;border-color:#b45309;color:#fff}
+.btn.btn-download:hover{background:#92400e;border-color:#92400e}
+
 </style>
 <script>
 window.addEventListener('error',e=>{
@@ -540,9 +547,9 @@ window.addEventListener('error',e=>{
       
     </div>
   </div>
-  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" type="button" data-action="shareArtPhotos">Condividi foto</button></div></div>
-  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
-  <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish btn-share" type="button" data-action="shareArtPhotos">Condividi foto</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish btn-download" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish btn-download" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
     <button class="btn shareBtn smallish" type="button" data-action="shareArtPhotos">Condividi foto</button>
@@ -649,9 +656,9 @@ window.addEventListener('error',e=>{
   <div class="formBlock postblk inputSoft">
     <div class="blockTitle">Post e contenuti</div>
     <div><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Dettagli utili per il post..."></textarea></div>
-    <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="a_post_fb" readonly placeholder="Qui il post Facebook (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbEdit">Copia FB</button><button class="btn smallish" type="button" data-action="shareArtPhotos">Condividi foto</button></div></div>
-    <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="a_post" placeholder="Qui il post Telegram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostTelegramEdit">Copia Telegram</button><button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
-    <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button><button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
+    <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="a_post_fb" readonly placeholder="Qui il post Facebook (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbEdit">Copia FB</button><button class="btn smallish btn-share" type="button" data-action="shareArtPhotos">Condividi foto</button></div></div>
+    <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="a_post" placeholder="Qui il post Telegram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostTelegramEdit">Copia Telegram</button><button class="btn smallish btn-download" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
+    <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button><button class="btn smallish btn-download" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
     <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Apri galleria</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 9 foto totali per articolo.</div></div>
