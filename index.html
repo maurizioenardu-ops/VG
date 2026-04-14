@@ -1012,7 +1012,7 @@ async function ensureComuniCapIndex(){
   if(comuniCapLoadPromise) return comuniCapLoadPromise;
   comuniCapLoadPromise=(async()=>{
     try{
-      const cached=localStorage.getItem(COMUNI_CAP_CACHE_KEY);
+      const cached=storageReadMaybe(COMUNI_CAP_CACHE_KEY,'');
       if(cached){
         const parsed=JSON.parse(cached);
         if(Array.isArray(parsed) && parsed.length){
@@ -1025,7 +1025,7 @@ async function ensureComuniCapIndex(){
     if(!res.ok) throw new Error('Archivio CAP non disponibile');
     const rows=await res.json();
     buildComuniCapIndex(rows);
-    try{ localStorage.setItem(COMUNI_CAP_CACHE_KEY, JSON.stringify(rows)); }catch(err){ console.warn('Cache CAP non salvata', err); }
+    try{ storageWriteSafe(COMUNI_CAP_CACHE_KEY, JSON.stringify(rows), 'session'); }catch(err){ console.warn('Cache CAP non salvata', err); }
     return comuniCapRows;
   })().catch(err=>{
     console.warn('Caricamento archivio CAP fallito', err);
@@ -1576,25 +1576,25 @@ function clearPendingLocalChanges(){
   try{ localStorage.removeItem(DIRTY_KEY); }catch(_e){}
 }
 function saveDB(db, opts={}){
-  try{
-    const cleanDb=normalizeDBShape(db||defDB());
-    const raw=JSON.stringify(cleanDb);
-    localStorage.setItem(KEY, raw);
-    if(localStorage.getItem(KEY)!==raw) throw new Error('Verifica salvataggio locale fallita');
-    try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
-    if(opts?.markDirty!==false) markPendingLocalChanges(opts?.reason||'local-save');
-    else clearPendingLocalChanges();
-    const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
-    legacyKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
-  }catch(err){
-    const msg=String(err?.message||err||'');
-    if(/quota|storage/i.test(msg)) toast('Salvataggio fallito: archivio locale pieno o sporco');
-    else toast('Salvataggio fallito');
-    return false;
+  const cleanDb=normalizeDBShape(db||defDB());
+  const raw=JSON.stringify(cleanDb);
+  let lastErr=null;
+  for(const level of [0,1,2]){
+    try{
+      if(level>0) cleanupStorageForSave(level);
+      persistMainDbRaw(raw, opts);
+      try{ renderAll(); }catch(err){ console.error('Render post-salvataggio fallito', err); }
+      refreshArticleBrandSelects();
+      return true;
+    }catch(err){
+      lastErr=err;
+      console.error('Tentativo salvataggio fallito', level, err);
+    }
   }
-  try{ renderAll(); }catch(err){ console.error('Render post-salvataggio fallito', err); }
-  refreshArticleBrandSelects();
-  return true;
+  const msg=String(lastErr?.message||lastErr||'');
+  if(/quota|storage|verifica salvataggio locale/i.test(msg)) toast('Salvataggio fallito: spazio locale pieno o bloccato. Ho liberato il superfluo ma non basta ancora.');
+  else toast('Salvataggio fallito');
+  return false;
 }
 function safeLower(v){ return String(v==null?'':v).trim().toLowerCase(); }
 function isModalVisible(id){
@@ -3839,10 +3839,10 @@ function getOrderSnapshotMap(ordini=[]){
   return map;
 }
 function loadShipAlerts(){
-  try{ return JSON.parse(localStorage.getItem(SHIP_ALERTS_KEY)||'[]'); }catch{ return []; }
+  try{ return JSON.parse(storageReadMaybe(SHIP_ALERTS_KEY,'[]')||'[]'); }catch{ return []; }
 }
 function saveShipAlerts(items){
-  try{ localStorage.setItem(SHIP_ALERTS_KEY, JSON.stringify((items||[]).slice(0,20))); }catch{}
+  try{ storageWriteSafe(SHIP_ALERTS_KEY, JSON.stringify((items||[]).slice(0,20)), 'session'); }catch{}
 }
 function renderShipAlerts(){
   const box=document.getElementById('shipAlerts');
@@ -3869,7 +3869,7 @@ function renderShipAlerts(){
 function updateShippingNotifications(db, source='app'){
   const curr=getOrderSnapshotMap(db?.ordini||[]);
   let prev={};
-  try{ prev=JSON.parse(localStorage.getItem(SHIP_SNAPSHOT_KEY)||'{}'); }catch{}
+  try{ prev=JSON.parse(storageReadMaybe(SHIP_SNAPSHOT_KEY,'{}')||'{}'); }catch{}
   const alerts=loadShipAlerts();
   const fresh=[];
   Object.keys(curr).forEach(key=>{
@@ -3888,7 +3888,7 @@ function updateShippingNotifications(db, source='app'){
     saveShipAlerts(merged);
     toast(fresh.length===1 ? '1 aggiornamento spedizione' : `${fresh.length} aggiornamenti spedizione`);
   }
-  try{ localStorage.setItem(SHIP_SNAPSHOT_KEY, JSON.stringify(curr)); }catch{}
+  try{ storageWriteSafe(SHIP_SNAPSHOT_KEY, JSON.stringify(curr), 'session'); }catch{}
   renderShipAlerts();
 }
 
@@ -6631,7 +6631,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-14-savefix-clienti-abc-r1';
+const VG_BUILD='2026-04-14-savefix-clienti-abc-r2';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -6726,11 +6726,15 @@ function saveDBLocal(db){
   try{
     const cleanDb=normalizeDBShape(db||defDB());
     const raw=JSON.stringify(cleanDb);
-    localStorage.setItem(KEY, raw);
-    if(localStorage.getItem(KEY)!==raw) throw new Error('Verifica salvataggio locale fallita');
-    try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
-    clearPendingLocalChanges();
+    for(const level of [0,1,2]){
+      try{
+        if(level>0) cleanupStorageForSave(level);
+        persistMainDbRaw(raw, {markDirty:false, reason:'cloud-sync'});
+        return true;
+      }catch(err){ console.error('saveDBLocal fallita', level, err); }
+    }
   }catch(err){ console.error(err); }
+  return false;
 }
 async function ensureCategoryId(nome){
   if(!nome) return null;
