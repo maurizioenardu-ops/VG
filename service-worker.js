@@ -1,5 +1,4 @@
-// cache bump r1
-const VERSION = 'v53_savefix_storage_retry';
+const VERSION = 'v53_phone_compact';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

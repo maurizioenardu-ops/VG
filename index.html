@@ -229,7 +229,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v10_2-fbgroup">
+  <meta name="vg-version" content="v10_3-phone-spacing">
 </head>
 <body>
 <div class="top">
@@ -830,7 +830,6 @@ window.addEventListener('error',e=>{
 <script>
 /* ====== DB ====== */
 const KEY='vg_db_full_v6';
-const DIRTY_KEY='vg_db_dirty_v1';
 const LEGACY_KEYS=['vg_db_full_v5','vg_v7_web','vanity_glamour_v9_db'];
 const PHOTO_DB='vg_photos_v1';
 const PHOTO_STORE='photos';
@@ -954,20 +953,12 @@ function normalizeDBShape(o){
     righe:Array.isArray(o?.righe)?o.righe:[]
   }));
 
-  db.clienti=(db.clienti||[]).sort(compareClientAlpha);
   db.categorie=[...new Set((db.categorie||[]).map(x=>normalizeSpaceText(x)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
   db.brands=[...new Set((db.brands||[]).map(x=>normalizeSpaceText(x)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
   return db;
 }
 
 function normalizeSpaceText(v){ return String(v==null?'':v).trim().replace(/\s+/g,' '); }
-function compareClientAlpha(a,b){
-  const nameA=normalizeClientDisplayName(a)||normalizeSpaceText(a?.nome||'');
-  const nameB=normalizeClientDisplayName(b)||normalizeSpaceText(b?.nome||'');
-  const cmp=nameA.localeCompare(nameB,'it',{sensitivity:'base'});
-  if(cmp) return cmp;
-  return String(b?._ts||0).localeCompare(String(a?._ts||0));
-}
 function normalizeTextKey(v){ return normalizeSpaceText(v).toLowerCase(); }
 function normalizeLookupKey(v){
   return normalizeSpaceText(v)
@@ -1012,7 +1003,7 @@ async function ensureComuniCapIndex(){
   if(comuniCapLoadPromise) return comuniCapLoadPromise;
   comuniCapLoadPromise=(async()=>{
     try{
-      const cached=storageReadMaybe(COMUNI_CAP_CACHE_KEY,'');
+      const cached=localStorage.getItem(COMUNI_CAP_CACHE_KEY);
       if(cached){
         const parsed=JSON.parse(cached);
         if(Array.isArray(parsed) && parsed.length){
@@ -1025,7 +1016,7 @@ async function ensureComuniCapIndex(){
     if(!res.ok) throw new Error('Archivio CAP non disponibile');
     const rows=await res.json();
     buildComuniCapIndex(rows);
-    try{ storageWriteSafe(COMUNI_CAP_CACHE_KEY, JSON.stringify(rows), 'session'); }catch(err){ console.warn('Cache CAP non salvata', err); }
+    try{ localStorage.setItem(COMUNI_CAP_CACHE_KEY, JSON.stringify(rows)); }catch(err){ console.warn('Cache CAP non salvata', err); }
     return comuniCapRows;
   })().catch(err=>{
     console.warn('Caricamento archivio CAP fallito', err);
@@ -1519,50 +1510,6 @@ function mergeById(arrA=[], arrB=[]){
   });
   return Array.from(map.values());
 }
-
-function storageReadMaybe(key, fallback=''){
-  try{
-    const v=localStorage.getItem(key);
-    if(v!=null) return v;
-  }catch(_e){}
-  try{
-    const v=sessionStorage.getItem(key);
-    if(v!=null) return v;
-  }catch(_e){}
-  return fallback;
-}
-function storageWriteSafe(key, value, scope='local'){
-  const str=String(value==null?'':value);
-  if(scope==='session'){
-    try{ sessionStorage.setItem(key, str); return true; }catch(_e){}
-  }
-  try{ localStorage.setItem(key, str); return true; }catch(err){
-    if(scope!=='session'){
-      try{ sessionStorage.setItem(key, str); return true; }catch(_e){}
-    }
-    throw err;
-  }
-}
-function cleanupStorageForSave(level=1){
-  const removeKeys=[];
-  if(level>=1){
-    removeKeys.push(COMUNI_CAP_CACHE_KEY, SHIP_SNAPSHOT_KEY, SHIP_ALERTS_KEY, ART_DRAFT_KEY, CLI_DRAFT_KEY, ORD_DRAFT_KEY);
-  }
-  if(level>=2){
-    removeKeys.push(KEY+'_backup_before_cloud_pull', KEY+'_cloud_push_tmp', KEY+'_cloud_pull_tmp');
-  }
-  removeKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} try{ sessionStorage.removeItem(k); }catch(_e){} });
-}
-function persistMainDbRaw(raw, opts={}){
-  localStorage.setItem(KEY, raw);
-  const verify=localStorage.getItem(KEY);
-  if(verify!==raw) throw new Error('verifica salvataggio locale fallita');
-  try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
-  const legacyKeys=(typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
-  legacyKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
-  if(opts.markDirty!==false) markPendingLocalChanges(opts.reason||'local');
-}
-
 function loadDB(){
   try{
     const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
@@ -1609,17 +1556,7 @@ function loadDB(){
     return merged;
   }catch(e){ return defDB(); }
 }
-function readDirtyFlag(){
-  try{ const raw=localStorage.getItem(DIRTY_KEY); return raw?JSON.parse(raw):null; }catch(_e){ return null; }
-}
-function hasPendingLocalChanges(){ return !!readDirtyFlag(); }
-function markPendingLocalChanges(reason='local'){
-  try{ localStorage.setItem(DIRTY_KEY, JSON.stringify({ts:Date.now(), reason:String(reason||'local')})); }catch(_e){}
-}
-function clearPendingLocalChanges(){
-  try{ localStorage.removeItem(DIRTY_KEY); }catch(_e){}
-}
-function saveDB(db, opts={}){
+function saveDB(db){
   try{
     const cleanDb=normalizeDBShape(db||defDB());
     const raw=JSON.stringify(cleanDb);
@@ -1627,10 +1564,9 @@ function saveDB(db, opts={}){
     try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
     const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
     legacyKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
-    if(opts.markDirty!==false) markPendingLocalChanges(opts.reason||'local');
   }catch(err){
     const msg=String(err?.message||err||'');
-    if(/quota|storage/i.test(msg)) toast('Salvataggio fallito: archivio locale pieno o bloccato');
+    if(/quota|storage/i.test(msg)) toast('Salvataggio fallito: archivio locale pieno o sporco');
     else toast('Salvataggio fallito');
     return false;
   }
@@ -3704,15 +3640,23 @@ function parseLegacyCloudDescription(text){
   return { descrizione, note:(noteMatch?.[1]||'').trim(), post:(postMatch?.[1]||'').trim() };
 }
 
+function formatPhoneReadable(digits){
+  const clean=String(digits||'').replace(/\D+/g,'');
+  if(!clean) return '';
+  if(clean.length<=3) return clean;
+  if(clean.length===10) return clean.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
+  if(clean.length===9) return clean.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
+  if(clean.length===11) return clean.replace(/(\d{3})(\d{4})(\d{4})/, '$1 $2 $3');
+  return clean.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
+}
 function withIntlPrefix(tel){
   const raw=String(tel||'').trim();
   if(!raw) return '';
-  if(raw.startsWith('+')) return raw;
-  if(raw.startsWith('00')) return '+'+raw.slice(2).replace(/\s+/g,'');
+  if(raw.startsWith('+')) return '+'+raw.slice(1).replace(/\D+/g,'');
+  if(raw.startsWith('00')) return '+'+raw.slice(2).replace(/\D+/g,'');
   const digits=raw.replace(/\D+/g,'');
   if(!digits) return raw;
-  if(digits.startsWith('39')) return '+'+digits;
-  return '+39'+digits;
+  return digits.startsWith('39') ? '+'+digits : '+39'+digits;
 }
 function buildShippingAddress(c){
   const name=(c?.nome||'').trim();
@@ -3881,10 +3825,10 @@ function getOrderSnapshotMap(ordini=[]){
   return map;
 }
 function loadShipAlerts(){
-  try{ return JSON.parse(storageReadMaybe(SHIP_ALERTS_KEY,'[]')||'[]'); }catch{ return []; }
+  try{ return JSON.parse(localStorage.getItem(SHIP_ALERTS_KEY)||'[]'); }catch{ return []; }
 }
 function saveShipAlerts(items){
-  try{ storageWriteSafe(SHIP_ALERTS_KEY, JSON.stringify((items||[]).slice(0,20)), 'session'); }catch{}
+  try{ localStorage.setItem(SHIP_ALERTS_KEY, JSON.stringify((items||[]).slice(0,20))); }catch{}
 }
 function renderShipAlerts(){
   const box=document.getElementById('shipAlerts');
@@ -3911,7 +3855,7 @@ function renderShipAlerts(){
 function updateShippingNotifications(db, source='app'){
   const curr=getOrderSnapshotMap(db?.ordini||[]);
   let prev={};
-  try{ prev=JSON.parse(storageReadMaybe(SHIP_SNAPSHOT_KEY,'{}')||'{}'); }catch{}
+  try{ prev=JSON.parse(localStorage.getItem(SHIP_SNAPSHOT_KEY)||'{}'); }catch{}
   const alerts=loadShipAlerts();
   const fresh=[];
   Object.keys(curr).forEach(key=>{
@@ -3930,7 +3874,7 @@ function updateShippingNotifications(db, source='app'){
     saveShipAlerts(merged);
     toast(fresh.length===1 ? '1 aggiornamento spedizione' : `${fresh.length} aggiornamenti spedizione`);
   }
-  try{ storageWriteSafe(SHIP_SNAPSHOT_KEY, JSON.stringify(curr), 'session'); }catch{}
+  try{ localStorage.setItem(SHIP_SNAPSHOT_KEY, JSON.stringify(curr)); }catch{}
   renderShipAlerts();
 }
 
@@ -4810,7 +4754,7 @@ function renderCli(){
   const items=db.clienti.filter(c=>{
     const hay=((c.nome||'')+' '+(c.telefono||'')+' '+(c.citta||'')+' '+(c.provincia||'')).toLowerCase();
     return !q || hay.includes(q);
-  }).sort(compareClientAlpha);
+  }).sort((a,b)=>String(b._ts||0).localeCompare(String(a._ts||0)));
   const el=document.getElementById('listCli');
   el.innerHTML=items.map(c=>`
     <div class="row" data-open="cli" data-id="${c.id}" style="grid-template-columns:1fr auto">
@@ -5540,7 +5484,6 @@ async function saveArt(){
         const idx=db.articoli.findIndex(x=>x.id===obj.id || x.codice===obj.codice);
         if(idx>=0) db.articoli[idx]={...db.articoli[idx], ...saved, _ts: Date.now()};
         saveDBLocal(db);
-        clearPendingLocalChanges();
       }catch(cloudErr){
         console.error('Sync cloud articolo fallita', cloudErr);
         toast('Articolo salvato, ma cloud non aggiornato');
@@ -5828,7 +5771,6 @@ async function deleteCli(){
   db.clienti=db.clienti.filter(c=>c.id!==currentCliId);
   if(!saveDB(db)) return;
   if(old && cloudEnabled()) await cloudDeleteOne('cli', old);
-  if(cloudEnabled()) clearPendingLocalChanges();
   clearClientDraft();
   hide('mCliEdit');
   toast(cloudEnabled() ? 'Cliente eliminato anche dal cloud' : 'Cliente eliminato');
@@ -6025,7 +5967,7 @@ function fillClientSelect(db, filter='', autoPick=false){
   const items=(db.clienti||[]).filter(c=>{
     const hay=`${c.nome||''} ${c.telefono||''} ${c.citta||''}`.toLowerCase();
     return !q || hay.includes(q);
-  }).sort(compareClientAlpha);
+  });
   sel.innerHTML='<option value="">Seleziona</option>'+items.map(c=>`<option value="${c.id}">${esc(c.nome)} • ${esc(c.provincia||'')}</option>`).join('');
   let picked=items.find(c=>String(c.id)===prev) || null;
   if(autoPick) picked=findClientAutoMatch(items, filter);
@@ -6272,7 +6214,6 @@ async function deleteOrd(){
   db.ordini=db.ordini.filter(o=>o.id!==currentOrdId);
   if(!saveDB(db)) return;
   if(old && cloudEnabled()) await cloudDeleteOne('ord', old);
-  if(cloudEnabled()) clearPendingLocalChanges();
   clearOrderDraft();
   hide('mOrdEdit');
   toast(cloudEnabled() ? 'Ordine eliminato anche dal cloud' : 'Ordine eliminato');
@@ -6673,7 +6614,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-14-savefix-clienti-abc-r2';
+const VG_BUILD='2026-03-28-colori-ordini-r1';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -6685,7 +6626,6 @@ function refreshAutoCloudPull(){
 }
 async function autoCloudPullNow(reason='manual'){
   if(!cloudEnabled() || autoCloudPullRunning || cloudBusy || document.hidden) return;
-  if(hasPendingLocalChanges()) return;
   const now=Date.now();
   if(reason!=='focus' && reason!=='visible' && (now-autoCloudPullLastAt)<60000) return;
   autoCloudPullRunning=true;
@@ -6770,11 +6710,7 @@ function saveDBLocal(db){
     const raw=JSON.stringify(cleanDb);
     localStorage.setItem(KEY, raw);
     try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
-    const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
-    legacyKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
-    return true;
   }catch(err){ console.error(err); }
-  return false;
 }
 async function ensureCategoryId(nome){
   if(!nome) return null;
@@ -7048,7 +6984,6 @@ async function pullCloudToLocal(opts={}){
     };
     updateShippingNotifications(db, bg?'cloud-auto':'cloud');
     saveDBLocal(db);
-    clearPendingLocalChanges();
     renderAll();
     renderDiagnostics();
     if(!opts.silent) toast('Dati cloud caricati');
@@ -7095,7 +7030,6 @@ async function pushLocalToCloud(){
       }
     }
     saveDBLocal(db);
-    clearPendingLocalChanges();
     renderAll();
     renderDiagnostics();
     if(failed.length){
