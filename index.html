@@ -1519,6 +1519,50 @@ function mergeById(arrA=[], arrB=[]){
   });
   return Array.from(map.values());
 }
+
+function storageReadMaybe(key, fallback=''){
+  try{
+    const v=localStorage.getItem(key);
+    if(v!=null) return v;
+  }catch(_e){}
+  try{
+    const v=sessionStorage.getItem(key);
+    if(v!=null) return v;
+  }catch(_e){}
+  return fallback;
+}
+function storageWriteSafe(key, value, scope='local'){
+  const str=String(value==null?'':value);
+  if(scope==='session'){
+    try{ sessionStorage.setItem(key, str); return true; }catch(_e){}
+  }
+  try{ localStorage.setItem(key, str); return true; }catch(err){
+    if(scope!=='session'){
+      try{ sessionStorage.setItem(key, str); return true; }catch(_e){}
+    }
+    throw err;
+  }
+}
+function cleanupStorageForSave(level=1){
+  const removeKeys=[];
+  if(level>=1){
+    removeKeys.push(COMUNI_CAP_CACHE_KEY, SHIP_SNAPSHOT_KEY, SHIP_ALERTS_KEY, ART_DRAFT_KEY, CLI_DRAFT_KEY, ORD_DRAFT_KEY);
+  }
+  if(level>=2){
+    removeKeys.push(KEY+'_backup_before_cloud_pull', KEY+'_cloud_push_tmp', KEY+'_cloud_pull_tmp');
+  }
+  removeKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} try{ sessionStorage.removeItem(k); }catch(_e){} });
+}
+function persistMainDbRaw(raw, opts={}){
+  localStorage.setItem(KEY, raw);
+  const verify=localStorage.getItem(KEY);
+  if(verify!==raw) throw new Error('verifica salvataggio locale fallita');
+  try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
+  const legacyKeys=(typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
+  legacyKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
+  if(opts.markDirty!==false) markPendingLocalChanges(opts.reason||'local');
+}
+
 function loadDB(){
   try{
     const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
@@ -1576,25 +1620,23 @@ function clearPendingLocalChanges(){
   try{ localStorage.removeItem(DIRTY_KEY); }catch(_e){}
 }
 function saveDB(db, opts={}){
-  const cleanDb=normalizeDBShape(db||defDB());
-  const raw=JSON.stringify(cleanDb);
-  let lastErr=null;
-  for(const level of [0,1,2]){
-    try{
-      if(level>0) cleanupStorageForSave(level);
-      persistMainDbRaw(raw, opts);
-      try{ renderAll(); }catch(err){ console.error('Render post-salvataggio fallito', err); }
-      refreshArticleBrandSelects();
-      return true;
-    }catch(err){
-      lastErr=err;
-      console.error('Tentativo salvataggio fallito', level, err);
-    }
+  try{
+    const cleanDb=normalizeDBShape(db||defDB());
+    const raw=JSON.stringify(cleanDb);
+    localStorage.setItem(KEY, raw);
+    try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
+    const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
+    legacyKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
+    if(opts.markDirty!==false) markPendingLocalChanges(opts.reason||'local');
+  }catch(err){
+    const msg=String(err?.message||err||'');
+    if(/quota|storage/i.test(msg)) toast('Salvataggio fallito: archivio locale pieno o bloccato');
+    else toast('Salvataggio fallito');
+    return false;
   }
-  const msg=String(lastErr?.message||lastErr||'');
-  if(/quota|storage|verifica salvataggio locale/i.test(msg)) toast('Salvataggio fallito: spazio locale pieno o bloccato. Ho liberato il superfluo ma non basta ancora.');
-  else toast('Salvataggio fallito');
-  return false;
+  try{ renderAll(); }catch(err){ console.error('Render post-salvataggio fallito', err); }
+  refreshArticleBrandSelects();
+  return true;
 }
 function safeLower(v){ return String(v==null?'':v).trim().toLowerCase(); }
 function isModalVisible(id){
@@ -6726,13 +6768,11 @@ function saveDBLocal(db){
   try{
     const cleanDb=normalizeDBShape(db||defDB());
     const raw=JSON.stringify(cleanDb);
-    for(const level of [0,1,2]){
-      try{
-        if(level>0) cleanupStorageForSave(level);
-        persistMainDbRaw(raw, {markDirty:false, reason:'cloud-sync'});
-        return true;
-      }catch(err){ console.error('saveDBLocal fallita', level, err); }
-    }
+    localStorage.setItem(KEY, raw);
+    try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
+    const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
+    legacyKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
+    return true;
   }catch(err){ console.error(err); }
   return false;
 }
