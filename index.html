@@ -72,6 +72,11 @@ body{-webkit-tap-highlight-color:transparent}
 .pricePaid{color:#16a34a!important;font-weight:1000}
 .pill.promo{border-color:#86efac;background:#f0fdf4;color:#166534;box-shadow:0 6px 14px rgba(34,197,94,.12)}
 .pill.promoExpired{border-color:#fecaca;background:#fff1f2;color:#b91c1c;box-shadow:0 6px 14px rgba(239,68,68,.14)}
+.pill.marginGood{border-color:#86efac;background:#f0fdf4;color:#166534;box-shadow:0 6px 14px rgba(34,197,94,.12)}
+.pill.marginMid{border-color:#fde68a;background:#fffbeb;color:#92400e;box-shadow:0 6px 14px rgba(245,158,11,.14)}
+.pill.marginLow{border-color:#fecaca;background:#fff1f2;color:#b91c1c;box-shadow:0 6px 14px rgba(239,68,68,.14)}
+.marginBox{display:flex;flex-direction:column;gap:6px}
+.marginMeta{font-size:12px;font-weight:900;color:#475569}
 .dot{width:10px;height:10px;border-radius:999px;background:#16a34a;display:inline-block}
 .promoNote{margin-top:6px;font-size:11px;line-height:1.3;font-weight:900;color:#475569}
 .promoNote.expired{color:#b91c1c}
@@ -95,7 +100,6 @@ body{-webkit-tap-highlight-color:transparent}
 .btn.smallish{padding:9px 11px;min-height:40px;font-size:12px;border-radius:12px}
 .btn.orderAdd{background:#fff;border:1px solid var(--line);color:#111827;box-shadow:0 3px 10px rgba(15,23,42,.04)}
 .btn[data-action="shareArtPhotos"],.btn[data-action="addArtToOrderFromView"]{background:#16a34a;border-color:#16a34a;color:#fff}
-.btn[data-action="downloadArtPhotos"]{background:#0ea5e9;border-color:#0ea5e9;color:#fff}
 .btn[data-action="editFromView"],.btn[data-action="editCliFromView"],.btn[data-action="editOrdFromView"],.btn[data-action="renameCategory"],.btn[data-action="renameBrand"]{background:#fef3c7;border-color:#f59e0b;color:#7c2d12}
 .btn[data-action="closeView"],.btn[data-action="closeCliView"],.btn[data-action="closeOrdView"],.btn[data-action="closeMonthSales"]{background:var(--blue);border-color:var(--blue);color:#fff}
 .btn.orderAdd.small{padding:10px 12px;border-radius:14px;font-size:13px;min-height:46px;line-height:1.15}
@@ -327,7 +331,10 @@ window.addEventListener('error',e=>{
         <div><select id="qArtBrand"><option value="">Tutte le marche</option></select></div>
         <div><select id="qArtQuality"><option value="">Tutte le qualità</option></select></div>
       </div>
-      <div style="margin-top:10px"><button class="btn" type="button" data-action="clearArtFilters">Anteprime complete</button></div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" type="button" data-action="clearArtFilters">Anteprime complete</button>
+        <button class="btn" type="button" data-action="openAllArticlesMixed">Tutto</button>
+      </div>
       <div id="artBreadcrumbs" class="artBreadcrumbs" style="display:none"></div>
     </div>
     <div style="height:10px"></div>
@@ -527,11 +534,13 @@ window.addEventListener('error',e=>{
       
     </div>
   </div>
-  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div style="display:flex;gap:8px;justify-content:flex-start;flex-wrap:wrap;margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" type="button" data-action="shareArtPhotos">Condividi foto</button></div></div>
-  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div style="display:flex;gap:8px;justify-content:flex-start;flex-wrap:wrap;margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
-  <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div style="display:flex;gap:8px;justify-content:flex-start;flex-wrap:wrap;margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
+    <button class="btn smallish" type="button" data-action="shareArtPhotos">Condividi foto</button>
+    <button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button>
     <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
     <button class="btn smallish" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button>
@@ -5213,6 +5222,11 @@ function renderArtBreadcrumbs(){
     box.style.display='flex';
     return;
   }
+  if(artBrowseState.level==='mixed'){
+    box.innerHTML=`<span class="artCrumb active">Tutti gli articoli</span><button class="artCrumb" type="button" data-action="clearArtFilters">Anteprime complete</button>`;
+    box.style.display='flex';
+    return;
+  }
   box.innerHTML='';
   box.style.display='none';
 }
@@ -5234,6 +5248,33 @@ function isArticleUnavailable(a){
 function articleAvailabilityBadge(a){
   if(!isArticleUnavailable(a)) return '';
   return '<div class="pill unavailable" style="margin-top:6px">NON DISPONIBILE</div>';
+}
+function articleMarginInfo(a){
+  const usd=Number(a?.costoUsd||0);
+  if(!isFinite(usd) || usd<=0) return null;
+  const qualKey=normalizeQualityValue(articleQualityLabel(a)).toUpperCase();
+  const base=calcFromUsd(usd, qualKey==='ORIGINALE' ? 'ORIGINALE' : 'STANDARD');
+  const current=Math.max(0, Number(currentPrice(a)||0) - Number(base?.costo||0));
+  const sale=Number(currentPrice(a)||0);
+  const pct=(sale>0 && current>0) ? Math.round((current/sale)*100) : 0;
+  const target=Math.max(1, Number(base?.marg||0));
+  const ratio=current/target;
+  if(ratio >= 0.92){
+    return { tone:'good', label:'Buon margine', amount:current, pct };
+  }
+  if(ratio >= 0.75){
+    return { tone:'mid', label:'Margine nella media', amount:current, pct };
+  }
+  return { tone:'low', label:'Margine al limite', amount:current, pct };
+}
+function articleMarginInfoHtml(a){
+  const info=articleMarginInfo(a);
+  if(!info){
+    return '<div class="pill">Margine non disponibile</div><div class="marginMeta">Serve il costo USD per calcolarlo.</div>';
+  }
+  const toneClass=info.tone==='good' ? 'marginGood' : (info.tone==='mid' ? 'marginMid' : 'marginLow');
+  const pctText=info.pct ? ` • ${info.pct}%` : '';
+  return `<div class="pill ${toneClass}">${esc(info.label)}</div><div class="marginMeta">${money(info.amount)}${pctText}</div>`;
 }
 function articleSearchHay(a){
   const catLabel=displayCategoryValue(a?.categoria);
@@ -5266,7 +5307,8 @@ function renderCategoryOverview(items,{promoOnly=false,brandFilter='',qualityFil
     el.innerHTML=`<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
     return;
   }
-  el.innerHTML=cats.map(([catLabel,arr])=>{
+  const allCard=promoOnly ? '' : `<div class="artCard tight" data-action="openAllArticlesMixed"><div class="artMeta"><div class="t">Tutto</div><div class="s">Mostra gli articoli mischiati</div></div><div class="artPlaceholder" style="margin-top:8px;display:flex;align-items:center;justify-content:center;font-size:42px">👜</div><div class="artMeta" style="margin-top:12px"><div class="s">${items.length} articol${items.length===1?'o':'i'} totali</div></div></div>`;
+  el.innerHTML=allCard + cats.map(([catLabel,arr])=>{
     const brandCount=new Set(arr.map(a=>displayBrandValue(a.brand)).filter(Boolean)).size;
     const countLine=`${arr.length} articol${arr.length===1?'o':'i'} • ${brandCount} brand`;
     return `<div class="artCard tight" data-action="selectArtCategory" data-name="${esc(catLabel)}"><div class="artMeta"><div class="t">${esc(catLabel)}</div><div class="s">Categorie articoli</div></div><div class="artPlaceholder" style="margin-top:8px;display:flex"><img class="artPlaceholderImg" alt="Categoria ${esc(catLabel)}" src="${artIconForCategory(catLabel)}"/></div><div class="artMeta" style="margin-top:12px"><div class="s">${countLine}</div></div></div>`;
@@ -5291,7 +5333,7 @@ function renderArt(){
   }).sort((a,b)=>Number(b._ts||0)-Number(a._ts||0));
   const el=document.getElementById('listArt');
   renderArtBreadcrumbs();
-  const showOverview=!promoOnly && !q && !catFilter && !brandFilter && !qualityFilter;
+  const showOverview=artBrowseState.level!=='mixed' && !promoOnly && !q && !catFilter && !brandFilter && !qualityFilter;
   if(showOverview){
     renderCategoryOverview(items,{promoOnly,brandFilter,qualityFilter});
     return;
@@ -5618,6 +5660,8 @@ async function openArtView(id){
   document.getElementById('vArtPrezzoUse').textContent=money(currentPrice(a));
   const pill=document.getElementById('vArtPromoPill');
   pill.innerHTML = promoInfoHtml(a,{marginTop:'6px'});
+  const marginBox=document.getElementById('vArtMarginBox');
+  if(marginBox) marginBox.innerHTML = articleMarginInfoHtml(a);
   document.getElementById('vArtPost').value=buildPostTelegram(a);
   fitTextarea(document.getElementById('vArtPost'));
   document.getElementById('vArtPostFb').value=buildPostFacebook(a);
@@ -7114,6 +7158,19 @@ document.addEventListener('click',(ev)=>{
     if(qArtBrand) qArtBrand.value='';
     if(qArtQuality) qArtQuality.value='';
     setArtBrowse('tutti');
+    go('articoli');
+    return renderArt();
+  }
+  if(a==='openAllArticlesMixed'){
+    const qArt=document.getElementById('qArt');
+    const qArtCat=document.getElementById('qArtCat');
+    const qArtBrand=document.getElementById('qArtBrand');
+    const qArtQuality=document.getElementById('qArtQuality');
+    if(qArt) qArt.value='';
+    if(qArtCat) qArtCat.value='';
+    if(qArtBrand) qArtBrand.value='';
+    if(qArtQuality) qArtQuality.value='';
+    setArtBrowse('mixed');
     go('articoli');
     return renderArt();
   }
