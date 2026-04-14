@@ -90,8 +90,14 @@ body{-webkit-tap-highlight-color:transparent}
 .btn{border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px 14px;font-weight:1000;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:50px;text-align:center;box-shadow:0 3px 10px rgba(15,23,42,.04)}
 .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
 .btn.danger{background:#fee2e2;border-color:#fca5a5}
+.btn.secondary{background:#fef3c7;border-color:#f59e0b;color:#7c2d12}
+.btn.ghost{background:#fff;border-color:var(--line);color:#475569}
 .btn.smallish{padding:9px 11px;min-height:40px;font-size:12px;border-radius:12px}
 .btn.orderAdd{background:#fff;border:1px solid var(--line);color:#111827;box-shadow:0 3px 10px rgba(15,23,42,.04)}
+.btn[data-action="shareArtPhotos"],.btn[data-action="addArtToOrderFromView"]{background:#16a34a;border-color:#16a34a;color:#fff}
+.btn[data-action="downloadArtPhotos"]{background:#0ea5e9;border-color:#0ea5e9;color:#fff}
+.btn[data-action="editFromView"],.btn[data-action="editCliFromView"],.btn[data-action="editOrdFromView"],.btn[data-action="renameCategory"],.btn[data-action="renameBrand"]{background:#fef3c7;border-color:#f59e0b;color:#7c2d12}
+.btn[data-action="closeView"],.btn[data-action="closeCliView"],.btn[data-action="closeOrdView"],.btn[data-action="closeMonthSales"]{background:var(--blue);border-color:var(--blue);color:#fff}
 .btn.orderAdd.small{padding:10px 12px;border-radius:14px;font-size:13px;min-height:46px;line-height:1.15}
 .orderAddWrap{margin-top:10px;display:flex;justify-content:flex-start}.orderAddWrap .btn{width:100%}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -521,13 +527,11 @@ window.addEventListener('error',e=>{
       
     </div>
   </div>
-  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button></div></div>
-  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button></div></div>
-  <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div style="display:flex;gap:8px;justify-content:flex-start;flex-wrap:wrap;margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" type="button" data-action="shareArtPhotos">Condividi foto</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div style="display:flex;gap:8px;justify-content:flex-start;flex-wrap:wrap;margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div style="display:flex;gap:8px;justify-content:flex-start;flex-wrap:wrap;margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
-    <button class="btn smallish" type="button" data-action="shareArtPhotos">Condividi foto</button>
-    <button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button>
     <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
     <button class="btn smallish" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button>
@@ -2925,9 +2929,9 @@ function calcFromUsd(usd, qual){
   const costo=(Number(usd||0)*0.90)+5;
   if(!isFinite(costo)) return {costo:0, sell:0, marg:0};
   if(qual==='ORIGINALE'){
-    let guad=costo*0.30;
-    if(guad<60) guad=60;
-    if(guad>75) guad=75;
+    let guad=costo*0.32;
+    if(guad<62) guad=62;
+    if(guad>78) guad=78;
     const sell=round5(costo+guad);
     return {costo, sell, marg:guad};
   }else{
