@@ -112,12 +112,12 @@ select[multiple]{min-height:150px}
 #mArtView .modal,#mArtEdit .modal{max-width:760px}
 #mArtEdit .modal{background:linear-gradient(180deg,#f0fdf4 0%, #ffffff 28%);border-color:#bbf7d0;box-shadow:0 18px 40px rgba(34,197,94,.12)}
 
-#vArtPost,#vArtPostFb,#vArtPostIg,#a_post,#a_post_fb,#a_post_ig,#c_ship{overflow:hidden;resize:none;scrollbar-width:none;-ms-overflow-style:none}
+#vArtPost,#vArtPostFb,#vArtPostIg,#a_post,#a_post_fb,#a_post_ig,#c_ship,#vOrdShip{overflow:hidden;resize:none;scrollbar-width:none;-ms-overflow-style:none}
 #vArtPost,#vArtPostFb,#vArtPostIg,#a_post,#a_post_fb,#a_post_ig{min-height:190px;line-height:1.45}
 .viewBottomSpace{margin-top:22px;padding-bottom:10px}
 .linkRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .linkRow input{flex:1 1 240px}
-#vArtPost::-webkit-scrollbar,#vArtPostFb::-webkit-scrollbar,#vArtPostIg::-webkit-scrollbar,#a_post::-webkit-scrollbar,#a_post_fb::-webkit-scrollbar,#a_post_ig::-webkit-scrollbar,#c_ship::-webkit-scrollbar{display:none}
+#vArtPost::-webkit-scrollbar,#vArtPostFb::-webkit-scrollbar,#vArtPostIg::-webkit-scrollbar,#a_post::-webkit-scrollbar,#a_post_fb::-webkit-scrollbar,#a_post_ig::-webkit-scrollbar,#c_ship::-webkit-scrollbar,#vOrdShip::-webkit-scrollbar{display:none}
 @media (max-width:700px){
   #mArtView .modal,#mArtEdit .modal{width:100vw;max-width:none;height:100vh;max-height:none;border-radius:0;padding:14px 14px 96px}
   #mArtView.modalwrap,#mArtEdit.modalwrap{padding:0}
@@ -525,13 +525,13 @@ window.addEventListener('error',e=>{
       
     </div>
   </div>
-  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish btn-share" type="button" data-action="shareArtPhotos">Condividi foto</button></div></div>
-  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish btn-download" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
-  <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish btn-download" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish btn-share" type="button" data-action="shareArtPhotos">📤 Condividi foto</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish btn-download" type="button" data-action="downloadArtPhotos">⬇️ Scarica foto</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish btn-download" type="button" data-action="downloadArtPhotos">⬇️ Scarica foto</button></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
-    <button class="btn smallish btn-share" type="button" data-action="shareArtPhotos">Condividi foto</button>
-    <button class="btn smallish btn-download" type="button" data-action="downloadArtPhotos">Scarica foto</button>
+    <button class="btn smallish btn-share" type="button" data-action="shareArtPhotos">📤 Condividi foto</button>
+    <button class="btn smallish btn-download" type="button" data-action="downloadArtPhotos">⬇️ Scarica foto</button>
     <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
     <button class="btn smallish" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button>
@@ -626,9 +626,9 @@ window.addEventListener('error',e=>{
   <div class="formBlock postblk inputSoft">
     <div class="blockTitle">Post e contenuti</div>
     <div><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Dettagli utili per il post..."></textarea></div>
-    <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="a_post_fb" readonly placeholder="Qui il post Facebook (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbEdit">Copia FB</button><button class="btn smallish btn-share" type="button" data-action="shareArtPhotos">Condividi foto</button></div></div>
-    <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="a_post" placeholder="Qui il post Telegram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostTelegramEdit">Copia Telegram</button><button class="btn smallish btn-download" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
-    <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button><button class="btn smallish btn-download" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
+    <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="a_post_fb" readonly placeholder="Qui il post Facebook (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbEdit">Copia FB</button><button class="btn smallish btn-share" type="button" data-action="shareArtPhotos">📤 Condividi foto</button></div></div>
+    <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="a_post" placeholder="Qui il post Telegram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostTelegramEdit">Copia Telegram</button><button class="btn smallish btn-download" type="button" data-action="downloadArtPhotos">⬇️ Scarica foto</button></div></div>
+    <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button><button class="btn smallish btn-download" type="button" data-action="downloadArtPhotos">⬇️ Scarica foto</button></div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
     <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple/><div class="small" style="margin-top:6px">Puoi selezionare più foto insieme (massimo 12 totali per articolo).</div></div>
@@ -649,21 +649,18 @@ window.addEventListener('error',e=>{
     <div><div class="k">Nome</div><div id="vCliNome" class="t">-</div></div>
     <div><div class="k">Telefono</div><div id="vCliTel" class="t">-</div></div>
   </div>
-  <div style="margin-top:10px"><div class="k">Indirizzo</div><div id="vCliInd" class="mutedBox">-</div></div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">CAP</div><div id="vCliCap" class="t">-</div></div>
     <div><div class="k">Città</div><div id="vCliCity" class="t">-</div></div>
   </div>
   <div style="margin-top:10px"><div class="k">Provincia</div><div id="vCliProv" class="t">-</div></div>
   <div style="margin-top:10px"><div class="k">Note</div><div id="vCliNote" class="mutedBox">-</div></div>
-  <div style="margin-top:10px"><div class="k">Indirizzo spedizione</div><textarea id="vCliShip" readonly placeholder="Shipping Address"></textarea></div>
   <div style="margin-top:10px"><div class="k">Acquisti effettuati</div><div id="vCliOrders" class="list"></div></div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">Guadagno totale</div><div id="vCliProfitTotal" class="t pricePaid">-</div></div>
     <div><div class="k">Guadagno annuale</div><div id="vCliProfitYear" class="t pricePaid">-</div></div>
   </div>
   <div class="actions compact bottomMini">
-    <button class="btn primary smallish" type="button" data-action="copyCliShipView">Copia indirizzo</button>
     <button class="btn smallish" type="button" data-action="editCliFromView">Modifica</button>
     <button class="btn smallish" type="button" data-action="closeCliView">Chiudi</button>
   </div>
@@ -682,9 +679,7 @@ window.addEventListener('error',e=>{
   </div>
   <div style="margin-top:10px"><div class="k">Provincia</div><select id="c_prov"></select></div>
   <div style="margin-top:10px"><div class="k">Note</div><textarea id="c_note"></textarea></div>
-  <div style="margin-top:10px"><div class="k">Indirizzo spedizione</div><textarea id="c_ship" readonly placeholder="Shipping Address"></textarea></div>
   <div class="actions compact bottomMini">
-    <button class="btn primary smallish" type="button" data-action="copyCliShip">Copia indirizzo</button>
     <button class="btn primary smallish" type="button" data-action="saveCli">Salva</button>
     <button class="btn smallish" type="button" data-action="closeCli">Annulla</button>
   </div>
@@ -722,6 +717,10 @@ window.addEventListener('error',e=>{
     <div><div class="k">Guadagno</div><div id="vOrdProfit" class="t pricePaid">-</div></div>
   </div>
   <div id="vOrdCumMeta" class="small" style="margin-top:8px;display:none"></div>
+  <div style="margin-top:10px"><div class="k">Shipping Address</div><textarea id="vOrdShip" readonly placeholder="Shipping Address"></textarea></div>
+  <div class="actions compact bottomMini" style="margin-top:8px">
+    <button class="btn primary smallish" type="button" data-action="copyOrdShip">📋 Copia shipping</button>
+  </div>
   <div class="actions compact bottomMini">
     <button class="btn smallish" type="button" data-action="editOrdFromView">Modifica</button>
     <button class="btn smallish" type="button" data-action="closeOrdView">Chiudi</button>
@@ -5521,14 +5520,10 @@ function openCliView(id){
   currentCliId=id;
   document.getElementById('vCliNome').textContent=c.nome||'-';
   document.getElementById('vCliTel').textContent=withIntlPrefix(c.telefono||'')||'-';
-  document.getElementById('vCliInd').textContent=c.indirizzo||'-';
   document.getElementById('vCliCap').textContent=c.cap||'-';
   document.getElementById('vCliCity').textContent=c.citta||'-';
   document.getElementById('vCliProv').textContent=c.provincia||'-';
   document.getElementById('vCliNote').textContent=c.note||'-';
-  const ship=document.getElementById('vCliShip');
-  ship.value=buildShippingAddress(c);
-  fitTextarea(ship);
   const clientOrders=(db.ordini||[]).filter(o=>o.clienteId===id).sort((a,b)=>String(b.data||b._ts||'').localeCompare(String(a.data||a._ts||'')));
   const ordersEl=document.getElementById('vCliOrders');
   if(ordersEl){
@@ -5624,6 +5619,11 @@ async function openOrdView(id){
   document.getElementById('vOrdMis').textContent=o.mis||'-';
   document.getElementById('vOrdTrack').textContent=o.tracking||'-';
   document.getElementById('vOrdNote').textContent=o.note||'-';
+  const ordShip=document.getElementById('vOrdShip');
+  if(ordShip){
+    ordShip.value=buildShippingAddress(c||{});
+    fitTextarea(ordShip);
+  }
   document.getElementById('vOrdSub').textContent=money(subTotale);
   document.getElementById('vOrdDiscount').textContent=money(scontoCliente);
   totalEl.textContent=money(totalPagato);
@@ -6475,6 +6475,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='openSupplierLink'){ const link=String(document.getElementById('vArtSupplierLink')?.value||'').trim(); if(!link){ toast('Nessun link fornitore'); return; } const safe=/^https?:\/\//i.test(link)?link:'https://'+link; window.open(safe,'_blank'); return; }
   if(a==='copyCliShip') return copyTextFrom(document.getElementById('c_ship'));
   if(a==='copyCliShipView') return copyTextFrom(document.getElementById('vCliShip'));
+  if(a==='copyOrdShip') return copyTextFrom(document.getElementById('vOrdShip'));
   if(a==='editCliFromView'){ hide('mCliView', true); return openCliEdit(currentCliId); }
   if(a==='closeCliView') return hide('mCliView');
   if(a==='editOrdFromView'){ hide('mOrdView', true); return openOrdEdit(currentOrdId); }
