@@ -1,4 +1,5 @@
-const VERSION = 'v53_phone_compact';
+// cache bump r1
+const VERSION = 'v51_promo_campaign_headline';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
