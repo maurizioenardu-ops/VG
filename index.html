@@ -309,7 +309,7 @@ function saveDB(db){
     console.error('Errore salvataggio DB:', e);
     const msg = (e && (e.name==='QuotaExceededError' || /quota/i.test(String(e))))
       ? 'Salvataggio fallito: memoria del browser piena. Esporta il database o riduci le foto locali.'
-      : 'Salvataggio fallito. Riprova: se il problema continua, esporta il database e riapri l'app.';
+      : "Salvataggio fallito. Riprova: se il problema continua, esporta il database e riapri l'app.";
     alert(msg);
     return false;
   }
