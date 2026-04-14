@@ -830,6 +830,7 @@ window.addEventListener('error',e=>{
 <script>
 /* ====== DB ====== */
 const KEY='vg_db_full_v6';
+const DIRTY_KEY='vg_db_dirty_v1';
 const LEGACY_KEYS=['vg_db_full_v5','vg_v7_web','vanity_glamour_v9_db'];
 const PHOTO_DB='vg_photos_v1';
 const PHOTO_STORE='photos';
@@ -953,12 +954,20 @@ function normalizeDBShape(o){
     righe:Array.isArray(o?.righe)?o.righe:[]
   }));
 
+  db.clienti=(db.clienti||[]).sort(compareClientAlpha);
   db.categorie=[...new Set((db.categorie||[]).map(x=>normalizeSpaceText(x)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
   db.brands=[...new Set((db.brands||[]).map(x=>normalizeSpaceText(x)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
   return db;
 }
 
 function normalizeSpaceText(v){ return String(v==null?'':v).trim().replace(/\s+/g,' '); }
+function compareClientAlpha(a,b){
+  const nameA=normalizeClientDisplayName(a)||normalizeSpaceText(a?.nome||'');
+  const nameB=normalizeClientDisplayName(b)||normalizeSpaceText(b?.nome||'');
+  const cmp=nameA.localeCompare(nameB,'it',{sensitivity:'base'});
+  if(cmp) return cmp;
+  return String(b?._ts||0).localeCompare(String(a?._ts||0));
+}
 function normalizeTextKey(v){ return normalizeSpaceText(v).toLowerCase(); }
 function normalizeLookupKey(v){
   return normalizeSpaceText(v)
@@ -1556,12 +1565,25 @@ function loadDB(){
     return merged;
   }catch(e){ return defDB(); }
 }
-function saveDB(db){
+function readDirtyFlag(){
+  try{ const raw=localStorage.getItem(DIRTY_KEY); return raw?JSON.parse(raw):null; }catch(_e){ return null; }
+}
+function hasPendingLocalChanges(){ return !!readDirtyFlag(); }
+function markPendingLocalChanges(reason='local'){
+  try{ localStorage.setItem(DIRTY_KEY, JSON.stringify({ts:Date.now(), reason:String(reason||'local')})); }catch(_e){}
+}
+function clearPendingLocalChanges(){
+  try{ localStorage.removeItem(DIRTY_KEY); }catch(_e){}
+}
+function saveDB(db, opts={}){
   try{
     const cleanDb=normalizeDBShape(db||defDB());
     const raw=JSON.stringify(cleanDb);
     localStorage.setItem(KEY, raw);
+    if(localStorage.getItem(KEY)!==raw) throw new Error('Verifica salvataggio locale fallita');
     try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
+    if(opts?.markDirty!==false) markPendingLocalChanges(opts?.reason||'local-save');
+    else clearPendingLocalChanges();
     const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
     legacyKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
   }catch(err){
@@ -4746,7 +4768,7 @@ function renderCli(){
   const items=db.clienti.filter(c=>{
     const hay=((c.nome||'')+' '+(c.telefono||'')+' '+(c.citta||'')+' '+(c.provincia||'')).toLowerCase();
     return !q || hay.includes(q);
-  }).sort((a,b)=>String(b._ts||0).localeCompare(String(a._ts||0)));
+  }).sort(compareClientAlpha);
   const el=document.getElementById('listCli');
   el.innerHTML=items.map(c=>`
     <div class="row" data-open="cli" data-id="${c.id}" style="grid-template-columns:1fr auto">
@@ -5476,6 +5498,7 @@ async function saveArt(){
         const idx=db.articoli.findIndex(x=>x.id===obj.id || x.codice===obj.codice);
         if(idx>=0) db.articoli[idx]={...db.articoli[idx], ...saved, _ts: Date.now()};
         saveDBLocal(db);
+        clearPendingLocalChanges();
       }catch(cloudErr){
         console.error('Sync cloud articolo fallita', cloudErr);
         toast('Articolo salvato, ma cloud non aggiornato');
@@ -5763,6 +5786,7 @@ async function deleteCli(){
   db.clienti=db.clienti.filter(c=>c.id!==currentCliId);
   if(!saveDB(db)) return;
   if(old && cloudEnabled()) await cloudDeleteOne('cli', old);
+  if(cloudEnabled()) clearPendingLocalChanges();
   clearClientDraft();
   hide('mCliEdit');
   toast(cloudEnabled() ? 'Cliente eliminato anche dal cloud' : 'Cliente eliminato');
@@ -5959,7 +5983,7 @@ function fillClientSelect(db, filter='', autoPick=false){
   const items=(db.clienti||[]).filter(c=>{
     const hay=`${c.nome||''} ${c.telefono||''} ${c.citta||''}`.toLowerCase();
     return !q || hay.includes(q);
-  });
+  }).sort(compareClientAlpha);
   sel.innerHTML='<option value="">Seleziona</option>'+items.map(c=>`<option value="${c.id}">${esc(c.nome)} • ${esc(c.provincia||'')}</option>`).join('');
   let picked=items.find(c=>String(c.id)===prev) || null;
   if(autoPick) picked=findClientAutoMatch(items, filter);
@@ -6206,6 +6230,7 @@ async function deleteOrd(){
   db.ordini=db.ordini.filter(o=>o.id!==currentOrdId);
   if(!saveDB(db)) return;
   if(old && cloudEnabled()) await cloudDeleteOne('ord', old);
+  if(cloudEnabled()) clearPendingLocalChanges();
   clearOrderDraft();
   hide('mOrdEdit');
   toast(cloudEnabled() ? 'Ordine eliminato anche dal cloud' : 'Ordine eliminato');
@@ -6606,7 +6631,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-03-28-colori-ordini-r1';
+const VG_BUILD='2026-04-14-savefix-clienti-abc-r1';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -6618,6 +6643,7 @@ function refreshAutoCloudPull(){
 }
 async function autoCloudPullNow(reason='manual'){
   if(!cloudEnabled() || autoCloudPullRunning || cloudBusy || document.hidden) return;
+  if(hasPendingLocalChanges()) return;
   const now=Date.now();
   if(reason!=='focus' && reason!=='visible' && (now-autoCloudPullLastAt)<60000) return;
   autoCloudPullRunning=true;
@@ -6701,7 +6727,9 @@ function saveDBLocal(db){
     const cleanDb=normalizeDBShape(db||defDB());
     const raw=JSON.stringify(cleanDb);
     localStorage.setItem(KEY, raw);
+    if(localStorage.getItem(KEY)!==raw) throw new Error('Verifica salvataggio locale fallita');
     try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
+    clearPendingLocalChanges();
   }catch(err){ console.error(err); }
 }
 async function ensureCategoryId(nome){
@@ -6976,6 +7004,7 @@ async function pullCloudToLocal(opts={}){
     };
     updateShippingNotifications(db, bg?'cloud-auto':'cloud');
     saveDBLocal(db);
+    clearPendingLocalChanges();
     renderAll();
     renderDiagnostics();
     if(!opts.silent) toast('Dati cloud caricati');
@@ -7022,6 +7051,7 @@ async function pushLocalToCloud(){
       }
     }
     saveDBLocal(db);
+    clearPendingLocalChanges();
     renderAll();
     renderDiagnostics();
     if(failed.length){

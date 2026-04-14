@@ -1,5 +1,5 @@
 // cache bump r1
-const VERSION = 'v51_promo_campaign_headline';
+const VERSION = 'v52_savefix_clienti_abc';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
