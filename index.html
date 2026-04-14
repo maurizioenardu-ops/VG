@@ -229,7 +229,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v10_2-fbgroup">
+  <meta name="vg-version" content="v10_3-phone-spacing">
 </head>
 <body>
 <div class="top">
@@ -3640,15 +3640,23 @@ function parseLegacyCloudDescription(text){
   return { descrizione, note:(noteMatch?.[1]||'').trim(), post:(postMatch?.[1]||'').trim() };
 }
 
+function formatPhoneReadable(digits){
+  const clean=String(digits||'').replace(/\D+/g,'');
+  if(!clean) return '';
+  if(clean.length<=3) return clean;
+  if(clean.length===10) return clean.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
+  if(clean.length===9) return clean.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
+  if(clean.length===11) return clean.replace(/(\d{3})(\d{4})(\d{4})/, '$1 $2 $3');
+  return clean.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
+}
 function withIntlPrefix(tel){
   const raw=String(tel||'').trim();
   if(!raw) return '';
-  if(raw.startsWith('+')) return raw;
-  if(raw.startsWith('00')) return '+'+raw.slice(2).replace(/\s+/g,'');
+  if(raw.startsWith('+')) return '+'+raw.slice(1).replace(/\D+/g,'');
+  if(raw.startsWith('00')) return '+'+raw.slice(2).replace(/\D+/g,'');
   const digits=raw.replace(/\D+/g,'');
   if(!digits) return raw;
-  if(digits.startsWith('39')) return '+'+digits;
-  return '+39 '+digits;
+  return digits.startsWith('39') ? '+'+digits : '+39'+digits;
 }
 function buildShippingAddress(c){
   const name=(c?.nome||'').trim();

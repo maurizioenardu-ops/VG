@@ -1,4 +1,4 @@
-const VERSION = 'v51_promo_campaign_headline';
+const VERSION = 'v53_phone_compact';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
