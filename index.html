@@ -216,10 +216,10 @@ select[multiple]{min-height:150px}
 
 
 /* Pulsanti foto personalizzati */
-.btn.btn-share{background:#0f766e;border-color:#0f766e;color:#fff}
-.btn.btn-share:hover{background:#115e59;border-color:#115e59}
-.btn.btn-download{background:#b45309;border-color:#b45309;color:#fff}
-.btn.btn-download:hover{background:#92400e;border-color:#92400e}
+.btn.btn-share{background:#2dd4bf;border-color:#14b8a6;color:#083344}
+.btn.btn-share:hover{background:#14b8a6;border-color:#0f766e;color:#05242c}
+.btn.btn-download{background:#fb923c;border-color:#f97316;color:#431407}
+.btn.btn-download:hover{background:#f97316;border-color:#ea580c;color:#2c1205}
 
 </style>
 <script>
@@ -649,11 +649,16 @@ window.addEventListener('error',e=>{
     <div><div class="k">Nome</div><div id="vCliNome" class="t">-</div></div>
     <div><div class="k">Telefono</div><div id="vCliTel" class="t">-</div></div>
   </div>
+  <div style="margin-top:10px"><div class="k">Indirizzo</div><div id="vCliInd" class="mutedBox">-</div></div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">CAP</div><div id="vCliCap" class="t">-</div></div>
     <div><div class="k">Città</div><div id="vCliCity" class="t">-</div></div>
   </div>
   <div style="margin-top:10px"><div class="k">Provincia</div><div id="vCliProv" class="t">-</div></div>
+  <textarea id="vCliShip" readonly style="position:absolute;left:-9999px;top:-9999px;opacity:0;pointer-events:none"></textarea>
+  <div class="actions compact" style="margin-top:8px">
+    <button class="btn smallish" type="button" data-action="copyCliShipView">📋 Copia indirizzo</button>
+  </div>
   <div style="margin-top:10px"><div class="k">Note</div><div id="vCliNote" class="mutedBox">-</div></div>
   <div style="margin-top:10px"><div class="k">Acquisti effettuati</div><div id="vCliOrders" class="list"></div></div>
   <div class="grid2" style="margin-top:10px">
@@ -5520,9 +5525,13 @@ function openCliView(id){
   currentCliId=id;
   document.getElementById('vCliNome').textContent=c.nome||'-';
   document.getElementById('vCliTel').textContent=withIntlPrefix(c.telefono||'')||'-';
+  const cliIndEl=document.getElementById('vCliInd');
+  if(cliIndEl) cliIndEl.textContent=c.indirizzo||'-';
   document.getElementById('vCliCap').textContent=c.cap||'-';
   document.getElementById('vCliCity').textContent=c.citta||'-';
   document.getElementById('vCliProv').textContent=c.provincia||'-';
+  const cliShipEl=document.getElementById('vCliShip');
+  if(cliShipEl) cliShipEl.value=buildShippingAddress(c||{});
   document.getElementById('vCliNote').textContent=c.note||'-';
   const clientOrders=(db.ordini||[]).filter(o=>o.clienteId===id).sort((a,b)=>String(b.data||b._ts||'').localeCompare(String(a.data||a._ts||'')));
   const ordersEl=document.getElementById('vCliOrders');
