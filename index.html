@@ -100,6 +100,7 @@ body{-webkit-tap-highlight-color:transparent}
 .btn.smallish{padding:9px 11px;min-height:40px;font-size:12px;border-radius:12px}
 .btn.orderAdd{background:#fff;border:1px solid var(--line);color:#111827;box-shadow:0 3px 10px rgba(15,23,42,.04)}
 .btn[data-action="shareArtPhotos"],.btn[data-action="addArtToOrderFromView"]{background:#16a34a;border-color:#16a34a;color:#fff}
+  .btn[data-action="downloadArtPhotos"]{background:#38bdf8;border-color:#38bdf8;color:#082f49}
 .btn[data-action="editFromView"],.btn[data-action="editCliFromView"],.btn[data-action="editOrdFromView"],.btn[data-action="renameCategory"],.btn[data-action="renameBrand"]{background:#fef3c7;border-color:#f59e0b;color:#7c2d12}
 .btn[data-action="closeView"],.btn[data-action="closeCliView"],.btn[data-action="closeOrdView"],.btn[data-action="closeMonthSales"]{background:var(--blue);border-color:var(--blue);color:#fff}
 .btn.orderAdd.small{padding:10px 12px;border-radius:14px;font-size:13px;min-height:46px;line-height:1.15}
@@ -531,16 +532,14 @@ window.addEventListener('error',e=>{
       <div class="k">Prezzo in uso</div>
       <div id="vArtPrezzoUse" class="priceHot">-</div>
       <div id="vArtPromoPill"></div>
-      
+      <div id="vArtMarginBox" class="marginBox" style="margin-top:8px"></div>
     </div>
   </div>
-  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button></div></div>
-  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button></div></div>
-  <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" type="button" data-action="shareArtPhotos">Condividi foto</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
-    <button class="btn smallish" type="button" data-action="shareArtPhotos">Condividi foto</button>
-    <button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button>
     <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
     <button class="btn smallish" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button>
