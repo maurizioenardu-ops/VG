@@ -4259,18 +4259,30 @@ function getOrderSnapshotMap(ordini=[]){
   });
   return map;
 }
+function isTrackingAlert(item){
+  const kind=String(item?.kind||'').trim().toLowerCase();
+  if(kind==='tracking') return true;
+  const title=String(item?.title||'').toLowerCase();
+  const text=String(item?.text||'').toLowerCase();
+  return title.includes('tracking') || text.includes('tracking') || text.includes('traccia');
+}
 function loadShipAlerts(){
-  try{ return JSON.parse(localStorage.getItem(SHIP_ALERTS_KEY)||'[]'); }catch{ return []; }
+  try{
+    const raw=JSON.parse(localStorage.getItem(SHIP_ALERTS_KEY)||'[]');
+    const filtered=(Array.isArray(raw)?raw:[]).filter(isTrackingAlert).slice(0,20);
+    if(filtered.length !== (Array.isArray(raw)?raw:[]).length) saveShipAlerts(filtered);
+    return filtered;
+  }catch{ return []; }
 }
 function saveShipAlerts(items){
-  try{ localStorage.setItem(SHIP_ALERTS_KEY, JSON.stringify((items||[]).slice(0,20))); }catch{}
+  try{ localStorage.setItem(SHIP_ALERTS_KEY, JSON.stringify((Array.isArray(items)?items:[]).filter(isTrackingAlert).slice(0,20))); }catch{}
 }
 function renderShipAlerts(){
   const box=document.getElementById('shipAlerts');
   if(!box) return;
   const items=loadShipAlerts();
   if(!items.length){
-    box.innerHTML='<div class="shipAlertEmpty">Nessun aggiornamento spedizioni.</div>';
+    box.innerHTML='<div class="shipAlertEmpty">Nessun avviso spedizione con tracking.</div>';
     return;
   }
   const db=loadDB();
@@ -4284,7 +4296,13 @@ function renderShipAlerts(){
         if(ord) orderId=String(ord.id||'').trim();
       }
     }
-    return `<div class="shipAlert"${orderId?` data-open="ord" data-id="${esc(orderId)}"`:''}><div class="t">${esc(a.title||'Aggiornamento spedizione')}</div><div class="s">${esc(a.text||'')}</div><div class="meta">${esc(a.when||'')}</div></div>`;
+    const order=(db.ordini||[]).find(o=>String(o.id||'').trim()===orderId || String(o.numeroOrdine||'').trim()===orderId);
+    const trackLabel=String(a.tracking||order?.tracking||'').trim();
+    const statusLabel=String(order?.stato||a.status||'').trim();
+    const metaParts=[a.when||''];
+    if(trackLabel) metaParts.unshift(`Tracking ${trackLabel}`);
+    if(statusLabel) metaParts.push(`Stato ${statusLabel}`);
+    return `<div class="shipAlert"${orderId?` data-open="ord" data-id="${esc(orderId)}"`:''}><div class="t">${esc(a.title||'Aggiornamento spedizione')}</div><div class="s">${esc(a.text||'')}</div><div class="meta">${esc(metaParts.filter(Boolean).join(' • '))}</div></div>`;
   }).join('');
 }
 function updateShippingNotifications(db, source='app'){
@@ -4296,18 +4314,24 @@ function updateShippingNotifications(db, source='app'){
   Object.keys(curr).forEach(key=>{
     const now=curr[key], old=prev[key];
     if(!old) return;
-    if((now.stato||'') !== (old.stato||'')){
-      fresh.push({orderId:now.id||key, title:`Ordine ${now.numeroOrdine||key}: stato aggiornato`, text:`Da ${old.stato||'-'} a ${now.stato||'-'}.`, when:new Date().toLocaleString('it-IT')});
-    }
     if((now.tracking||'') !== (old.tracking||'')){
-      const t=now.tracking?`Nuovo tracking ${now.tracking}.`:'Tracking rimosso o svuotato.';
-      fresh.push({orderId:now.id||key, title:`Ordine ${now.numeroOrdine||key}: tracking aggiornato`, text:t, when:new Date().toLocaleString('it-IT')});
+      const tracking=String(now.tracking||'').trim();
+      if(!tracking) return;
+      fresh.push({
+        kind:'tracking',
+        orderId:now.id||key,
+        tracking,
+        status:now.stato||'',
+        title:`Ordine ${now.numeroOrdine||key}: tracking disponibile`,
+        text:`Numero traccia ${tracking}. Tocca per aprire l'ordine e controllare la spedizione.`,
+        when:new Date().toLocaleString('it-IT')
+      });
     }
   });
   if(fresh.length){
-    const merged=[...fresh,...alerts].slice(0,20);
+    const merged=[...fresh,...alerts].filter(isTrackingAlert).slice(0,20);
     saveShipAlerts(merged);
-    toast(fresh.length===1 ? '1 aggiornamento spedizione' : `${fresh.length} aggiornamenti spedizione`);
+    toast(fresh.length===1 ? '1 avviso spedizione con tracking' : `${fresh.length} avvisi spedizione con tracking`);
   }
   try{ localStorage.setItem(SHIP_SNAPSHOT_KEY, JSON.stringify(curr)); }catch{}
   renderShipAlerts();
@@ -6352,7 +6376,10 @@ async function openOrdView(id){
     const colorUi=needsColor
       ? `<div style="margin-top:8px"><div class="k">Colore</div><select data-role="viewRowColorNum" data-i="${i}">${buildOrderColorOptions(r.colorCount||labels.length||0, r.numeroColore||'', labels||[])}</select></div>`
       : (r?.colore ? `<div class="s" style="margin-top:6px">Colore: ${esc(r.colore)}</div>` : '');
-    return `<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(r.codice||'')} • ${esc(r.modello||'')}</div><div class="s">${metaParts.join(' • ')}</div>${colorUi}</div><div class="pill">Riga</div></div>`;
+    const artButton=art?.id
+      ? `<button class="btn smallish" type="button" data-open="art" data-id="${esc(art.id)}">Apri articolo</button>`
+      : `<div class="pill">Riga</div>`;
+    return `<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(r.codice||'')} • ${esc(r.modello||'')}</div><div class="s">${metaParts.join(' • ')}</div>${colorUi}</div><div>${artButton}</div></div>`;
   }).join('') || `<div class="small">Nessuna riga</div>`;
   rows.querySelectorAll('[data-role="viewRowColorNum"]').forEach(sel=>{
     sel.addEventListener('change', async ()=>{
