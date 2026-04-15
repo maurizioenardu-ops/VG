@@ -7152,7 +7152,10 @@ document.addEventListener('click',(ev)=>{
   if(el.dataset.go){ ev.preventDefault(); go(el.dataset.go); return; }
   if(el.dataset.open){
     const id=el.dataset.id;
-    if(el.dataset.open==='art') openArtView(id);
+    if(el.dataset.open==='art'){
+      if(activeModalId==='mOrdView') hide('mOrdView', true);
+      openArtView(id);
+    }
     if(el.dataset.open==='cli') openCliView(id);
     if(el.dataset.open==='ord') openOrdView(id);
     return;
