@@ -2937,9 +2937,9 @@ function calcFromUsd(usd, qual){
   const costo=(Number(usd||0)*0.90)+5;
   if(!isFinite(costo)) return {costo:0, sell:0, marg:0};
   if(qual==='ORIGINALE'){
-    let guad=costo*0.32;
-    if(guad<62) guad=62;
-    if(guad>78) guad=78;
+    let guad=costo*0.35;
+    if(guad<68) guad=68;
+    if(guad>85) guad=85;
     const sell=round5(costo+guad);
     return {costo, sell, marg:guad};
   }else{
@@ -5306,7 +5306,7 @@ function renderCategoryOverview(items,{promoOnly=false,brandFilter='',qualityFil
     el.innerHTML=`<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
     return;
   }
-  const allCard=promoOnly ? '' : `<div class="artCard tight" data-action="openAllArticlesMixed"><div class="artMeta"><div class="t">Tutto</div><div class="s">Mostra gli articoli mischiati</div></div><div class="artPlaceholder" style="margin-top:8px;display:flex;align-items:center;justify-content:center;font-size:42px">👜</div><div class="artMeta" style="margin-top:12px"><div class="s">${items.length} articol${items.length===1?'o':'i'} totali</div></div></div>`;
+  const allCard='';
   el.innerHTML=allCard + cats.map(([catLabel,arr])=>{
     const brandCount=new Set(arr.map(a=>displayBrandValue(a.brand)).filter(Boolean)).size;
     const countLine=`${arr.length} articol${arr.length===1?'o':'i'} • ${brandCount} brand`;
