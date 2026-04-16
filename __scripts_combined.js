@@ -3360,6 +3360,78 @@ function applyUiPrefs(){
 /* ====== RENDER ====== */
 const SHIP_ALERTS_KEY='vg_ship_alerts_v1';
 const SHIP_SNAPSHOT_KEY='vg_ship_snapshot_v1';
+const ORDER_DELETE_TOMBSTONES_KEY='vg_order_delete_tombstones_v1';
+const ORDER_DELETE_TOMBSTONE_TTL=30*24*60*60*1000;
+function normalizeOrderDeleteKeys(order){
+  return {
+    id:normalizeSpaceText(order?.id||''),
+    num:normalizeTextKey(ensureOrderNumber(order)),
+    fp:normalizeOrderFingerprint(order)
+  };
+}
+function loadOrderDeleteTombstones(){
+  try{
+    const now=Date.now();
+    const raw=JSON.parse(localStorage.getItem(ORDER_DELETE_TOMBSTONES_KEY)||'[]');
+    const items=(Array.isArray(raw)?raw:[]).filter(item=>{
+      const ts=Number(item?.ts||0);
+      if(!ts || (now-ts)>ORDER_DELETE_TOMBSTONE_TTL) return false;
+      return !!(item?.id || item?.num || item?.fp);
+    });
+    if(items.length!==(Array.isArray(raw)?raw:[]).length){
+      try{ localStorage.setItem(ORDER_DELETE_TOMBSTONES_KEY, JSON.stringify(items)); }catch(_e){}
+    }
+    return items;
+  }catch(_e){ return []; }
+}
+function saveOrderDeleteTombstones(items){
+  try{ localStorage.setItem(ORDER_DELETE_TOMBSTONES_KEY, JSON.stringify((items||[]).slice(-200))); }catch(_e){}
+}
+function addOrderDeleteTombstones(orders=[]){
+  const curr=loadOrderDeleteTombstones();
+  const now=Date.now();
+  const map=new Map(curr.map(item=>[`${item.id||''}|${item.num||''}|${item.fp||''}`, item]));
+  (Array.isArray(orders)?orders:[orders]).forEach(order=>{
+    const keys=normalizeOrderDeleteKeys(order||{});
+    const sig=`${keys.id||''}|${keys.num||''}|${keys.fp||''}`;
+    if(!sig.replace(/\|/g,'')) return;
+    map.set(sig, {...keys, ts:now});
+  });
+  saveOrderDeleteTombstones(Array.from(map.values()));
+}
+function orderMatchesDeleteTombstone(order, tombstones){
+  const keys=normalizeOrderDeleteKeys(order||{});
+  return (tombstones||[]).some(item=>{
+    if(keys.id && item.id && keys.id===item.id) return true;
+    if(keys.num && item.num && keys.num===item.num) return true;
+    if(keys.fp && item.fp && keys.fp===item.fp) return true;
+    return false;
+  });
+}
+function purgeOrderUiArtifacts(orders=[]){
+  const list=(Array.isArray(orders)?orders:[orders]).filter(Boolean);
+  if(!list.length) return;
+  const keys=list.map(normalizeOrderDeleteKeys);
+  const ids=new Set(keys.map(k=>k.id).filter(Boolean));
+  const nums=new Set(keys.map(k=>k.num).filter(Boolean));
+  const alerts=loadShipAlerts().filter(item=>{
+    const orderId=normalizeSpaceText(item?.orderId||'');
+    if(orderId && ids.has(orderId)) return false;
+    const titleNum=normalizeTextKey(String(item?.title||'').match(/Ordine\s+([^:]+):/i)?.[1]||'');
+    if(titleNum && nums.has(titleNum)) return false;
+    return true;
+  });
+  saveShipAlerts(alerts);
+  try{
+    const snap=JSON.parse(localStorage.getItem(SHIP_SNAPSHOT_KEY)||'{}');
+    Object.keys(snap||{}).forEach(key=>{
+      const clean=normalizeSpaceText(key);
+      const numKey=normalizeTextKey(key);
+      if((clean && ids.has(clean)) || (numKey && nums.has(numKey))) delete snap[key];
+    });
+    localStorage.setItem(SHIP_SNAPSHOT_KEY, JSON.stringify(snap));
+  }catch(_e){}
+}
 function getOrderSnapshotMap(ordini=[]){
   const map={};
   (ordini||[]).forEach(o=>{
@@ -6015,18 +6087,40 @@ async function saveOrd(){
 }
 async function deleteOrd(){
   if(!currentOrdId) return hide('mOrdEdit');
-  
   const db=loadDB();
-  const old=db.ordini.find(o=>o.id===currentOrdId);
-  for(const pid of (old?.orderPhotoIds||[])){
-    try{ await idbDelete(pid); }catch(_e){}
+  const current=db.ordini.find(o=>o.id===currentOrdId);
+  if(!current){
+    hide('mOrdEdit');
+    return;
   }
-  db.ordini=db.ordini.filter(o=>o.id!==currentOrdId);
+  const currentNum=normalizeTextKey(ensureOrderNumber(current));
+  const currentFp=normalizeOrderFingerprint(current);
+  const targets=(db.ordini||[]).filter(o=>{
+    if(String(o?.id||'')===String(currentOrdId||'')) return true;
+    if(currentNum && normalizeTextKey(ensureOrderNumber(o))===currentNum) return true;
+    if(currentFp && normalizeOrderFingerprint(o)===currentFp) return true;
+    return false;
+  });
+  const uniqueTargets=Array.from(new Map(targets.map(o=>[String(o?.id||uid()), o])).values());
+  for(const ord of uniqueTargets){
+    for(const pid of (ord?.orderPhotoIds||[])){
+      try{ await idbDelete(pid); }catch(_e){}
+    }
+  }
+  addOrderDeleteTombstones(uniqueTargets.length ? uniqueTargets : [current]);
+  purgeOrderUiArtifacts(uniqueTargets.length ? uniqueTargets : [current]);
+  const targetIds=new Set(uniqueTargets.map(o=>String(o?.id||'')));
+  db.ordini=(db.ordini||[]).filter(o=>!targetIds.has(String(o?.id||'')) && !(currentNum && normalizeTextKey(ensureOrderNumber(o))===currentNum) && !(currentFp && normalizeOrderFingerprint(o)===currentFp));
   if(!saveDB(db)) return;
-  if(old && cloudEnabled()) await cloudDeleteOne('ord', old);
+  let cloudOk=true;
+  if(uniqueTargets.length && cloudEnabled()){
+    const results=await Promise.allSettled(uniqueTargets.map(ord=>cloudDeleteOne('ord', ord)));
+    cloudOk=results.every(r=>r.status==='fulfilled');
+    if(!cloudOk) console.error('Eliminazione cloud ordini incompleta', results.filter(r=>r.status==='rejected').map(r=>r.reason));
+  }
   clearOrderDraft();
   hide('mOrdEdit');
-  toast(cloudEnabled() ? 'Ordine eliminato anche dal cloud' : 'Ordine eliminato');
+  toast(cloudEnabled() ? (cloudOk ? 'Ordine eliminato anche dal cloud' : 'Ordine eliminato, ma cloud non completamente aggiornato') : 'Ordine eliminato');
 }
 
 /* ====== IMPORT/EXPORT ====== */
@@ -6709,9 +6803,36 @@ async function upsertCloudOrder(ord, db){
 async function deleteCloudOrder(ord){
   const sb=await ensureCloud();
   if(!sb||!cloudSession) return;
+  const orderNum=String(ord?.numeroOrdine||ord?.numero_ordine||'').trim();
+  const fallbackNum=(!orderNum && !isUuid(ord?.id)) ? String(ord?.id||'').trim() : '';
+  const lookupNums=[...new Set([orderNum, fallbackNum].filter(Boolean))];
+  const rows=[];
+  if(isUuid(ord?.id)){
+    const res=await sb.from('ordini').select('id,numero_ordine').eq('id', ord.id);
+    if(res.error) throw res.error;
+    rows.push(...(res.data||[]));
+  }
+  for(const num of lookupNums){
+    const res=await sb.from('ordini').select('id,numero_ordine').eq('numero_ordine', num);
+    if(res.error) throw res.error;
+    rows.push(...(res.data||[]));
+  }
+  const orderIds=[...new Set(rows.map(r=>String(r?.id||'').trim()).filter(Boolean))];
+  if(orderIds.length){
+    const {error:righeErr}=await sb.from('righe_ordine').delete().in('ordine_id', orderIds);
+    if(righeErr) throw righeErr;
+    const {error:ordErr}=await sb.from('ordini').delete().in('id', orderIds);
+    if(ordErr) throw ordErr;
+    return;
+  }
   let error=null;
   if(isUuid(ord?.id)) ({error}=await sb.from('ordini').delete().eq('id', ord.id));
-  else ({error}=await sb.from('ordini').delete().eq('numero_ordine', String(ord?.numeroOrdine||ord?.numero_ordine||ord?.id||'')));
+  else if(lookupNums.length){
+    for(const num of lookupNums){
+      ({error}=await sb.from('ordini').delete().eq('numero_ordine', num));
+      if(error) break;
+    }
+  }
   if(error) throw error;
 }
 async function pullCloudToLocal(opts={}){
@@ -6764,6 +6885,7 @@ async function pullCloudToLocal(opts={}){
       righeByOrd.set(r.ordine_id,arr);
     });
     const localDb=loadDB();
+    const deletedOrderTombstones=loadOrderDeleteTombstones();
     const localArtById=new Map((localDb.articoli||[]).map(a=>[a.id,a]));
     const localArtByCode=new Map((localDb.articoli||[]).map(a=>[safeLower(a.codice),a]));
     const localOrdById=new Map((localDb.ordini||[]).map(o=>[o.id,o]));
@@ -6792,7 +6914,7 @@ async function pullCloudToLocal(opts={}){
         return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],_ts:cloudTs,_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true})),
-      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; })
+      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
     };
     const mergedCategories=[...new Set([
       ...(Array.isArray(localDb?.categorie)?localDb.categorie:[]),
