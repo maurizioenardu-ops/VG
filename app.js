@@ -14,6 +14,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&
 const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
 const round5=n=>Math.round(n/5)*5;
 const MAX_ARTICLE_PHOTOS=9;
+const PROMO_EXPIRED_GRACE_DAYS=3;
 
 function defDB(){
   return {version:'v6.7',articoli:[],clienti:[],ordini:[],categorie:[],brands:[],agenda:[],createdAt:new Date().toISOString()};
@@ -64,6 +65,31 @@ async function runOneTimeFreshReset(){
   }
 }
 
+function parseIsoDay(value=''){
+  const raw=String(value||'').trim();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  const [yyyy,mm,dd]=raw.split('-').map(Number);
+  const dt=new Date(yyyy, mm-1, dd);
+  if(dt.getFullYear()!==yyyy || (dt.getMonth()+1)!==mm || dt.getDate()!==dd) return null;
+  dt.setHours(0,0,0,0);
+  return dt;
+}
+function isoDayPlus(value='', days=0){
+  const dt=parseIsoDay(value);
+  if(!dt) return '';
+  dt.setDate(dt.getDate()+Number(days||0));
+  return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+}
+function clearArticlePromoState(article){
+  if(!article || typeof article!=='object') return article;
+  return { ...article, promoAttiva:false, prezzoPromo:0, scadenzaPromo:'', dataInizioPromo:'' };
+}
+function promoShouldClear(article, today=todayStr()){
+  const expiry=String(article?.scadenzaPromo||'').trim();
+  if(!promoHasHistory(article) || !parseIsoDay(expiry)) return false;
+  const clearFrom=isoDayPlus(expiry, PROMO_EXPIRED_GRACE_DAYS+1);
+  return !!(clearFrom && today>=clearFrom);
+}
 function articlePromoExpired(a, today=todayStr()){
   if(!a?.promoAttiva) return false;
   const d=String(a?.scadenzaPromo||'').trim();
@@ -72,6 +98,7 @@ function articlePromoExpired(a, today=todayStr()){
 function normalizeArticlePromoState(article, today=todayStr()){
   if(!article || typeof article!=='object') return article;
   const normalized={ ...article, dataInizioPromo:getPromoStartDate(article) };
+  if(promoShouldClear(normalized, today)) return clearArticlePromoState(normalized);
   if(!articlePromoExpired(normalized, today)) return normalized;
   return { ...normalized, promoAttiva:false };
 }
@@ -6779,7 +6806,7 @@ async function deleteCloudOrder(ord){
   if(!sb||!cloudSession) return;
   let error=null;
   if(isUuid(ord?.id)) ({error}=await sb.from('ordini').delete().eq('id', ord.id));
-  else ({error}=await sb.from('ordini').delete().eq('numero_ordine', String(ord?.id||'')));
+  else ({error}=await sb.from('ordini').delete().eq('numero_ordine', String(ord?.numeroOrdine||ord?.numero_ordine||ord?.id||'')));
   if(error) throw error;
 }
 async function pullCloudToLocal(opts={}){

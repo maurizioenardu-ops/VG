@@ -6711,7 +6711,7 @@ async function deleteCloudOrder(ord){
   if(!sb||!cloudSession) return;
   let error=null;
   if(isUuid(ord?.id)) ({error}=await sb.from('ordini').delete().eq('id', ord.id));
-  else ({error}=await sb.from('ordini').delete().eq('numero_ordine', String(ord?.id||'')));
+  else ({error}=await sb.from('ordini').delete().eq('numero_ordine', String(ord?.numeroOrdine||ord?.numero_ordine||ord?.id||'')));
   if(error) throw error;
 }
 async function pullCloudToLocal(opts={}){
