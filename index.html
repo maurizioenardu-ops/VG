@@ -58,10 +58,10 @@ body{-webkit-tap-highlight-color:transparent}
 .artPlaceholderImg,.artIconImg{width:100%;height:100%;object-fit:cover;display:block}
 .artPriceRow{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .artPrice{font-size:18px;font-weight:1000}
-.artPreviewDot{width:7px;height:7px;border-radius:999px;display:inline-block;flex:0 0 7px}
-.artPreviewDot.ready{background:#16a34a}
+.artPreviewDot{width:9px;height:9px;border-radius:999px;display:inline-block;flex:0 0 9px}
+.artPreviewDot.ready{background:#ef4444}
 .artPreviewDot.mid{background:#f59e0b}
-.artPreviewDot.recent{background:#ef4444}
+.artPreviewDot.recent{background:#16a34a}
 .artActions{display:flex;gap:8px;margin-top:auto}
 .artActions .btn{flex:1;min-height:42px;padding:9px 10px;font-size:12px;border-radius:12px}
 .row{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px}
@@ -3059,13 +3059,16 @@ function getArticlePublishPreviewState(article, refDay=todayStr()){
   const ref=parseIsoDay(refDay) || parseIsoDay(todayStr());
   const last=lastDate ? parseIsoDay(lastDate) : null;
   const diff=(ref && last) ? Math.max(0, Math.round((ref-last)/86400000)) : null;
-  if(!lastDate || diff===null || diff>=7){
-    return { cls:'ready', title:lastDate ? `Pronto da ripubblicare · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` : 'Mai pubblicato' };
+  if(!lastDate || diff===null){
+    return { cls:'ready', title:'Mai pubblicato' };
+  }
+  if(diff>=7){
+    return { cls:'ready', title:`Pubblicato da 7 giorni o più · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
   }
   if(diff>=3){
-    return { cls:'mid', title:`Pubblicato di recente · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
+    return { cls:'mid', title:`Pubblicato da 3 a 6 giorni · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
   }
-  return { cls:'recent', title:`Pubblicato troppo di recente · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
+  return { cls:'recent', title:`Pubblicato negli ultimi 2 giorni · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
 }
 function articlePublishPreviewDot(article){
   const state=getArticlePublishPreviewState(article);
