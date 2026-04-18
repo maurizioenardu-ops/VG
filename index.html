@@ -56,7 +56,12 @@ body{-webkit-tap-highlight-color:transparent}
 .brandLogoMini{width:62px;height:62px;border-radius:18px;border:1px solid var(--line);object-fit:cover;display:block;background:#fff;box-shadow:0 8px 20px rgba(15,23,42,.08)}
 .artPlaceholder{width:100%;aspect-ratio:1/1;border-radius:18px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:38px;background:linear-gradient(135deg,#fff8ef 0%, #eef4ff 100%);min-height:156px;overflow:hidden;padding:0}
 .artPlaceholderImg,.artIconImg{width:100%;height:100%;object-fit:cover;display:block}
+.artPriceRow{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .artPrice{font-size:18px;font-weight:1000}
+.artPreviewDot{width:6px;height:6px;border-radius:999px;display:inline-block;flex:0 0 6px}
+.artPreviewDot.ready{background:#16a34a}
+.artPreviewDot.mid{background:#f59e0b}
+.artPreviewDot.recent{background:#ef4444}
 .artActions{display:flex;gap:8px;margin-top:auto}
 .artActions .btn{flex:1;min-height:42px;padding:9px 10px;font-size:12px;border-radius:12px}
 .row{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px}
@@ -3047,6 +3052,25 @@ function renderArticlePublishMeta(article){
     el.title=meta.lastDate ? `Ultima pubblicazione ${formatPromoDateLabel(meta.lastDate)} · ${meta.count} negli ultimi 7 giorni` : 'Mai pubblicato';
   });
 }
+function getArticlePublishPreviewState(article, refDay=todayStr()){
+  const log=normalizeArticlePublishLog(article?.pubblicazioniCanali||article?.publishStats||article?.socialPub||{}, refDay);
+  const dates=ARTICLE_PUBLISH_CHANNELS.flatMap(ch=>Array.isArray(log?.[ch]) ? log[ch] : []).filter(Boolean).sort();
+  const lastDate=dates.length ? dates[dates.length-1] : '';
+  const ref=parseIsoDay(refDay) || parseIsoDay(todayStr());
+  const last=lastDate ? parseIsoDay(lastDate) : null;
+  const diff=(ref && last) ? Math.max(0, Math.round((ref-last)/86400000)) : null;
+  if(!lastDate || diff===null || diff>=7){
+    return { cls:'ready', title:lastDate ? `Pronto da ripubblicare · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` : 'Mai pubblicato' };
+  }
+  if(diff>=3){
+    return { cls:'mid', title:`Pubblicato di recente · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
+  }
+  return { cls:'recent', title:`Pubblicato troppo di recente · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
+}
+function articlePublishPreviewDot(article){
+  const state=getArticlePublishPreviewState(article);
+  return `<span class="artPreviewDot ${state.cls}" title="${esc(state.title)}" aria-label="${esc(state.title)}"></span>`;
+}
 function recordArticlePublication(channel, articleId=currentArtId, refDay=todayStr()){
   const cleanChannel=ARTICLE_PUBLISH_CHANNELS.includes(channel) ? channel : '';
   if(!cleanChannel || !articleId) return null;
@@ -5514,7 +5538,7 @@ function renderArt(){
     const unavailable=articleAvailabilityBadge(a);
     const blocked=isArticleUnavailable(a);
     const metaLine=promoOnly ? `${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}` : `${esc(a.codice||'Senza codice')} • ${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
-    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${unavailable}${promo}</div><div class="artPrice">${money(currentPrice(a))}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
+    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${unavailable}${promo}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
   }).join('');
   const emptyText=promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.';
   el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
