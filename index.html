@@ -3074,6 +3074,30 @@ function articlePublishPreviewDot(article){
   const state=getArticlePublishPreviewState(article);
   return `<span class="artPreviewDot ${state.cls}" title="${esc(state.title)}" aria-label="${esc(state.title)}"></span>`;
 }
+function getArticlePreviewOrderMeta(article, refDay=todayStr()){
+  const log=normalizeArticlePublishLog(article?.pubblicazioniCanali||article?.publishStats||article?.socialPub||{}, refDay);
+  const dates=ARTICLE_PUBLISH_CHANNELS.flatMap(ch=>Array.isArray(log?.[ch]) ? log[ch] : []).filter(Boolean).sort();
+  const lastDate=dates.length ? dates[dates.length-1] : '';
+  const ref=parseIsoDay(refDay) || parseIsoDay(todayStr());
+  const last=lastDate ? parseIsoDay(lastDate) : null;
+  const diff=(ref && last) ? Math.max(0, Math.round((ref-last)/86400000)) : null;
+  let group=0;
+  if(!lastDate || diff===null) group=0;
+  else if(diff>=7) group=1;
+  else if(diff>=3) group=2;
+  else group=3;
+  return { group, lastTs:last ? last.getTime() : 0, lastDate };
+}
+function compareArticlesForPreview(a,b, refDay=todayStr()){
+  const A=getArticlePreviewOrderMeta(a, refDay);
+  const B=getArticlePreviewOrderMeta(b, refDay);
+  if(A.group!==B.group) return A.group-B.group;
+  if(A.lastTs!==B.lastTs) return A.lastTs-B.lastTs;
+  const aTs=Number(a?._ts||0);
+  const bTs=Number(b?._ts||0);
+  if(aTs!==bTs) return aTs-bTs;
+  return String(a?.modello||a?.codice||a?.id||'').localeCompare(String(b?.modello||b?.codice||b?.id||''),'it',{sensitivity:'base'});
+}
 function recordArticlePublication(channel, articleId=currentArtId, refDay=todayStr()){
   const cleanChannel=ARTICLE_PUBLISH_CHANNELS.includes(channel) ? channel : '';
   if(!cleanChannel || !articleId) return null;
@@ -5528,7 +5552,7 @@ function renderArt(){
     const okQuality=!qualityFilter || articleQualityLabel(a)===qualityFilter;
     const okPromo=!promoOnly || promoValid(a);
     return okText && okCat && okBrand && okQuality && okPromo;
-  }).sort((a,b)=>Number(b._ts||0)-Number(a._ts||0));
+  }).sort((a,b)=>compareArticlesForPreview(a,b));
   const el=document.getElementById('listArt');
   renderArtBreadcrumbs();
   const showOverview=artBrowseState.level!=='mixed' && !promoOnly && !q && !catFilter && !brandFilter && !qualityFilter;
