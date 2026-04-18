@@ -99,8 +99,9 @@ body{-webkit-tap-highlight-color:transparent}
 .btn.ghost{background:#fff;border-color:var(--line);color:#475569}
 .btn.smallish{padding:9px 11px;min-height:40px;font-size:12px;border-radius:12px}
 .btn.orderAdd{background:#fff;border:1px solid var(--line);color:#111827;box-shadow:0 3px 10px rgba(15,23,42,.04)}
-.btn[data-action="shareArtPhotos"],.btn[data-action="addArtToOrderFromView"]{background:#16a34a;border-color:#16a34a;color:#fff}
-  .btn[data-action="downloadArtPhotos"]{background:#38bdf8;border-color:#38bdf8;color:#082f49}
+.btn[data-action^="shareArtPhotos"],.btn[data-action="addArtToOrderFromView"]{background:#16a34a;border-color:#16a34a;color:#fff}
+  .btn[data-action^="downloadArtPhotos"]{background:#38bdf8;border-color:#38bdf8;color:#082f49}
+.pubMeta{display:inline-flex;align-items:center;margin-left:8px;font-size:11px;font-weight:800;color:#64748b;white-space:nowrap}
 .btn[data-action="editFromView"],.btn[data-action="editCliFromView"],.btn[data-action="editOrdFromView"],.btn[data-action="renameCategory"],.btn[data-action="renameBrand"]{background:#fef3c7;border-color:#f59e0b;color:#7c2d12}
 .btn[data-action="closeView"],.btn[data-action="closeCliView"],.btn[data-action="closeOrdView"],.btn[data-action="closeMonthSales"]{background:var(--blue);border-color:var(--blue);color:#fff}
 .btn.orderAdd.small{padding:10px 12px;border-radius:14px;font-size:13px;min-height:46px;line-height:1.15}
@@ -535,9 +536,9 @@ window.addEventListener('error',e=>{
       <div id="vArtMarginBox" class="marginBox" style="margin-top:8px"></div>
     </div>
   </div>
-  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" type="button" data-action="shareArtPhotos">Condividi foto</button></div></div>
-  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
-  <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish" type="button" data-action="downloadArtPhotos">Scarica foto</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" type="button" data-action="shareArtPhotosFb">Condividi foto</button><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div></div>
+  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="downloadArtPhotosTg">Scarica foto</button><span id="vArtPubMetaTg" class="pubMeta">0 · mai</span></div></div>
+  <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish" type="button" data-action="downloadArtPhotosIg">Scarica foto</button><span id="vArtPubMetaIg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
     <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
@@ -2493,7 +2494,7 @@ async function ensureCurrentArticlePhotoSheet(ctx, files=null){
   return sheetFile;
 }
 
-async function shareCurrentArticlePhotos(){
+async function shareCurrentArticlePhotos(channel='fb'){
   let ctx=getPreparedCurrentArticlePhotoContext();
   if(!ctx) ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
@@ -2521,6 +2522,7 @@ async function shareCurrentArticlePhotos(){
   try{
     const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
     if(shared){
+      recordArticlePublication(channel);
       toast(files.length===1 ? 'Condivisione aperta.' : `Condivisione aperta per ${files.length} foto.`);
       return;
     }
@@ -2529,6 +2531,7 @@ async function shareCurrentArticlePhotos(){
       const sheetFile=getCachedArticlePhotoSheetForCtx(ctx) || await ensureCurrentArticlePhotoSheet(ctx, files);
       const sheetShared = sheetFile ? await tryNativeShareArticleFiles([sheetFile], `${ctx.baseName||'articolo'}_tutte_le_foto`) : false;
       if(sheetShared){
+        recordArticlePublication(channel);
         toast(`La condivisione multipla è stata rifiutata dal browser. Ho aperto una tavola unica con tutte e ${files.length} le foto.`);
         return;
       }
@@ -2547,6 +2550,7 @@ async function shareCurrentArticlePhotos(){
         const sheetFile=getCachedArticlePhotoSheetForCtx(ctx) || await ensureCurrentArticlePhotoSheet(ctx, files);
         const sheetShared = sheetFile ? await tryNativeShareArticleFiles([sheetFile], `${ctx.baseName||'articolo'}_tutte_le_foto`) : false;
         if(sheetShared){
+          recordArticlePublication(channel);
           toast(`La condivisione multipla non è passata. Ho aperto una tavola unica con tutte e ${files.length} le foto.`);
           return;
         }
@@ -2656,7 +2660,7 @@ function triggerDirectUrlDownload(url, filename=''){
   a.remove();
 }
 
-async function downloadCurrentArticlePhotos(){
+async function downloadCurrentArticlePhotos(channel='tg'){
   const ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
 
@@ -2670,6 +2674,7 @@ async function downloadCurrentArticlePhotos(){
   try{
     if(files.length===1){
       triggerBlobDownload(files[0], files[0].name || `${ctx.baseName}.jpg`);
+      recordArticlePublication(channel);
       toast('Foto scaricata. La trovi nei Download e poi in Galleria.');
       return;
     }
@@ -2677,6 +2682,7 @@ async function downloadCurrentArticlePhotos(){
     toast(`Preparo ZIP con ${files.length} foto...`);
     const zipFile = getCachedArticlePhotoZipForCtx(ctx) || await buildZipFromFiles(files, `${ctx.baseName || 'articolo'}_foto.zip`);
     triggerBlobDownload(zipFile, zipFile.name);
+    recordArticlePublication(channel);
     toast(`Scaricate ${files.length} foto in un file ZIP. Lo trovi nei Download.`);
   }catch(err){
     console.warn('Download ZIP foto articolo fallito', err);
@@ -2989,6 +2995,72 @@ function formatPromoDateLabel(v=''){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
   const [yyyy,mm,dd]=raw.split('-');
   return `${dd}/${mm}/${yyyy}`;
+}
+const ARTICLE_PUBLISH_COUNT_WINDOW_DAYS=7;
+const ARTICLE_PUBLISH_KEEP_DAYS=90;
+const ARTICLE_PUBLISH_CHANNELS=['fb','tg','ig'];
+function normalizeArticlePublishLog(raw, refDay=todayStr()){
+  const src=(raw && typeof raw==='object') ? raw : {};
+  const ref=parseIsoDay(refDay) || parseIsoDay(todayStr());
+  const out={fb:[],tg:[],ig:[]};
+  ARTICLE_PUBLISH_CHANNELS.forEach(ch=>{
+    const vals=Array.isArray(src?.[ch]) ? src[ch] : (Array.isArray(src?.[`${ch}Dates`]) ? src[`${ch}Dates`] : []);
+    const clean=vals.map(v=>typeof v==='string' ? v : (v?.data||v?.date||''))
+      .map(v=>String(v||'').trim())
+      .filter(v=>!!parseIsoDay(v))
+      .filter(v=>{
+        if(!ref) return true;
+        const dt=parseIsoDay(v);
+        const diff=Math.round((ref-dt)/86400000);
+        return diff>=0 && diff<ARTICLE_PUBLISH_KEEP_DAYS;
+      })
+      .sort();
+    out[ch]=clean;
+  });
+  return out;
+}
+function formatArticlePublishDate(v=''){
+  const dt=parseIsoDay(v);
+  if(!dt) return 'mai';
+  return dt.toLocaleDateString('it-IT',{day:'numeric',month:'short'}).replace('.', '');
+}
+function getArticlePublishMeta(article, channel, refDay=todayStr()){
+  const log=normalizeArticlePublishLog(article?.pubblicazioniCanali||article?.publishStats||article?.socialPub||{}, refDay);
+  const list=Array.isArray(log?.[channel]) ? log[channel] : [];
+  const ref=parseIsoDay(refDay) || parseIsoDay(todayStr());
+  const count=list.filter(v=>{
+    const dt=parseIsoDay(v);
+    if(!dt || !ref) return false;
+    const diff=Math.round((ref-dt)/86400000);
+    return diff>=0 && diff<ARTICLE_PUBLISH_COUNT_WINDOW_DAYS;
+  }).length;
+  const lastDate=list.length ? list[list.length-1] : '';
+  return { count, lastDate, label:`${count} · ${formatArticlePublishDate(lastDate)}`, log };
+}
+function renderArticlePublishMeta(article){
+  const nodes={fb:document.getElementById('vArtPubMetaFb'),tg:document.getElementById('vArtPubMetaTg'),ig:document.getElementById('vArtPubMetaIg')};
+  ARTICLE_PUBLISH_CHANNELS.forEach(ch=>{
+    const el=nodes[ch];
+    if(!el) return;
+    const meta=getArticlePublishMeta(article, ch);
+    el.textContent=meta.label;
+    el.title=meta.lastDate ? `Ultima pubblicazione ${formatPromoDateLabel(meta.lastDate)} · ${meta.count} negli ultimi 7 giorni` : 'Mai pubblicato';
+  });
+}
+function recordArticlePublication(channel, articleId=currentArtId, refDay=todayStr()){
+  const cleanChannel=ARTICLE_PUBLISH_CHANNELS.includes(channel) ? channel : '';
+  if(!cleanChannel || !articleId) return null;
+  const db=loadDB();
+  const idx=(db.articoli||[]).findIndex(a=>String(a?.id)===String(articleId));
+  if(idx<0) return null;
+  const art=db.articoli[idx]||{};
+  const nextLog=normalizeArticlePublishLog(art?.pubblicazioniCanali||art?.publishStats||art?.socialPub||{}, refDay);
+  nextLog[cleanChannel]=[...(nextLog[cleanChannel]||[]), refDay].sort();
+  const updated={...art, pubblicazioniCanali:nextLog, _ts:Date.now()};
+  db.articoli[idx]=updated;
+  saveDB(db);
+  if(String(currentArtId||'')===String(articleId||'')) renderArticlePublishMeta(updated);
+  return updated;
 }
 function promoHasHistory(a){
   return !!(a && (a.promoAttiva || Number(a.prezzoPromo||0)>0 || getPromoStartDate(a)));
@@ -4078,6 +4150,7 @@ function buildCloudArticleMeta(art){
     post: art?.post||'',
     note: art?.note||'',
     foto: normalizeCloudPhotoPathList(art?.foto||[]),
+    pubblicazioniCanali: normalizeArticlePublishLog(art?.pubblicazioniCanali||art?.publishStats||art?.socialPub||{}),
     _ts: parseTimestampLike(art?._ts, Date.now())
   };
 }
@@ -5768,6 +5841,7 @@ async function openArtView(id){
   fitTextarea(document.getElementById('vArtPostIg'));
   const vArtSupplierLink=document.getElementById('vArtSupplierLink');
   if(vArtSupplierLink) vArtSupplierLink.value=(a.fornitoreLink||'').trim();
+  renderArticlePublishMeta(a);
   prepareArticlePhotoShareContext(a).then(ctx=>{
     if(ctx) warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
   }).catch(()=>{});
@@ -6181,6 +6255,7 @@ async function saveArt(){
     const usd=Number(document.getElementById('a_usd').value||0);
     const r=calcFromUsd(usd, qual);
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
+    const preservedPublishLog=currentArtId ? normalizeArticlePublishLog(old?.pubblicazioniCanali||old?.publishStats||old?.socialPub||{}) : {fb:[],tg:[],ig:[]};
     const keptFoto=currentArtPhotosCleared ? [] : (Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : []);
     const keptPhotoIds=currentArtPhotosCleared ? [] : (Array.isArray(old?.photoIds) ? old.photoIds.filter(Boolean).slice() : []);
     const obj=normalizeArticlePromoState({
@@ -6218,7 +6293,8 @@ async function saveArt(){
       post: document.getElementById('a_post').value,
       note: document.getElementById('a_note').value,
       foto: keptFoto,
-      photoIds: keptPhotoIds
+      photoIds: keptPhotoIds,
+      pubblicazioniCanali: preservedPublishLog
     });
     const selectedFiles=Array.from(currentArtPendingFiles||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
     let photoUploadWarning='';
@@ -7223,7 +7299,7 @@ function bindSearchSuggest(inputId, boxId, kind, onApply){
 
 /* ====== EVENTS ====== */
 document.addEventListener('pointerdown',(ev)=>{
-  const btn=ev.target?.closest?.('[data-action="shareArtPhotos"],[data-action="downloadArtPhotos"]');
+  const btn=ev.target?.closest?.('[data-action="shareArtPhotosFb"],[data-action="shareArtPhotos"],[data-action="downloadArtPhotosTg"],[data-action="downloadArtPhotosIg"],[data-action="downloadArtPhotos"]');
   if(!btn) return;
   Promise.resolve()
     .then(()=>getPreparedCurrentArticlePhotoContext() || getCurrentArticlePhotoContext())
@@ -7374,8 +7450,10 @@ document.addEventListener('click',(ev)=>{
   if(a==='copyPostTelegramEdit') return copyTextFrom(document.getElementById('a_post'));
   if(a==='copyPostFbEdit') return copyTextFrom(document.getElementById('a_post_fb'));
   if(a==='copyPostIgEdit') return copyTextFrom(document.getElementById('a_post_ig'));
-  if(a==='shareArtPhotos') return shareCurrentArticlePhotos();
-  if(a==='downloadArtPhotos') return downloadCurrentArticlePhotos();
+  if(a==='shareArtPhotosFb' || a==='shareArtPhotos') return shareCurrentArticlePhotos('fb');
+  if(a==='downloadArtPhotosTg') return downloadCurrentArticlePhotos('tg');
+  if(a==='downloadArtPhotosIg') return downloadCurrentArticlePhotos('ig');
+  if(a==='downloadArtPhotos') return downloadCurrentArticlePhotos('tg');
   if(a==='openSupplierLink'){ const link=String(document.getElementById('vArtSupplierLink')?.value||'').trim(); if(!link){ toast('Nessun link fornitore'); return; } const safe=/^https?:\/\//i.test(link)?link:'https://'+link; window.open(safe,'_blank'); return; }
   if(a==='copyCliShip') return copyTextFrom(document.getElementById('c_ship'));
   if(a==='copyCliShipView') return copyTextFrom(document.getElementById('vCliShip'));
@@ -7876,7 +7954,7 @@ async function pullCloudToLocal(opts={}){
         const colorShape=deriveColorShape({ colorMode:meta.colorMode||local?.colorMode, colorType:meta.colorType||local?.colorType, colorCount:meta.colorCount||local?.colorCount, colorLabels:meta.colorLabels||local?.colorLabels });
         const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
         const cloudTs=parseTimestampLike(meta._ts, p.updated_at, p.created_at, local?._ts, Date.now());
-        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],_ts:cloudTs,_cloud:true};
+        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
