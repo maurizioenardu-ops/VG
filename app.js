@@ -2307,13 +2307,14 @@ function formatPostMisura(misura){
   const clean=String(misura||'').replace(/^mis\.?\s*/i,'').trim();
   return clean ? `Mis. ${clean}` : '';
 }
-function formatPostPrezzoVendita(prezzo){
+function formatPostPrezzoVendita(prezzo, simbolo='💶'){
   const n=Number(prezzo);
   if(!(n>0)) return '';
   const txt=Number.isInteger(n)
     ? String(n)
     : n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
-  return `💶 ${txt}`;
+  const mark=String(simbolo||'').trim();
+  return mark ? `${mark} ${txt}` : txt;
 }
 
 function stableHashSeed(value){
@@ -3118,8 +3119,10 @@ function instagramCharacterPhrases(a){
   Object.keys(flags).forEach(k=>{ if(flags[k] && pools.traits[k]) list = [...pools.traits[k].map(x=>x.replace(/[.!?]+$/,'')), ...list]; });
   return uniquePostLines(list);
 }
-function buildPostFacebook(a){
+function buildPostFacebookBase(a, opts={}){
   if(!a?.codice) return '';
+  const includePrice = opts?.includePrice===true;
+  const priceSymbol = opts?.priceSymbol || '💶';
   const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
   const premiumLine = articleQualityLabel(a)==='Originale' ? 'QUALITÀ PREMIUM' : '';
   const variante = safePostDetailValue(a?.variante||'', a);
@@ -3157,11 +3160,19 @@ function buildPostFacebook(a){
   pushUnique(smartSentenceCase(materiale));
   if(misura) lines.push(`Mis. ${smartSentenceCase(misura)}`);
   if(colore) lines.push(`Colore: ${smartSentenceCase(colore)}`);
-  const prezzoFacebook = formatPostPrezzoVendita(currentPrice(a));
-  if(prezzoFacebook) lines.push(prezzoFacebook);
+  if(includePrice){
+    const prezzoFacebook = formatPostPrezzoVendita(currentPrice(a), priceSymbol);
+    if(prezzoFacebook) lines.push(prezzoFacebook);
+  }
   lines.push(`cod. ${a.codice}`);
   if(closer) lines.push('', closer);
   return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+function buildPostFacebook(a){
+  return buildPostFacebookBase(a, { includePrice:false });
+}
+function buildPostFacebookWithPrice(a){
+  return buildPostFacebookBase(a, { includePrice:true, priceSymbol:'💶' });
 }
 
 function buildPostInstagram(a){
@@ -3209,7 +3220,7 @@ function buildPostTelegram(a){
     if(tipoMateriale) lines.push(tipoMateriale);
     if(colore) lines.push(colore);
     if(misura) lines.push(formatPostMisura(misura));
-    const prezzoVenditaPromo=formatPostPrezzoVendita(a.prezzoVendita);
+    const prezzoVenditaPromo=formatPostPrezzoVendita(a.prezzoVendita, '€');
     if(prezzoVenditaPromo) lines.push(prezzoVenditaPromo);
     lines.push(`cod. ${a.codice}`);
     return uniquePostLines(lines).join('\n');
@@ -3223,7 +3234,7 @@ function buildPostTelegram(a){
   if(materiale || materialeCompat) lines.push(`🧵 ${materiale || materialeCompat}`);
   if(colori) lines.push(colori);
   if(tracolla) lines.push(tracolla);
-  const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita);
+  const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita, '€');
   if(prezzoVendita) lines.push(prezzoVendita);
   lines.push(`cod. ${a.codice}`);
   return uniquePostLines(lines).join('\n');
@@ -6500,6 +6511,12 @@ document.addEventListener('click',(ev)=>{
   if(a==='deleteBrand') return deleteBrand(el.dataset.name||'');
   if(a==='copyPost') return copyTextFrom(document.getElementById('vArtPost'));
   if(a==='copyPostFb') return copyTextFrom(document.getElementById('vArtPostFb'));
+  if(a==='copyPostFbWithPrice'){
+    const db=loadDB();
+    const art=db.articoli.find(x=>x.id===currentArtId);
+    if(!art){ toast('Articolo non trovato'); return; }
+    return copyText(buildPostFacebookWithPrice(art), 'Post copiato');
+  }
   if(a==='copyPostIg') return copyTextFrom(document.getElementById('vArtPostIg'));
   if(a==='copyPostTelegramEdit') return copyTextFrom(document.getElementById('a_post'));
   if(a==='copyPostFbEdit') return copyTextFrom(document.getElementById('a_post_fb'));
