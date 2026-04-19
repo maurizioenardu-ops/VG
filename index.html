@@ -643,7 +643,7 @@ window.addEventListener('error',e=>{
     <div><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Dettagli utili per il post..."></textarea></div>
     <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="a_post_fb" readonly placeholder="Qui il post Facebook (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbEdit">Copia FB</button></div></div>
     <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="a_post" placeholder="Qui il post Telegram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostTelegramEdit">Copia Telegram</button></div></div>
-    <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
+    <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbWithPriceEdit">Copia FB con prezzo</button></div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
     <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Aggiungi foto</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 9 foto totali per articolo.</div></div>
@@ -3254,14 +3254,13 @@ function formatPostMisura(misura){
   const clean=String(misura||'').replace(/^mis\.?\s*/i,'').trim();
   return clean ? `Mis. ${clean}` : '';
 }
-function formatPostPrezzoVendita(prezzo, simbolo='💶'){
+function formatPostPrezzoVendita(prezzo){
   const n=Number(prezzo);
   if(!(n>0)) return '';
   const txt=Number.isInteger(n)
     ? String(n)
     : n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const mark=String(simbolo||'').trim();
-  return mark ? `${mark} ${txt}` : txt;
+  return `💶 ${txt}`;
 }
 
 function stableHashSeed(value){
@@ -4167,7 +4166,7 @@ function buildPostTelegram(a){
     if(tipoMateriale) lines.push(tipoMateriale);
     if(colore) lines.push(colore);
     if(misura) lines.push(formatPostMisura(misura));
-    const prezzoVenditaPromo=formatPostPrezzoVendita(a.prezzoVendita, '€');
+    const prezzoVenditaPromo=formatPostPrezzoVendita(a.prezzoVendita);
     if(prezzoVenditaPromo) lines.push(prezzoVenditaPromo);
     lines.push(`cod. ${a.codice}`);
     return uniquePostLines(lines).join('\n');
@@ -4181,7 +4180,7 @@ function buildPostTelegram(a){
   if(materiale || materialeCompat) lines.push(`🧵 ${materiale || materialeCompat}`);
   if(colori) lines.push(colori);
   if(tracolla) lines.push(tracolla);
-  const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita, '€');
+  const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita);
   if(prezzoVendita) lines.push(prezzoVendita);
   lines.push(`cod. ${a.codice}`);
   return uniquePostLines(lines).join('\n');
@@ -7519,6 +7518,11 @@ document.addEventListener('click',(ev)=>{
   if(a==='copyPostIg') return copyTextFrom(document.getElementById('vArtPostIg'));
   if(a==='copyPostTelegramEdit') return copyTextFrom(document.getElementById('a_post'));
   if(a==='copyPostFbEdit') return copyTextFrom(document.getElementById('a_post_fb'));
+  if(a==='copyPostFbWithPriceEdit'){
+    const art=readArticleForm?.() || null;
+    if(!art || !art.codice){ toast('Articolo non pronto'); return; }
+    return copyText(buildPostFacebookWithPrice(art), 'Post copiato');
+  }
   if(a==='copyPostIgEdit') return copyTextFrom(document.getElementById('a_post_ig'));
   if(a==='shareArtPhotosFb' || a==='shareArtPhotos') return shareCurrentArticlePhotos('fb');
   if(a==='downloadArtPhotosTg') return downloadCurrentArticlePhotos('tg');
@@ -7638,7 +7642,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-19-share-v40-fb-telegram';
+const VG_BUILD='2026-04-19-share-v41-fb-no-price-tg-euro';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -8226,7 +8230,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v40-fb-telegram', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v41-fb-no-price-tg-euro', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

@@ -1,4 +1,4 @@
-const VERSION = 'v37_priority_sheet';
+const VERSION = 'v41_fb_no_price_tg_euro';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

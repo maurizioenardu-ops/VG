@@ -2307,14 +2307,13 @@ function formatPostMisura(misura){
   const clean=String(misura||'').replace(/^mis\.?\s*/i,'').trim();
   return clean ? `Mis. ${clean}` : '';
 }
-function formatPostPrezzoVendita(prezzo, simbolo='💶'){
+function formatPostPrezzoVendita(prezzo){
   const n=Number(prezzo);
   if(!(n>0)) return '';
   const txt=Number.isInteger(n)
     ? String(n)
     : n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const mark=String(simbolo||'').trim();
-  return mark ? `${mark} ${txt}` : txt;
+  return `💶 ${txt}`;
 }
 
 function stableHashSeed(value){
@@ -3220,7 +3219,7 @@ function buildPostTelegram(a){
     if(tipoMateriale) lines.push(tipoMateriale);
     if(colore) lines.push(colore);
     if(misura) lines.push(formatPostMisura(misura));
-    const prezzoVenditaPromo=formatPostPrezzoVendita(a.prezzoVendita, '€');
+    const prezzoVenditaPromo=formatPostPrezzoVendita(a.prezzoVendita);
     if(prezzoVenditaPromo) lines.push(prezzoVenditaPromo);
     lines.push(`cod. ${a.codice}`);
     return uniquePostLines(lines).join('\n');
@@ -3234,7 +3233,7 @@ function buildPostTelegram(a){
   if(materiale || materialeCompat) lines.push(`🧵 ${materiale || materialeCompat}`);
   if(colori) lines.push(colori);
   if(tracolla) lines.push(tracolla);
-  const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita, '€');
+  const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita);
   if(prezzoVendita) lines.push(prezzoVendita);
   lines.push(`cod. ${a.codice}`);
   return uniquePostLines(lines).join('\n');
@@ -6520,6 +6519,11 @@ document.addEventListener('click',(ev)=>{
   if(a==='copyPostIg') return copyTextFrom(document.getElementById('vArtPostIg'));
   if(a==='copyPostTelegramEdit') return copyTextFrom(document.getElementById('a_post'));
   if(a==='copyPostFbEdit') return copyTextFrom(document.getElementById('a_post_fb'));
+  if(a==='copyPostFbWithPriceEdit'){
+    const art=readArticleForm?.() || null;
+    if(!art || !art.codice){ toast('Articolo non pronto'); return; }
+    return copyText(buildPostFacebookWithPrice(art), 'Post copiato');
+  }
   if(a==='copyPostIgEdit') return copyTextFrom(document.getElementById('a_post_ig'));
   if(a==='shareArtPhotos') return shareCurrentArticlePhotos();
   if(a==='downloadArtPhotos') return downloadCurrentArticlePhotos();
@@ -6637,7 +6641,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-16-order-delete-zombie-fix';
+const VG_BUILD='2026-04-19-share-v41-fb-no-price-tg-euro';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -7165,7 +7169,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v35-fix-file-dedupe', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v41-fb-no-price-tg-euro', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
