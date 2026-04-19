@@ -1,4 +1,4 @@
-const VERSION = 'v43_post_rules_direct_copy';
+const VERSION = 'v44_copy_buttons_fixed';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

@@ -3400,10 +3400,40 @@ let confirmCallback=null;
 function askConfirm(text, cb, title='Conferma'){ document.getElementById('confirmTitle').textContent=title; document.getElementById('confirmText').textContent=text; confirmCallback=cb; show('mConfirm'); }
 function closeConfirm(run){ hide('mConfirm'); const fn=confirmCallback; confirmCallback=null; if(run && typeof fn==='function') fn(); }
 function toggleCloudSyncMini(){ return; }
+function copyText(text, okMsg='Copiato'){
+  const t=String(text ?? '').trim();
+  if(!t) return toast('Niente da copiare');
+  const fallback=()=>{
+    try{
+      const ta=document.createElement('textarea');
+      ta.value=t;
+      ta.setAttribute('readonly','readonly');
+      ta.style.position='fixed';
+      ta.style.opacity='0';
+      ta.style.pointerEvents='none';
+      ta.style.left='-9999px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      const ok=document.execCommand('copy');
+      document.body.removeChild(ta);
+      if(ok){ toast(okMsg); return true; }
+    }catch(_e){}
+    toast('Copia non disponibile');
+    return false;
+  };
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      navigator.clipboard.writeText(t).then(()=>toast(okMsg)).catch(()=>fallback());
+      return;
+    }
+  }catch(_e){}
+  fallback();
+}
 function copyTextFrom(el){
   const t=el.value||el.textContent||'';
-  if(!t) return toast('Niente da copiare');
-  navigator.clipboard?.writeText(t).then(()=>toast('Copiato')).catch(()=>{ try{ el.select(); document.execCommand('copy'); toast('Copiato'); }catch(e){ toast('Copia non disponibile'); } });
+  return copyText(t, 'Copiato');
 }
 
 const UI_KEY='vg_ui_prefs_v1';
@@ -6668,7 +6698,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-19-share-v42-fb-no-price-tg-euro-fixed';
+const VG_BUILD='2026-04-19-share-v44-copy-buttons-fixed';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -7196,7 +7226,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v43-post-rules-direct-copy', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v44-copy-buttons-fixed', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
