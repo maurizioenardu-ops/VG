@@ -2307,13 +2307,13 @@ function formatPostMisura(misura){
   const clean=String(misura||'').replace(/^mis\.?\s*/i,'').trim();
   return clean ? `Mis. ${clean}` : '';
 }
-function formatPostPrezzoVendita(prezzo){
+function formatPostPrezzoVendita(prezzo, symbol='💶'){
   const n=Number(prezzo);
   if(!(n>0)) return '';
   const txt=Number.isInteger(n)
     ? String(n)
     : n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
-  return `💶 ${txt}`;
+  return `${symbol} ${txt}`;
 }
 
 function stableHashSeed(value){
@@ -3219,7 +3219,7 @@ function buildPostTelegram(a){
     if(tipoMateriale) lines.push(tipoMateriale);
     if(colore) lines.push(colore);
     if(misura) lines.push(formatPostMisura(misura));
-    const prezzoVenditaPromo=formatPostPrezzoVendita(a.prezzoVendita);
+    const prezzoVenditaPromo=formatPostPrezzoVendita(a.prezzoVendita, '€');
     if(prezzoVenditaPromo) lines.push(prezzoVenditaPromo);
     lines.push(`cod. ${a.codice}`);
     return uniquePostLines(lines).join('\n');
@@ -3233,7 +3233,7 @@ function buildPostTelegram(a){
   if(materiale || materialeCompat) lines.push(`🧵 ${materiale || materialeCompat}`);
   if(colori) lines.push(colori);
   if(tracolla) lines.push(tracolla);
-  const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita);
+  const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita, '€');
   if(prezzoVendita) lines.push(prezzoVendita);
   lines.push(`cod. ${a.codice}`);
   return uniquePostLines(lines).join('\n');
@@ -6641,7 +6641,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-19-share-v41-fb-no-price-tg-euro';
+const VG_BUILD='2026-04-19-share-v42-fb-no-price-tg-euro-fixed';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -7169,7 +7169,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v41-fb-no-price-tg-euro', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v42-fb-no-price-tg-euro-fixed', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
