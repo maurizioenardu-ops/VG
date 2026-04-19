@@ -7507,23 +7507,50 @@ document.addEventListener('click',(ev)=>{
   if(a==='addBrand') return addBrand();
   if(a==='renameBrand') return renameBrand(el.dataset.name||'');
   if(a==='deleteBrand') return deleteBrand(el.dataset.name||'');
-  if(a==='copyPost') return copyTextFrom(document.getElementById('vArtPost'));
-  if(a==='copyPostFb') return copyTextFrom(document.getElementById('vArtPostFb'));
+  if(a==='copyPost'){
+    const db=loadDB();
+    const art=db.articoli.find(x=>x.id===currentArtId);
+    if(!art){ toast('Articolo non trovato'); return; }
+    return copyText(buildPostTelegram(art), 'Post copiato');
+  }
+  if(a==='copyPostFb'){
+    const db=loadDB();
+    const art=db.articoli.find(x=>x.id===currentArtId);
+    if(!art){ toast('Articolo non trovato'); return; }
+    return copyText(buildPostFacebook(art), 'Post copiato');
+  }
   if(a==='copyPostFbWithPrice'){
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
     return copyText(buildPostFacebookWithPrice(art), 'Post copiato');
   }
-  if(a==='copyPostIg') return copyTextFrom(document.getElementById('vArtPostIg'));
-  if(a==='copyPostTelegramEdit') return copyTextFrom(document.getElementById('a_post'));
-  if(a==='copyPostFbEdit') return copyTextFrom(document.getElementById('a_post_fb'));
+  if(a==='copyPostIg'){
+    const db=loadDB();
+    const art=db.articoli.find(x=>x.id===currentArtId);
+    if(!art){ toast('Articolo non trovato'); return; }
+    return copyText(buildPostInstagram(art), 'Post copiato');
+  }
+  if(a==='copyPostTelegramEdit'){
+    const art=readArticleForm?.() || null;
+    if(!art || !art.codice){ toast('Articolo non pronto'); return; }
+    return copyText(buildPostTelegram(art), 'Post copiato');
+  }
+  if(a==='copyPostFbEdit'){
+    const art=readArticleForm?.() || null;
+    if(!art || !art.codice){ toast('Articolo non pronto'); return; }
+    return copyText(buildPostFacebook(art), 'Post copiato');
+  }
   if(a==='copyPostFbWithPriceEdit'){
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
     return copyText(buildPostFacebookWithPrice(art), 'Post copiato');
   }
-  if(a==='copyPostIgEdit') return copyTextFrom(document.getElementById('a_post_ig'));
+  if(a==='copyPostIgEdit'){
+    const art=readArticleForm?.() || null;
+    if(!art || !art.codice){ toast('Articolo non pronto'); return; }
+    return copyText(buildPostInstagram(art), 'Post copiato');
+  }
   if(a==='shareArtPhotosFb' || a==='shareArtPhotos') return shareCurrentArticlePhotos('fb');
   if(a==='downloadArtPhotosTg') return downloadCurrentArticlePhotos('tg');
   if(a==='downloadArtPhotosIg') return downloadCurrentArticlePhotos('ig');
@@ -8230,7 +8257,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v42-fb-no-price-tg-euro-fixed', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v43-post-rules-direct-copy', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
