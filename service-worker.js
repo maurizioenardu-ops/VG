@@ -1,4 +1,4 @@
-const VERSION = 'v45_fb_counter_unified';
+const VERSION = 'v46_top50';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

@@ -2983,9 +2983,9 @@ function calcFromUsd(usd, qual){
     const sell=round5(costo+guad);
     return {costo, sell, marg:guad};
   }else{
-    let marg=costo*0.55;
-    if(marg<50) marg=50;
-    if(marg>60) marg=60;
+    let marg=costo*0.50;
+    if(marg<45) marg=45;
+    if(marg>55) marg=55;
     const sell=round5(costo+marg);
     return {costo, sell, marg};
   }
@@ -7709,7 +7709,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-20-share-v45-fb-counter-unified';
+const VG_BUILD='2026-04-20-share-v46-top50';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -8297,7 +8297,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v45-fb-counter-unified', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v46-top50', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
