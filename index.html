@@ -541,7 +541,7 @@ window.addEventListener('error',e=>{
       <div id="vArtMarginBox" class="marginBox" style="margin-top:8px"></div>
     </div>
   </div>
-  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" type="button" data-action="shareArtPhotosFb">Condividi foto</button><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbWithPrice">Copia FB con prezzo 💶</button></div></div>
+  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" type="button" data-action="shareArtPhotosFb">Condividi foto</button><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbWithPrice">Copia FB con prezzo 💶</button><span id="vArtPubMetaFbPrice" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="downloadArtPhotosTg">Scarica foto</button><span id="vArtPubMetaTg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish" type="button" data-action="downloadArtPhotosIg">Scarica foto</button><span id="vArtPubMetaIg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
@@ -3045,18 +3045,22 @@ function getArticlePublishMeta(article, channel, refDay=todayStr()){
   return { count, lastDate, label:`${count} · ${formatArticlePublishDate(lastDate)}`, log };
 }
 function renderArticlePublishMeta(article){
-  const nodes={fb:document.getElementById('vArtPubMetaFb'),tg:document.getElementById('vArtPubMetaTg'),ig:document.getElementById('vArtPubMetaIg')};
+  const nodes={
+    fb:[document.getElementById('vArtPubMetaFb'), document.getElementById('vArtPubMetaFbPrice')],
+    tg:[document.getElementById('vArtPubMetaTg')],
+    ig:[document.getElementById('vArtPubMetaIg')]
+  };
   ARTICLE_PUBLISH_CHANNELS.forEach(ch=>{
-    const el=nodes[ch];
-    if(!el) return;
     const meta=getArticlePublishMeta(article, ch);
-    el.textContent=meta.label;
-    el.title=meta.lastDate ? `Ultima pubblicazione ${formatPromoDateLabel(meta.lastDate)} · ${meta.count} negli ultimi 7 giorni` : 'Mai pubblicato';
+    (nodes[ch]||[]).filter(Boolean).forEach(el=>{
+      el.textContent=meta.label;
+      el.title=meta.lastDate ? `Ultima pubblicazione ${formatPromoDateLabel(meta.lastDate)} · ${meta.count} negli ultimi 7 giorni` : 'Mai pubblicato';
+    });
   });
 }
 function getArticlePublishPreviewState(article, refDay=todayStr()){
   const log=normalizeArticlePublishLog(article?.pubblicazioniCanali||article?.publishStats||article?.socialPub||{}, refDay);
-  const dates=ARTICLE_PUBLISH_CHANNELS.flatMap(ch=>Array.isArray(log?.[ch]) ? log[ch] : []).filter(Boolean).sort();
+  const dates=(Array.isArray(log?.fb) ? log.fb : []).filter(Boolean).sort();
   const lastDate=dates.length ? dates[dates.length-1] : '';
   const ref=parseIsoDay(refDay) || parseIsoDay(todayStr());
   const last=lastDate ? parseIsoDay(lastDate) : null;
@@ -3078,7 +3082,7 @@ function articlePublishPreviewDot(article){
 }
 function getArticlePreviewOrderMeta(article, refDay=todayStr()){
   const log=normalizeArticlePublishLog(article?.pubblicazioniCanali||article?.publishStats||article?.socialPub||{}, refDay);
-  const dates=ARTICLE_PUBLISH_CHANNELS.flatMap(ch=>Array.isArray(log?.[ch]) ? log[ch] : []).filter(Boolean).sort();
+  const dates=(Array.isArray(log?.fb) ? log.fb : []).filter(Boolean).sort();
   const lastDate=dates.length ? dates[dates.length-1] : '';
   const ref=parseIsoDay(refDay) || parseIsoDay(todayStr());
   const last=lastDate ? parseIsoDay(lastDate) : null;
@@ -3108,12 +3112,18 @@ function recordArticlePublication(channel, articleId=currentArtId, refDay=todayS
   if(idx<0) return null;
   const art=db.articoli[idx]||{};
   const nextLog=normalizeArticlePublishLog(art?.pubblicazioniCanali||art?.publishStats||art?.socialPub||{}, refDay);
-  nextLog[cleanChannel]=[...(nextLog[cleanChannel]||[]), refDay].sort();
-  const updated={...art, pubblicazioniCanali:nextLog, _ts:Date.now()};
-  db.articoli[idx]=updated;
-  saveDB(db);
-  if(String(currentArtId||'')===String(articleId||'')) renderArticlePublishMeta(updated);
-  return updated;
+  const currentList=Array.isArray(nextLog[cleanChannel]) ? nextLog[cleanChannel] : [];
+  const alreadyToday=currentList.includes(refDay);
+  if(!alreadyToday){
+    nextLog[cleanChannel]=[...currentList, refDay].sort();
+    const updated={...art, pubblicazioniCanali:nextLog, _ts:Date.now()};
+    db.articoli[idx]=updated;
+    saveDB(db);
+    if(String(currentArtId||'')===String(articleId||'')) renderArticlePublishMeta(updated);
+    return updated;
+  }
+  if(String(currentArtId||'')===String(articleId||'')) renderArticlePublishMeta(art);
+  return art;
 }
 function promoHasHistory(a){
   return !!(a && (a.promoAttiva || Number(a.prezzoPromo||0)>0 || getPromoStartDate(a)));
@@ -4348,7 +4358,7 @@ let confirmCallback=null;
 function askConfirm(text, cb, title='Conferma'){ document.getElementById('confirmTitle').textContent=title; document.getElementById('confirmText').textContent=text; confirmCallback=cb; show('mConfirm'); }
 function closeConfirm(run){ hide('mConfirm'); const fn=confirmCallback; confirmCallback=null; if(run && typeof fn==='function') fn(); }
 function toggleCloudSyncMini(){ return; }
-function copyText(text, okMsg='Copiato'){
+function copyText(text, okMsg='Copiato', onSuccess=null){
   const t=String(text ?? '').trim();
   if(!t) return toast('Niente da copiare');
   const fallback=()=>{
@@ -4366,14 +4376,14 @@ function copyText(text, okMsg='Copiato'){
       ta.setSelectionRange(0, ta.value.length);
       const ok=document.execCommand('copy');
       document.body.removeChild(ta);
-      if(ok){ toast(okMsg); return true; }
+      if(ok){ toast(okMsg); try{ if(typeof onSuccess==='function') onSuccess(); }catch(_e){} return true; }
     }catch(_e){}
     toast('Copia non disponibile');
     return false;
   };
   try{
     if(navigator.clipboard && window.isSecureContext){
-      navigator.clipboard.writeText(t).then(()=>toast(okMsg)).catch(()=>fallback());
+      navigator.clipboard.writeText(t).then(()=>{ toast(okMsg); try{ if(typeof onSuccess==='function') onSuccess(); }catch(_e){} }).catch(()=>fallback());
       return;
     }
   }catch(_e){}
@@ -7541,45 +7551,45 @@ document.addEventListener('click',(ev)=>{
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    return copyText(buildPostTelegram(art), 'Post copiato');
+    return copyText(buildPostTelegram(art), 'Post copiato', ()=>recordArticlePublication('tg'));
   }
   if(a==='copyPostFb'){
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    return copyText(buildPostFacebook(art), 'Post copiato');
+    return copyText(buildPostFacebook(art), 'Post copiato', ()=>recordArticlePublication('fb'));
   }
   if(a==='copyPostFbWithPrice'){
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    return copyText(buildPostFacebookWithPrice(art), 'Post copiato');
+    return copyText(buildPostFacebookWithPrice(art), 'Post copiato', ()=>recordArticlePublication('fb'));
   }
   if(a==='copyPostIg'){
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    return copyText(buildPostInstagram(art), 'Post copiato');
+    return copyText(buildPostInstagram(art), 'Post copiato', ()=>recordArticlePublication('ig'));
   }
   if(a==='copyPostTelegramEdit'){
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(buildPostTelegram(art), 'Post copiato');
+    return copyText(buildPostTelegram(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('tg'); });
   }
   if(a==='copyPostFbEdit'){
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(buildPostFacebook(art), 'Post copiato');
+    return copyText(buildPostFacebook(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('fb'); });
   }
   if(a==='copyPostFbWithPriceEdit'){
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(buildPostFacebookWithPrice(art), 'Post copiato');
+    return copyText(buildPostFacebookWithPrice(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('fb'); });
   }
   if(a==='copyPostIgEdit'){
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(buildPostInstagram(art), 'Post copiato');
+    return copyText(buildPostInstagram(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('ig'); });
   }
   if(a==='shareArtPhotosFb' || a==='shareArtPhotos') return shareCurrentArticlePhotos('fb');
   if(a==='downloadArtPhotosTg') return downloadCurrentArticlePhotos('tg');
@@ -7699,7 +7709,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-19-share-v44-copy-buttons-fixed';
+const VG_BUILD='2026-04-20-share-v45-fb-counter-unified';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -8287,7 +8297,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v44-copy-buttons-fixed', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v45-fb-counter-unified', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

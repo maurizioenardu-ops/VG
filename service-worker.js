@@ -1,4 +1,4 @@
-const VERSION = 'v44_copy_buttons_fixed';
+const VERSION = 'v45_fb_counter_unified';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
