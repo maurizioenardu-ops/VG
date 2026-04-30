@@ -58,7 +58,7 @@ textarea{min-height:90px;resize:vertical}
 .thumbs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .thumbs img{width:70px;height:70px;border-radius:12px;object-fit:cover;border:1px solid var(--line);cursor:pointer}
 .hr{height:1px;background:var(--line);margin:12px 0}
-.alertNote{margin-top:10px;padding:12px 14px;border:1px solid #fecaca;background:#fef2f2;border-radius:14px;color:#b91c1c;font-weight:900;line-height:1.4}
+.alertNote{margin-top:10px;padding:12px 14px;border:1px solid #fecaca;background:#fef2f2;border-radius:14px;color:#b91c1c;font-weight:900;line-height:1.45;white-space:pre-wrap}
 .alertNote .k{color:#b91c1c;margin-bottom:4px}
 </style>
 <script>
@@ -67,6 +67,7 @@ window.addEventListener('error',e=>{
   if(x) x.textContent='ERRORE JS: '+(e.message||e);
 });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div class="top">
@@ -147,6 +148,31 @@ window.addEventListener('error',e=>{
       </div>
       <div class="small" style="margin-top:10px" id="importHint"></div>
     </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="h2">Cloud Supabase</div>
+      <div class="small">Backup database e foto nel cloud. Se non compili nulla, l'app continua a lavorare in locale come prima.</div>
+      <div class="grid2" style="margin-top:10px">
+        <div><div class="k">Project URL</div><input id="cloud_url" placeholder="https://xxxx.supabase.co" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+        <div><div class="k">Anon key</div><input id="cloud_key" type="password" placeholder="anon key Supabase" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div><div class="k">Bucket database</div><input id="cloud_db_bucket" placeholder="backup-db" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+        <div><div class="k">Percorso database</div><input id="cloud_db_path" placeholder="vanity-glamour/db.json" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div><div class="k">Bucket foto</div><input id="cloud_photo_bucket" placeholder="foto-articoli" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+        <div><div class="k">Cartella foto</div><input id="cloud_photo_folder" placeholder="articoli" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+      </div>
+      <div style="margin-top:10px"><label class="pill" style="cursor:pointer"><input id="cloud_photo_on" type="checkbox" style="width:auto;margin-right:8px"/>Salva le nuove foto su Supabase</label></div>
+      <div class="actions">
+        <button class="btn" data-action="saveCloudCfg">Salva cloud</button>
+        <button class="btn" data-action="testCloud">Test cloud</button>
+        <button class="btn primary" data-action="backupCloud">Backup cloud</button>
+        <button class="btn" data-action="restoreCloud">Ripristina cloud</button>
+      </div>
+      <div class="small" style="margin-top:10px" id="cloudHint"></div>
+    </div>
   </div>
 </div>
 
@@ -166,7 +192,7 @@ window.addEventListener('error',e=>{
   <img id="vArtHero" class="hero" alt=""/>
   <div id="vArtThumbs" class="thumbs"></div>
   <div id="vArtNoteWrap" class="alertNote" style="display:none">
-    <div class="k">⚠️ NOTE ARTICOLO</div>
+    <div class="k">Nota articolo</div>
     <div id="vArtNoteText"></div>
   </div>
   <div class="hr"></div>
@@ -225,28 +251,6 @@ window.addEventListener('error',e=>{
     <button class="btn primary" type="button" data-action="saveArt">Salva</button>
     <button class="btn" type="button" data-action="closeEdit">Annulla</button>
     <button class="btn danger" type="button" data-action="deleteArt">Elimina</button>
-  </div>
-</div></div>
-
-<div id="mCliView" class="modalwrap"><div class="modal">
-  <div class="h2">Dettaglio cliente</div>
-  <div id="vCliNoteWrap" class="alertNote" style="display:none">
-    <div class="k">⚠️ NOTE CLIENTE</div>
-    <div id="vCliNoteText"></div>
-  </div>
-  <div class="grid2" style="margin-top:10px">
-    <div><div class="k">Nome</div><div id="vCliNome" class="t">-</div></div>
-    <div><div class="k">Telefono</div><div id="vCliTel" class="t">-</div></div>
-  </div>
-  <div style="margin-top:10px"><div class="k">Indirizzo</div><div id="vCliInd" class="t">-</div></div>
-  <div class="grid2" style="margin-top:10px">
-    <div><div class="k">CAP</div><div id="vCliCap" class="t">-</div></div>
-    <div><div class="k">Città</div><div id="vCliCitta" class="t">-</div></div>
-  </div>
-  <div style="margin-top:10px"><div class="k">Provincia</div><div id="vCliProv" class="t">-</div></div>
-  <div class="actions">
-    <button class="btn primary" type="button" data-action="editCliFromView">Modifica</button>
-    <button class="btn" type="button" data-action="closeCliView">Chiudi</button>
   </div>
 </div></div>
 
@@ -310,7 +314,6 @@ window.addEventListener('error',e=>{
 <script>
 /* ====== DB ====== */
 const KEY='vg_db_full_v5';
-const LEGACY_KEY_HINTS=['vg_db','vg_db_full','vg_db_full_v4','vg_db_full_v5','vg_db_full_v6','vanity','glamour','bors','client','ord'];
 const PROVINCE=[ "AG","AL","AN","AO","AP","AQ","AR","AT","AV","BA","BG","BI","BL","BN","BO","BR","BS","BT","BZ","CA","CB","CE","CH","CL","CN","CO","CR","CS","CT","CZ","EN","FC","FE","FG","FI","FM","FR","GE","GO","GR","IM","IS","KR","LC","LE","LI","LO","LT","LU","MB","MC","ME","MI","MN","MO","MS","MT","NA","NO","NU","OR","PA","PC","PD","PE","PG","PI","PN","PO","PR","PT","PU","PV","PZ","RA","RC","RE","RG","RI","RM","RN","RO","SA","SI","SO","SP","SR","SS","SU","SV","TA","TE","TN","TO","TP","TR","TS","TV","UD","VA","VB","VC","VE","VI","VR","VT","VV" ];
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
 const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
@@ -320,55 +323,13 @@ const round5=n=>Math.round(n/5)*5;
 function defDB(){
   return {version:'v5',articoli:[],clienti:[],ordini:[],createdAt:new Date().toISOString()};
 }
-function normalizeDB(o){
-  if(!o || typeof o!=='object') return null;
-  const root=(o.db && typeof o.db==='object') ? o.db : o;
-  const articoli = Array.isArray(root.articoli) ? root.articoli : (Array.isArray(root.articles) ? root.articles : null);
-  const clienti = Array.isArray(root.clienti) ? root.clienti : (Array.isArray(root.clients) ? root.clients : null);
-  const ordini = Array.isArray(root.ordini) ? root.ordini : (Array.isArray(root.orders) ? root.orders : null);
-  if(!articoli || !clienti || !ordini) return null;
-  return {
-    version: root.version || 'v5',
-    articoli,
-    clienti,
-    ordini,
-    createdAt: root.createdAt || o.createdAt || new Date().toISOString()
-  };
-}
-function parseStoredDB(raw){
-  try{ return normalizeDB(JSON.parse(raw)); }catch(e){ return null; }
-}
-function scoreDB(db){
-  if(!db) return -1;
-  const counts=(db.articoli?.length||0)+(db.clienti?.length||0)+(db.ordini?.length||0);
-  const ts=Date.parse(db.createdAt||'')||0;
-  return counts*10000000000000 + ts;
-}
-function findBestStoredDB(){
-  let best=null;
-  try{
-    for(let i=0;i<localStorage.length;i++){
-      const k=localStorage.key(i)||'';
-      const lk=k.toLowerCase();
-      if(k!==KEY && !LEGACY_KEY_HINTS.some(h=>lk.includes(h))) continue;
-      const db=parseStoredDB(localStorage.getItem(k)||'');
-      if(db && scoreDB(db)>scoreDB(best)) best=db;
-    }
-  }catch(e){}
-  return best;
-}
 function loadDB(){
   try{
-    const current=parseStoredDB(localStorage.getItem(KEY)||'');
-    const legacy=findBestStoredDB();
-    const chosen = scoreDB(legacy) > scoreDB(current) ? legacy : current;
-    if(chosen){
-      if(JSON.stringify(current)!==JSON.stringify(chosen)) localStorage.setItem(KEY, JSON.stringify(chosen));
-      return chosen;
-    }
-    const empty=defDB();
-    localStorage.setItem(KEY, JSON.stringify(empty));
-    return empty;
+    const raw=localStorage.getItem(KEY);
+    if(!raw) return defDB();
+    const o=JSON.parse(raw);
+    if(!o || !Array.isArray(o.articoli) || !Array.isArray(o.clienti) || !Array.isArray(o.ordini)) return defDB();
+    return o;
   }catch(e){ return defDB(); }
 }
 function saveDB(db){ localStorage.setItem(KEY, JSON.stringify(db)); renderAll(); }
@@ -483,53 +444,136 @@ function copyTextFrom(el){
   navigator.clipboard?.writeText(t).then(()=>toast('Copiato')).catch(()=>{ try{ el.select(); document.execCommand('copy'); toast('Copiato'); }catch(e){ alert('Copia non disponibile'); } });
 }
 
-function localDateParts(v){
-  const s=String(v||'').trim();
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
-  const [y,m,d]=s.split('-').map(Number);
-  return {y,m,d};
+const CLOUD_KEY = KEY+'_cloud';
+function loadCloudCfg(){
+  try{
+    const raw=localStorage.getItem(CLOUD_KEY);
+    const o=raw?JSON.parse(raw):{};
+    return {
+      url:o.url||'',
+      key:o.key||'',
+      dbBucket:o.dbBucket||'',
+      dbPath:o.dbPath||'vanity-glamour/db.json',
+      photoBucket:o.photoBucket||'',
+      photoFolder:o.photoFolder||'articoli',
+      photoOn:!!o.photoOn
+    };
+  }catch(e){
+    return {url:'',key:'',dbBucket:'',dbPath:'vanity-glamour/db.json',photoBucket:'',photoFolder:'articoli',photoOn:false};
+  }
 }
-function localDateFromStr(v){
-  const p=localDateParts(v);
-  return p ? new Date(p.y, p.m-1, p.d) : null;
+function readCloudCfgFromUI(){
+  return {
+    url:document.getElementById('cloud_url').value.trim(),
+    key:document.getElementById('cloud_key').value.trim(),
+    dbBucket:document.getElementById('cloud_db_bucket').value.trim(),
+    dbPath:document.getElementById('cloud_db_path').value.trim()||'vanity-glamour/db.json',
+    photoBucket:document.getElementById('cloud_photo_bucket').value.trim(),
+    photoFolder:document.getElementById('cloud_photo_folder').value.trim()||'articoli',
+    photoOn:document.getElementById('cloud_photo_on').checked
+  };
 }
-function startOfWeek(d){
-  const x=new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const day=(x.getDay()+6)%7;
-  x.setDate(x.getDate()-day);
-  x.setHours(0,0,0,0);
-  return x;
+function writeCloudCfgToUI(){
+  const c=loadCloudCfg();
+  document.getElementById('cloud_url').value=c.url||'';
+  document.getElementById('cloud_key').value=c.key||'';
+  document.getElementById('cloud_db_bucket').value=c.dbBucket||'';
+  document.getElementById('cloud_db_path').value=c.dbPath||'vanity-glamour/db.json';
+  document.getElementById('cloud_photo_bucket').value=c.photoBucket||'';
+  document.getElementById('cloud_photo_folder').value=c.photoFolder||'articoli';
+  document.getElementById('cloud_photo_on').checked=!!c.photoOn;
 }
-function endOfDay(d){
-  const x=new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  x.setHours(23,59,59,999);
-  return x;
+function saveCloudCfg(){
+  const c=readCloudCfgFromUI();
+  localStorage.setItem(CLOUD_KEY, JSON.stringify(c));
+  setCloudHint('Configurazione cloud salvata.');
+  toast('Cloud salvato');
+  return c;
 }
-function isOrderRealized(o){
-  return String(o?.stato||'').toLowerCase()==='consegnato';
+function setCloudHint(msg,isErr){
+  const el=document.getElementById('cloudHint');
+  if(!el) return;
+  el.textContent=msg||'';
+  el.style.color=isErr?'#b91c1c':'#6b7280';
 }
-function articleCostById(db, id){
-  const a=db.articoli.find(x=>x.id===id);
-  return Number(a?.costoEur||0);
+function getSupabaseClient(){
+  const c=readCloudCfgFromUI();
+  if(!c.url || !c.key) throw new Error('Compila Project URL e anon key.');
+  if(!window.supabase || !window.supabase.createClient) throw new Error('Libreria Supabase non caricata.');
+  return { client: window.supabase.createClient(c.url, c.key), cfg:c };
 }
-function orderProfit(o, db){
-  if(!isOrderRealized(o)) return 0;
-  return (o.righe||[]).reduce((sum,r)=>{
-    const prezzo=Number(r.prezzo||0);
-    const costo=articleCostById(db, r.articoloId);
-    return sum + Math.max(0, prezzo - costo);
-  },0);
+async function testCloud(){
+  try{
+    saveCloudCfg();
+    const {client,cfg}=getSupabaseClient();
+    if(cfg.dbBucket){
+      const { error } = await client.storage.from(cfg.dbBucket).list('', { limit: 1 });
+      if(error) throw error;
+      setCloudHint('Cloud OK. Bucket database raggiungibile.');
+    }else if(cfg.photoBucket){
+      const { error } = await client.storage.from(cfg.photoBucket).list('', { limit: 1 });
+      if(error) throw error;
+      setCloudHint('Cloud OK. Bucket foto raggiungibile.');
+    }else{
+      setCloudHint('Client Supabase creato. Inserisci almeno un bucket per fare operazioni cloud.');
+    }
+    toast('Cloud OK');
+  }catch(e){
+    setCloudHint('Errore cloud: '+(e.message||e), true);
+    alert('Cloud: '+(e.message||e));
+  }
 }
-function realizedProfitBetween(db, fromDate, toDate){
-  const from=fromDate ? fromDate.getTime() : -Infinity;
-  const to=toDate ? toDate.getTime() : Infinity;
-  return db.ordini.reduce((sum,o)=>{
-    if(!isOrderRealized(o)) return sum;
-    const d=localDateFromStr(o.data);
-    const ts=d ? endOfDay(d).getTime() : Number(o._ts||0);
-    if(ts<from || ts>to) return sum;
-    return sum + orderProfit(o, db);
-  },0);
+async function backupCloud(){
+  try{
+    saveCloudCfg();
+    const {client,cfg}=getSupabaseClient();
+    if(!cfg.dbBucket) throw new Error('Inserisci il bucket database.');
+    const db=loadDB();
+    const out=JSON.parse(JSON.stringify(db));
+    out.exportedAt=new Date().toISOString();
+    const blob=new Blob([JSON.stringify(out,null,2)], {type:'application/json'});
+    const { error } = await client.storage.from(cfg.dbBucket).upload(cfg.dbPath, blob, { upsert:true, contentType:'application/json' });
+    if(error) throw error;
+    setCloudHint('Backup cloud completato: '+cfg.dbPath);
+    toast('Backup cloud OK');
+  }catch(e){
+    setCloudHint('Backup cloud fallito: '+(e.message||e), true);
+    alert('Backup cloud fallito: '+(e.message||e));
+  }
+}
+async function restoreCloud(){
+  try{
+    saveCloudCfg();
+    const {client,cfg}=getSupabaseClient();
+    if(!cfg.dbBucket) throw new Error('Inserisci il bucket database.');
+    const { data, error } = await client.storage.from(cfg.dbBucket).download(cfg.dbPath);
+    if(error) throw error;
+    const txt=await data.text();
+    const o=JSON.parse(txt);
+    if(!o || !Array.isArray(o.articoli) || !Array.isArray(o.clienti) || !Array.isArray(o.ordini)) throw new Error('Backup cloud non compatibile.');
+    localStorage.setItem(KEY, JSON.stringify(o));
+    renderAll();
+    setCloudHint('Ripristino cloud completato.');
+    toast('Ripristino OK');
+  }catch(e){
+    setCloudHint('Ripristino cloud fallito: '+(e.message||e), true);
+    alert('Ripristino cloud fallito: '+(e.message||e));
+  }
+}
+async function storePhoto(file, artId){
+  const cfg=loadCloudCfg();
+  if(!(cfg.url && cfg.key && cfg.photoBucket && cfg.photoOn)) return fileToDataURL(file);
+  if(!window.supabase || !window.supabase.createClient) throw new Error('Libreria Supabase non caricata.');
+  const client=window.supabase.createClient(cfg.url, cfg.key);
+  const ext=((file.name||'jpg').split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'') || 'jpg';
+  const base=(cfg.photoFolder||'articoli').replace(/^\/+|\/+$/g,'');
+  const path=(base?base+'/':'') + (artId||uid()) + '-' + Date.now() + '.' + ext;
+  const { error } = await client.storage.from(cfg.photoBucket).upload(path, file, { upsert:false, contentType:file.type||'image/jpeg' });
+  if(error) throw error;
+  const pub=client.storage.from(cfg.photoBucket).getPublicUrl(path);
+  const url=pub?.data?.publicUrl;
+  if(!url) throw new Error('URL pubblico foto non disponibile.');
+  return url;
 }
 
 /* ====== RENDER ====== */
@@ -540,38 +584,24 @@ function renderHome(){
   document.getElementById('c_ord').textContent=db.ordini.length;
   document.getElementById('c_promo').textContent=db.articoli.filter(promoValid).length;
 
-  const now=new Date();
-  const weekStart=startOfWeek(now);
-  const monthStart=new Date(now.getFullYear(), now.getMonth(), 1);
-  const yearStart=new Date(now.getFullYear(), 0, 1);
-  const weekProfit=realizedProfitBetween(db, weekStart, now);
-  const monthProfit=realizedProfitBetween(db, monthStart, now);
-  const yearProfit=realizedProfitBetween(db, yearStart, now);
-
-  const last=db.ordini.slice().sort((a,b)=>{
-    const ad=localDateFromStr(a.data);
-    const bd=localDateFromStr(b.data);
-    return (bd?bd.getTime():Number(b._ts||0)) - (ad?ad.getTime():Number(a._ts||0));
-  })[0];
+  const last=db.ordini.slice().sort((a,b)=>(b._ts||0)-(a._ts||0))[0];
   const exp=db.articoli.filter(promoValid).sort((a,b)=>String(a.scadenzaPromo).localeCompare(String(b.scadenzaPromo)))[0];
   const stuck=db.ordini.filter(o=>{
-    const ref=localDateFromStr(o.data);
-    const ts=ref ? endOfDay(ref).getTime() : Number(o._ts||0);
-    return ts && (Date.now()-ts)>(15*24*3600*1000) && !['Consegnato'].includes(o.stato);
-  }).sort((a,b)=>(a._ts||0)-(b._ts||0))[0];
+    const days=15;
+    const ts=o._ts||0;
+    return ts && (Date.now()-ts)>(days*24*3600*1000) && !['Consegnato'].includes(o.stato);
+  })[0];
 
-  const promoText = exp ? (`Promo in scadenza: ${(exp.brand||'').trim()} ${(exp.modello||'').trim()} • ${exp.scadenzaPromo}`).replace(/\s+•/,' •') : 'Promo in scadenza: nessuna';
-  const entries=[
-    {text:`Guadagno settimanale: ${money(weekProfit)}`, target:'ordini'},
-    {text:`Guadagno mensile: ${money(monthProfit)}`, target:'ordini'},
-    {text:`Guadagno annuale: ${money(yearProfit)}`, target:'ordini'},
-    {text:last?`Ultimo ordine: ${last.stato} • ${last.data||''}`:'Ultimo ordine: nessuno', target:'ordini'},
-    {text:promoText, target:'articoli'},
-    {text:stuck?`Ordini fermi: ${stuck.id} • ${stuck.stato}`:'Ordini fermi: nessuno', target:'ordini'}
-  ];
+  const lines=[];
+  lines.push(last?`Ultimo ordine: ${last.stato} • ${last.data||''}`:'Ultimo ordine: nessuno');
+  lines.push(exp?`Promo in scadenza: ${exp.brand||''} ${exp.modello||''} • ${exp.scadenzaPromo}`:'Promo in scadenza: nessuna');
+  lines.push(stuck?`Ordini fermi: ${stuck.id} • ${stuck.stato}`:'Ordini fermi: nessuno');
 
   const list=document.getElementById('dashList');
-  list.innerHTML=entries.map(item=>`<div class="row" data-go="${item.target}" style="grid-template-columns:1fr"><div class="main"><div class="t">${esc(item.text)}</div></div></div>`).join('');
+  list.innerHTML=lines.map((t,i)=>{
+    const target=(i===0||i===2)?'ordini':'articoli';
+    return `<div class="row" data-go="${target}" style="grid-template-columns:1fr"><div class="main"><div class="t">${esc(t)}</div></div></div>`;
+  }).join('');
 }
 
 function renderArt(){
@@ -638,7 +668,6 @@ function renderOrd(){
     return `<div class="row" data-open="ord" data-id="${o.id}" style="grid-template-columns:1fr auto">
       <div>
         <div class="t">${esc(c?c.nome:'-')} • <span class="priceHot">${money(o.totale||0)}</span></div>
-        <div class="s">Guadagno: ${money(orderProfit(o, db))}</div>
         <div class="s">${esc(o.stato||'-')} • ${esc(o.data||'')}</div>
       </div>
       <div class="pill">${esc(o.stato||'-')}</div>
@@ -658,21 +687,17 @@ function openArtView(id){
   const thumbs=document.getElementById('vArtThumbs');
   hero.src=pics[0]||''; hero.style.display=pics[0]?'block':'none';
   thumbs.innerHTML=pics.map(src=>`<img src="${src}" onclick="document.getElementById('vArtHero').src='${src}'"/>`).join('');
+  const noteWrap=document.getElementById('vArtNoteWrap');
+  const noteText=document.getElementById('vArtNoteText');
+  const note=(a.note||'').trim();
+  if(note){ noteWrap.style.display='block'; noteText.textContent=note; }
+  else{ noteWrap.style.display='none'; noteText.textContent=''; }
   document.getElementById('vArtCod').textContent=a.codice||'-';
   document.getElementById('vArtQual').textContent=qualityFromCode(a.codice)||'-';
   document.getElementById('vArtPrezzo').textContent=money(a.prezzoVendita||0);
   document.getElementById('vArtPrezzoUse').textContent=money(currentPrice(a));
   const pill=document.getElementById('vArtPromoPill');
   pill.innerHTML = promoValid(a)?`<div class="pill promo" style="margin-top:6px"><span class="dot"></span>PROMO attiva</div>`:(a.promoAttiva?`<div class="pill" style="margin-top:6px">PROMO impostata</div>`:'');
-  const noteWrap=document.getElementById('vArtNoteWrap');
-  const noteText=document.getElementById('vArtNoteText');
-  if((a.note||'').trim()){
-    noteText.textContent=a.note.trim();
-    noteWrap.style.display='block';
-  }else{
-    noteText.textContent='';
-    noteWrap.style.display='none';
-  }
   document.getElementById('vArtPost').value=buildPost(a);
   show('mArtView');
 }
@@ -779,8 +804,14 @@ async function saveArt(){
   obj.foto = (old?.foto||[]).slice();
   const f=document.getElementById('a_photo').files[0];
   if(f){
-    const data=await fileToDataURL(f);
-    obj.foto.unshift(data);
+    try{
+      const data=await storePhoto(f, obj.id);
+      obj.foto.unshift(data);
+    }catch(e){
+      const data=await fileToDataURL(f);
+      obj.foto.unshift(data);
+      toast('Cloud foto KO, salvata in locale');
+    }
     obj.foto=obj.foto.slice(0,6);
   }
   obj._ts=Date.now();
@@ -801,26 +832,6 @@ function deleteArt(){
 
 /* ====== CLIENTI ====== */
 let currentCliId=null;
-function openCliView(id){
-  const db=loadDB(); const c=db.clienti.find(x=>x.id===id); if(!c) return;
-  currentCliId=id;
-  document.getElementById('vCliNome').textContent=c.nome||'-';
-  document.getElementById('vCliTel').textContent=c.telefono||'-';
-  document.getElementById('vCliInd').textContent=c.indirizzo||'-';
-  document.getElementById('vCliCap').textContent=c.cap||'-';
-  document.getElementById('vCliCitta').textContent=c.citta||'-';
-  document.getElementById('vCliProv').textContent=c.provincia||'-';
-  const noteWrap=document.getElementById('vCliNoteWrap');
-  const noteText=document.getElementById('vCliNoteText');
-  if((c.note||'').trim()){
-    noteText.textContent=c.note.trim();
-    noteWrap.style.display='block';
-  }else{
-    noteText.textContent='';
-    noteWrap.style.display='none';
-  }
-  show('mCliView');
-}
 function openCliEdit(id){
   const db=loadDB(); const c=id?db.clienti.find(x=>x.id===id):null;
   currentCliId=id||null;
@@ -998,7 +1009,7 @@ document.addEventListener('click',(ev)=>{
   if(el.dataset.open){
     const id=el.dataset.id;
     if(el.dataset.open==='art') openArtView(id);
-    if(el.dataset.open==='cli') openCliView(id);
+    if(el.dataset.open==='cli') openCliEdit(id);
     if(el.dataset.open==='ord') openOrdEdit(id);
     return;
   }
@@ -1008,6 +1019,10 @@ document.addEventListener('click',(ev)=>{
   if(a==='newOrd') return openOrdEdit(null);
   if(a==='exportFull') return exportDB('full');
   if(a==='exportLite') return exportDB('lite');
+  if(a==='saveCloudCfg') return saveCloudCfg();
+  if(a==='testCloud') return testCloud();
+  if(a==='backupCloud') return backupCloud();
+  if(a==='restoreCloud') return restoreCloud();
   if(a==='hardReset'){ if(confirm('Reset totale?')){ localStorage.removeItem(KEY); location.reload(); } return; }
   if(a==='copyPost') return copyTextFrom(document.getElementById('vArtPost'));
   if(a==='editFromView'){ hide('mArtView'); return openArtEdit(currentArtId); }
@@ -1016,8 +1031,6 @@ document.addEventListener('click',(ev)=>{
   if(a==='saveArt') return saveArt();
   if(a==='deleteArt') return deleteArt();
   if(a==='saveCli') return saveCli();
-  if(a==='closeCliView') return hide('mCliView');
-  if(a==='editCliFromView'){ hide('mCliView'); return openCliEdit(currentCliId); }
   if(a==='closeCli') return hide('mCliEdit');
   if(a==='deleteCli') return deleteCli();
   if(a==='saveOrd') return saveOrd();
@@ -1050,6 +1063,7 @@ const provSel=document.getElementById('c_prov');
 provSel.innerHTML='<option value="">Seleziona</option>'+PROVINCE.map(p=>`<option value="${p}">${p}</option>`).join('');
 
 /* init */
+writeCloudCfgToUI();
 renderAll();
 const initial=location.hash.replace('#','')||'home';
 history.replaceState({page:initial},'', '#'+initial);
