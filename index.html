@@ -1,5 +1,4 @@
 <!doctype html>
-<!-- Rifatto: note visibili in dettaglio articolo e cliente, dashboard invariata -->
 <html lang="it">
 <head>
 <meta charset="utf-8"/>
@@ -311,6 +310,7 @@ window.addEventListener('error',e=>{
 <script>
 /* ====== DB ====== */
 const KEY='vg_db_full_v5';
+const LEGACY_KEY_HINTS=['vg_db','vg_db_full','vg_db_full_v4','vg_db_full_v5','vg_db_full_v6','vanity','glamour','bors','client','ord'];
 const PROVINCE=[ "AG","AL","AN","AO","AP","AQ","AR","AT","AV","BA","BG","BI","BL","BN","BO","BR","BS","BT","BZ","CA","CB","CE","CH","CL","CN","CO","CR","CS","CT","CZ","EN","FC","FE","FG","FI","FM","FR","GE","GO","GR","IM","IS","KR","LC","LE","LI","LO","LT","LU","MB","MC","ME","MI","MN","MO","MS","MT","NA","NO","NU","OR","PA","PC","PD","PE","PG","PI","PN","PO","PR","PT","PU","PV","PZ","RA","RC","RE","RG","RI","RM","RN","RO","SA","SI","SO","SP","SR","SS","SU","SV","TA","TE","TN","TO","TP","TR","TS","TV","UD","VA","VB","VC","VE","VI","VR","VT","VV" ];
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
 const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
@@ -320,13 +320,55 @@ const round5=n=>Math.round(n/5)*5;
 function defDB(){
   return {version:'v5',articoli:[],clienti:[],ordini:[],createdAt:new Date().toISOString()};
 }
+function normalizeDB(o){
+  if(!o || typeof o!=='object') return null;
+  const root=(o.db && typeof o.db==='object') ? o.db : o;
+  const articoli = Array.isArray(root.articoli) ? root.articoli : (Array.isArray(root.articles) ? root.articles : null);
+  const clienti = Array.isArray(root.clienti) ? root.clienti : (Array.isArray(root.clients) ? root.clients : null);
+  const ordini = Array.isArray(root.ordini) ? root.ordini : (Array.isArray(root.orders) ? root.orders : null);
+  if(!articoli || !clienti || !ordini) return null;
+  return {
+    version: root.version || 'v5',
+    articoli,
+    clienti,
+    ordini,
+    createdAt: root.createdAt || o.createdAt || new Date().toISOString()
+  };
+}
+function parseStoredDB(raw){
+  try{ return normalizeDB(JSON.parse(raw)); }catch(e){ return null; }
+}
+function scoreDB(db){
+  if(!db) return -1;
+  const counts=(db.articoli?.length||0)+(db.clienti?.length||0)+(db.ordini?.length||0);
+  const ts=Date.parse(db.createdAt||'')||0;
+  return counts*10000000000000 + ts;
+}
+function findBestStoredDB(){
+  let best=null;
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i)||'';
+      const lk=k.toLowerCase();
+      if(k!==KEY && !LEGACY_KEY_HINTS.some(h=>lk.includes(h))) continue;
+      const db=parseStoredDB(localStorage.getItem(k)||'');
+      if(db && scoreDB(db)>scoreDB(best)) best=db;
+    }
+  }catch(e){}
+  return best;
+}
 function loadDB(){
   try{
-    const raw=localStorage.getItem(KEY);
-    if(!raw) return defDB();
-    const o=JSON.parse(raw);
-    if(!o || !Array.isArray(o.articoli) || !Array.isArray(o.clienti) || !Array.isArray(o.ordini)) return defDB();
-    return o;
+    const current=parseStoredDB(localStorage.getItem(KEY)||'');
+    const legacy=findBestStoredDB();
+    const chosen = scoreDB(legacy) > scoreDB(current) ? legacy : current;
+    if(chosen){
+      if(JSON.stringify(current)!==JSON.stringify(chosen)) localStorage.setItem(KEY, JSON.stringify(chosen));
+      return chosen;
+    }
+    const empty=defDB();
+    localStorage.setItem(KEY, JSON.stringify(empty));
+    return empty;
   }catch(e){ return defDB(); }
 }
 function saveDB(db){ localStorage.setItem(KEY, JSON.stringify(db)); renderAll(); }
@@ -441,6 +483,55 @@ function copyTextFrom(el){
   navigator.clipboard?.writeText(t).then(()=>toast('Copiato')).catch(()=>{ try{ el.select(); document.execCommand('copy'); toast('Copiato'); }catch(e){ alert('Copia non disponibile'); } });
 }
 
+function localDateParts(v){
+  const s=String(v||'').trim();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  const [y,m,d]=s.split('-').map(Number);
+  return {y,m,d};
+}
+function localDateFromStr(v){
+  const p=localDateParts(v);
+  return p ? new Date(p.y, p.m-1, p.d) : null;
+}
+function startOfWeek(d){
+  const x=new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day=(x.getDay()+6)%7;
+  x.setDate(x.getDate()-day);
+  x.setHours(0,0,0,0);
+  return x;
+}
+function endOfDay(d){
+  const x=new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setHours(23,59,59,999);
+  return x;
+}
+function isOrderRealized(o){
+  return String(o?.stato||'').toLowerCase()==='consegnato';
+}
+function articleCostById(db, id){
+  const a=db.articoli.find(x=>x.id===id);
+  return Number(a?.costoEur||0);
+}
+function orderProfit(o, db){
+  if(!isOrderRealized(o)) return 0;
+  return (o.righe||[]).reduce((sum,r)=>{
+    const prezzo=Number(r.prezzo||0);
+    const costo=articleCostById(db, r.articoloId);
+    return sum + Math.max(0, prezzo - costo);
+  },0);
+}
+function realizedProfitBetween(db, fromDate, toDate){
+  const from=fromDate ? fromDate.getTime() : -Infinity;
+  const to=toDate ? toDate.getTime() : Infinity;
+  return db.ordini.reduce((sum,o)=>{
+    if(!isOrderRealized(o)) return sum;
+    const d=localDateFromStr(o.data);
+    const ts=d ? endOfDay(d).getTime() : Number(o._ts||0);
+    if(ts<from || ts>to) return sum;
+    return sum + orderProfit(o, db);
+  },0);
+}
+
 /* ====== RENDER ====== */
 function renderHome(){
   const db=loadDB();
@@ -449,24 +540,38 @@ function renderHome(){
   document.getElementById('c_ord').textContent=db.ordini.length;
   document.getElementById('c_promo').textContent=db.articoli.filter(promoValid).length;
 
-  const last=db.ordini.slice().sort((a,b)=>(b._ts||0)-(a._ts||0))[0];
+  const now=new Date();
+  const weekStart=startOfWeek(now);
+  const monthStart=new Date(now.getFullYear(), now.getMonth(), 1);
+  const yearStart=new Date(now.getFullYear(), 0, 1);
+  const weekProfit=realizedProfitBetween(db, weekStart, now);
+  const monthProfit=realizedProfitBetween(db, monthStart, now);
+  const yearProfit=realizedProfitBetween(db, yearStart, now);
+
+  const last=db.ordini.slice().sort((a,b)=>{
+    const ad=localDateFromStr(a.data);
+    const bd=localDateFromStr(b.data);
+    return (bd?bd.getTime():Number(b._ts||0)) - (ad?ad.getTime():Number(a._ts||0));
+  })[0];
   const exp=db.articoli.filter(promoValid).sort((a,b)=>String(a.scadenzaPromo).localeCompare(String(b.scadenzaPromo)))[0];
   const stuck=db.ordini.filter(o=>{
-    const days=15;
-    const ts=o._ts||0;
-    return ts && (Date.now()-ts)>(days*24*3600*1000) && !['Consegnato'].includes(o.stato);
-  })[0];
+    const ref=localDateFromStr(o.data);
+    const ts=ref ? endOfDay(ref).getTime() : Number(o._ts||0);
+    return ts && (Date.now()-ts)>(15*24*3600*1000) && !['Consegnato'].includes(o.stato);
+  }).sort((a,b)=>(a._ts||0)-(b._ts||0))[0];
 
-  const lines=[];
-  lines.push(last?`Ultimo ordine: ${last.stato} • ${last.data||''}`:'Ultimo ordine: nessuno');
-  lines.push(exp?`Promo in scadenza: ${exp.brand||''} ${exp.modello||''} • ${exp.scadenzaPromo}`:'Promo in scadenza: nessuna');
-  lines.push(stuck?`Ordini fermi: ${stuck.id} • ${stuck.stato}`:'Ordini fermi: nessuno');
+  const promoText = exp ? (`Promo in scadenza: ${(exp.brand||'').trim()} ${(exp.modello||'').trim()} • ${exp.scadenzaPromo}`).replace(/\s+•/,' •') : 'Promo in scadenza: nessuna';
+  const entries=[
+    {text:`Guadagno settimanale: ${money(weekProfit)}`, target:'ordini'},
+    {text:`Guadagno mensile: ${money(monthProfit)}`, target:'ordini'},
+    {text:`Guadagno annuale: ${money(yearProfit)}`, target:'ordini'},
+    {text:last?`Ultimo ordine: ${last.stato} • ${last.data||''}`:'Ultimo ordine: nessuno', target:'ordini'},
+    {text:promoText, target:'articoli'},
+    {text:stuck?`Ordini fermi: ${stuck.id} • ${stuck.stato}`:'Ordini fermi: nessuno', target:'ordini'}
+  ];
 
   const list=document.getElementById('dashList');
-  list.innerHTML=lines.map((t,i)=>{
-    const target=(i===0||i===2)?'ordini':'articoli';
-    return `<div class="row" data-go="${target}" style="grid-template-columns:1fr"><div class="main"><div class="t">${esc(t)}</div></div></div>`;
-  }).join('');
+  list.innerHTML=entries.map(item=>`<div class="row" data-go="${item.target}" style="grid-template-columns:1fr"><div class="main"><div class="t">${esc(item.text)}</div></div></div>`).join('');
 }
 
 function renderArt(){
@@ -533,6 +638,7 @@ function renderOrd(){
     return `<div class="row" data-open="ord" data-id="${o.id}" style="grid-template-columns:1fr auto">
       <div>
         <div class="t">${esc(c?c.nome:'-')} • <span class="priceHot">${money(o.totale||0)}</span></div>
+        <div class="s">Guadagno: ${money(orderProfit(o, db))}</div>
         <div class="s">${esc(o.stato||'-')} • ${esc(o.data||'')}</div>
       </div>
       <div class="pill">${esc(o.stato||'-')}</div>
