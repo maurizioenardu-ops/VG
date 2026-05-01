@@ -4083,6 +4083,7 @@ function buildPostFacebookBase(a, opts={}){
   const priceSymbol = opts?.priceSymbol || '💶';
   const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
   const premiumLine = articleQualityLabel(a)==='Originale' ? 'QUALITÀ PREMIUM' : '';
+  const descrizioneBreve = shortArticleDescriptionForPost(a);
   const variante = safePostDetailValue(a?.variante||'', a);
   const materiale = safePostDetailValue(a?.materiale||'', a);
   const misura = safePostDetailValue(postSizeValue(a), a);
@@ -4105,6 +4106,7 @@ function buildPostFacebookBase(a, opts={}){
   if(lines.length) lines.push('');
   if(modelLine) lines.push(smartSentenceCase(modelLine));
   if(premiumLine) lines.push(premiumLine);
+  if(descrizioneBreve) lines.push(descrizioneBreve);
   const seen = new Set();
   const pushUnique = (value)=>{
     const txt = compactPostValue(value||'');
@@ -6170,6 +6172,23 @@ function articleColorForDesc(a){
   }
   return normalizeSpaceText(a?.colore||'').toLowerCase();
 }
+function shortArticleDescriptionForPost(a){
+  const brand=normalizeSpaceText(a?.brand||'');
+  const raw=normalizeSpaceText(stripBrandFromText(a?.descrizione||'', brand));
+  let desc=raw || buildAutoArticleDescription(a);
+  desc=normalizeSpaceText(desc||'');
+  if(!desc) return '';
+  desc=desc.replace(/\s+/g,' ').trim();
+  if(desc.length>78){
+    let cut=desc.slice(0,78);
+    const comma=cut.lastIndexOf(',');
+    const space=cut.lastIndexOf(' ');
+    const stop=Math.max(comma>28 ? comma : -1, space>32 ? space : -1);
+    cut=cut.slice(0, stop>0 ? stop : 78).replace(/[\s,.;:!?-]+$/,'');
+    desc=cut ? (cut + '.') : desc.slice(0,78).trim();
+  }
+  return smartSentenceCase(desc);
+}
 function buildAutoArticleDescription(a){
   const model=stripBrandFromModelName(a?.modello||'', a?.brand||'');
   if(!model) return '';
@@ -6182,16 +6201,16 @@ function buildAutoArticleDescription(a){
   if(cat) detailParts.push(cat);
   if(material) detailParts.push('in '+material);
   if(color) detailParts.push(color);
-  if(variant) detailParts.push(variant);
-  if(size) detailParts.push('misura '+size);
-  const detail=detailParts.join(', ');
+  if(variant && detailParts.length<3) detailParts.push(variant);
+  if(size && detailParts.length<3) detailParts.push('misura '+size);
+  const detail=detailParts.slice(0,3).join(', ');
   const templates=[
-    () => `Modello ${model}${detail ? ', '+detail : ''}, pratico e facile da abbinare.`,
-    () => `Modello ${model}${detail ? ', '+detail : ''}, con linea pulita e presenza equilibrata.`,
-    () => `Modello ${model}${detail ? ', '+detail : ''}, pensato per un uso versatile e quotidiano.`,
-    () => `Modello ${model}${detail ? ', '+detail : ''}, dal profilo curato e immediato da indossare.`
+    () => `Modello ${model}${detail ? ', '+detail : ''}.`,
+    () => `Modello ${model}${detail ? ', '+detail : ''}, linea pulita.`,
+    () => `Modello ${model}${detail ? ', '+detail : ''}, stile pratico.`,
+    () => `Modello ${model}${detail ? ', '+detail : ''}, facile da abbinare.`
   ];
-  const seedBase=`${model}|${cat}|${material}|${variant}|${size}|${color}|${Date.now()}`;
+  const seedBase=`${model}|${cat}|${material}|${variant}|${size}|${color}`;
   let hash=0;
   for(let i=0;i<seedBase.length;i++) hash=((hash<<5)-hash)+seedBase.charCodeAt(i);
   const pick=Math.abs(hash)%templates.length;
@@ -7812,7 +7831,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-01-ai-desc-local-v48';
+const VG_BUILD='2026-05-01-fb-desc-short-v49';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -8400,7 +8419,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=ai-desc-local-v48', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=fb-desc-short-v49', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

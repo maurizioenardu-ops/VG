@@ -1,4 +1,4 @@
-const VERSION = 'v48_ai_desc_local';
+const VERSION = 'v49_fb_desc_short';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
