@@ -1,4 +1,4 @@
-const VERSION = 'v50_fb_post_generate';
+const VERSION = 'v47_view_notes';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
