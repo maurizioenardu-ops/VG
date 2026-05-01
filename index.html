@@ -6010,7 +6010,8 @@ async function openArtEdit(id){
   renderArtAutoFields();
   currentArtExistingPics=await getArticlePics(a);
   renderCurrentArtPhotoPreview();
-  restoreArticleDraft(a?.id||'');
+  // Per articoli già salvati mostriamo sempre i dati reali salvati,
+  // senza farli sovrascrivere da una bozza locale vecchia.
   updateArticleMeasureState();
   updateArticleCodeStatus();
   show('mArtEdit');
