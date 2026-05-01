@@ -107,7 +107,7 @@ body{-webkit-tap-highlight-color:transparent}
 .btn[data-action^="shareArtPhotos"],.btn[data-action="addArtToOrderFromView"]{background:#16a34a;border-color:#16a34a;color:#fff}
   .btn[data-action^="downloadArtPhotos"]{background:#38bdf8;border-color:#38bdf8;color:#082f49}
 .pubMeta{display:inline-flex;align-items:center;margin-left:8px;font-size:11px;font-weight:800;color:#64748b;white-space:nowrap}
-.viewAlertNote{margin-top:10px;padding:10px 12px;border:1px solid #fecaca;border-radius:16px;background:#fff1f2}.viewAlertNoteLabel{font-size:11px;font-weight:1000;letter-spacing:.05em;text-transform:uppercase;color:#b91c1c;margin-bottom:6px}.viewAlertNoteBody{font-size:13px;line-height:1.4;font-weight:800;color:#7f1d1d;white-space:pre-wrap;word-break:break-word}
+.viewAlertNote{margin-top:10px;padding:10px 12px;border:1px solid #fecaca;border-radius:16px;background:#fff1f2}.viewAlertNoteLabel{font-size:11px;font-weight:1000;letter-spacing:.05em;text-transform:uppercase;color:#b91c1c;margin-bottom:6px}.viewAlertNoteBody{font-size:13px;line-height:1.4;font-weight:800;color:#7f1d1d;white-space:pre-wrap;word-break:break-word}.aiHint{margin-top:6px;font-size:11px;line-height:1.35;color:#64748b;font-weight:800}
 .btn[data-action="editFromView"],.btn[data-action="editCliFromView"],.btn[data-action="editOrdFromView"],.btn[data-action="renameCategory"],.btn[data-action="renameBrand"]{background:#fef3c7;border-color:#f59e0b;color:#7c2d12}
 .btn[data-action="closeView"],.btn[data-action="closeCliView"],.btn[data-action="closeOrdView"],.btn[data-action="closeMonthSales"]{background:var(--blue);border-color:var(--blue);color:#fff}
 .btn.orderAdd.small{padding:10px 12px;border-radius:14px;font-size:13px;min-height:46px;line-height:1.15}
@@ -642,7 +642,7 @@ window.addEventListener('error',e=>{
 
   <div class="formBlock postblk inputSoft">
     <div class="blockTitle">Post e contenuti</div>
-    <div><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Dettagli utili per il post..."></textarea></div>
+    <div><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Dettagli utili per il post..."></textarea><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="genArticleDesc">Genera descrizione</button></div><div class="aiHint">Bozza automatica corta, senza nome brand. Usa il solo modello come nome principale.</div></div>
     <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="a_post_fb" readonly placeholder="Qui il post Facebook (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbEdit">Copia FB</button></div><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbWithPriceEdit">Copia FB con prezzo 💶</button></div></div>
     <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="a_post" placeholder="Qui il post Telegram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostTelegramEdit">Copia Telegram</button></div></div>
     <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
@@ -6137,6 +6137,92 @@ function setArticleSocialPostsAuto(draft){
   setReadonlyArticlePost('a_post_fb', buildPostFacebook(draft));
   setReadonlyArticlePost('a_post_ig', buildPostInstagram(draft));
 }
+function stripBrandFromModelName(model, brand){
+  let out=normalizeSpaceText(model||'');
+  const cleanBrand=normalizeSpaceText(brand||'');
+  if(!out) return '';
+  if(cleanBrand){
+    const escaped=cleanBrand.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
+    out=normalizeSpaceText(
+      out
+        .replace(new RegExp('^'+escaped+'\\s*','i'),'')
+        .replace(new RegExp('\\b'+escaped+'\\b','ig'),' ')
+    );
+  }
+  return normalizeSpaceText(out);
+}
+function articleCategoryForDesc(raw){
+  const v=normalizeTextKey(raw||'');
+  if(v.includes('bors')) return 'borsa';
+  if(v.includes('portaf')) return 'portafoglio';
+  if(v.includes('scarp') || v.includes('sneaker')) return 'scarpa';
+  if(v.includes('cintur')) return 'cintura';
+  if(v.includes('zain')) return 'zaino';
+  if(v.includes('pochette')) return 'pochette';
+  if(v.includes('tracolla')) return 'tracolla';
+  return normalizeSpaceText(raw||'').toLowerCase();
+}
+function articleColorForDesc(a){
+  if(getArticleColorMode(a)==='multiple'){
+    const count=getArticleColorCount(a);
+    return count>1 ? 'multicolore' : '';
+  }
+  return normalizeSpaceText(a?.colore||'').toLowerCase();
+}
+function buildAutoArticleDescription(a){
+  const model=stripBrandFromModelName(a?.modello||'', a?.brand||'');
+  if(!model) return '';
+  const cat=articleCategoryForDesc(a?.categoria||'');
+  const material=normalizeSpaceText(a?.materiale||'').toLowerCase();
+  const variant=normalizeSpaceText(a?.variante||'').toLowerCase();
+  const size=normalizeSpaceText(a?.misura||'').toLowerCase();
+  const color=articleColorForDesc(a);
+  const detailParts=[];
+  if(cat) detailParts.push(cat);
+  if(material) detailParts.push('in '+material);
+  if(color) detailParts.push(color);
+  if(variant) detailParts.push(variant);
+  if(size) detailParts.push('misura '+size);
+  const detail=detailParts.join(', ');
+  const templates=[
+    () => `Modello ${model}${detail ? ', '+detail : ''}, pratico e facile da abbinare.`,
+    () => `Modello ${model}${detail ? ', '+detail : ''}, con linea pulita e presenza equilibrata.`,
+    () => `Modello ${model}${detail ? ', '+detail : ''}, pensato per un uso versatile e quotidiano.`,
+    () => `Modello ${model}${detail ? ', '+detail : ''}, dal profilo curato e immediato da indossare.`
+  ];
+  const seedBase=`${model}|${cat}|${material}|${variant}|${size}|${color}|${Date.now()}`;
+  let hash=0;
+  for(let i=0;i<seedBase.length;i++) hash=((hash<<5)-hash)+seedBase.charCodeAt(i);
+  const pick=Math.abs(hash)%templates.length;
+  return normalizeSpaceText(String(templates[pick]()).replace(/\s+,/g, ',').replace(/,,+/g, ',').replace(/\s+\./g,'.'));
+}
+function readArticleFormForDescription(){
+  return {
+    brand:getArticleBrandValue(),
+    modello:document.getElementById('a_mod')?.value||'',
+    categoria:document.getElementById('a_cat')?.value||'',
+    materiale:document.getElementById('a_taglia')?.value||'',
+    variante:document.getElementById('a_variante')?.value||'',
+    misura:document.getElementById('a_mis')?.value||'',
+    colore:(document.getElementById('a_color_mode')?.value==='multiple' ? '' : (document.getElementById('a_colore')?.value||'')),
+    colorMode:document.getElementById('a_color_mode')?.value||'single',
+    colorCount:parseInt(document.getElementById('a_color_count')?.value||0,10)||0,
+    colorLabels:parseColorLabelsInput(document.getElementById('a_color_labels')?.value||'', document.getElementById('a_color_count')?.value||0)
+  };
+}
+function generateArticleDescriptionIntoField(){
+  const draft=readArticleFormForDescription();
+  const model=stripBrandFromModelName(draft.modello||'', draft.brand||'');
+  if(!model){ toast('Inserisci il modello'); return; }
+  const desc=buildAutoArticleDescription(draft);
+  const field=document.getElementById('a_desc');
+  if(!field) return;
+  field.value=desc;
+  fitTextarea(field);
+  renderArtAutoFields();
+  saveArticleDraft();
+  toast('Descrizione pronta');
+}
 function renderArtAutoFields(){
   updateArticleColorModeUI();
   const code=document.getElementById('a_cod').value.trim();
@@ -7636,6 +7722,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='duplicateArt') return duplicateCurrentArticle(el.dataset.id || null);
   if(a==='editFromView'){ hide('mArtView', true); return openArtEdit(currentArtId); }
   if(a==='closeView') return hide('mArtView');
+  if(a==='genArticleDesc') return generateArticleDescriptionIntoField();
   if(a==='pickMoreArtPhotos'){ document.getElementById('a_photo')?.click(); return; }
   if(a==='clearPendingArtPhotos'){ resetPendingArtPhotoFiles(); renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Nuove foto annullate'); return; }
   if(a==='closeEdit'){ saveArticleDraft(); return hide('mArtEdit'); }
@@ -7724,7 +7811,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-01-view-notes-v47';
+const VG_BUILD='2026-05-01-ai-desc-local-v48';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -8312,7 +8399,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=view-notes-v47', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=ai-desc-local-v48', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

@@ -1,4 +1,4 @@
-const VERSION = 'v47_view_notes';
+const VERSION = 'v48_ai_desc_local';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
