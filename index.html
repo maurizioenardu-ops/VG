@@ -82,6 +82,7 @@ body{-webkit-tap-highlight-color:transparent}
 .pill.marginLow{border-color:#fecaca;background:#fff1f2;color:#b91c1c;box-shadow:0 6px 14px rgba(239,68,68,.14)}
 .marginBox{display:flex;flex-direction:column;gap:6px}
 .marginMeta{font-size:12px;font-weight:900;color:#475569}
+.costMeta{font-size:12px;font-weight:800;color:#6b7280;line-height:1.35}.costMeta span{color:#9ca3af;font-weight:900}
 .dot{width:10px;height:10px;border-radius:999px;background:#16a34a;display:inline-block}
 .promoNote{margin-top:6px;font-size:11px;line-height:1.3;font-weight:900;color:#475569}
 .promoNote.expired{color:#b91c1c}
@@ -107,7 +108,7 @@ body{-webkit-tap-highlight-color:transparent}
 .btn[data-action^="shareArtPhotos"],.btn[data-action="addArtToOrderFromView"]{background:#16a34a;border-color:#16a34a;color:#fff}
   .btn[data-action^="downloadArtPhotos"]{background:#38bdf8;border-color:#38bdf8;color:#082f49}
 .pubMeta{display:inline-flex;align-items:center;margin-left:8px;font-size:11px;font-weight:800;color:#64748b;white-space:nowrap}
-.viewAlertNote{margin-top:10px;padding:10px 12px;border:1px solid #fecaca;border-radius:16px;background:#fff1f2}.viewAlertNoteLabel{font-size:11px;font-weight:1000;letter-spacing:.05em;text-transform:uppercase;color:#b91c1c;margin-bottom:6px}.viewAlertNoteBody{font-size:13px;line-height:1.4;font-weight:800;color:#7f1d1d;white-space:pre-wrap;word-break:break-word}
+.viewAlertNote{margin-top:10px;padding:10px 12px;border:1px solid #fecaca;border-radius:16px;background:#fff1f2}.viewAlertNoteLabel{font-size:11px;font-weight:1000;letter-spacing:.05em;text-transform:uppercase;color:#b91c1c;margin-bottom:6px}.viewAlertNoteBody{font-size:13px;line-height:1.4;font-weight:800;color:#7f1d1d;white-space:pre-wrap;word-break:break-word}.aiHint{margin-top:6px;font-size:11px;line-height:1.35;color:#64748b;font-weight:800}
 .btn[data-action="editFromView"],.btn[data-action="editCliFromView"],.btn[data-action="editOrdFromView"],.btn[data-action="renameCategory"],.btn[data-action="renameBrand"]{background:#fef3c7;border-color:#f59e0b;color:#7c2d12}
 .btn[data-action="closeView"],.btn[data-action="closeCliView"],.btn[data-action="closeOrdView"],.btn[data-action="closeMonthSales"]{background:var(--blue);border-color:var(--blue);color:#fff}
 .btn.orderAdd.small{padding:10px 12px;border-radius:14px;font-size:13px;min-height:46px;line-height:1.15}
@@ -242,7 +243,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v10_2-fbgroup">
+  <meta name="vg-version" content="v10_4-cost-view">
 </head>
 <body>
 <div class="top">
@@ -642,7 +643,7 @@ window.addEventListener('error',e=>{
 
   <div class="formBlock postblk inputSoft">
     <div class="blockTitle">Post e contenuti</div>
-    <div><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Dettagli utili per il post..."></textarea></div>
+    <div><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Dettagli utili per il post..."></textarea><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="genArticleDesc">Genera testo post</button></div><div class="aiHint">Testo breve automatico per i post. Solo modello, senza brand.</div></div>
     <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="a_post_fb" readonly placeholder="Qui il post Facebook (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbEdit">Copia FB</button></div><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbWithPriceEdit">Copia FB con prezzo 💶</button></div></div>
     <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="a_post" placeholder="Qui il post Telegram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostTelegramEdit">Copia Telegram</button></div></div>
     <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
@@ -4083,6 +4084,7 @@ function buildPostFacebookBase(a, opts={}){
   const priceSymbol = opts?.priceSymbol || '💶';
   const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
   const premiumLine = articleQualityLabel(a)==='Originale' ? 'QUALITÀ PREMIUM' : '';
+  const descrizioneBreve = shortArticleDescriptionForPost(a);
   const variante = safePostDetailValue(a?.variante||'', a);
   const materiale = safePostDetailValue(a?.materiale||'', a);
   const misura = safePostDetailValue(postSizeValue(a), a);
@@ -4105,6 +4107,7 @@ function buildPostFacebookBase(a, opts={}){
   if(lines.length) lines.push('');
   if(modelLine) lines.push(smartSentenceCase(modelLine));
   if(premiumLine) lines.push(premiumLine);
+  if(descrizioneBreve) lines.push(descrizioneBreve);
   const seen = new Set();
   const pushUnique = (value)=>{
     const txt = compactPostValue(value||'');
@@ -5543,14 +5546,33 @@ function articleMarginInfo(a){
   }
   return { tone:'low', label:'Margine al limite', amount:current, pct };
 }
+function articleCostInfo(a){
+  const usd=Number(a?.costoUsd||0);
+  const eurStored=Number(a?.costoEur||0);
+  if(isFinite(usd) && usd>0){
+    const qualKey=normalizeQualityValue(articleQualityLabel(a)).toUpperCase();
+    const base=calcFromUsd(usd, qualKey==='ORIGINALE' ? 'ORIGINALE' : 'STANDARD');
+    const eur=isFinite(Number(base?.costo)) && Number(base?.costo)>0 ? Number(base.costo) : eurStored;
+    return { eur, usd };
+  }
+  if(isFinite(eurStored) && eurStored>0) return { eur:eurStored, usd:0 };
+  return null;
+}
+function articleCostInfoHtml(a){
+  const info=articleCostInfo(a);
+  if(!info || !isFinite(info.eur) || info.eur<=0) return '';
+  const usdText=(isFinite(info.usd) && info.usd>0) ? ` <span>(${money(info.usd)} USD)</span>` : '';
+  return `<div class="costMeta">Costo: ${money(info.eur)} €${usdText}</div>`;
+}
 function articleMarginInfoHtml(a){
   const info=articleMarginInfo(a);
+  const costHtml=articleCostInfoHtml(a);
   if(!info){
-    return '<div class="pill">Margine non disponibile</div><div class="marginMeta">Serve il costo USD per calcolarlo.</div>';
+    return `<div class="pill">Margine non disponibile</div><div class="marginMeta">Serve il costo USD per calcolarlo.</div>${costHtml}`;
   }
   const toneClass=info.tone==='good' ? 'marginGood' : (info.tone==='mid' ? 'marginMid' : 'marginLow');
   const pctText=info.pct ? ` • ${info.pct}%` : '';
-  return `<div class="pill ${toneClass}">${esc(info.label)}</div><div class="marginMeta">${money(info.amount)}${pctText}</div>`;
+  return `<div class="pill ${toneClass}">${esc(info.label)}</div><div class="marginMeta">${money(info.amount)}${pctText}</div>${costHtml}`;
 }
 function articleSearchHay(a){
   const catLabel=displayCategoryValue(a?.categoria);
@@ -6010,7 +6032,8 @@ async function openArtEdit(id){
   renderArtAutoFields();
   currentArtExistingPics=await getArticlePics(a);
   renderCurrentArtPhotoPreview();
-  restoreArticleDraft(a?.id||'');
+  // Per articoli già salvati mostriamo sempre i dati reali salvati,
+  // senza farli sovrascrivere da una bozza locale vecchia.
   updateArticleMeasureState();
   updateArticleCodeStatus();
   show('mArtEdit');
@@ -6136,6 +6159,140 @@ function setArticleSocialPostsAuto(draft){
   setArticlePostAuto(buildPostTelegram(draft));
   setReadonlyArticlePost('a_post_fb', buildPostFacebook(draft));
   setReadonlyArticlePost('a_post_ig', buildPostInstagram(draft));
+}
+function stripBrandFromModelName(model, brand){
+  let out=normalizeSpaceText(model||'');
+  const cleanBrand=normalizeSpaceText(brand||'');
+  if(!out) return '';
+  if(cleanBrand){
+    const escaped=cleanBrand.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
+    out=normalizeSpaceText(
+      out
+        .replace(new RegExp('^'+escaped+'\\s*','i'),'')
+        .replace(new RegExp('\\b'+escaped+'\\b','ig'),' ')
+    );
+  }
+  return normalizeSpaceText(out);
+}
+function articleCategoryForDesc(raw){
+  const v=normalizeTextKey(raw||'');
+  if(v.includes('bors')) return 'borsa';
+  if(v.includes('portaf')) return 'portafoglio';
+  if(v.includes('scarp') || v.includes('sneaker')) return 'scarpa';
+  if(v.includes('cintur')) return 'cintura';
+  if(v.includes('zain')) return 'zaino';
+  if(v.includes('pochette')) return 'pochette';
+  if(v.includes('tracolla')) return 'tracolla';
+  return normalizeSpaceText(raw||'').toLowerCase();
+}
+function articleColorForDesc(a){
+  if(getArticleColorMode(a)==='multiple'){
+    const count=getArticleColorCount(a);
+    return count>1 ? 'multicolore' : '';
+  }
+  return normalizeSpaceText(a?.colore||'').toLowerCase();
+}
+function shortArticleDescriptionForPost(a){
+  const brand=normalizeSpaceText(a?.brand||'');
+  const raw=normalizeSpaceText(stripBrandFromText(a?.descrizione||'', brand));
+  let desc=raw || buildAutoArticleDescription(a);
+  desc=normalizeSpaceText(desc||'');
+  if(!desc) return '';
+  desc=desc.replace(/\s+/g,' ').trim();
+  if(desc.length>78){
+    let cut=desc.slice(0,78);
+    const comma=cut.lastIndexOf(',');
+    const space=cut.lastIndexOf(' ');
+    const stop=Math.max(comma>28 ? comma : -1, space>32 ? space : -1);
+    cut=cut.slice(0, stop>0 ? stop : 78).replace(/[\s,.;:!?-]+$/,'');
+    desc=cut ? (cut + '.') : desc.slice(0,78).trim();
+  }
+  return smartSentenceCase(desc);
+}
+function getAutoArticleDescriptionTemplates(a){
+  const model=stripBrandFromModelName(a?.modello||'', a?.brand||'');
+  if(!model) return [];
+  const cat=articleCategoryForDesc(a?.categoria||'');
+  const material=normalizeSpaceText(a?.materiale||'').toLowerCase();
+  const variant=normalizeSpaceText(a?.variante||'').toLowerCase();
+  const size=normalizeSpaceText(a?.misura||'').toLowerCase();
+  const color=articleColorForDesc(a);
+  const lead = material ? `in ${material}` : (color || cat || '');
+  const accent = (!lead || normalizeTextKey(lead)!==normalizeTextKey(color||'')) ? (color || variant || cat || '') : (variant || cat || '');
+  const extra = size ? `misura ${size}` : '';
+  const joinDetail=(...parts)=>parts.map(v=>normalizeSpaceText(v||'')).filter(Boolean).filter((v,i,arr)=>arr.findIndex(x=>normalizeTextKey(x)===normalizeTextKey(v))===i).slice(0,2).join(', ');
+  const short1=joinDetail(lead);
+  const short2=joinDetail(lead, accent);
+  const short3=joinDetail(accent, extra);
+  return [
+    () => `Modello ${model}${short1 ? ', '+short1 : ''}.`,
+    () => `${model}${short1 ? ', '+short1 : ''}.`,
+    () => `Modello ${model}${short2 ? ', '+short2 : ''}.`,
+    () => `${model}${short2 ? ', '+short2 : ''}, linea pulita.`,
+    () => `Modello ${model}${short3 ? ', '+short3 : ''}, stile pratico.`,
+    () => `${model}${short1 ? ', '+short1 : ''}, facile da portare.`
+  ];
+}
+function buildAutoArticleDescription(a, opts={}){
+  const templates=getAutoArticleDescriptionTemplates(a);
+  if(!templates.length) return '';
+  const model=stripBrandFromModelName(a?.modello||'', a?.brand||'');
+  const cat=articleCategoryForDesc(a?.categoria||'');
+  const material=normalizeSpaceText(a?.materiale||'').toLowerCase();
+  const variant=normalizeSpaceText(a?.variante||'').toLowerCase();
+  const size=normalizeSpaceText(a?.misura||'').toLowerCase();
+  const color=articleColorForDesc(a);
+  const explicitIndex=Number.isInteger(opts?.variantIndex) ? opts.variantIndex : null;
+  let pick=0;
+  if(explicitIndex!==null){
+    pick=((explicitIndex%templates.length)+templates.length)%templates.length;
+  }else{
+    const seedBase=`${model}|${cat}|${material}|${variant}|${size}|${color}`;
+    let hash=0;
+    for(let i=0;i<seedBase.length;i++) hash=((hash<<5)-hash)+seedBase.charCodeAt(i);
+    pick=Math.abs(hash)%templates.length;
+  }
+  let out=normalizeSpaceText(String(templates[pick]()).replace(/\s+,/g, ',').replace(/,,+/g, ',').replace(/\s+\./g,'.'));
+  if(out.length>68){
+    let cut=out.slice(0,68);
+    const comma=cut.lastIndexOf(',');
+    const space=cut.lastIndexOf(' ');
+    const stop=Math.max(comma>24 ? comma : -1, space>28 ? space : -1);
+    cut=cut.slice(0, stop>0 ? stop : 68).replace(/[\s,.;:!?-]+$/,'');
+    out=cut ? (cut + '.') : out.slice(0,68).trim();
+  }
+  return out;
+}
+function readArticleFormForDescription(){
+  return {
+    brand:getArticleBrandValue(),
+    modello:document.getElementById('a_mod')?.value||'',
+    categoria:document.getElementById('a_cat')?.value||'',
+    materiale:document.getElementById('a_taglia')?.value||'',
+    variante:document.getElementById('a_variante')?.value||'',
+    misura:document.getElementById('a_mis')?.value||'',
+    colore:(document.getElementById('a_color_mode')?.value==='multiple' ? '' : (document.getElementById('a_colore')?.value||'')),
+    colorMode:document.getElementById('a_color_mode')?.value||'single',
+    colorCount:parseInt(document.getElementById('a_color_count')?.value||0,10)||0,
+    colorLabels:parseColorLabelsInput(document.getElementById('a_color_labels')?.value||'', document.getElementById('a_color_count')?.value||0)
+  };
+}
+function generateArticleDescriptionIntoField(){
+  const draft=readArticleFormForDescription();
+  const model=stripBrandFromModelName(draft.modello||'', draft.brand||'');
+  if(!model){ toast('Inserisci il modello'); return; }
+  const field=document.getElementById('a_desc');
+  if(!field) return;
+  const total=getAutoArticleDescriptionTemplates(draft).length || 1;
+  const currentVariant=parseInt(field.dataset.genVariant||'-1',10);
+  const nextVariant=Number.isFinite(currentVariant) ? ((currentVariant+1)%total) : Math.floor(Math.random()*total);
+  const desc=buildAutoArticleDescription(draft, { variantIndex: nextVariant });
+  field.dataset.genVariant=String(nextVariant);
+  field.value=desc;
+  fitTextarea(field);
+  renderArtAutoFields();
+  saveArticleDraft();
+  toast('Testo post pronto');
 }
 function renderArtAutoFields(){
   updateArticleColorModeUI();
@@ -7636,6 +7793,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='duplicateArt') return duplicateCurrentArticle(el.dataset.id || null);
   if(a==='editFromView'){ hide('mArtView', true); return openArtEdit(currentArtId); }
   if(a==='closeView') return hide('mArtView');
+  if(a==='genArticleDesc') return generateArticleDescriptionIntoField();
   if(a==='pickMoreArtPhotos'){ document.getElementById('a_photo')?.click(); return; }
   if(a==='clearPendingArtPhotos'){ resetPendingArtPhotoFiles(); renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Nuove foto annullate'); return; }
   if(a==='closeEdit'){ saveArticleDraft(); return hide('mArtEdit'); }
@@ -7724,7 +7882,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-01-view-notes-v47';
+const VG_BUILD='2026-05-01-fb-desc-short-v49';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -8312,7 +8470,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=view-notes-v47', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=fb-post-generate-v50', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
