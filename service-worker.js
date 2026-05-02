@@ -1,4 +1,4 @@
-const VERSION = 'v51_cost_view';
+const VERSION = 'v52_color_after_type';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

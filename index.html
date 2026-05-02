@@ -243,7 +243,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v10_4-cost-view">
+  <meta name="vg-version" content="v10_5-color-after-type">
 </head>
 <body>
 <div class="top">
@@ -594,14 +594,14 @@ window.addEventListener('error',e=>{
           <option value="multiple">Più colori</option>
         </select>
       </div>
-      <div><div class="k">Misura</div><input id="a_mis" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="a_mis_hint" class="helper"></div></div>
-    </div>
-    <div class="grid2" style="margin-top:10px">
       <div id="a_color_single_wrap">
         <div class="k" id="a_colore_label">Colore</div>
         <input id="a_colore" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Es. Nero, Beige, Testa di moro"/>
         <div id="a_colore_hint" class="helper">Scrivi il colore normalmente.</div>
       </div>
+    </div>
+    <div class="grid2" style="margin-top:10px">
+      <div><div class="k">Misura</div><input id="a_mis" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="a_mis_hint" class="helper"></div></div>
       <div id="a_color_count_wrap">
         <div class="k" id="a_color_count_label">Colori disponibili</div>
         <input id="a_color_count" inputmode="numeric" autocomplete="off" placeholder="Es. 5"/>
@@ -7882,7 +7882,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-01-fb-desc-short-v49';
+const VG_BUILD='2026-05-02-color-after-type-v50';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -8470,7 +8470,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=fb-post-generate-v50', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=color-after-type-v51', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
