@@ -545,7 +545,7 @@ window.addEventListener('error',e=>{
     </div>
   </div>
   <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" type="button" data-action="shareArtPhotosFb">Condividi foto</button><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbWithPrice">Copia FB con prezzo 💶</button><span id="vArtPubMetaFbPrice" class="pubMeta">0 · mai</span></div></div>
-  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="downloadArtPhotosTg">Scarica foto</button><span id="vArtPubMetaTg" class="pubMeta">0 · mai</span></div></div>
+  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="shareArtPhotosTg">Condividi foto</button><button class="btn smallish" type="button" data-action="downloadArtPhotosTg">Scarica foto</button><span id="vArtPubMetaTg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish" type="button" data-action="downloadArtPhotosIg">Scarica foto</button><span id="vArtPubMetaIg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
@@ -2505,6 +2505,7 @@ async function ensureCurrentArticlePhotoSheet(ctx, files=null){
 }
 
 async function shareCurrentArticlePhotos(channel='fb'){
+  const isTelegramChannel = channel==='tg';
   let ctx=getPreparedCurrentArticlePhotoContext();
   if(!ctx) ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
@@ -2516,9 +2517,9 @@ async function shareCurrentArticlePhotos(channel='fb'){
     warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(err=>console.warn('Warmup share foto on-demand fallito', err));
     const readyCount=cachedFiles.length;
     if(readyCount>0 && readyCount<ctx.pics.length){
-      toast(`Sto preparando tutte le foto: ${readyCount}/${ctx.pics.length} pronte. Premi Condividi tra un attimo.`);
+      toast(`Sto preparando tutte le foto: ${readyCount}/${ctx.pics.length} pronte. Premi ${isTelegramChannel ? 'Condividi foto' : 'Condividi'} tra un attimo.`);
     }else{
-      toast(`Sto preparando ${ctx.pics.length} foto. Premi Condividi tra un attimo.`);
+      toast(`Sto preparando ${ctx.pics.length} foto. Premi ${isTelegramChannel ? 'Condividi foto' : 'Condividi'} tra un attimo.`);
     }
     return;
   }
@@ -2533,7 +2534,7 @@ async function shareCurrentArticlePhotos(channel='fb'){
     const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
     if(shared){
       recordArticlePublication(channel);
-      toast(files.length===1 ? 'Condivisione aperta.' : `Condivisione aperta per ${files.length} foto.`);
+      toast(isTelegramChannel ? 'Condivisione aperta. Se Telegram è installato, scegli Telegram dalla condivisione.' : (files.length===1 ? 'Condivisione aperta.' : `Condivisione aperta per ${files.length} foto.`));
       return;
     }
 
@@ -2542,12 +2543,12 @@ async function shareCurrentArticlePhotos(channel='fb'){
       const sheetShared = sheetFile ? await tryNativeShareArticleFiles([sheetFile], `${ctx.baseName||'articolo'}_tutte_le_foto`) : false;
       if(sheetShared){
         recordArticlePublication(channel);
-        toast(`La condivisione multipla è stata rifiutata dal browser. Ho aperto una tavola unica con tutte e ${files.length} le foto.`);
+        toast(isTelegramChannel ? `Ho aperto la condivisione. Se Telegram è installato, sceglilo dall'elenco app.` : `La condivisione multipla è stata rifiutata dal browser. Ho aperto una tavola unica con tutte e ${files.length} le foto.`);
         return;
       }
     }
 
-    toast('Condivisione foto non riuscita. Su questo browser la condivisione file è capricciosa. Usa Scarica foto.');
+    toast(isTelegramChannel ? 'Condivisione Telegram non riuscita direttamente. Usa Scarica foto oppure scegli Telegram dalla condivisione di sistema.' : 'Condivisione foto non riuscita. Su questo browser la condivisione file è capricciosa. Usa Scarica foto.');
   }catch(err){
     if(isShareAbortError(err)) return;
     console.warn('Condivisione foto articolo fallita', err);
@@ -2561,7 +2562,7 @@ async function shareCurrentArticlePhotos(channel='fb'){
         const sheetShared = sheetFile ? await tryNativeShareArticleFiles([sheetFile], `${ctx.baseName||'articolo'}_tutte_le_foto`) : false;
         if(sheetShared){
           recordArticlePublication(channel);
-          toast(`La condivisione multipla non è passata. Ho aperto una tavola unica con tutte e ${files.length} le foto.`);
+          toast(isTelegramChannel ? `Ho aperto la condivisione. Se Telegram è installato, sceglilo dall'elenco app.` : `La condivisione multipla non è passata. Ho aperto una tavola unica con tutte e ${files.length} le foto.`);
           return;
         }
       }
@@ -2569,7 +2570,7 @@ async function shareCurrentArticlePhotos(channel='fb'){
       if(isShareAbortError(sheetErr)) return;
       console.warn('Fallback tavola foto articolo fallito', sheetErr);
     }
-    toast('Condivisione foto non riuscita. Usa Scarica foto.');
+    toast(isTelegramChannel ? 'Condivisione Telegram non riuscita direttamente. Usa Scarica foto oppure scegli Telegram dalla condivisione di sistema.' : 'Condivisione foto non riuscita. Usa Scarica foto.');
   }
 }
 
@@ -7574,7 +7575,7 @@ function bindSearchSuggest(inputId, boxId, kind, onApply){
 
 /* ====== EVENTS ====== */
 document.addEventListener('pointerdown',(ev)=>{
-  const btn=ev.target?.closest?.('[data-action="shareArtPhotosFb"],[data-action="shareArtPhotos"],[data-action="downloadArtPhotosTg"],[data-action="downloadArtPhotosIg"],[data-action="downloadArtPhotos"]');
+  const btn=ev.target?.closest?.('[data-action="shareArtPhotosFb"],[data-action="shareArtPhotosTg"],[data-action="shareArtPhotos"],[data-action="downloadArtPhotosTg"],[data-action="downloadArtPhotosIg"],[data-action="downloadArtPhotos"]');
   if(!btn) return;
   Promise.resolve()
     .then(()=>getPreparedCurrentArticlePhotoContext() || getCurrentArticlePhotoContext())
@@ -7764,6 +7765,7 @@ document.addEventListener('click',(ev)=>{
     return copyText(buildPostInstagram(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('ig'); });
   }
   if(a==='shareArtPhotosFb' || a==='shareArtPhotos') return shareCurrentArticlePhotos('fb');
+  if(a==='shareArtPhotosTg') return shareCurrentArticlePhotos('tg');
   if(a==='downloadArtPhotosTg') return downloadCurrentArticlePhotos('tg');
   if(a==='downloadArtPhotosIg') return downloadCurrentArticlePhotos('ig');
   if(a==='downloadArtPhotos') return downloadCurrentArticlePhotos('tg');

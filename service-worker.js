@@ -1,4 +1,4 @@
-const VERSION = 'v52_color_after_type';
+const VERSION = 'v53_tg_share_button';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
