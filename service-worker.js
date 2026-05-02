@@ -1,4 +1,4 @@
-const VERSION = 'v56_edit_bg_greige';
+const VERSION = 'v56_edit_bg_greige_fix';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
