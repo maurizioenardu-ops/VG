@@ -1,4 +1,4 @@
-const VERSION = 'v53_tg_share_button';
+const VERSION = 'v54_no_post_generator';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

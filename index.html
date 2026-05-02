@@ -643,7 +643,7 @@ window.addEventListener('error',e=>{
 
   <div class="formBlock postblk inputSoft">
     <div class="blockTitle">Post e contenuti</div>
-    <div><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Dettagli utili per il post..."></textarea><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="genArticleDesc">Genera testo post</button></div><div class="aiHint">Testo breve automatico per i post. Solo modello, senza brand.</div></div>
+    <div><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Dettagli utili per il post..."></textarea></div>
     <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="a_post_fb" readonly placeholder="Qui il post Facebook (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbEdit">Copia FB</button></div><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbWithPriceEdit">Copia FB con prezzo 💶</button></div></div>
     <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="a_post" placeholder="Qui il post Telegram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostTelegramEdit">Copia Telegram</button></div></div>
     <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
@@ -6264,37 +6264,6 @@ function buildAutoArticleDescription(a, opts={}){
   }
   return out;
 }
-function readArticleFormForDescription(){
-  return {
-    brand:getArticleBrandValue(),
-    modello:document.getElementById('a_mod')?.value||'',
-    categoria:document.getElementById('a_cat')?.value||'',
-    materiale:document.getElementById('a_taglia')?.value||'',
-    variante:document.getElementById('a_variante')?.value||'',
-    misura:document.getElementById('a_mis')?.value||'',
-    colore:(document.getElementById('a_color_mode')?.value==='multiple' ? '' : (document.getElementById('a_colore')?.value||'')),
-    colorMode:document.getElementById('a_color_mode')?.value||'single',
-    colorCount:parseInt(document.getElementById('a_color_count')?.value||0,10)||0,
-    colorLabels:parseColorLabelsInput(document.getElementById('a_color_labels')?.value||'', document.getElementById('a_color_count')?.value||0)
-  };
-}
-function generateArticleDescriptionIntoField(){
-  const draft=readArticleFormForDescription();
-  const model=stripBrandFromModelName(draft.modello||'', draft.brand||'');
-  if(!model){ toast('Inserisci il modello'); return; }
-  const field=document.getElementById('a_desc');
-  if(!field) return;
-  const total=getAutoArticleDescriptionTemplates(draft).length || 1;
-  const currentVariant=parseInt(field.dataset.genVariant||'-1',10);
-  const nextVariant=Number.isFinite(currentVariant) ? ((currentVariant+1)%total) : Math.floor(Math.random()*total);
-  const desc=buildAutoArticleDescription(draft, { variantIndex: nextVariant });
-  field.dataset.genVariant=String(nextVariant);
-  field.value=desc;
-  fitTextarea(field);
-  renderArtAutoFields();
-  saveArticleDraft();
-  toast('Testo post pronto');
-}
 function renderArtAutoFields(){
   updateArticleColorModeUI();
   const code=document.getElementById('a_cod').value.trim();
@@ -7795,7 +7764,6 @@ document.addEventListener('click',(ev)=>{
   if(a==='duplicateArt') return duplicateCurrentArticle(el.dataset.id || null);
   if(a==='editFromView'){ hide('mArtView', true); return openArtEdit(currentArtId); }
   if(a==='closeView') return hide('mArtView');
-  if(a==='genArticleDesc') return generateArticleDescriptionIntoField();
   if(a==='pickMoreArtPhotos'){ document.getElementById('a_photo')?.click(); return; }
   if(a==='clearPendingArtPhotos'){ resetPendingArtPhotoFiles(); renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Nuove foto annullate'); return; }
   if(a==='closeEdit'){ saveArticleDraft(); return hide('mArtEdit'); }
