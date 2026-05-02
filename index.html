@@ -243,7 +243,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v10_5-color-after-type">
+  <meta name="vg-version" content="v10_6-post-cleanup">
 </head>
 <body>
 <div class="top">
@@ -4085,7 +4085,6 @@ function buildPostFacebookBase(a, opts={}){
   const priceSymbol = opts?.priceSymbol || '💶';
   const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
   const premiumLine = articleQualityLabel(a)==='Originale' ? 'QUALITÀ PREMIUM' : '';
-  const descrizioneBreve = shortArticleDescriptionForPost(a);
   const variante = safePostDetailValue(a?.variante||'', a);
   const materiale = safePostDetailValue(a?.materiale||'', a);
   const misura = safePostDetailValue(postSizeValue(a), a);
@@ -4108,20 +4107,21 @@ function buildPostFacebookBase(a, opts={}){
   if(lines.length) lines.push('');
   if(modelLine) lines.push(smartSentenceCase(modelLine));
   if(premiumLine) lines.push(premiumLine);
-  if(descrizioneBreve) lines.push(descrizioneBreve);
   const seen = new Set();
-  const pushUnique = (value)=>{
-    const txt = compactPostValue(value||'');
+  const pushUnique = (value, formatter=null)=>{
+    let txt = compactPostValue(value||'');
     if(!txt) return;
+    txt = formatter ? formatter(txt) : txt;
+    txt = compactPostValue(txt);
     const key = normalizeTextKey(txt);
     if(!key || seen.has(key)) return;
     seen.add(key);
     lines.push(txt);
   };
-  pushUnique(smartSentenceCase(variante));
-  pushUnique(smartSentenceCase(materiale));
-  if(misura) lines.push(`Mis. ${smartSentenceCase(misura)}`);
-  if(colore) lines.push(`Colore: ${smartSentenceCase(colore)}`);
+  pushUnique(variante, v=>smartSentenceCase(v));
+  pushUnique(materiale, v=>smartSentenceCase(v));
+  pushUnique(misura, v=>`Mis. ${smartSentenceCase(v)}`);
+  pushUnique(colore, v=>`Colore: ${smartSentenceCase(v)}`);
   if(includePrice){
     const prezzoFacebook = formatPostPrezzoVendita(currentPrice(a), priceSymbol);
     if(prezzoFacebook) lines.push(prezzoFacebook);
@@ -4161,7 +4161,6 @@ function buildPostTelegram(a){
   if(!a.codice) return '';
   const brand=(a.brand||'').trim();
   const modello=normalizePostLine(a.modello||'', brand);
-  const descrizione=normalizePostLine(a.descrizione||'', brand);
   const variante=normalizePostLine(a.variante||'', brand);
   const colore=normalizePostLine(a.colore||'', brand);
   const materiale=normalizePostLine(a.materiale||'', brand);
@@ -4171,6 +4170,17 @@ function buildPostTelegram(a){
   const materialeCompat=normalizePostLine(a.materiale||a.taglia||'', brand);
   const qemoji=emojiQualityForPost(a);
   const lines=[];
+  const seen = new Set();
+  const pushUnique = (value, formatter=null)=>{
+    let txt = compactPostValue(value||'');
+    if(!txt) return;
+    txt = formatter ? formatter(txt) : txt;
+    txt = compactPostValue(txt);
+    const key = normalizeTextKey(txt);
+    if(!key || seen.has(key)) return;
+    seen.add(key);
+    lines.push(txt);
+  };
   if(a.promoAttiva){
     const promoStart=getPromoStartDate(a);
     const scadenzaRaw=String(a.scadenzaPromo||'').trim();
@@ -4179,27 +4189,26 @@ function buildPostTelegram(a){
     if(promoStart && scadenzaRaw) lines.push(`(dal ${formatPromoDateLabel(promoStart)} al ${formatPromoDateLabel(scadenzaRaw)})`);
     else if(scadenzaRaw) lines.push(`(fino al ${formatPromoDateLabel(scadenzaRaw)})`);
     if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
-    if(tipoMateriale) lines.push(tipoMateriale);
-    if(colore) lines.push(colore);
-    if(misura) lines.push(formatPostMisura(misura));
+    pushUnique(tipoMateriale);
+    pushUnique(colore);
+    pushUnique(misura, v=>formatPostMisura(v));
     const prezzoVenditaPromo=formatPostPrezzoVendita(a.prezzoVendita, '€');
     if(prezzoVenditaPromo) lines.push(prezzoVenditaPromo);
     lines.push(`cod. ${a.codice}`);
-    return uniquePostLines(lines).join('\n');
+    return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
   }
   if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
-  if(descrizione) lines.push(descrizione);
-  if(variante) lines.push(variante);
-  if(colore) lines.push(colore);
-  if(misura) lines.push(formatPostMisura(misura));
+  pushUnique(variante);
+  pushUnique(colore);
+  pushUnique(misura, v=>formatPostMisura(v));
   if(a.scatola) lines.push('Con scatola 🎁');
-  if(materiale || materialeCompat) lines.push(`🧵 ${materiale || materialeCompat}`);
-  if(colori) lines.push(colori);
-  if(tracolla) lines.push(tracolla);
+  pushUnique(materiale || materialeCompat, v=>`🧵 ${v}`);
+  pushUnique(colori);
+  pushUnique(tracolla);
   const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita, '€');
   if(prezzoVendita) lines.push(prezzoVendita);
   lines.push(`cod. ${a.codice}`);
-  return uniquePostLines(lines).join('\n');
+  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
 function buildCloudArticleMeta(art){
   return {

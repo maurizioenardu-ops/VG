@@ -1,4 +1,4 @@
-const VERSION = 'v54_no_post_generator';
+const VERSION = 'v55_post_cleanup';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
