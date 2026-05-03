@@ -791,7 +791,7 @@ window.addEventListener('error',e=>{
       </div>
       <aside>
         <div id="o_pick_color_wrap" style="display:none"><div class="k">Colore</div><select id="o_pick_color"></select><div id="o_pick_color_hint" class="orderHintSoft">Scegli il colore e poi aggiungi l'articolo.</div></div>
-        <div><div class="k">Misura</div><select id="o_mis" autocomplete="off"><option value="">Non necessaria</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option></select><div id="o_mis_hint" class="helper">Usala solo per scarpe.</div></div>
+        <div><div class="k">Misura</div><select id="o_mis" autocomplete="off"><option value="">Non necessaria</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option></select><div id="o_mis_hint" class="helper">Usala per scarpe e cinture.</div></div>
       </aside>
     </div>
     <div class="actions bottomMini"><button class="btn" type="button" data-action="addRow">Aggiungi</button></div>
@@ -6929,37 +6929,74 @@ function updateArticleMeasureState(){
 let currentOrdId=null;
 let ordRows=[];
 const ORDER_SHOE_SIZES=['34','35','36','37','38','39','40','41','42','43','44','45'];
-function orderRowNeedsShoeSize(row, db){
+const ORDER_BELT_SIZES=['70','75','80','85','90','95','100','105','110','115','120','125','130'];
+function orderRowMeasureType(row, db){
   const art=(db?.articoli||[]).find(a=>a.id===row?.articoloId || (row?.codice && a.codice===row.codice));
   const cat=normalizeTextKey(art?.categoria||row?.categoria||'');
-  return ['scarpa','scarpe','shoe','shoes'].some(token=>cat===token || cat.includes(token));
+  if(['scarpa','scarpe','shoe','shoes'].some(token=>cat===token || cat.includes(token))) return 'shoe';
+  if(['cintura','cinture','belt','belts'].some(token=>cat===token || cat.includes(token))) return 'belt';
+  return '';
+}
+function orderRowNeedsShoeSize(row, db){
+  return orderRowMeasureType(row, db)==='shoe';
+}
+function orderRowNeedsBeltSize(row, db){
+  return orderRowMeasureType(row, db)==='belt';
+}
+function orderRowNeedsMeasure(row, db){
+  return !!orderRowMeasureType(row, db);
 }
 function orderNeedsShoeSize(rows, db){
   return (Array.isArray(rows)?rows:[]).some(row=>orderRowNeedsShoeSize(row, db||loadDB()));
+}
+function orderNeedsBeltSize(rows, db){
+  return (Array.isArray(rows)?rows:[]).some(row=>orderRowNeedsBeltSize(row, db||loadDB()));
+}
+function orderNeedsMeasure(rows, db){
+  return (Array.isArray(rows)?rows:[]).some(row=>orderRowNeedsMeasure(row, db||loadDB()));
+}
+function orderMeasureAllowedSizes(rows, db){
+  const data=db||loadDB();
+  const hasShoe=orderNeedsShoeSize(rows, data);
+  const hasBelt=orderNeedsBeltSize(rows, data);
+  if(hasShoe && hasBelt) return Array.from(new Set([...ORDER_SHOE_SIZES, ...ORDER_BELT_SIZES]));
+  if(hasBelt) return ORDER_BELT_SIZES.slice();
+  if(hasShoe) return ORDER_SHOE_SIZES.slice();
+  return ORDER_SHOE_SIZES.slice();
+}
+function rebuildOrderMeasureOptions(sel, sizes, needed, current=''){
+  if(!sel) return;
+  const clean=String(current||'').trim();
+  const firstLabel=needed ? 'Seleziona misura' : 'Non necessaria';
+  sel.innerHTML=`<option value="">${firstLabel}</option>` + (sizes||[]).map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  if(clean && (sizes||[]).includes(clean)) sel.value=clean;
+  else sel.value='';
 }
 function ensureOrderSizeOption(value){
   const sel=document.getElementById('o_mis');
   if(!sel) return;
   const clean=String(value||'').trim();
-  Array.from(sel.querySelectorAll('option[data-temp-size="1"]')).forEach(opt=>opt.remove());
-  if(clean && !ORDER_SHOE_SIZES.includes(clean) && !Array.from(sel.options).some(opt=>opt.value===clean)){
-    const opt=document.createElement('option');
-    opt.value=clean;
-    opt.textContent=clean;
-    opt.dataset.tempSize='1';
-    sel.insertBefore(opt, sel.firstElementChild?.nextElementSibling || null);
-  }
+  const sizes=Array.from(new Set([...ORDER_SHOE_SIZES, ...ORDER_BELT_SIZES, clean].filter(Boolean)));
+  rebuildOrderMeasureOptions(sel, sizes, false, clean);
 }
 function updateOrderShoeSizeState(){
   const sel=document.getElementById('o_mis');
   const hint=document.getElementById('o_mis_hint');
   if(!sel) return false;
-  const needed=orderNeedsShoeSize(ordRows, loadDB());
+  const db=loadDB();
+  const needed=orderNeedsMeasure(ordRows, db);
+  const hasShoe=orderNeedsShoeSize(ordRows, db);
+  const hasBelt=orderNeedsBeltSize(ordRows, db);
+  const current=String(sel.value||'').trim();
+  const allowed=orderMeasureAllowedSizes(ordRows, db);
+  rebuildOrderMeasureOptions(sel, allowed, needed, current);
   sel.required=needed;
-  const firstOpt=sel.querySelector('option[value=""]');
-  if(firstOpt) firstOpt.textContent=needed ? 'Seleziona misura' : 'Non necessaria';
-  if(!needed && !ORDER_SHOE_SIZES.includes(String(sel.value||''))) sel.value='';
-  if(hint) hint.textContent=needed ? 'Se ci sono scarpe, scegli qui una sola misura valida per tutte le righe scarpe.' : 'Misura non necessaria se non ci sono scarpe.';
+  if(hint){
+    if(hasShoe && hasBelt) hint.textContent='Scarpe: misura 34-45. Cinture: lunghezze da 70 a 130 cm con incremento di 5 cm.';
+    else if(hasBelt) hint.textContent='Per le cinture scegli una lunghezza da 70 a 130 cm, con incremento di 5 cm.';
+    else if(hasShoe) hint.textContent='Per le scarpe scegli una misura da 34 a 45.';
+    else hint.textContent='Misura non necessaria se non ci sono scarpe o cinture.';
+  }
   return needed;
 }
 async function openOrdEdit(id, prefillArticleId=null){
@@ -7228,11 +7265,13 @@ function renderOrdRows(){
     const art=(db.articoli||[]).find(a=>a.id===r?.articoloId || (r?.codice && a.codice===r.codice));
     const needsColor=!!r?.richiedeNumeroColore && Number(r?.colorCount||0)>0;
     const isShoe=orderRowNeedsShoeSize(r, db);
+    const isBelt=orderRowNeedsBeltSize(r, db);
+    const needsMeasure=isShoe||isBelt;
     const badges=[];
     if(r?.codice) badges.push(`<span class="orderBadge">Cod. ${esc(r.codice)}</span>`);
     badges.push(`<span class="orderBadge">€ ${money(r.prezzo||0)}</span>`);
     if(r?.colore) badges.push(`<span class="orderBadge">Colore ${esc(r.colore)}</span>`);
-    if(isShoe) badges.push(`<span class="orderBadge">Misura ${esc(globalSize||'da scegliere')}</span>`);
+    if(needsMeasure) badges.push(`<span class="orderBadge">Misura ${esc(globalSize||'da scegliere')}</span>`);
     const colorUi=needsColor ? `<div class="orderInlineField"><label>Colore</label><select data-role="rowColorNum" data-i="${i}">${buildOrderColorOptions(r.colorCount, r.numeroColore||'', r.colorLabels||[])}</select></div>` : '';
     const meta=[art?.brand, displayCategoryValue(art?.categoria||r?.categoria||''), art?.qualita].filter(Boolean).map(v=>esc(v)).join(' • ');
     return `<div class="orderCard"><div><div class="title">${esc(r.modello||art?.modello||'Articolo selezionato')}</div><div class="meta">${meta || 'Riga ordine'}</div><div class="orderBadges">${badges.join('')}</div><div class="orderRowControls">${colorUi}</div></div><button class="orderRemoveBtn" type="button" aria-label="Rimuovi articolo" title="Rimuovi articolo" data-action="delRow" data-i="${i}">Rimuovi</button></div>`;
@@ -7240,12 +7279,14 @@ function renderOrdRows(){
   const sum=document.getElementById('o_rows_summary');
   if(sum){
     const shoeCount=ordRows.filter(r=>orderRowNeedsShoeSize(r, db)).length;
+    const beltCount=ordRows.filter(r=>orderRowNeedsBeltSize(r, db)).length;
     const colorCount=ordRows.filter(r=>!!r?.richiedeNumeroColore && Number(r?.colorCount||0)>0).length;
     if(!ordRows.length){
       sum.innerHTML="Ancora nessun articolo nell'ordine.";
     }else{
       const parts=[`<strong>Articoli:</strong> ${ordRows.length}`];
       if(shoeCount) parts.push(`<strong>Scarpe:</strong> ${shoeCount}${globalSize?` • misura ${esc(globalSize)}`:''}`);
+      if(beltCount) parts.push(`<strong>Cinture:</strong> ${beltCount}${globalSize?` • misura ${esc(globalSize)} cm`:''}`);
       if(colorCount) parts.push(`<strong>Colori da scegliere:</strong> ${colorCount}`);
       sum.innerHTML=parts.join(' &nbsp;•&nbsp; ');
     }
@@ -7280,8 +7321,17 @@ async function saveOrd(){
   const tot=totals.total;
   const misuraSel=document.getElementById('o_mis');
   const misuraValue=String(misuraSel?.value||'').trim();
-  if(updateOrderShoeSizeState() && !ORDER_SHOE_SIZES.includes(misuraValue)){
-    toast('Per le scarpe devi scegliere una misura da 34 a 45');
+  const misuraObbligatoria=updateOrderShoeSizeState();
+  const misureValide=orderMeasureAllowedSizes(ordRows, db);
+  if(misuraObbligatoria && !misureValide.includes(misuraValue)){
+    const hasShoe=orderNeedsShoeSize(ordRows, db);
+    const hasBelt=orderNeedsBeltSize(ordRows, db);
+    const msg=hasShoe && hasBelt
+      ? 'Per scarpe e cinture devi scegliere una misura valida'
+      : hasBelt
+        ? 'Per le cinture devi scegliere una lunghezza da 70 a 130 cm, ogni 5 cm'
+        : 'Per le scarpe devi scegliere una misura da 34 a 45';
+    toast(msg);
     misuraSel?.focus();
     return;
   }
