@@ -1,4 +1,4 @@
-const VERSION = 'v57_order_belt_sizes';
+const VERSION = 'v57_borse_image';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
