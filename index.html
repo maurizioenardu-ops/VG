@@ -34,6 +34,9 @@ body{-webkit-tap-highlight-color:transparent}
 .list{display:flex;flex-direction:column;gap:10px}
 .row{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px}
 .thumb{width:64px;height:64px;border-radius:14px;border:1px solid var(--line);background:#f3f4f6;object-fit:cover}
+.thumb.placeholder{display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:1000;color:#64748b;background:#eef2ff}
+.catRow{grid-template-columns:64px 1fr auto}
+.catHint{margin-top:8px;color:#64748b;font-size:12px;line-height:1.35}
 .t{font-weight:1000}
 .s{font-size:12px;color:var(--muted);margin-top:2px}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:1000;border:1px solid var(--line);background:#fff}
@@ -149,6 +152,7 @@ window.addEventListener('error',e=>{
     <div class="card" style="margin-top:12px">
       <div class="h2">Immagini categorie</div>
       <div class="small">Carica una foto per categoria: verrà usata come immagine di riferimento quando l’articolo non ha una foto propria.</div>
+      <div class="catHint">Le categorie base sono già pronte. Le immagini salvate restano nel database e vengono incluse nell’export completo.</div>
       <div class="grid2" style="margin-top:10px">
         <div><div class="k">Categoria</div><select id="catImgSelect"></select></div>
         <div><div class="k">Nuova categoria</div><input id="catImgName" placeholder="Es. Borse" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
@@ -300,6 +304,7 @@ window.addEventListener('error',e=>{
 /* ====== DB ====== */
 const KEY='vg_db_full_v5';
 const PROVINCE=[ "AG","AL","AN","AO","AP","AQ","AR","AT","AV","BA","BG","BI","BL","BN","BO","BR","BS","BT","BZ","CA","CB","CE","CH","CL","CN","CO","CR","CS","CT","CZ","EN","FC","FE","FG","FI","FM","FR","GE","GO","GR","IM","IS","KR","LC","LE","LI","LO","LT","LU","MB","MC","ME","MI","MN","MO","MS","MT","NA","NO","NU","OR","PA","PC","PD","PE","PG","PI","PN","PO","PR","PT","PU","PV","PZ","RA","RC","RE","RG","RI","RM","RN","RO","SA","SI","SO","SP","SR","SS","SU","SV","TA","TE","TN","TO","TP","TR","TS","TV","UD","VA","VB","VC","VE","VI","VR","VT","VV" ];
+const DEFAULT_CATEGORIES=['Borse','Portafogli','Cinture','Scarpe','Abbigliamento','Accessori'];
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
 const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
 const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -398,6 +403,7 @@ function buildPost(a){
 
 /* ====== NAV ====== */
 function go(name){
+  if(!document.getElementById('sec_'+name)) name='home';
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.getElementById('sec_'+name).classList.add('active');
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.go===name));
@@ -405,7 +411,8 @@ function go(name){
   history.pushState({page:name},'', '#'+name);
 }
 window.addEventListener('popstate',(e)=>{
-  const page=(e.state&&e.state.page) || location.hash.replace('#','') || 'home';
+  let page=(e.state&&e.state.page) || location.hash.replace('#','') || 'home';
+  if(!document.getElementById('sec_'+page)) page='home';
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   const sec=document.getElementById('sec_'+page); if(sec) sec.classList.add('active');
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.go===page));
@@ -437,16 +444,26 @@ function getCategoryImage(cat){
   const db=loadDB();
   return db.categoryImages?.[normCat(cat)] || '';
 }
+function niceCatLabel(key){
+  const known=DEFAULT_CATEGORIES.find(c=>normCat(c)===normCat(key));
+  if(known) return known;
+  return String(key||'').trim().replace(/\s+/g,' ').replace(/^./,m=>m.toUpperCase());
+}
 function getCategories(db){
   const seen=new Map();
+  DEFAULT_CATEGORIES.forEach(name=>seen.set(normCat(name), name));
   (db.articoli||[]).forEach(a=>{
     const name=String(a.categoria||'').trim();
     if(name) seen.set(normCat(name), name);
   });
   Object.keys(db.categoryImages||{}).forEach(k=>{
-    if(k && !seen.has(k)) seen.set(k, k.charAt(0).toUpperCase()+k.slice(1));
+    if(k && !seen.has(k)) seen.set(k, niceCatLabel(k));
   });
   return Array.from(seen.entries()).sort((a,b)=>a[1].localeCompare(b[1],'it')).map(([key,label])=>({key,label}));
+}
+function categoryPlaceholder(label){
+  const txt=String(label||'?').trim();
+  return `<div class="thumb placeholder">${esc((txt[0]||'?').toUpperCase())}</div>`;
 }
 function renderCategoryImageSettings(){
   const sel=document.getElementById('catImgSelect');
@@ -461,12 +478,14 @@ function renderCategoryImageSettings(){
   const selected=sel.value;
   const selectedImg=selected ? (db.categoryImages?.[selected]||'') : '';
   prev.innerHTML=selectedImg ? `<img src="${selectedImg}" title="Anteprima categoria"/>` : '<div class="small">Nessuna immagine selezionata</div>';
-  const withImages=cats.filter(c=>db.categoryImages?.[c.key]);
-  list.innerHTML=withImages.map(c=>`<div class="row" style="grid-template-columns:64px 1fr auto">
-    <img class="thumb" src="${db.categoryImages[c.key]}"/>
-    <div><div class="t">${esc(c.label)}</div><div class="s">Immagine categoria salvata</div></div>
-    <button class="btn" data-action="pickCatImage" data-cat="${esc(c.key)}">Apri</button>
-  </div>`).join('') || '<div class="small">Ancora nessuna immagine categoria salvata.</div>';
+  list.innerHTML=cats.map(c=>{
+    const img=db.categoryImages?.[c.key]||'';
+    return `<div class="row catRow">
+      ${img ? `<img class="thumb" src="${img}"/>` : categoryPlaceholder(c.label)}
+      <div><div class="t">${esc(c.label)}</div><div class="s">${img?'Immagine categoria salvata':'Nessuna immagine ancora'}</div></div>
+      <button class="btn" data-action="pickCatImage" data-cat="${esc(c.key)}">Apri</button>
+    </div>`;
+  }).join('');
 }
 async function saveCategoryImage(){
   const db=loadDB();
@@ -540,7 +559,7 @@ function renderArt(){
     const promo=pseudoPromoBadge(a);
     const img=(a.foto&&a.foto[0])||getCategoryImage(a.categoria)||'';
     return `<div class="row" data-open="art" data-id="${a.id}">
-      <img class="thumb" src="${img}" onerror="this.style.display='none'"/>
+      ${img ? `<img class="thumb" src="${img}" onerror="this.replaceWith(categoryPlaceholder('${esc(a.categoria||a.modello||'Articolo')}'))"/>` : categoryPlaceholder(a.categoria||a.modello||'Articolo')}
       <div>
         <div class="t">${esc(a.modello||'-')}</div>
         <div class="s">${esc(a.brand||'')} • ${esc(a.codice||'')} • ${esc(qualityFromCode(a.codice))}</div>
@@ -887,7 +906,7 @@ function exportDB(mode){
   const out=JSON.parse(JSON.stringify(db));
   if(mode==='lite'){
     out.articoli=out.articoli.map(a=>{ a.foto=[]; return a; });
-    out.categoryImages={};
+    // Le immagini categoria NON vengono cancellate: servono alla schermata categorie/fallback.
   }
   out.exportedAt=new Date().toISOString();
   const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
@@ -904,6 +923,7 @@ function importDB(file){
     try{
       const o=JSON.parse(r.result);
       if(!o || !Array.isArray(o.articoli)||!Array.isArray(o.clienti)||!Array.isArray(o.ordini)) throw new Error('JSON non compatibile');
+      if(!o.categoryImages || typeof o.categoryImages!=='object') o.categoryImages={};
       // default: SOSTITUISCI
       localStorage.setItem(KEY, JSON.stringify(o));
       renderAll();
@@ -988,7 +1008,8 @@ provSel.innerHTML='<option value="">Seleziona</option>'+PROVINCE.map(p=>`<option
 
 /* init */
 renderAll();
-const initial=location.hash.replace('#','')||'home';
+let initial=location.hash.replace('#','')||'home';
+if(!document.getElementById('sec_'+initial)) initial='home';
 history.replaceState({page:initial},'', '#'+initial);
 go(initial);
 </script>
