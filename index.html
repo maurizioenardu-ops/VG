@@ -238,6 +238,12 @@ select[multiple]{min-height:150px}
 .searchSuggest button+button{border-top:1px solid #eef2f7}
 .searchSuggest button:hover{background:#f8fafc}
 
+/* Fix immagini categorie nelle impostazioni: sempre miniature, mai poster giganti */
+#catList .catImgRow{display:grid!important;grid-template-columns:78px minmax(0,1fr)!important;align-items:start!important;gap:10px!important;overflow:hidden!important}
+#catList .catImgThumb{width:72px!important;height:72px!important;max-width:72px!important;max-height:72px!important;min-width:72px!important;min-height:72px!important;object-fit:cover!important;border-radius:18px!important;display:block!important;flex:0 0 72px!important}
+#catList .catImgActions{display:flex!important;gap:8px!important;flex-wrap:wrap!important;justify-content:flex-start!important;margin-top:8px!important}
+#catList .catImgActions .btn{min-height:38px!important;padding:8px 10px!important;font-size:12px!important}
+
 </style>
 <script>
 window.addEventListener('error',e=>{
@@ -246,7 +252,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v10_7-category-images-settings">
+  <meta name="vg-version" content="v10_8-category-thumb-settings">
 </head>
 <body>
 <div class="top">
@@ -5064,7 +5070,7 @@ function renderCategorySettings(){
   box.innerHTML=cats.length?cats.map(c=>{
     const hasCustom=!!getCategoryImageFromDb(db,c);
     const status=hasCustom ? 'Immagine personalizzata salvata' : (savedSet.has(normalizeCategoryName(c))?'Categoria salvata nelle impostazioni':'Categoria pronta, puoi caricare una immagine');
-    return `<div class="row catImgRow"><img class="catImgThumb" alt="Categoria ${esc(c)}" src="${artIconForCategory(c)}"/><div class="main"><div class="t">${esc(c)}</div><div class="small">${status}</div>${hasCustom?'<div class="catImgBadge">Foto caricata</div>':'<div class="catImgBadge">Foto predefinita</div>'}</div><div class="catImgActions"><button class="btn smallish" type="button" data-action="pickCategoryImage" data-name="${esc(c)}">Carica immagine</button><button class="btn smallish" type="button" data-action="renameCategory" data-name="${esc(c)}">Modifica</button><button class="btn danger smallish" type="button" data-action="deleteCategoryImage" data-name="${esc(c)}">Togli foto</button><button class="btn danger smallish" type="button" data-action="deleteCategory" data-name="${esc(c)}">Elimina</button></div></div>`;
+    return `<div class="row catImgRow" style="grid-template-columns:78px minmax(0,1fr);align-items:start;gap:10px;overflow:hidden"><img class="catImgThumb" alt="Categoria ${esc(c)}" src="${artIconForCategory(c)}" style="width:72px!important;height:72px!important;max-width:72px!important;max-height:72px!important;min-width:72px!important;min-height:72px!important;object-fit:cover!important;border-radius:18px;display:block;flex:0 0 72px"/><div class="main" style="min-width:0"><div class="t">${esc(c)}</div><div class="small">${status}</div>${hasCustom?'<div class="catImgBadge">Foto caricata</div>':'<div class="catImgBadge">Foto predefinita</div>'}<div class="catImgActions" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start;margin-top:8px"><button class="btn smallish" type="button" data-action="pickCategoryImage" data-name="${esc(c)}">Carica immagine</button><button class="btn smallish" type="button" data-action="renameCategory" data-name="${esc(c)}">Modifica</button><button class="btn danger smallish" type="button" data-action="deleteCategoryImage" data-name="${esc(c)}">Togli foto</button><button class="btn danger smallish" type="button" data-action="deleteCategory" data-name="${esc(c)}">Elimina</button></div></div></div>`;
   }).join(''):'<div class="small">Nessuna categoria salvata.</div>';
   if(hint) hint.textContent='Puoi aggiungere, rinominare o eliminare le categorie. Da qui puoi anche caricare una foto per ogni categoria: se un articolo non ha foto propria, userà quella categoria.';
 }
