@@ -1,3 +1,8 @@
+/* ====== ERROR HANDLER ====== */
+window.addEventListener('error',e=>{
+  const x=document.getElementById('dateLine');
+  if(x) x.textContent='ERRORE JS: '+(e.message||e);
+});
 
 /* ====== DB ====== */
 const KEY='vg_db_full_v7_clean';
@@ -28,6 +33,8 @@ const APP_RESET_OLD_KEYS=[
   'vg_photos_v1',
   'sb-qfjwtawsqfwmsmrrgqfi-auth-token'
 ];
+const ARTICLE_PUBLISH_RESET_FLAG='vg_publish_reset_20260419_v1';
+const ARTICLE_PUBLISH_RESET_CLOUD_PENDING='vg_publish_reset_20260419_v1_cloud_pending';
 async function runOneTimeFreshReset(){
   try{
     if(localStorage.getItem(APP_RESET_FLAG)==='1') return;
@@ -1239,24 +1246,13 @@ function canonicalPhotoSourceKey(src){
 function dedupePhotoSources(list=[], limit=Infinity){
   const out=[];
   const seen=new Set();
-  const items=Array.isArray(list) ? list : [];
-  for(const item of items){
-    if(item==null) continue;
-
-    let key='';
-    if(typeof File!=='undefined' && item instanceof File){
-      key=`file:${item.name||''}|${item.size||0}|${item.type||''}|${item.lastModified||0}`;
-    }else if(typeof Blob!=='undefined' && item instanceof Blob){
-      key=`blob:${item.size||0}|${item.type||''}`;
-    }else{
-      const clean=String(item||'').trim();
-      if(!clean) continue;
-      key=canonicalPhotoSourceKey(clean) || clean;
-    }
-
-    if(!key || seen.has(key)) continue;
+  for(const src of (Array.isArray(list) ? list : [])){
+    const clean=String(src||'').trim();
+    if(!clean) continue;
+    const key=canonicalPhotoSourceKey(clean) || clean;
+    if(seen.has(key)) continue;
     seen.add(key);
-    out.push(item);
+    out.push(clean);
     if(out.length>=limit) break;
   }
   return out;
@@ -1675,7 +1671,8 @@ async function ensureCurrentArticlePhotoSheet(ctx, files=null){
   return sheetFile;
 }
 
-async function shareCurrentArticlePhotos(){
+async function shareCurrentArticlePhotos(channel='fb'){
+  const isTelegramChannel = channel==='tg';
   let ctx=getPreparedCurrentArticlePhotoContext();
   if(!ctx) ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
@@ -1687,9 +1684,9 @@ async function shareCurrentArticlePhotos(){
     warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(err=>console.warn('Warmup share foto on-demand fallito', err));
     const readyCount=cachedFiles.length;
     if(readyCount>0 && readyCount<ctx.pics.length){
-      toast(`Sto preparando tutte le foto: ${readyCount}/${ctx.pics.length} pronte. Premi Condividi tra un attimo.`);
+      toast(`Sto preparando tutte le foto: ${readyCount}/${ctx.pics.length} pronte. Premi ${isTelegramChannel ? 'Condividi foto' : 'Condividi'} tra un attimo.`);
     }else{
-      toast(`Sto preparando ${ctx.pics.length} foto. Premi Condividi tra un attimo.`);
+      toast(`Sto preparando ${ctx.pics.length} foto. Premi ${isTelegramChannel ? 'Condividi foto' : 'Condividi'} tra un attimo.`);
     }
     return;
   }
@@ -1703,7 +1700,8 @@ async function shareCurrentArticlePhotos(){
   try{
     const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
     if(shared){
-      toast(files.length===1 ? 'Condivisione aperta.' : `Condivisione aperta per ${files.length} foto.`);
+      recordArticlePublication(channel);
+      toast(isTelegramChannel ? 'Condivisione aperta. Se Telegram è installato, scegli Telegram dalla condivisione.' : (files.length===1 ? 'Condivisione aperta.' : `Condivisione aperta per ${files.length} foto.`));
       return;
     }
 
@@ -1711,12 +1709,13 @@ async function shareCurrentArticlePhotos(){
       const sheetFile=getCachedArticlePhotoSheetForCtx(ctx) || await ensureCurrentArticlePhotoSheet(ctx, files);
       const sheetShared = sheetFile ? await tryNativeShareArticleFiles([sheetFile], `${ctx.baseName||'articolo'}_tutte_le_foto`) : false;
       if(sheetShared){
-        toast(`La condivisione multipla è stata rifiutata dal browser. Ho aperto una tavola unica con tutte e ${files.length} le foto.`);
+        recordArticlePublication(channel);
+        toast(isTelegramChannel ? `Ho aperto la condivisione. Se Telegram è installato, sceglilo dall'elenco app.` : `La condivisione multipla è stata rifiutata dal browser. Ho aperto una tavola unica con tutte e ${files.length} le foto.`);
         return;
       }
     }
 
-    toast('Condivisione foto non riuscita. Su questo browser la condivisione file è capricciosa. Usa Scarica foto.');
+    toast(isTelegramChannel ? 'Condivisione Telegram non riuscita direttamente. Usa Scarica foto oppure scegli Telegram dalla condivisione di sistema.' : 'Condivisione foto non riuscita. Su questo browser la condivisione file è capricciosa. Usa Scarica foto.');
   }catch(err){
     if(isShareAbortError(err)) return;
     console.warn('Condivisione foto articolo fallita', err);
@@ -1729,7 +1728,8 @@ async function shareCurrentArticlePhotos(){
         const sheetFile=getCachedArticlePhotoSheetForCtx(ctx) || await ensureCurrentArticlePhotoSheet(ctx, files);
         const sheetShared = sheetFile ? await tryNativeShareArticleFiles([sheetFile], `${ctx.baseName||'articolo'}_tutte_le_foto`) : false;
         if(sheetShared){
-          toast(`La condivisione multipla non è passata. Ho aperto una tavola unica con tutte e ${files.length} le foto.`);
+          recordArticlePublication(channel);
+          toast(isTelegramChannel ? `Ho aperto la condivisione. Se Telegram è installato, sceglilo dall'elenco app.` : `La condivisione multipla non è passata. Ho aperto una tavola unica con tutte e ${files.length} le foto.`);
           return;
         }
       }
@@ -1737,7 +1737,7 @@ async function shareCurrentArticlePhotos(){
       if(isShareAbortError(sheetErr)) return;
       console.warn('Fallback tavola foto articolo fallito', sheetErr);
     }
-    toast('Condivisione foto non riuscita. Usa Scarica foto.');
+    toast(isTelegramChannel ? 'Condivisione Telegram non riuscita direttamente. Usa Scarica foto oppure scegli Telegram dalla condivisione di sistema.' : 'Condivisione foto non riuscita. Usa Scarica foto.');
   }
 }
 
@@ -1838,12 +1838,12 @@ function triggerDirectUrlDownload(url, filename=''){
   a.remove();
 }
 
-async function downloadCurrentArticlePhotos(){
+async function downloadCurrentArticlePhotos(channel='tg'){
   const ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
 
   const preparedFiles=await ensureCurrentArticlePhotoFiles(ctx);
-  const files=dedupePhotoSources(preparedFiles);
+  const files=normalizePreparedPhotoFiles(preparedFiles);
   if(!files.length){
     toast('Download foto fallito');
     return;
@@ -1852,6 +1852,7 @@ async function downloadCurrentArticlePhotos(){
   try{
     if(files.length===1){
       triggerBlobDownload(files[0], files[0].name || `${ctx.baseName}.jpg`);
+      recordArticlePublication(channel);
       toast('Foto scaricata. La trovi nei Download e poi in Galleria.');
       return;
     }
@@ -1859,6 +1860,7 @@ async function downloadCurrentArticlePhotos(){
     toast(`Preparo ZIP con ${files.length} foto...`);
     const zipFile = getCachedArticlePhotoZipForCtx(ctx) || await buildZipFromFiles(files, `${ctx.baseName || 'articolo'}_foto.zip`);
     triggerBlobDownload(zipFile, zipFile.name);
+    recordArticlePublication(channel);
     toast(`Scaricate ${files.length} foto in un file ZIP. Lo trovi nei Download.`);
   }catch(err){
     console.warn('Download ZIP foto articolo fallito', err);
@@ -2146,9 +2148,9 @@ function calcFromUsd(usd, qual){
   const costo=(Number(usd||0)*0.90)+5;
   if(!isFinite(costo)) return {costo:0, sell:0, marg:0};
   if(qual==='ORIGINALE'){
-    let guad=costo*0.30;
-    if(guad<60) guad=60;
-    if(guad>75) guad=75;
+    let guad=costo*0.35;
+    if(guad<68) guad=68;
+    if(guad>85) guad=85;
     const sell=round5(costo+guad);
     return {costo, sell, marg:guad};
   }else{
@@ -2171,6 +2173,128 @@ function formatPromoDateLabel(v=''){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
   const [yyyy,mm,dd]=raw.split('-');
   return `${dd}/${mm}/${yyyy}`;
+}
+const ARTICLE_PUBLISH_COUNT_WINDOW_DAYS=7;
+const ARTICLE_PUBLISH_KEEP_DAYS=90;
+const ARTICLE_PUBLISH_CHANNELS=['fb','tg','ig'];
+function normalizeArticlePublishLog(raw, refDay=todayStr()){
+  const src=(raw && typeof raw==='object') ? raw : {};
+  const ref=parseIsoDay(refDay) || parseIsoDay(todayStr());
+  const out={fb:[],tg:[],ig:[]};
+  ARTICLE_PUBLISH_CHANNELS.forEach(ch=>{
+    const vals=Array.isArray(src?.[ch]) ? src[ch] : (Array.isArray(src?.[`${ch}Dates`]) ? src[`${ch}Dates`] : []);
+    const clean=vals.map(v=>typeof v==='string' ? v : (v?.data||v?.date||''))
+      .map(v=>String(v||'').trim())
+      .filter(v=>!!parseIsoDay(v))
+      .filter(v=>{
+        if(!ref) return true;
+        const dt=parseIsoDay(v);
+        const diff=Math.round((ref-dt)/86400000);
+        return diff>=0 && diff<ARTICLE_PUBLISH_KEEP_DAYS;
+      })
+      .sort();
+    out[ch]=clean;
+  });
+  return out;
+}
+function formatArticlePublishDate(v=''){
+  const dt=parseIsoDay(v);
+  if(!dt) return 'mai';
+  return dt.toLocaleDateString('it-IT',{day:'numeric',month:'short'}).replace('.', '');
+}
+function getArticlePublishMeta(article, channel, refDay=todayStr()){
+  const log=normalizeArticlePublishLog(article?.pubblicazioniCanali||article?.publishStats||article?.socialPub||{}, refDay);
+  const list=Array.isArray(log?.[channel]) ? log[channel] : [];
+  const ref=parseIsoDay(refDay) || parseIsoDay(todayStr());
+  const count=list.filter(v=>{
+    const dt=parseIsoDay(v);
+    if(!dt || !ref) return false;
+    const diff=Math.round((ref-dt)/86400000);
+    return diff>=0 && diff<ARTICLE_PUBLISH_COUNT_WINDOW_DAYS;
+  }).length;
+  const lastDate=list.length ? list[list.length-1] : '';
+  return { count, lastDate, label:`${count} · ${formatArticlePublishDate(lastDate)}`, log };
+}
+function renderArticlePublishMeta(article){
+  const nodes={
+    fb:[document.getElementById('vArtPubMetaFb'), document.getElementById('vArtPubMetaFbPrice')],
+    tg:[document.getElementById('vArtPubMetaTg')],
+    ig:[document.getElementById('vArtPubMetaIg')]
+  };
+  ARTICLE_PUBLISH_CHANNELS.forEach(ch=>{
+    const meta=getArticlePublishMeta(article, ch);
+    (nodes[ch]||[]).filter(Boolean).forEach(el=>{
+      el.textContent=meta.label;
+      el.title=meta.lastDate ? `Ultima pubblicazione ${formatPromoDateLabel(meta.lastDate)} · ${meta.count} negli ultimi 7 giorni` : 'Mai pubblicato';
+    });
+  });
+}
+function getArticlePublishPreviewState(article, refDay=todayStr()){
+  const log=normalizeArticlePublishLog(article?.pubblicazioniCanali||article?.publishStats||article?.socialPub||{}, refDay);
+  const dates=(Array.isArray(log?.fb) ? log.fb : []).filter(Boolean).sort();
+  const lastDate=dates.length ? dates[dates.length-1] : '';
+  const ref=parseIsoDay(refDay) || parseIsoDay(todayStr());
+  const last=lastDate ? parseIsoDay(lastDate) : null;
+  const diff=(ref && last) ? Math.max(0, Math.round((ref-last)/86400000)) : null;
+  if(!lastDate || diff===null){
+    return { cls:'ready', title:'Mai pubblicato' };
+  }
+  if(diff>=7){
+    return { cls:'ready', title:`Pubblicato da 7 giorni o più · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
+  }
+  if(diff>=3){
+    return { cls:'mid', title:`Pubblicato da 3 a 6 giorni · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
+  }
+  return { cls:'recent', title:`Pubblicato negli ultimi 2 giorni · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
+}
+function articlePublishPreviewDot(article){
+  const state=getArticlePublishPreviewState(article);
+  return `<span class="artPreviewDot ${state.cls}" title="${esc(state.title)}" aria-label="${esc(state.title)}"></span>`;
+}
+function getArticlePreviewOrderMeta(article, refDay=todayStr()){
+  const log=normalizeArticlePublishLog(article?.pubblicazioniCanali||article?.publishStats||article?.socialPub||{}, refDay);
+  const dates=(Array.isArray(log?.fb) ? log.fb : []).filter(Boolean).sort();
+  const lastDate=dates.length ? dates[dates.length-1] : '';
+  const ref=parseIsoDay(refDay) || parseIsoDay(todayStr());
+  const last=lastDate ? parseIsoDay(lastDate) : null;
+  const diff=(ref && last) ? Math.max(0, Math.round((ref-last)/86400000)) : null;
+  let group=0;
+  if(!lastDate || diff===null) group=0;
+  else if(diff>=7) group=1;
+  else if(diff>=3) group=2;
+  else group=3;
+  return { group, lastTs:last ? last.getTime() : 0, lastDate };
+}
+function compareArticlesForPreview(a,b, refDay=todayStr()){
+  const A=getArticlePreviewOrderMeta(a, refDay);
+  const B=getArticlePreviewOrderMeta(b, refDay);
+  if(A.group!==B.group) return A.group-B.group;
+  if(A.lastTs!==B.lastTs) return A.lastTs-B.lastTs;
+  const aTs=Number(a?._ts||0);
+  const bTs=Number(b?._ts||0);
+  if(aTs!==bTs) return aTs-bTs;
+  return String(a?.modello||a?.codice||a?.id||'').localeCompare(String(b?.modello||b?.codice||b?.id||''),'it',{sensitivity:'base'});
+}
+function recordArticlePublication(channel, articleId=currentArtId, refDay=todayStr()){
+  const cleanChannel=ARTICLE_PUBLISH_CHANNELS.includes(channel) ? channel : '';
+  if(!cleanChannel || !articleId) return null;
+  const db=loadDB();
+  const idx=(db.articoli||[]).findIndex(a=>String(a?.id)===String(articleId));
+  if(idx<0) return null;
+  const art=db.articoli[idx]||{};
+  const nextLog=normalizeArticlePublishLog(art?.pubblicazioniCanali||art?.publishStats||art?.socialPub||{}, refDay);
+  const currentList=Array.isArray(nextLog[cleanChannel]) ? nextLog[cleanChannel] : [];
+  const alreadyToday=currentList.includes(refDay);
+  if(!alreadyToday){
+    nextLog[cleanChannel]=[...currentList, refDay].sort();
+    const updated={...art, pubblicazioniCanali:nextLog, _ts:Date.now()};
+    db.articoli[idx]=updated;
+    saveDB(db);
+    if(String(currentArtId||'')===String(articleId||'')) renderArticlePublishMeta(updated);
+    return updated;
+  }
+  if(String(currentArtId||'')===String(articleId||'')) renderArticlePublishMeta(art);
+  return art;
 }
 function promoHasHistory(a){
   return !!(a && (a.promoAttiva || Number(a.prezzoPromo||0)>0 || getPromoStartDate(a)));
@@ -3151,18 +3275,20 @@ function buildPostFacebookBase(a, opts={}){
   if(modelLine) lines.push(smartSentenceCase(modelLine));
   if(premiumLine) lines.push(premiumLine);
   const seen = new Set();
-  const pushUnique = (value)=>{
-    const txt = compactPostValue(value||'');
+  const pushUnique = (value, formatter=null)=>{
+    let txt = compactPostValue(value||'');
     if(!txt) return;
+    txt = formatter ? formatter(txt) : txt;
+    txt = compactPostValue(txt);
     const key = normalizeTextKey(txt);
     if(!key || seen.has(key)) return;
     seen.add(key);
     lines.push(txt);
   };
-  pushUnique(smartSentenceCase(variante));
-  pushUnique(smartSentenceCase(materiale));
-  if(misura) lines.push(`Mis. ${smartSentenceCase(misura)}`);
-  if(colore) lines.push(`Colore: ${smartSentenceCase(colore)}`);
+  pushUnique(variante, v=>smartSentenceCase(v));
+  pushUnique(materiale, v=>smartSentenceCase(v));
+  pushUnique(misura, v=>`Mis. ${smartSentenceCase(v)}`);
+  pushUnique(colore, v=>`Colore: ${smartSentenceCase(v)}`);
   if(includePrice){
     const prezzoFacebook = formatPostPrezzoVendita(currentPrice(a), priceSymbol);
     if(prezzoFacebook) lines.push(prezzoFacebook);
@@ -3202,7 +3328,6 @@ function buildPostTelegram(a){
   if(!a.codice) return '';
   const brand=(a.brand||'').trim();
   const modello=normalizePostLine(a.modello||'', brand);
-  const descrizione=normalizePostLine(a.descrizione||'', brand);
   const variante=normalizePostLine(a.variante||'', brand);
   const colore=normalizePostLine(a.colore||'', brand);
   const materiale=normalizePostLine(a.materiale||'', brand);
@@ -3212,6 +3337,17 @@ function buildPostTelegram(a){
   const materialeCompat=normalizePostLine(a.materiale||a.taglia||'', brand);
   const qemoji=emojiQualityForPost(a);
   const lines=[];
+  const seen = new Set();
+  const pushUnique = (value, formatter=null)=>{
+    let txt = compactPostValue(value||'');
+    if(!txt) return;
+    txt = formatter ? formatter(txt) : txt;
+    txt = compactPostValue(txt);
+    const key = normalizeTextKey(txt);
+    if(!key || seen.has(key)) return;
+    seen.add(key);
+    lines.push(txt);
+  };
   if(a.promoAttiva){
     const promoStart=getPromoStartDate(a);
     const scadenzaRaw=String(a.scadenzaPromo||'').trim();
@@ -3220,27 +3356,26 @@ function buildPostTelegram(a){
     if(promoStart && scadenzaRaw) lines.push(`(dal ${formatPromoDateLabel(promoStart)} al ${formatPromoDateLabel(scadenzaRaw)})`);
     else if(scadenzaRaw) lines.push(`(fino al ${formatPromoDateLabel(scadenzaRaw)})`);
     if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
-    if(tipoMateriale) lines.push(tipoMateriale);
-    if(colore) lines.push(colore);
-    if(misura) lines.push(formatPostMisura(misura));
+    pushUnique(tipoMateriale);
+    pushUnique(colore);
+    pushUnique(misura, v=>formatPostMisura(v));
     const prezzoVenditaPromo=formatPostPrezzoVendita(a.prezzoVendita, '€');
     if(prezzoVenditaPromo) lines.push(prezzoVenditaPromo);
     lines.push(`cod. ${a.codice}`);
-    return uniquePostLines(lines).join('\n');
+    return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
   }
   if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
-  if(descrizione) lines.push(descrizione);
-  if(variante) lines.push(variante);
-  if(colore) lines.push(colore);
-  if(misura) lines.push(formatPostMisura(misura));
+  pushUnique(variante);
+  pushUnique(colore);
+  pushUnique(misura, v=>formatPostMisura(v));
   if(a.scatola) lines.push('Con scatola 🎁');
-  if(materiale || materialeCompat) lines.push(`🧵 ${materiale || materialeCompat}`);
-  if(colori) lines.push(colori);
-  if(tracolla) lines.push(tracolla);
+  pushUnique(materiale || materialeCompat, v=>`🧵 ${v}`);
+  pushUnique(colori);
+  pushUnique(tracolla);
   const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita, '€');
   if(prezzoVendita) lines.push(prezzoVendita);
   lines.push(`cod. ${a.codice}`);
-  return uniquePostLines(lines).join('\n');
+  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
 function buildCloudArticleMeta(art){
   return {
@@ -3270,6 +3405,7 @@ function buildCloudArticleMeta(art){
     post: art?.post||'',
     note: art?.note||'',
     foto: normalizeCloudPhotoPathList(art?.foto||[]),
+    pubblicazioniCanali: normalizeArticlePublishLog(art?.pubblicazioniCanali||art?.publishStats||art?.socialPub||{}),
     _ts: parseTimestampLike(art?._ts, Date.now())
   };
 }
@@ -3404,7 +3540,7 @@ let confirmCallback=null;
 function askConfirm(text, cb, title='Conferma'){ document.getElementById('confirmTitle').textContent=title; document.getElementById('confirmText').textContent=text; confirmCallback=cb; show('mConfirm'); }
 function closeConfirm(run){ hide('mConfirm'); const fn=confirmCallback; confirmCallback=null; if(run && typeof fn==='function') fn(); }
 function toggleCloudSyncMini(){ return; }
-function copyText(text, okMsg='Copiato'){
+function copyText(text, okMsg='Copiato', onSuccess=null){
   const t=String(text ?? '').trim();
   if(!t) return toast('Niente da copiare');
   const fallback=()=>{
@@ -3422,14 +3558,14 @@ function copyText(text, okMsg='Copiato'){
       ta.setSelectionRange(0, ta.value.length);
       const ok=document.execCommand('copy');
       document.body.removeChild(ta);
-      if(ok){ toast(okMsg); return true; }
+      if(ok){ toast(okMsg); try{ if(typeof onSuccess==='function') onSuccess(); }catch(_e){} return true; }
     }catch(_e){}
     toast('Copia non disponibile');
     return false;
   };
   try{
     if(navigator.clipboard && window.isSecureContext){
-      navigator.clipboard.writeText(t).then(()=>toast(okMsg)).catch(()=>fallback());
+      navigator.clipboard.writeText(t).then(()=>{ toast(okMsg); try{ if(typeof onSuccess==='function') onSuccess(); }catch(_e){} }).catch(()=>fallback());
       return;
     }
   }catch(_e){}
@@ -4088,7 +4224,7 @@ function renderCategorySettings(){
   box.innerHTML=cats.length?cats.map(c=>{
     const hasCustom=!!getCategoryImageFromDb(db,c);
     const status=hasCustom ? 'Immagine personalizzata salvata' : (savedSet.has(normalizeCategoryName(c))?'Categoria salvata nelle impostazioni':'Categoria pronta, puoi caricare una immagine');
-    return `<div class="row catImgRow"><img class="catImgThumb" alt="Categoria ${esc(c)}" src="${artIconForCategory(c)}"/><div class="main"><div class="t">${esc(c)}</div><div class="small">${status}</div>${hasCustom?'<div class="catImgBadge">Foto caricata</div>':'<div class="catImgBadge">Foto predefinita</div>'}</div><div class="catImgActions"><button class="btn smallish" type="button" data-action="pickCategoryImage" data-name="${esc(c)}">Carica immagine</button><button class="btn smallish" type="button" data-action="renameCategory" data-name="${esc(c)}">Modifica</button><button class="btn danger smallish" type="button" data-action="deleteCategoryImage" data-name="${esc(c)}">Togli foto</button><button class="btn danger smallish" type="button" data-action="deleteCategory" data-name="${esc(c)}">Elimina</button></div></div>`;
+    return `<div class="row catImgRow" style="grid-template-columns:78px minmax(0,1fr);align-items:start;gap:10px;overflow:hidden"><img class="catImgThumb" alt="Categoria ${esc(c)}" src="${artIconForCategory(c)}" style="width:72px!important;height:72px!important;max-width:72px!important;max-height:72px!important;min-width:72px!important;min-height:72px!important;object-fit:cover!important;border-radius:18px;display:block;flex:0 0 72px"/><div class="main" style="min-width:0"><div class="t">${esc(c)}</div><div class="small">${status}</div>${hasCustom?'<div class="catImgBadge">Foto caricata</div>':'<div class="catImgBadge">Foto predefinita</div>'}<div class="catImgActions" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start;margin-top:8px"><button class="btn smallish" type="button" data-action="pickCategoryImage" data-name="${esc(c)}">Carica immagine</button><button class="btn smallish" type="button" data-action="renameCategory" data-name="${esc(c)}">Modifica</button><button class="btn danger smallish" type="button" data-action="deleteCategoryImage" data-name="${esc(c)}">Togli foto</button><button class="btn danger smallish" type="button" data-action="deleteCategory" data-name="${esc(c)}">Elimina</button></div></div></div>`;
   }).join(''):'<div class="small">Nessuna categoria salvata.</div>';
   if(hint) hint.textContent='Puoi aggiungere, rinominare o eliminare le categorie. Da qui puoi anche caricare una foto per ogni categoria: se un articolo non ha foto propria, userà quella categoria.';
 }
@@ -4620,6 +4756,11 @@ function renderArtBreadcrumbs(){
     box.style.display='flex';
     return;
   }
+  if(artBrowseState.level==='mixed'){
+    box.innerHTML=`<span class="artCrumb active">Tutti gli articoli</span><button class="artCrumb" type="button" data-action="clearArtFilters">Anteprime complete</button>`;
+    box.style.display='flex';
+    return;
+  }
   box.innerHTML='';
   box.style.display='none';
 }
@@ -4641,6 +4782,52 @@ function isArticleUnavailable(a){
 function articleAvailabilityBadge(a){
   if(!isArticleUnavailable(a)) return '';
   return '<div class="pill unavailable" style="margin-top:6px">NON DISPONIBILE</div>';
+}
+function articleMarginInfo(a){
+  const usd=Number(a?.costoUsd||0);
+  if(!isFinite(usd) || usd<=0) return null;
+  const qualKey=normalizeQualityValue(articleQualityLabel(a)).toUpperCase();
+  const base=calcFromUsd(usd, qualKey==='ORIGINALE' ? 'ORIGINALE' : 'STANDARD');
+  const current=Math.max(0, Number(currentPrice(a)||0) - Number(base?.costo||0));
+  const sale=Number(currentPrice(a)||0);
+  const pct=(sale>0 && current>0) ? Math.round((current/sale)*100) : 0;
+  const target=Math.max(1, Number(base?.marg||0));
+  const ratio=current/target;
+  if(ratio >= 0.92){
+    return { tone:'good', label:'Buon margine', amount:current, pct };
+  }
+  if(ratio >= 0.75){
+    return { tone:'mid', label:'Margine nella media', amount:current, pct };
+  }
+  return { tone:'low', label:'Margine al limite', amount:current, pct };
+}
+function articleCostInfo(a){
+  const usd=Number(a?.costoUsd||0);
+  const eurStored=Number(a?.costoEur||0);
+  if(isFinite(usd) && usd>0){
+    const qualKey=normalizeQualityValue(articleQualityLabel(a)).toUpperCase();
+    const base=calcFromUsd(usd, qualKey==='ORIGINALE' ? 'ORIGINALE' : 'STANDARD');
+    const eur=isFinite(Number(base?.costo)) && Number(base?.costo)>0 ? Number(base.costo) : eurStored;
+    return { eur, usd };
+  }
+  if(isFinite(eurStored) && eurStored>0) return { eur:eurStored, usd:0 };
+  return null;
+}
+function articleCostInfoHtml(a){
+  const info=articleCostInfo(a);
+  if(!info || !isFinite(info.eur) || info.eur<=0) return '';
+  const usdText=(isFinite(info.usd) && info.usd>0) ? ` <span>(${money(info.usd)} USD)</span>` : '';
+  return `<div class="costMeta">Costo: ${money(info.eur)} €${usdText}</div>`;
+}
+function articleMarginInfoHtml(a){
+  const info=articleMarginInfo(a);
+  const costHtml=articleCostInfoHtml(a);
+  if(!info){
+    return `<div class="pill">Margine non disponibile</div><div class="marginMeta">Serve il costo USD per calcolarlo.</div>${costHtml}`;
+  }
+  const toneClass=info.tone==='good' ? 'marginGood' : (info.tone==='mid' ? 'marginMid' : 'marginLow');
+  const pctText=info.pct ? ` • ${info.pct}%` : '';
+  return `<div class="pill ${toneClass}">${esc(info.label)}</div><div class="marginMeta">${money(info.amount)}${pctText}</div>${costHtml}`;
 }
 function articleSearchHay(a){
   const catLabel=displayCategoryValue(a?.categoria);
@@ -4673,7 +4860,8 @@ function renderCategoryOverview(items,{promoOnly=false,brandFilter='',qualityFil
     el.innerHTML=`<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
     return;
   }
-  el.innerHTML=cats.map(([catLabel,arr])=>{
+  const allCard='';
+  el.innerHTML=allCard + cats.map(([catLabel,arr])=>{
     const brandCount=new Set(arr.map(a=>displayBrandValue(a.brand)).filter(Boolean)).size;
     const countLine=`${arr.length} articol${arr.length===1?'o':'i'} • ${brandCount} brand`;
     return `<div class="artCard tight" data-action="selectArtCategory" data-name="${esc(catLabel)}"><div class="artMeta"><div class="t">${esc(catLabel)}</div><div class="s">Categorie articoli</div></div><div class="artPlaceholder" style="margin-top:8px;display:flex"><img class="artPlaceholderImg" alt="Categoria ${esc(catLabel)}" src="${artIconForCategory(catLabel)}"/></div><div class="artMeta" style="margin-top:12px"><div class="s">${countLine}</div></div></div>`;
@@ -4695,10 +4883,10 @@ function renderArt(){
     const okQuality=!qualityFilter || articleQualityLabel(a)===qualityFilter;
     const okPromo=!promoOnly || promoValid(a);
     return okText && okCat && okBrand && okQuality && okPromo;
-  }).sort((a,b)=>Number(b._ts||0)-Number(a._ts||0));
+  }).sort((a,b)=>compareArticlesForPreview(a,b));
   const el=document.getElementById('listArt');
   renderArtBreadcrumbs();
-  const showOverview=!promoOnly && !q && !catFilter && !brandFilter && !qualityFilter;
+  const showOverview=artBrowseState.level!=='mixed' && !promoOnly && !q && !catFilter && !brandFilter && !qualityFilter;
   if(showOverview){
     renderCategoryOverview(items,{promoOnly,brandFilter,qualityFilter});
     return;
@@ -4708,7 +4896,7 @@ function renderArt(){
     const unavailable=articleAvailabilityBadge(a);
     const blocked=isArticleUnavailable(a);
     const metaLine=promoOnly ? `${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}` : `${esc(a.codice||'Senza codice')} • ${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
-    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${unavailable}${promo}</div><div class="artPrice">${money(currentPrice(a))}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
+    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${unavailable}${promo}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
   }).join('');
   const emptyText=promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.';
   el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
@@ -5025,6 +5213,15 @@ async function openArtView(id){
   document.getElementById('vArtPrezzoUse').textContent=money(currentPrice(a));
   const pill=document.getElementById('vArtPromoPill');
   pill.innerHTML = promoInfoHtml(a,{marginTop:'6px'});
+  const marginBox=document.getElementById('vArtMarginBox');
+  if(marginBox) marginBox.innerHTML = articleMarginInfoHtml(a);
+  const artNoteWrap=document.getElementById('vArtNoteWrap');
+  const artNoteEl=document.getElementById('vArtNote');
+  const artNote=normalizeSpaceText(a.note||'');
+  if(artNoteWrap && artNoteEl){
+    artNoteEl.textContent=artNote||'-';
+    artNoteWrap.style.display=artNote?'block':'none';
+  }
   document.getElementById('vArtPost').value=buildPostTelegram(a);
   fitTextarea(document.getElementById('vArtPost'));
   document.getElementById('vArtPostFb').value=buildPostFacebook(a);
@@ -5033,6 +5230,7 @@ async function openArtView(id){
   fitTextarea(document.getElementById('vArtPostIg'));
   const vArtSupplierLink=document.getElementById('vArtSupplierLink');
   if(vArtSupplierLink) vArtSupplierLink.value=(a.fornitoreLink||'').trim();
+  renderArticlePublishMeta(a);
   prepareArticlePhotoShareContext(a).then(ctx=>{
     if(ctx) warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
   }).catch(()=>{});
@@ -5089,7 +5287,8 @@ async function openArtEdit(id){
   renderArtAutoFields();
   currentArtExistingPics=await getArticlePics(a);
   renderCurrentArtPhotoPreview();
-  restoreArticleDraft(a?.id||'');
+  // Per articoli già salvati mostriamo sempre i dati reali salvati,
+  // senza farli sovrascrivere da una bozza locale vecchia.
   updateArticleMeasureState();
   updateArticleCodeStatus();
   show('mArtEdit');
@@ -5215,6 +5414,109 @@ function setArticleSocialPostsAuto(draft){
   setArticlePostAuto(buildPostTelegram(draft));
   setReadonlyArticlePost('a_post_fb', buildPostFacebook(draft));
   setReadonlyArticlePost('a_post_ig', buildPostInstagram(draft));
+}
+function stripBrandFromModelName(model, brand){
+  let out=normalizeSpaceText(model||'');
+  const cleanBrand=normalizeSpaceText(brand||'');
+  if(!out) return '';
+  if(cleanBrand){
+    const escaped=cleanBrand.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
+    out=normalizeSpaceText(
+      out
+        .replace(new RegExp('^'+escaped+'\\s*','i'),'')
+        .replace(new RegExp('\\b'+escaped+'\\b','ig'),' ')
+    );
+  }
+  return normalizeSpaceText(out);
+}
+function articleCategoryForDesc(raw){
+  const v=normalizeTextKey(raw||'');
+  if(v.includes('bors')) return 'borsa';
+  if(v.includes('portaf')) return 'portafoglio';
+  if(v.includes('scarp') || v.includes('sneaker')) return 'scarpa';
+  if(v.includes('cintur')) return 'cintura';
+  if(v.includes('zain')) return 'zaino';
+  if(v.includes('pochette')) return 'pochette';
+  if(v.includes('tracolla')) return 'tracolla';
+  return normalizeSpaceText(raw||'').toLowerCase();
+}
+function articleColorForDesc(a){
+  if(getArticleColorMode(a)==='multiple'){
+    const count=getArticleColorCount(a);
+    return count>1 ? 'multicolore' : '';
+  }
+  return normalizeSpaceText(a?.colore||'').toLowerCase();
+}
+function shortArticleDescriptionForPost(a){
+  const brand=normalizeSpaceText(a?.brand||'');
+  const raw=normalizeSpaceText(stripBrandFromText(a?.descrizione||'', brand));
+  let desc=raw || buildAutoArticleDescription(a);
+  desc=normalizeSpaceText(desc||'');
+  if(!desc) return '';
+  desc=desc.replace(/\s+/g,' ').trim();
+  if(desc.length>78){
+    let cut=desc.slice(0,78);
+    const comma=cut.lastIndexOf(',');
+    const space=cut.lastIndexOf(' ');
+    const stop=Math.max(comma>28 ? comma : -1, space>32 ? space : -1);
+    cut=cut.slice(0, stop>0 ? stop : 78).replace(/[\s,.;:!?-]+$/,'');
+    desc=cut ? (cut + '.') : desc.slice(0,78).trim();
+  }
+  return smartSentenceCase(desc);
+}
+function getAutoArticleDescriptionTemplates(a){
+  const model=stripBrandFromModelName(a?.modello||'', a?.brand||'');
+  if(!model) return [];
+  const cat=articleCategoryForDesc(a?.categoria||'');
+  const material=normalizeSpaceText(a?.materiale||'').toLowerCase();
+  const variant=normalizeSpaceText(a?.variante||'').toLowerCase();
+  const size=normalizeSpaceText(a?.misura||'').toLowerCase();
+  const color=articleColorForDesc(a);
+  const lead = material ? `in ${material}` : (color || cat || '');
+  const accent = (!lead || normalizeTextKey(lead)!==normalizeTextKey(color||'')) ? (color || variant || cat || '') : (variant || cat || '');
+  const extra = size ? `misura ${size}` : '';
+  const joinDetail=(...parts)=>parts.map(v=>normalizeSpaceText(v||'')).filter(Boolean).filter((v,i,arr)=>arr.findIndex(x=>normalizeTextKey(x)===normalizeTextKey(v))===i).slice(0,2).join(', ');
+  const short1=joinDetail(lead);
+  const short2=joinDetail(lead, accent);
+  const short3=joinDetail(accent, extra);
+  return [
+    () => `Modello ${model}${short1 ? ', '+short1 : ''}.`,
+    () => `${model}${short1 ? ', '+short1 : ''}.`,
+    () => `Modello ${model}${short2 ? ', '+short2 : ''}.`,
+    () => `${model}${short2 ? ', '+short2 : ''}, linea pulita.`,
+    () => `Modello ${model}${short3 ? ', '+short3 : ''}, stile pratico.`,
+    () => `${model}${short1 ? ', '+short1 : ''}, facile da portare.`
+  ];
+}
+function buildAutoArticleDescription(a, opts={}){
+  const templates=getAutoArticleDescriptionTemplates(a);
+  if(!templates.length) return '';
+  const model=stripBrandFromModelName(a?.modello||'', a?.brand||'');
+  const cat=articleCategoryForDesc(a?.categoria||'');
+  const material=normalizeSpaceText(a?.materiale||'').toLowerCase();
+  const variant=normalizeSpaceText(a?.variante||'').toLowerCase();
+  const size=normalizeSpaceText(a?.misura||'').toLowerCase();
+  const color=articleColorForDesc(a);
+  const explicitIndex=Number.isInteger(opts?.variantIndex) ? opts.variantIndex : null;
+  let pick=0;
+  if(explicitIndex!==null){
+    pick=((explicitIndex%templates.length)+templates.length)%templates.length;
+  }else{
+    const seedBase=`${model}|${cat}|${material}|${variant}|${size}|${color}`;
+    let hash=0;
+    for(let i=0;i<seedBase.length;i++) hash=((hash<<5)-hash)+seedBase.charCodeAt(i);
+    pick=Math.abs(hash)%templates.length;
+  }
+  let out=normalizeSpaceText(String(templates[pick]()).replace(/\s+,/g, ',').replace(/,,+/g, ',').replace(/\s+\./g,'.'));
+  if(out.length>68){
+    let cut=out.slice(0,68);
+    const comma=cut.lastIndexOf(',');
+    const space=cut.lastIndexOf(' ');
+    const stop=Math.max(comma>24 ? comma : -1, space>28 ? space : -1);
+    cut=cut.slice(0, stop>0 ? stop : 68).replace(/[\s,.;:!?-]+$/,'');
+    out=cut ? (cut + '.') : out.slice(0,68).trim();
+  }
+  return out;
 }
 function renderArtAutoFields(){
   updateArticleColorModeUI();
@@ -5446,6 +5748,7 @@ async function saveArt(){
     const usd=Number(document.getElementById('a_usd').value||0);
     const r=calcFromUsd(usd, qual);
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
+    const preservedPublishLog=currentArtId ? normalizeArticlePublishLog(old?.pubblicazioniCanali||old?.publishStats||old?.socialPub||{}) : {fb:[],tg:[],ig:[]};
     const keptFoto=currentArtPhotosCleared ? [] : (Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : []);
     const keptPhotoIds=currentArtPhotosCleared ? [] : (Array.isArray(old?.photoIds) ? old.photoIds.filter(Boolean).slice() : []);
     const obj=normalizeArticlePromoState({
@@ -5483,7 +5786,8 @@ async function saveArt(){
       post: document.getElementById('a_post').value,
       note: document.getElementById('a_note').value,
       foto: keptFoto,
-      photoIds: keptPhotoIds
+      photoIds: keptPhotoIds,
+      pubblicazioniCanali: preservedPublishLog
     });
     const selectedFiles=Array.from(currentArtPendingFiles||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
     let photoUploadWarning='';
@@ -5595,7 +5899,13 @@ function openCliView(id){
   document.getElementById('vCliCap').textContent=c.cap||'-';
   document.getElementById('vCliCity').textContent=c.citta||'-';
   document.getElementById('vCliProv').textContent=c.provincia||'-';
-  document.getElementById('vCliNote').textContent=c.note||'-';
+  const cliNoteWrap=document.getElementById('vCliNoteWrap');
+  const cliNoteEl=document.getElementById('vCliNote');
+  const cliNote=normalizeSpaceText(c.note||'');
+  if(cliNoteWrap && cliNoteEl){
+    cliNoteEl.textContent=cliNote||'-';
+    cliNoteWrap.style.display=cliNote?'block':'none';
+  }
   const ship=document.getElementById('vCliShip');
   ship.value=buildShippingAddress(c);
   fitTextarea(ship);
@@ -5862,37 +6172,74 @@ function updateArticleMeasureState(){
 let currentOrdId=null;
 let ordRows=[];
 const ORDER_SHOE_SIZES=['34','35','36','37','38','39','40','41','42','43','44','45'];
-function orderRowNeedsShoeSize(row, db){
+const ORDER_BELT_SIZES=['70','75','80','85','90','95','100','105','110','115','120','125','130'];
+function orderRowMeasureType(row, db){
   const art=(db?.articoli||[]).find(a=>a.id===row?.articoloId || (row?.codice && a.codice===row.codice));
   const cat=normalizeTextKey(art?.categoria||row?.categoria||'');
-  return ['scarpa','scarpe','shoe','shoes'].some(token=>cat===token || cat.includes(token));
+  if(['scarpa','scarpe','shoe','shoes'].some(token=>cat===token || cat.includes(token))) return 'shoe';
+  if(['cintura','cinture','belt','belts'].some(token=>cat===token || cat.includes(token))) return 'belt';
+  return '';
+}
+function orderRowNeedsShoeSize(row, db){
+  return orderRowMeasureType(row, db)==='shoe';
+}
+function orderRowNeedsBeltSize(row, db){
+  return orderRowMeasureType(row, db)==='belt';
+}
+function orderRowNeedsMeasure(row, db){
+  return !!orderRowMeasureType(row, db);
 }
 function orderNeedsShoeSize(rows, db){
   return (Array.isArray(rows)?rows:[]).some(row=>orderRowNeedsShoeSize(row, db||loadDB()));
+}
+function orderNeedsBeltSize(rows, db){
+  return (Array.isArray(rows)?rows:[]).some(row=>orderRowNeedsBeltSize(row, db||loadDB()));
+}
+function orderNeedsMeasure(rows, db){
+  return (Array.isArray(rows)?rows:[]).some(row=>orderRowNeedsMeasure(row, db||loadDB()));
+}
+function orderMeasureAllowedSizes(rows, db){
+  const data=db||loadDB();
+  const hasShoe=orderNeedsShoeSize(rows, data);
+  const hasBelt=orderNeedsBeltSize(rows, data);
+  if(hasShoe && hasBelt) return Array.from(new Set([...ORDER_SHOE_SIZES, ...ORDER_BELT_SIZES]));
+  if(hasBelt) return ORDER_BELT_SIZES.slice();
+  if(hasShoe) return ORDER_SHOE_SIZES.slice();
+  return ORDER_SHOE_SIZES.slice();
+}
+function rebuildOrderMeasureOptions(sel, sizes, needed, current=''){
+  if(!sel) return;
+  const clean=String(current||'').trim();
+  const firstLabel=needed ? 'Seleziona misura' : 'Non necessaria';
+  sel.innerHTML=`<option value="">${firstLabel}</option>` + (sizes||[]).map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  if(clean && (sizes||[]).includes(clean)) sel.value=clean;
+  else sel.value='';
 }
 function ensureOrderSizeOption(value){
   const sel=document.getElementById('o_mis');
   if(!sel) return;
   const clean=String(value||'').trim();
-  Array.from(sel.querySelectorAll('option[data-temp-size="1"]')).forEach(opt=>opt.remove());
-  if(clean && !ORDER_SHOE_SIZES.includes(clean) && !Array.from(sel.options).some(opt=>opt.value===clean)){
-    const opt=document.createElement('option');
-    opt.value=clean;
-    opt.textContent=clean;
-    opt.dataset.tempSize='1';
-    sel.insertBefore(opt, sel.firstElementChild?.nextElementSibling || null);
-  }
+  const sizes=Array.from(new Set([...ORDER_SHOE_SIZES, ...ORDER_BELT_SIZES, clean].filter(Boolean)));
+  rebuildOrderMeasureOptions(sel, sizes, false, clean);
 }
 function updateOrderShoeSizeState(){
   const sel=document.getElementById('o_mis');
   const hint=document.getElementById('o_mis_hint');
   if(!sel) return false;
-  const needed=orderNeedsShoeSize(ordRows, loadDB());
+  const db=loadDB();
+  const needed=orderNeedsMeasure(ordRows, db);
+  const hasShoe=orderNeedsShoeSize(ordRows, db);
+  const hasBelt=orderNeedsBeltSize(ordRows, db);
+  const current=String(sel.value||'').trim();
+  const allowed=orderMeasureAllowedSizes(ordRows, db);
+  rebuildOrderMeasureOptions(sel, allowed, needed, current);
   sel.required=needed;
-  const firstOpt=sel.querySelector('option[value=""]');
-  if(firstOpt) firstOpt.textContent=needed ? 'Seleziona misura' : 'Non necessaria';
-  if(!needed && !ORDER_SHOE_SIZES.includes(String(sel.value||''))) sel.value='';
-  if(hint) hint.textContent=needed ? 'Se ci sono scarpe, scegli qui una sola misura valida per tutte le righe scarpe.' : 'Misura non necessaria se non ci sono scarpe.';
+  if(hint){
+    if(hasShoe && hasBelt) hint.textContent='Scarpe: misura 34-45. Cinture: lunghezze da 70 a 130 cm con incremento di 5 cm.';
+    else if(hasBelt) hint.textContent='Per le cinture scegli una lunghezza da 70 a 130 cm, con incremento di 5 cm.';
+    else if(hasShoe) hint.textContent='Per le scarpe scegli una misura da 34 a 45.';
+    else hint.textContent='Misura non necessaria se non ci sono scarpe o cinture.';
+  }
   return needed;
 }
 async function openOrdEdit(id, prefillArticleId=null){
@@ -6161,11 +6508,13 @@ function renderOrdRows(){
     const art=(db.articoli||[]).find(a=>a.id===r?.articoloId || (r?.codice && a.codice===r.codice));
     const needsColor=!!r?.richiedeNumeroColore && Number(r?.colorCount||0)>0;
     const isShoe=orderRowNeedsShoeSize(r, db);
+    const isBelt=orderRowNeedsBeltSize(r, db);
+    const needsMeasure=isShoe||isBelt;
     const badges=[];
     if(r?.codice) badges.push(`<span class="orderBadge">Cod. ${esc(r.codice)}</span>`);
     badges.push(`<span class="orderBadge">€ ${money(r.prezzo||0)}</span>`);
     if(r?.colore) badges.push(`<span class="orderBadge">Colore ${esc(r.colore)}</span>`);
-    if(isShoe) badges.push(`<span class="orderBadge">Misura ${esc(globalSize||'da scegliere')}</span>`);
+    if(needsMeasure) badges.push(`<span class="orderBadge">Misura ${esc(globalSize||'da scegliere')}</span>`);
     const colorUi=needsColor ? `<div class="orderInlineField"><label>Colore</label><select data-role="rowColorNum" data-i="${i}">${buildOrderColorOptions(r.colorCount, r.numeroColore||'', r.colorLabels||[])}</select></div>` : '';
     const meta=[art?.brand, displayCategoryValue(art?.categoria||r?.categoria||''), art?.qualita].filter(Boolean).map(v=>esc(v)).join(' • ');
     return `<div class="orderCard"><div><div class="title">${esc(r.modello||art?.modello||'Articolo selezionato')}</div><div class="meta">${meta || 'Riga ordine'}</div><div class="orderBadges">${badges.join('')}</div><div class="orderRowControls">${colorUi}</div></div><button class="orderRemoveBtn" type="button" aria-label="Rimuovi articolo" title="Rimuovi articolo" data-action="delRow" data-i="${i}">Rimuovi</button></div>`;
@@ -6173,12 +6522,14 @@ function renderOrdRows(){
   const sum=document.getElementById('o_rows_summary');
   if(sum){
     const shoeCount=ordRows.filter(r=>orderRowNeedsShoeSize(r, db)).length;
+    const beltCount=ordRows.filter(r=>orderRowNeedsBeltSize(r, db)).length;
     const colorCount=ordRows.filter(r=>!!r?.richiedeNumeroColore && Number(r?.colorCount||0)>0).length;
     if(!ordRows.length){
       sum.innerHTML="Ancora nessun articolo nell'ordine.";
     }else{
       const parts=[`<strong>Articoli:</strong> ${ordRows.length}`];
       if(shoeCount) parts.push(`<strong>Scarpe:</strong> ${shoeCount}${globalSize?` • misura ${esc(globalSize)}`:''}`);
+      if(beltCount) parts.push(`<strong>Cinture:</strong> ${beltCount}${globalSize?` • misura ${esc(globalSize)} cm`:''}`);
       if(colorCount) parts.push(`<strong>Colori da scegliere:</strong> ${colorCount}`);
       sum.innerHTML=parts.join(' &nbsp;•&nbsp; ');
     }
@@ -6213,8 +6564,17 @@ async function saveOrd(){
   const tot=totals.total;
   const misuraSel=document.getElementById('o_mis');
   const misuraValue=String(misuraSel?.value||'').trim();
-  if(updateOrderShoeSizeState() && !ORDER_SHOE_SIZES.includes(misuraValue)){
-    toast('Per le scarpe devi scegliere una misura da 34 a 45');
+  const misuraObbligatoria=updateOrderShoeSizeState();
+  const misureValide=orderMeasureAllowedSizes(ordRows, db);
+  if(misuraObbligatoria && !misureValide.includes(misuraValue)){
+    const hasShoe=orderNeedsShoeSize(ordRows, db);
+    const hasBelt=orderNeedsBeltSize(ordRows, db);
+    const msg=hasShoe && hasBelt
+      ? 'Per scarpe e cinture devi scegliere una misura valida'
+      : hasBelt
+        ? 'Per le cinture devi scegliere una lunghezza da 70 a 130 cm, ogni 5 cm'
+        : 'Per le scarpe devi scegliere una misura da 34 a 45';
+    toast(msg);
     misuraSel?.focus();
     return;
   }
@@ -6489,7 +6849,7 @@ function bindSearchSuggest(inputId, boxId, kind, onApply){
 
 /* ====== EVENTS ====== */
 document.addEventListener('pointerdown',(ev)=>{
-  const btn=ev.target?.closest?.('[data-action="shareArtPhotos"],[data-action="downloadArtPhotos"]');
+  const btn=ev.target?.closest?.('[data-action="shareArtPhotosFb"],[data-action="shareArtPhotosTg"],[data-action="shareArtPhotos"],[data-action="downloadArtPhotosTg"],[data-action="downloadArtPhotosIg"],[data-action="downloadArtPhotos"]');
   if(!btn) return;
   Promise.resolve()
     .then(()=>getPreparedCurrentArticlePhotoContext() || getCurrentArticlePhotoContext())
@@ -6544,6 +6904,19 @@ document.addEventListener('click',(ev)=>{
     if(qArtBrand) qArtBrand.value='';
     if(qArtQuality) qArtQuality.value='';
     setArtBrowse('tutti');
+    go('articoli');
+    return renderArt();
+  }
+  if(a==='openAllArticlesMixed'){
+    const qArt=document.getElementById('qArt');
+    const qArtCat=document.getElementById('qArtCat');
+    const qArtBrand=document.getElementById('qArtBrand');
+    const qArtQuality=document.getElementById('qArtQuality');
+    if(qArt) qArt.value='';
+    if(qArtCat) qArtCat.value='';
+    if(qArtBrand) qArtBrand.value='';
+    if(qArtQuality) qArtQuality.value='';
+    setArtBrowse('mixed');
     go('articoli');
     return renderArt();
   }
@@ -6627,48 +7000,51 @@ document.addEventListener('click',(ev)=>{
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    return copyText(buildPostTelegram(art), 'Post copiato');
+    return copyText(buildPostTelegram(art), 'Post copiato', ()=>recordArticlePublication('tg'));
   }
   if(a==='copyPostFb'){
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    return copyText(buildPostFacebook(art), 'Post copiato');
+    return copyText(buildPostFacebook(art), 'Post copiato', ()=>recordArticlePublication('fb'));
   }
   if(a==='copyPostFbWithPrice'){
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    return copyText(buildPostFacebookWithPrice(art), 'Post copiato');
+    return copyText(buildPostFacebookWithPrice(art), 'Post copiato', ()=>recordArticlePublication('fb'));
   }
   if(a==='copyPostIg'){
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    return copyText(buildPostInstagram(art), 'Post copiato');
+    return copyText(buildPostInstagram(art), 'Post copiato', ()=>recordArticlePublication('ig'));
   }
   if(a==='copyPostTelegramEdit'){
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(buildPostTelegram(art), 'Post copiato');
+    return copyText(buildPostTelegram(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('tg'); });
   }
   if(a==='copyPostFbEdit'){
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(buildPostFacebook(art), 'Post copiato');
+    return copyText(buildPostFacebook(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('fb'); });
   }
   if(a==='copyPostFbWithPriceEdit'){
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(buildPostFacebookWithPrice(art), 'Post copiato');
+    return copyText(buildPostFacebookWithPrice(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('fb'); });
   }
   if(a==='copyPostIgEdit'){
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(buildPostInstagram(art), 'Post copiato');
+    return copyText(buildPostInstagram(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('ig'); });
   }
-  if(a==='shareArtPhotos') return shareCurrentArticlePhotos();
-  if(a==='downloadArtPhotos') return downloadCurrentArticlePhotos();
+  if(a==='shareArtPhotosFb' || a==='shareArtPhotos') return shareCurrentArticlePhotos('fb');
+  if(a==='shareArtPhotosTg') return shareCurrentArticlePhotos('tg');
+  if(a==='downloadArtPhotosTg') return downloadCurrentArticlePhotos('tg');
+  if(a==='downloadArtPhotosIg') return downloadCurrentArticlePhotos('ig');
+  if(a==='downloadArtPhotos') return downloadCurrentArticlePhotos('tg');
   if(a==='openSupplierLink'){ const link=String(document.getElementById('vArtSupplierLink')?.value||'').trim(); if(!link){ toast('Nessun link fornitore'); return; } const safe=/^https?:\/\//i.test(link)?link:'https://'+link; window.open(safe,'_blank'); return; }
   if(a==='copyCliShip') return copyTextFrom(document.getElementById('c_ship'));
   if(a==='copyCliShipView') return copyTextFrom(document.getElementById('vCliShip'));
@@ -6783,7 +7159,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-04-19-share-v44-copy-buttons-fixed';
+const VG_BUILD='2026-05-05-v59-category-images-mini';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -6880,7 +7256,17 @@ async function ensureCloud(){
   cloudClient=await window.VG_SUPABASE_READY;
   const {data:{session}}=await cloudClient.auth.getSession();
   cloudSession=session||null;
-  cloudClient.auth.onAuthStateChange((_e,session)=>{ cloudSession=session||null; cloudUi(); refreshAutoCloudPull(); if(cloudSession) setTimeout(()=>autoCloudPullNow('login'), 1500); });
+  if(cloudSession) syncArticlePublishResetToCloudIfNeeded().catch(err=>console.warn('Sync reset condivisioni cloud fallita', err));
+  cloudClient.auth.onAuthStateChange((_e,session)=>{
+    cloudSession=session||null;
+    cloudUi();
+    refreshAutoCloudPull();
+    if(cloudSession){
+      syncArticlePublishResetToCloudIfNeeded()
+        .catch(err=>console.warn('Sync reset condivisioni cloud fallita', err))
+        .finally(()=>setTimeout(()=>autoCloudPullNow('login'), 1500));
+    }
+  });
   cloudUi();
   return cloudClient;
 }
@@ -6891,6 +7277,55 @@ function saveDBLocal(db){
     localStorage.setItem(KEY, raw);
     try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
   }catch(err){ console.error(err); }
+}
+function clearAllArticlePublishLogsInDb(db){
+  const cleanDb=normalizeDBShape(db||defDB());
+  let changed=false;
+  cleanDb.articoli=(cleanDb.articoli||[]).map(art=>{
+    const current=normalizeArticlePublishLog(art?.pubblicazioniCanali||art?.publishStats||art?.socialPub||{});
+    const hasDates=ARTICLE_PUBLISH_CHANNELS.some(ch=>Array.isArray(current?.[ch]) && current[ch].length);
+    const hasLegacy=!!(art && (art.pubblicazioniCanali || art.publishStats || art.socialPub));
+    if(!hasDates && !hasLegacy) return art;
+    changed=true;
+    return {
+      ...art,
+      pubblicazioniCanali:{fb:[],tg:[],ig:[]},
+      publishStats:{fb:[],tg:[],ig:[]},
+      socialPub:{fb:[],tg:[],ig:[]},
+      _ts: Date.now()
+    };
+  });
+  return { db:cleanDb, changed };
+}
+async function runOneTimeArticlePublishReset(){
+  try{
+    if(localStorage.getItem(ARTICLE_PUBLISH_RESET_FLAG)==='1') return;
+    const result=clearAllArticlePublishLogsInDb(loadDB());
+    if(result.changed){
+      saveDBLocal(result.db);
+      try{ localStorage.setItem(ARTICLE_PUBLISH_RESET_CLOUD_PENDING,'1'); }catch(_e){}
+    }
+    localStorage.setItem(ARTICLE_PUBLISH_RESET_FLAG,'1');
+  }catch(err){
+    console.warn('Reset condivisioni iniziale fallito', err);
+  }
+}
+async function syncArticlePublishResetToCloudIfNeeded(){
+  try{
+    if(localStorage.getItem(ARTICLE_PUBLISH_RESET_CLOUD_PENDING)!=='1') return false;
+    const sb=await ensureCloud();
+    if(!sb || !cloudSession) return false;
+    const db=loadDB();
+    for(let i=0;i<(db.articoli||[]).length;i++){
+      db.articoli[i]=await upsertCloudArticle(db.articoli[i]);
+    }
+    saveDBLocal(db);
+    localStorage.removeItem(ARTICLE_PUBLISH_RESET_CLOUD_PENDING);
+    return true;
+  }catch(err){
+    console.warn('Sync reset condivisioni cloud fallita', err);
+    return false;
+  }
 }
 async function ensureCategoryId(nome){
   if(!nome) return null;
@@ -7169,7 +7604,7 @@ async function pullCloudToLocal(opts={}){
         const colorShape=deriveColorShape({ colorMode:meta.colorMode||local?.colorMode, colorType:meta.colorType||local?.colorType, colorCount:meta.colorCount||local?.colorCount, colorLabels:meta.colorLabels||local?.colorLabels });
         const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
         const cloudTs=parseTimestampLike(meta._ts, p.updated_at, p.created_at, local?._ts, Date.now());
-        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],_ts:cloudTs,_cloud:true};
+        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
@@ -7283,6 +7718,7 @@ async function cloudLogout(){
 /* init */
 async function bootApp(){
   await runOneTimeFreshReset();
+  await runOneTimeArticlePublishReset();
   renderAll();
   initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship']);
   updateArticleColorModeUI();
@@ -7312,7 +7748,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=essential-share-v44-copy-buttons-fixed', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=v59_category_images_mini', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

@@ -3,15 +3,15 @@ const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
   './index.html',
+  './app.js',
+  './style.css',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
   './reset.html',
   './reset-cache.html',
   './database.json',
-  './cat-accessori.jpg',
   './cat-borse.jpg',
-  './cat-cinture.jpg',
   './supabaseClient.js'
 ];
 
