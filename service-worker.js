@@ -1,5 +1,5 @@
-const CACHE_NAME='vg-cache-v9_10_promo_usd';
-const VERSION = 'v9_10_promo_usd';
+const CACHE_NAME='vg-cache-v9_9';
+const VERSION = 'v9_9';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './manifest.json',

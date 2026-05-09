@@ -67,7 +67,6 @@ body{-webkit-tap-highlight-color:transparent}
 .pill.cloudBtn.secondary{background:#fff;border-color:#cbd5e1;color:#0f172a}
 .pricePaid{color:#16a34a!important;font-weight:1000}
 .pill.promo{border-color:#fecaca;background:#fff1f2;color:#991b1b}
-.promoUsdBox input{border-color:#f59e0b!important;background:#fffbeb!important;color:#92400e!important;font-weight:800}
 .dot{width:10px;height:10px;border-radius:999px;background:#16a34a;display:inline-block}
 .priceHot{color:var(--red);font-weight:1000}
 .navBottom{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:8px 10px;z-index:20}
@@ -169,7 +168,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v9_10_promo_usd">
+  <meta name="vg-version" content="v9_9">
 </head>
 <body>
 <div class="top">
@@ -482,8 +481,7 @@ window.addEventListener('error',e=>{
     <div class="blockTitle">Prezzi e margine</div>
     <div class="grid2">
       <div><div class="k">Qualità (auto)</div><input id="a_qual" readonly/></div>
-      <div><div class="k">Costo USD</div><input id="a_usd" inputmode="decimal" autocomplete="off"/>
-        <div class="promoUsdBox" style="margin-top:10px"><div class="k">Prezzo USD promo</div><input id="a_promo_usd" inputmode="decimal" autocomplete="off" placeholder="solo se promo attiva"/></div></div>
+      <div><div class="k">Costo USD</div><input id="a_usd" inputmode="decimal" autocomplete="off"/></div>
     </div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k">Costo EUR (auto)</div><input id="a_eur" readonly/></div>
@@ -498,7 +496,7 @@ window.addEventListener('error',e=>{
       <div><div class="k">Promo attiva</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Attiva</label></div>
       <div><div class="k">Scadenza promo</div><input id="a_promo_date" type="date" autocomplete="off"/></div>
     </div>
-    <div style="margin-top:10px"><div class="k">Prezzo promo finale (auto)</div><input id="a_promo_price" inputmode="decimal" autocomplete="off" readonly/></div>
+    <div style="margin-top:10px"><div class="k">Prezzo promo</div><input id="a_promo_price" inputmode="decimal" autocomplete="off"/></div>
   </div>
 
   <div class="formBlock postblk inputSoft">
@@ -715,7 +713,6 @@ function normalizeDBShape(o){
     brand:normalizeSpaceText(x?.brand||x?.marca||''),
     categoria:normalizeSpaceText(x?.categoria||''),
     costoUsd:firstFiniteNumber(x?.costoUsd, x?.costoUSD, x?.usd, 0),
-    costoUsdPromo:firstFiniteNumber(x?.costoUsdPromo, x?.promoUsd, x?.usdPromo, x?.costoPromoUsd, 0),
     costoEur:firstFiniteNumber(x?.costoEur, x?.costoEUR, x?.prezzo_acquisto, x?.costo, x?.costo_eur, 0),
     prezzoVendita:firstFiniteNumber(x?.prezzoVendita, x?.prezzo_vendita, x?.prezzo, x?.prezzo_vendita_iva, 0),
     promoAttiva:(typeof x?.promoAttiva==='boolean') ? x.promoAttiva : !!x?.promo_on,
@@ -944,7 +941,6 @@ function mergeArticleRecords(prev,item){
   merged.brand=normalizeSpaceText(merged?.brand||merged?.marca||'');
   merged.categoria=normalizeSpaceText(merged?.categoria||'');
   merged.costoUsd=firstFiniteNumber(merged?.costoUsd, merged?.costoUSD, item?.costoUsd, item?.costoUSD, prev?.costoUsd, prev?.costoUSD, 0);
-  merged.costoUsdPromo=firstFiniteNumber(merged?.costoUsdPromo, merged?.promoUsd, merged?.usdPromo, item?.costoUsdPromo, item?.promoUsd, item?.usdPromo, prev?.costoUsdPromo, prev?.promoUsd, prev?.usdPromo, 0);
   merged.costoEur=firstFiniteNumber(merged?.costoEur, merged?.costoEUR, item?.costoEur, item?.costoEUR, item?.prezzo_acquisto, item?.costo, item?.costo_eur, prev?.costoEur, prev?.costoEUR, prev?.prezzo_acquisto, prev?.costo, prev?.costo_eur, 0);
   merged.prezzoVendita=firstFiniteNumber(merged?.prezzoVendita, merged?.prezzo_vendita, item?.prezzoVendita, item?.prezzo_vendita, item?.prezzo, item?.prezzo_vendita_iva, prev?.prezzoVendita, prev?.prezzo_vendita, prev?.prezzo, prev?.prezzo_vendita_iva, 0);
   merged.promoAttiva=(typeof merged?.promoAttiva==='boolean') ? merged.promoAttiva : ((typeof item?.promoAttiva==='boolean') ? item.promoAttiva : ((typeof prev?.promoAttiva==='boolean') ? prev.promoAttiva : false));
@@ -1760,25 +1756,16 @@ function calcFromUsd(usd, qual){
     return {costo, sell, marg};
   }
 }
-function promoFinalPrice(a){
-  const qual=qualityFromCode(a?.codice||'');
-  const promoUsd=Number(a?.costoUsdPromo||a?.promoUsd||a?.usdPromo||0);
-  if(promoUsd>0){
-    const r=calcFromUsd(promoUsd, qual);
-    return Number(r.sell||0);
-  }
-  return Number(a?.prezzoPromo||0);
-}
 function promoValid(a){
   if(!a.promoAttiva) return false;
-  const p=promoFinalPrice(a);
+  const p=Number(a.prezzoPromo||0);
   const d=String(a.scadenzaPromo||'').trim(); // yyyy-mm-dd
   if(!(p>0) || d.length<8) return false;
   const today=todayStr();
   return d>=today;
 }
 function currentPrice(a){
-  return promoValid(a) ? Number(promoFinalPrice(a)) : Number(a.prezzoVendita||0);
+  return promoValid(a) ? Number(a.prezzoPromo) : Number(a.prezzoVendita||0);
 }
 
 
@@ -1919,7 +1906,6 @@ function buildCloudArticleMeta(art){
     colore: art?.colore||'',
     misura: art?.misura||'',
     costoUsd: Number(art?.costoUsd||0),
-    costoUsdPromo: Number(art?.costoUsdPromo||0),
     costoEur: Number(art?.costoEur||0),
     prezzoVendita: Number(art?.prezzoVendita||0),
     promoAttiva: !!art?.promoAttiva,
@@ -2933,7 +2919,7 @@ async function openArtEdit(id){
   const set=(k,v)=>document.getElementById(k).value=(v===0?0:(v||''));
 
   if(!a){
-    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_mis','a_usd','a_promo_usd','a_promo_price','a_promo_date','a_note','a_post','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
+    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_mis','a_usd','a_promo_price','a_promo_date','a_note','a_post','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
     .forEach(fid => document.getElementById(fid).value='');
     syncBrandField('');
     refreshArticleCategorySelects('');
@@ -2948,7 +2934,7 @@ async function openArtEdit(id){
   refreshArticleCategorySelects(a?.categoria||'');
   set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
   set('a_taglia', a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore);
-  set('a_mis', a?.misura); set('a_usd', a?.costoUsd||''); set('a_promo_usd', a?.costoUsdPromo||'');
+  set('a_mis', a?.misura); set('a_usd', a?.costoUsd||'');
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
   set('a_promo_date', a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||'');
   document.getElementById('a_note').value=a?.note||'';
@@ -3049,7 +3035,6 @@ function renderArtAutoFields(){
       brand:getArticleBrandValue(),
       modello:document.getElementById('a_mod').value.trim(),
       promoAttiva:document.getElementById('a_promo_on').checked,
-      costoUsdPromo:Number(document.getElementById('a_promo_usd').value||0),
       prezzoPromo:Number(document.getElementById('a_promo_price').value||0),
       scadenzaPromo:document.getElementById('a_promo_date').value.trim(),
       prezzoVendita:0,
@@ -3071,12 +3056,9 @@ function renderArtAutoFields(){
   document.getElementById('a_eur').value = isFinite(r.costo)?money(r.costo):'';
   document.getElementById('a_sell').value = isFinite(r.sell)?String(r.sell):'';
   const promoOn=document.getElementById('a_promo_on').checked;
-  const promoUsd=Number(document.getElementById('a_promo_usd').value||0);
-  const promoAuto=promoUsd>0 ? calcFromUsd(promoUsd, qual).sell : Number(document.getElementById('a_promo_price').value||0);
-  document.getElementById('a_promo_price').value = promoAuto ? String(promoAuto) : '';
-  const promoPrice=promoAuto;
+  const promoPrice=Number(document.getElementById('a_promo_price').value||0);
   const promoDate=document.getElementById('a_promo_date').value.trim();
-  const a={codice:code, prezzoVendita:r.sell, promoAttiva:promoOn, costoUsdPromo:promoUsd, prezzoPromo:promoPrice, scadenzaPromo:promoDate};
+  const a={codice:code, prezzoVendita:r.sell, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate};
   const finalPrice = r.sell ? round5(currentPrice(a)) : 0;
   document.getElementById('a_final').value = finalPrice ? String(finalPrice) : '';
   const margin = Math.max(0, finalPrice - (Number(r.costo)||0));
@@ -3086,7 +3068,7 @@ function renderArtAutoFields(){
   const draft={
     codice:code, brand:getArticleBrandValue(),
     modello:document.getElementById('a_mod').value.trim(),
-    promoAttiva:promoOn, costoUsdPromo:promoUsd, prezzoPromo:promoPrice, scadenzaPromo:promoDate,
+    promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate,
     prezzoVendita:r.sell,
     misura:document.getElementById('a_mis').value.trim(),
     taglia:document.getElementById('a_taglia').value.trim(),
@@ -3181,7 +3163,6 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_colore').value=clone.colore||'';
   document.getElementById('a_mis').value=clone.misura||'';
   document.getElementById('a_usd').value=clone.costoUsd||'';
-  document.getElementById('a_promo_usd').value=clone.costoUsdPromo||'';
   document.getElementById('a_promo_on').checked=!!clone.promoAttiva;
   document.getElementById('a_promo_date').value=clone.scadenzaPromo||'';
   document.getElementById('a_promo_price').value=clone.prezzoPromo||'';
@@ -3213,9 +3194,7 @@ async function saveArt(){
     }
     const qual=qualityFromCode(code);
     const usd=Number(document.getElementById('a_usd').value||0);
-    const promoUsd=Number(document.getElementById('a_promo_usd').value||0);
     const r=calcFromUsd(usd, qual);
-    const promoAuto=promoUsd>0 ? calcFromUsd(promoUsd, qual).sell : Number(document.getElementById('a_promo_price').value||0);
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
     const keptFoto=currentArtPhotosCleared ? [] : (Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : []);
     const keptPhotoIds=currentArtPhotosCleared ? [] : (Array.isArray(old?.photoIds) ? old.photoIds.filter(Boolean).slice() : []);
@@ -3233,11 +3212,10 @@ async function saveArt(){
       colore: document.getElementById('a_colore').value.trim(),
       misura: document.getElementById('a_mis').value.trim(),
       costoUsd: usd,
-      costoUsdPromo: promoUsd,
       costoEur: r.costo,
       prezzoVendita: r.sell,
       promoAttiva: document.getElementById('a_promo_on').checked,
-      prezzoPromo: promoAuto,
+      prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
       scadenzaPromo: document.getElementById('a_promo_date').value.trim(),
       post: document.getElementById('a_post').value,
       note: document.getElementById('a_note').value,
@@ -4063,7 +4041,7 @@ bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore'].forEach(id=>{
   const el=document.getElementById(id);
   const evt=(id==='a_promo_on' || id==='a_forn' || id==='a_brand') ? 'change' : 'input';
   el.addEventListener(evt, renderArtAutoFields);
@@ -4439,10 +4417,9 @@ async function pullCloudToLocal(opts={}){
         const pulledPost=(meta.post||local?.post||'').trim();
         const finalFoto=normalizeCloudPhotoPathList(fotoByProd.get(p.id) || meta.foto || meta.fotoCloud || local?.foto || []);
         const pulledCostoUsd=firstFiniteNumber(meta.costoUsd, local?.costoUsd, 0);
-        const pulledCostoUsdPromo=firstFiniteNumber(meta.costoUsdPromo, meta.promoUsd, meta.usdPromo, local?.costoUsdPromo, local?.promoUsd, local?.usdPromo, 0);
         const pulledCostoEur=firstFiniteNumber(p.prezzo_acquisto, p.costo, p.costo_eur, meta.costoEur, local?.costoEur, 0);
         const pulledPrezzoVendita=firstFiniteNumber(p.prezzo_vendita, p.prezzo, p.prezzo_vendita_iva, meta.prezzoVendita, meta.prezzo, local?.prezzoVendita, 0);
-        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',taglia:meta.taglia||p.taglia||local?.taglia||'',variante:meta.variante||p.materiale||local?.variante||'',colore:meta.colore||p.colore||local?.colore||'',misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,6):[],_ts:Date.now(),_cloud:true};
+        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',taglia:meta.taglia||p.taglia||local?.taglia||'',variante:meta.variante||p.materiale||local?.variante||'',colore:meta.colore||p.colore||local?.colore||'',misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoEur:pulledCostoEur,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,6):[],_ts:Date.now(),_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:Date.now(),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(righeOrd); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:righeOrd,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,12):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,12):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(righeOrd, scontoCliente),_ts:Date.now(),_cloud:true}; })
