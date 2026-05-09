@@ -2841,7 +2841,7 @@ function pickFacebookDetailLines(a){
   return uniquePostLines(detailCandidates).slice(0,3);
 }
 function promoPostIntroLines(a){
-  if(!a?.promoAttiva) return [];
+  if(!promoValid(a)) return [];
   const lines=['⭕️ PROMOZIONE ⭕️'];
   const start=getPromoStartDate(a);
   const end=String(a?.scadenzaPromo||'').trim();
@@ -3290,8 +3290,13 @@ function buildPostFacebookBase(a, opts={}){
   pushUnique(misura, v=>`Mis. ${smartSentenceCase(v)}`);
   pushUnique(colore, v=>`Colore: ${smartSentenceCase(v)}`);
   if(includePrice){
-    const prezzoFacebook = formatPostPrezzoVendita(currentPrice(a), priceSymbol);
-    if(prezzoFacebook) lines.push(prezzoFacebook);
+    if(promoValid(a)){
+      const prezzoPromoFmt=formatPostPrezzoVendita(Number(a.prezzoPromo), priceSymbol);
+      if(prezzoPromoFmt) lines.push(prezzoPromoFmt);
+    } else {
+      const prezzoFacebook = formatPostPrezzoVendita(currentPrice(a), priceSymbol);
+      if(prezzoFacebook) lines.push(prezzoFacebook);
+    }
   }
   lines.push(`cod. ${a.codice}`);
   if(closer) lines.push('', closer);
@@ -3348,7 +3353,7 @@ function buildPostTelegram(a){
     seen.add(key);
     lines.push(txt);
   };
-  if(a.promoAttiva){
+  if(promoValid(a)){
     const promoStart=getPromoStartDate(a);
     const scadenzaRaw=String(a.scadenzaPromo||'').trim();
     const tipoMateriale=materiale || materialeCompat || variante;
@@ -3359,8 +3364,13 @@ function buildPostTelegram(a){
     pushUnique(tipoMateriale);
     pushUnique(colore);
     pushUnique(misura, v=>formatPostMisura(v));
-    const prezzoVenditaPromo=formatPostPrezzoVendita(a.prezzoVendita, '€');
-    if(prezzoVenditaPromo) lines.push(prezzoVenditaPromo);
+    if(promoValid(a)){
+      const prezzoPromoFmt=formatPostPrezzoVendita(Number(a.prezzoPromo), '€');
+      if(prezzoPromoFmt) lines.push(prezzoPromoFmt);
+    } else {
+      const prezzoNormale=formatPostPrezzoVendita(a.prezzoVendita, '€');
+      if(prezzoNormale) lines.push(prezzoNormale);
+    }
     lines.push(`cod. ${a.codice}`);
     return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
   }
