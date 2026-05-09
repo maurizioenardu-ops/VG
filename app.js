@@ -90,7 +90,15 @@ function isoDayPlus(value='', days=0){
 }
 function clearArticlePromoState(article){
   if(!article || typeof article!=='object') return article;
-  return { ...article, promoAttiva:false, prezzoPromo:0, scadenzaPromo:'', dataInizioPromo:'' };
+  const cleared={ ...article, promoAttiva:false, prezzoPromo:0, scadenzaPromo:'', dataInizioPromo:'', costoUsdPromo:0 };
+  // Ricalcola costoEur dal USD normale ora che la promo è terminata
+  const usd=Number(cleared.costoUsd||0);
+  if(usd>0){
+    const qualKey=normalizeQualityValue(articleQualityLabel(cleared)).toUpperCase();
+    const base=calcFromUsd(usd, qualKey==='ORIGINALE'?'ORIGINALE':'STANDARD');
+    if(isFinite(base?.costo) && base.costo>0) cleared.costoEur=base.costo;
+  }
+  return cleared;
 }
 function promoShouldClear(article, today=todayStr()){
   const expiry=String(article?.scadenzaPromo||'').trim();
@@ -2370,7 +2378,19 @@ function orderMargin(o, db){
   for(const r of righe){
     const prezzo=Number(r?.prezzo||0);
     const art=(db?.articoli||[]).find(x=>x.id===r.articoloId || (r.codice && x.codice===r.codice));
-    const costo=Number(art?.costoEur||r?.costoEur||0);
+    let costo=0;
+    if(art){
+      const usdEff=currentCostoUsd(art);
+      if(usdEff>0){
+        const qualKey=normalizeQualityValue(articleQualityLabel(art)).toUpperCase();
+        const base=calcFromUsd(usdEff, qualKey==='ORIGINALE'?'ORIGINALE':'STANDARD');
+        costo=(isFinite(base?.costo) && base.costo>0) ? base.costo : Number(art?.costoEur||r?.costoEur||0);
+      } else {
+        costo=Number(art?.costoEur||r?.costoEur||0);
+      }
+    } else {
+      costo=Number(r?.costoEur||0);
+    }
     margin += Math.max(0, prezzo - costo);
   }
   return margin;
@@ -4835,7 +4855,10 @@ function articleCostInfoHtml(a){
   const info=articleCostInfo(a);
   if(!info || !isFinite(info.eur) || info.eur<=0) return '';
   const usdText=(isFinite(info.usd) && info.usd>0) ? ` <span>(${money(info.usd)} USD)</span>` : '';
-  return `<div class="costMeta">Costo: ${money(info.eur)} €${usdText}</div>`;
+  const usdPromoVal=Number(a?.costoUsdPromo||0);
+  const showUsdPromo=promoValid(a) && usdPromoVal>0;
+  const usdPromoHtml=showUsdPromo ? `<div class="costMeta usdPromoMeta">Costo USD promo: <span class="usdPromo">${usdPromoVal.toFixed(2)} USD</span></div>` : '';
+  return `<div class="costMeta">Costo: ${money(info.eur)} €${usdText}</div>${usdPromoHtml}`;
 }
 function articleMarginInfoHtml(a){
   const info=articleMarginInfo(a);
@@ -5229,14 +5252,7 @@ async function openArtView(id){
   }
   document.getElementById('vArtPrezzo').textContent=money(a.prezzoVendita||0);
   document.getElementById('vArtPrezzoUse').textContent=money(currentPrice(a));
-  const usdPromoWrap=document.getElementById('vArtUsdPromoWrap');
-  const usdPromoEl=document.getElementById('vArtUsdPromo');
-  if(usdPromoWrap && usdPromoEl){
-    const usdPromoVal=Number(a.costoUsdPromo||0);
-    const showUsdPromo=promoValid(a) && usdPromoVal>0;
-    usdPromoWrap.style.display=showUsdPromo ? 'block' : 'none';
-    if(showUsdPromo) usdPromoEl.textContent=usdPromoVal.toFixed(2)+' USD';
-  }
+
   const pill=document.getElementById('vArtPromoPill');
   pill.innerHTML = promoInfoHtml(a,{marginTop:'6px'});
   const marginBox=document.getElementById('vArtMarginBox');
@@ -5597,15 +5613,23 @@ function renderArtAutoFields(){
   }
 
   const usd=Number(usdRaw);
-  if(usdRaw===''){ document.getElementById('a_eur').value=''; document.getElementById('a_sell').value=''; document.getElementById('a_final').value=''; document.getElementById('a_margin').value=''; document.getElementById('a_margin_pct').textContent=''; return; }
-  const r=calcFromUsd(usd, qual);
-  document.getElementById('a_eur').value = isFinite(r.costo)?money(r.costo):'';
-  document.getElementById('a_sell').value = isFinite(r.sell)?String(r.sell):'';
   const promoOn=document.getElementById('a_promo_on').checked;
   const promoPrice=Number(document.getElementById('a_promo_price').value||0);
   const promoDate=document.getElementById('a_promo_date').value.trim();
-  const a={codice:code, prezzoVendita:r.sell, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate};
-  const finalPrice = r.sell ? round5(currentPrice(a)) : 0;
+  const usdPromoRaw=document.getElementById('a_usd_promo').value.trim();
+  const usdPromo=Number(usdPromoRaw||0);
+  // Se promo attiva + valida + usdPromo inserito → usa usdPromo per calcoli costo/margine
+  const draftPromoCheck={codice:code, prezzoVendita:0, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate};
+  const promoIsValid=promoValid(draftPromoCheck);
+  const usdEffettivo=(promoIsValid && usdPromo>0) ? usdPromo : usd;
+  const r=calcFromUsd(usdEffettivo, qual);
+  const rNormale=calcFromUsd(usd, qual); // sempre da usd normale per prezzo vendita base
+  document.getElementById('a_eur').value = isFinite(r.costo)?money(r.costo):'';
+  // Prezzo vendita: se promo valida usa prezzoPromo come finale, altrimenti r.sell da usd normale
+  const sellBase=rNormale.sell;
+  document.getElementById('a_sell').value = isFinite(sellBase)?String(sellBase):'';
+  const a={codice:code, prezzoVendita:sellBase, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate};
+  const finalPrice = sellBase ? round5(currentPrice(a)) : 0;
   document.getElementById('a_final').value = finalPrice ? String(finalPrice) : '';
   const margin = Math.max(0, finalPrice - (Number(r.costo)||0));
   document.getElementById('a_margin').value = margin ? money(margin) : '';
@@ -5615,7 +5639,7 @@ function renderArtAutoFields(){
     codice:code, brand:getArticleBrandValue(),
     modello:document.getElementById('a_mod').value.trim(),
     promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate,
-    prezzoVendita:r.sell,
+    prezzoVendita:sellBase,
     misura:document.getElementById('a_mis').value.trim(),
     materiale:document.getElementById('a_taglia').value.trim(),
     taglia:'',
@@ -5773,7 +5797,15 @@ async function saveArt(){
     }
     const qual=qualityFromCode(code);
     const usd=Number(document.getElementById('a_usd').value||0);
-    const r=calcFromUsd(usd, qual);
+    const usdPromoSave=Number(document.getElementById('a_usd_promo').value||0);
+    const promoOnSave=document.getElementById('a_promo_on').checked;
+    const promoPriceSave=Number(document.getElementById('a_promo_price').value||0);
+    const promoDateSave=document.getElementById('a_promo_date').value.trim();
+    const draftForPromoCheck={codice:code, prezzoVendita:0, promoAttiva:promoOnSave, prezzoPromo:promoPriceSave, scadenzaPromo:promoDateSave};
+    const promoValidNow=promoValid(draftForPromoCheck);
+    const usdEffettivoSave=(promoValidNow && usdPromoSave>0) ? usdPromoSave : usd;
+    const r=calcFromUsd(usdEffettivoSave, qual);
+    const rBase=calcFromUsd(usd, qual);
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
     const preservedPublishLog=currentArtId ? normalizeArticlePublishLog(old?.pubblicazioniCanali||old?.publishStats||old?.socialPub||{}) : {fb:[],tg:[],ig:[]};
     const keptFoto=currentArtPhotosCleared ? [] : (Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : []);
@@ -5800,9 +5832,9 @@ async function saveArt(){
       colorData: colorMode==='multiple' ? makeStableColorData({colorMode, colorCount, colorLabels}) : null,
       misura: misuraValue,
       costoUsd: usd,
-      costoUsdPromo: Number(document.getElementById('a_usd_promo').value||0),
+      costoUsdPromo: usdPromoSave,
       costoEur: r.costo,
-      prezzoVendita: r.sell,
+      prezzoVendita: rBase.sell,
       promoAttiva: document.getElementById('a_promo_on').checked,
       prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
       scadenzaPromo: document.getElementById('a_promo_date').value.trim(),
@@ -7134,7 +7166,7 @@ bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_usd_promo','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
   ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));

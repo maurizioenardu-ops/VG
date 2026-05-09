@@ -235,4 +235,7 @@ select[multiple]{min-height:150px}
 #catList .catImgActions{display:flex!important;gap:8px!important;flex-wrap:wrap!important;justify-content:flex-start!important;margin-top:8px!important}
 #catList .catImgActions .btn{min-height:38px!important;padding:8px 10px!important;font-size:12px!important}
 
-.usdPromo{color:var(--red);font-weight:700;font-size:1.05em}
+.usdPromo{color:var(--gold);font-weight:700;font-size:1.05em}
+.usdPromoMeta{margin-top:2px}
+#a_usd_promo{border-color:var(--gold);color:var(--gold);font-weight:600}
+#a_usd_promo:focus{border-color:var(--gold);outline-color:var(--gold)}
