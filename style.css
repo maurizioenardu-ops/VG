@@ -235,3 +235,4 @@ select[multiple]{min-height:150px}
 #catList .catImgActions{display:flex!important;gap:8px!important;flex-wrap:wrap!important;justify-content:flex-start!important;margin-top:8px!important}
 #catList .catImgActions .btn{min-height:38px!important;padding:8px 10px!important;font-size:12px!important}
 
+.usdPromo{color:var(--red);font-weight:700;font-size:1.05em}
