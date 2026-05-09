@@ -1,11 +1,29 @@
 {
-  "version": "v6.7",
-  "createdAt": "2026-03-29T00:00:00.000Z",
-  "exportedAt": "2026-03-29T00:00:00.000Z",
-  "articoli": [],
+  "version": 9,
+  "exportedAt": null,
+  "articoli": [
+    {
+      "id": "a_demo01",
+      "codice": "DEMO001",
+      "brand": "LV",
+      "modello": "Demo Bag",
+      "categoria": "Borsa",
+      "qualita": "🔝💯",
+      "costoUSD": 79,
+      "costoEUR": 76.1,
+      "margine": 50,
+      "prezzoVendita": 125,
+      "materiale": "Tela monogram con inserti",
+      "misure": "26 x 18 x 8 cm",
+      "colori": "Monogram marrone",
+      "promoAttiva": false,
+      "promoPrezzo": 0,
+      "promoScadenza": "",
+      "foto": [],
+      "post": "LV Demo Bag 🔝💯\n💶 125\ncod. DEMO001",
+      "note": "Articolo demo. Eliminalo quando vuoi."
+    }
+  ],
   "clienti": [],
-  "ordini": [],
-  "categorie": [],
-  "brands": [],
-  "agenda": []
+  "ordini": []
 }
