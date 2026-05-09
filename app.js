@@ -1004,7 +1004,6 @@ function restoreArticleDraft(targetId=''){
   document.getElementById('a_mis').value=v.misura||'';
   document.getElementById('a_usd').value=v.costoUsd||'';
   document.getElementById('a_promo_on').checked=!!v.promoAttiva;
-  document.getElementById('a_promo_price').value=v.prezzoPromo||'';
   document.getElementById('a_promo_date').value=v.scadenzaPromo||'';
   document.getElementById('a_note').value=v.note||'';
   renderArtAutoFields();
@@ -5317,7 +5316,7 @@ async function openArtEdit(id){
   set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
   set('a_mis', a?.misura); set('a_usd', a?.costoUsd||''); set('a_usd_promo', a?.costoUsdPromo||'');
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
-  set('a_promo_date', a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||'');
+  set('a_promo_date', a?.scadenzaPromo);
   document.getElementById('a_note').value=a?.note||'';
   document.getElementById('a_post').value=a?.post||'';
   fitTextarea(document.getElementById('a_post'));
@@ -5614,20 +5613,26 @@ function renderArtAutoFields(){
 
   const usd=Number(usdRaw);
   const promoOn=document.getElementById('a_promo_on').checked;
-  const promoPrice=Number(document.getElementById('a_promo_price').value||0);
   const promoDate=document.getElementById('a_promo_date').value.trim();
   const usdPromoRaw=document.getElementById('a_usd_promo').value.trim();
   const usdPromo=Number(usdPromoRaw||0);
-  // Se promo attiva + valida + usdPromo inserito → usa usdPromo per calcoli costo/margine
+  // Calcola prezzo promo automaticamente da USD promo
+  const rPromo=(promoOn && usdPromo>0) ? calcFromUsd(usdPromo, qual) : null;
+  const promoPriceAuto=rPromo ? rPromo.sell : 0;
+  document.getElementById('a_promo_price').value = promoPriceAuto ? String(promoPriceAuto) : '';
+  const promoPrice=promoPriceAuto;
+  // Verifica se promo è valida (flag attivo + prezzo calcolato + data futura valida)
   const draftPromoCheck={codice:code, prezzoVendita:0, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate};
   const promoIsValid=promoValid(draftPromoCheck);
+  // Costo EUR: usa USD promo se promo valida, altrimenti USD normale
   const usdEffettivo=(promoIsValid && usdPromo>0) ? usdPromo : usd;
   const r=calcFromUsd(usdEffettivo, qual);
-  const rNormale=calcFromUsd(usd, qual); // sempre da usd normale per prezzo vendita base
+  const rNormale=calcFromUsd(usd, qual);
   document.getElementById('a_eur').value = isFinite(r.costo)?money(r.costo):'';
-  // Prezzo vendita: se promo valida usa prezzoPromo come finale, altrimenti r.sell da usd normale
+  // Prezzo vendita base sempre da USD normale
   const sellBase=rNormale.sell;
   document.getElementById('a_sell').value = isFinite(sellBase)?String(sellBase):'';
+  // Prezzo finale: se promo valida → prezzo promo auto, altrimenti prezzo vendita normale
   const a={codice:code, prezzoVendita:sellBase, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate};
   const finalPrice = sellBase ? round5(currentPrice(a)) : 0;
   document.getElementById('a_final').value = finalPrice ? String(finalPrice) : '';
@@ -5799,8 +5804,10 @@ async function saveArt(){
     const usd=Number(document.getElementById('a_usd').value||0);
     const usdPromoSave=Number(document.getElementById('a_usd_promo').value||0);
     const promoOnSave=document.getElementById('a_promo_on').checked;
-    const promoPriceSave=Number(document.getElementById('a_promo_price').value||0);
     const promoDateSave=document.getElementById('a_promo_date').value.trim();
+    // Prezzo promo calcolato automaticamente da USD promo
+    const rPromoSave=(promoOnSave && usdPromoSave>0) ? calcFromUsd(usdPromoSave, qual) : null;
+    const promoPriceSave=rPromoSave ? rPromoSave.sell : 0;
     const draftForPromoCheck={codice:code, prezzoVendita:0, promoAttiva:promoOnSave, prezzoPromo:promoPriceSave, scadenzaPromo:promoDateSave};
     const promoValidNow=promoValid(draftForPromoCheck);
     const usdEffettivoSave=(promoValidNow && usdPromoSave>0) ? usdPromoSave : usd;
@@ -5836,11 +5843,11 @@ async function saveArt(){
       costoEur: r.costo,
       prezzoVendita: rBase.sell,
       promoAttiva: document.getElementById('a_promo_on').checked,
-      prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
+      prezzoPromo: promoPriceSave,
       scadenzaPromo: document.getElementById('a_promo_date').value.trim(),
       dataInizioPromo: resolvePromoStartDate(old, {
         promoAttiva: document.getElementById('a_promo_on').checked,
-        prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
+        prezzoPromo: promoPriceSave,
         scadenzaPromo: document.getElementById('a_promo_date').value.trim()
       }),
       post: document.getElementById('a_post').value,
@@ -7166,7 +7173,7 @@ bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_usd_promo','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_usd_promo','a_promo_on','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
   ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));
