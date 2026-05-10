@@ -1,4 +1,4 @@
-const VERSION = 'v58_promo_supplier_personal';
+const VERSION = 'v59_category_images_settings';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
