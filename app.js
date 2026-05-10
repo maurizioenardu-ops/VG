@@ -4682,6 +4682,11 @@ function renderArtBreadcrumbs(){
     box.style.display='flex';
     return;
   }
+  if(artBrowseState.level==='mixed'){
+    box.innerHTML=`<span class="artCrumb active">Tutti gli articoli</span><button class="artCrumb" type="button" data-action="clearArtFilters">Anteprime complete</button>`;
+    box.style.display='flex';
+    return;
+  }
   box.innerHTML='';
   box.style.display='none';
 }
@@ -4741,8 +4746,23 @@ function renderCategoryOverview(items,{promoOnly=false,brandFilter='',qualityFil
     return `<div class="artCard tight" data-action="selectArtCategory" data-name="${esc(catLabel)}"><div class="artMeta"><div class="t">${esc(catLabel)}</div><div class="s">Categorie articoli</div></div><div class="artPlaceholder" style="margin-top:8px;display:flex"><img class="artPlaceholderImg" alt="Categoria ${esc(catLabel)}" src="${artIconForCategory(catLabel)}"/></div><div class="artMeta" style="margin-top:12px"><div class="s">${countLine}</div></div></div>`;
   }).join('');
 }
+function updateArtPromoFilterButton(promoCount){
+  const promoBtn=document.getElementById('btnArtPromoOnly');
+  if(promoBtn){
+    promoBtn.textContent = artBrowseState.level==='promo' ? `🔥 Promo attive (${promoCount})` : `🔥 Solo promo (${promoCount})`;
+    promoBtn.classList.toggle('active', artBrowseState.level==='promo');
+    promoBtn.setAttribute('aria-pressed', artBrowseState.level==='promo' ? 'true' : 'false');
+  }
+  const allBtn=document.getElementById('btnArtAllMixed');
+  if(allBtn){
+    allBtn.classList.toggle('active', artBrowseState.level==='mixed');
+    allBtn.setAttribute('aria-pressed', artBrowseState.level==='mixed' ? 'true' : 'false');
+  }
+}
 function renderArt(){
   const db=loadDB();
+  const promoCount=(db.articoli||[]).filter(promoValid).length;
+  updateArtPromoFilterButton(promoCount);
   refreshArticlePreviewFilters();
   const q=document.getElementById('qArt').value.trim().toLowerCase();
   const catFilter=String(document.getElementById('qArtCat')?.value||'').trim();
@@ -6621,6 +6641,19 @@ document.addEventListener('click',(ev)=>{
     go('articoli');
     return renderArt();
   }
+  if(a==='openAllArticlesMixed'){
+    const qArt=document.getElementById('qArt');
+    const qArtCat=document.getElementById('qArtCat');
+    const qArtBrand=document.getElementById('qArtBrand');
+    const qArtQuality=document.getElementById('qArtQuality');
+    if(qArt) qArt.value='';
+    if(qArtCat) qArtCat.value='';
+    if(qArtBrand) qArtBrand.value='';
+    if(qArtQuality) qArtQuality.value='';
+    setArtBrowse('mixed');
+    go('articoli');
+    return renderArt();
+  }
   if(a==='clearArtFilters'){
     const qArt=document.getElementById('qArt');
     const qArtCat=document.getElementById('qArtCat');
@@ -6857,7 +6890,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-10-category-images-settings-v59';
+const VG_BUILD='2026-05-10-promo-filter-button-v61';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -7387,7 +7420,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=category-images-settings-v59', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=promo-filter-button-v61', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

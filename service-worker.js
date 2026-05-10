@@ -1,4 +1,4 @@
-const VERSION = 'v60_category_images_settings_fixed';
+const VERSION = 'v61_promo_filter_button';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

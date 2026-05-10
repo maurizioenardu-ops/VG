@@ -111,6 +111,9 @@ body{-webkit-tap-highlight-color:transparent}
 .btn.danger{background:#fee2e2;border-color:#fca5a5}
 .btn.secondary{background:#fef3c7;border-color:#f59e0b;color:#7c2d12}
 .btn.ghost{background:#fff;border-color:var(--line);color:#475569}
+.btn.promoOnlyBtn{background:#f0fdf4;border-color:#86efac;color:#166534}
+.btn.promoOnlyBtn.active{background:#16a34a;border-color:#16a34a;color:#fff}
+.btn.artAllBtn.active{background:#e0ecff;border-color:#93c5fd;color:#0f172a}
 .btn.smallish{padding:9px 11px;min-height:40px;font-size:12px;border-radius:12px}
 .btn.orderAdd{background:#fff;border:1px solid var(--line);color:#111827;box-shadow:0 3px 10px rgba(15,23,42,.04)}
 .btn[data-action^="shareArtPhotos"],.btn[data-action="addArtToOrderFromView"]{background:#16a34a;border-color:#16a34a;color:#fff}
@@ -350,7 +353,8 @@ window.addEventListener('error',e=>{
       </div>
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn" type="button" data-action="clearArtFilters">Anteprime complete</button>
-        <button class="btn" type="button" data-action="openAllArticlesMixed">Tutto</button>
+        <button id="btnArtAllMixed" class="btn artAllBtn" type="button" data-action="openAllArticlesMixed">Tutto</button>
+        <button id="btnArtPromoOnly" class="btn promoOnlyBtn" type="button" data-action="openPromoArticles">🔥 Solo promo</button>
       </div>
       <div id="artBreadcrumbs" class="artBreadcrumbs" style="display:none"></div>
     </div>
@@ -5777,8 +5781,23 @@ function renderCategoryOverview(items,{promoOnly=false,brandFilter='',qualityFil
     return `<div class="artCard tight" data-action="selectArtCategory" data-name="${esc(catLabel)}"><div class="artMeta"><div class="t">${esc(catLabel)}</div><div class="s">Categorie articoli</div></div><div class="artPlaceholder" style="margin-top:8px;display:flex"><img class="artPlaceholderImg" alt="Categoria ${esc(catLabel)}" src="${artIconForCategory(catLabel)}"/></div><div class="artMeta" style="margin-top:12px"><div class="s">${countLine}</div></div></div>`;
   }).join('');
 }
+function updateArtPromoFilterButton(promoCount){
+  const promoBtn=document.getElementById('btnArtPromoOnly');
+  if(promoBtn){
+    promoBtn.textContent = artBrowseState.level==='promo' ? `🔥 Promo attive (${promoCount})` : `🔥 Solo promo (${promoCount})`;
+    promoBtn.classList.toggle('active', artBrowseState.level==='promo');
+    promoBtn.setAttribute('aria-pressed', artBrowseState.level==='promo' ? 'true' : 'false');
+  }
+  const allBtn=document.getElementById('btnArtAllMixed');
+  if(allBtn){
+    allBtn.classList.toggle('active', artBrowseState.level==='mixed');
+    allBtn.setAttribute('aria-pressed', artBrowseState.level==='mixed' ? 'true' : 'false');
+  }
+}
 function renderArt(){
   const db=loadDB();
+  const promoCount=(db.articoli||[]).filter(promoValid).length;
+  updateArtPromoFilterButton(promoCount);
   refreshArticlePreviewFilters();
   const q=document.getElementById('qArt').value.trim().toLowerCase();
   const catFilter=String(document.getElementById('qArtCat')?.value||'').trim();
@@ -8081,7 +8100,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-10-category-images-settings-v59';
+const VG_BUILD='2026-05-10-promo-filter-button-v61';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -8671,7 +8690,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=category-images-settings-v59', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=promo-filter-button-v61', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
