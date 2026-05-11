@@ -2134,7 +2134,9 @@ function formatPromoDateLabel(v=''){
   const raw=String(v||'').trim();
   if(!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
   const [yyyy,mm,dd]=raw.split('-');
-  return `${dd}/${mm}/${yyyy}`;
+  const months=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+  const monthName=months[Math.max(0, Math.min(11, Number(mm)-1))] || mm;
+  return `${Number(dd)} ${monthName} ${yyyy}`;
 }
 function promoHasHistory(a){
   return !!(a && (a.promoAttiva || Number(a.prezzoPromo||0)>0 || getPromoSupplierUsd(a)>0 || getPromoStartDate(a)));
@@ -2144,11 +2146,8 @@ function promoExpiredDisplay(a, today=todayStr()){
   return !!(promoHasHistory(a) && d.length>=8 && d<today);
 }
 function promoPeriodLabel(a){
-  const start=getPromoStartDate(a);
   const end=String(a?.scadenzaPromo||'').trim();
-  if(start && end) return `Promo dal ${formatPromoDateLabel(start)} al ${formatPromoDateLabel(end)}`;
   if(end) return `Promo fino al ${formatPromoDateLabel(end)}`;
-  if(start) return `Promo dal ${formatPromoDateLabel(start)}`;
   return '';
 }
 function promoInfoHtml(a,{marginTop='6px'}={}){
@@ -2702,10 +2701,8 @@ function pickFacebookDetailLines(a){
 function promoPostIntroLines(a){
   if(!promoValid(a)) return [];
   const lines=['⭕️ PROMOZIONE ⭕️'];
-  const start=getPromoStartDate(a);
   const end=String(a?.scadenzaPromo||'').trim();
-  if(start && end) lines.push(`(dal ${formatPromoDateLabel(start)} al ${formatPromoDateLabel(end)})`);
-  else if(end) lines.push(`(fino al ${formatPromoDateLabel(end)})`);
+  if(end) lines.push(`(fino al ${formatPromoDateLabel(end)})`);
   return lines;
 }
 function postTraitFlags(a){
@@ -3186,12 +3183,10 @@ function buildPostTelegram(a){
   const qemoji=emojiQualityForPost(a);
   const lines=[];
   if(promoValid(a)){
-    const promoStart=getPromoStartDate(a);
     const scadenzaRaw=String(a.scadenzaPromo||'').trim();
     const tipoMateriale=materiale || materialeCompat || variante;
     lines.push('⭕️ PROMOZIONE ⭕️');
-    if(promoStart && scadenzaRaw) lines.push(`(dal ${formatPromoDateLabel(promoStart)} al ${formatPromoDateLabel(scadenzaRaw)})`);
-    else if(scadenzaRaw) lines.push(`(fino al ${formatPromoDateLabel(scadenzaRaw)})`);
+    if(scadenzaRaw) lines.push(`(fino al ${formatPromoDateLabel(scadenzaRaw)})`);
     if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
     if(tipoMateriale) lines.push(tipoMateriale);
     if(colore) lines.push(colore);

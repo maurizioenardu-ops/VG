@@ -2181,7 +2181,9 @@ function formatPromoDateLabel(v=''){
   const raw=String(v||'').trim();
   if(!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
   const [yyyy,mm,dd]=raw.split('-');
-  return `${dd}/${mm}/${yyyy}`;
+  const months=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+  const monthName=months[Math.max(0, Math.min(11, Number(mm)-1))] || mm;
+  return `${Number(dd)} ${monthName} ${yyyy}`;
 }
 function promoHasHistory(a){
   return !!(a && (a.promoAttiva || Number(a.prezzoPromo||0)>0 || getPromoSupplierUsd(a)>0 || getPromoStartDate(a)));
@@ -2191,11 +2193,8 @@ function promoExpiredDisplay(a, today=todayStr()){
   return !!(promoHasHistory(a) && d.length>=8 && d<today);
 }
 function promoPeriodLabel(a){
-  const start=getPromoStartDate(a);
   const end=String(a?.scadenzaPromo||'').trim();
-  if(start && end) return `Promo dal ${formatPromoDateLabel(start)} al ${formatPromoDateLabel(end)}`;
   if(end) return `Promo fino al ${formatPromoDateLabel(end)}`;
-  if(start) return `Promo dal ${formatPromoDateLabel(start)}`;
   return '';
 }
 function promoInfoHtml(a,{marginTop='6px'}={}){
@@ -2749,10 +2748,8 @@ function pickFacebookDetailLines(a){
 function promoPostIntroLines(a){
   if(!promoValid(a)) return [];
   const lines=['⭕️ PROMOZIONE ⭕️'];
-  const start=getPromoStartDate(a);
   const end=String(a?.scadenzaPromo||'').trim();
-  if(start && end) lines.push(`(dal ${formatPromoDateLabel(start)} al ${formatPromoDateLabel(end)})`);
-  else if(end) lines.push(`(fino al ${formatPromoDateLabel(end)})`);
+  if(end) lines.push(`(fino al ${formatPromoDateLabel(end)})`);
   return lines;
 }
 function postTraitFlags(a){
@@ -3243,12 +3240,10 @@ function buildPostTelegram(a){
   const qemoji=emojiQualityForPost(a);
   const lines=[];
   if(promoValid(a)){
-    const promoStart=getPromoStartDate(a);
     const scadenzaRaw=String(a.scadenzaPromo||'').trim();
     const tipoMateriale=materiale || materialeCompat || variante;
     lines.push('⭕️ PROMOZIONE ⭕️');
-    if(promoStart && scadenzaRaw) lines.push(`(dal ${formatPromoDateLabel(promoStart)} al ${formatPromoDateLabel(scadenzaRaw)})`);
-    else if(scadenzaRaw) lines.push(`(fino al ${formatPromoDateLabel(scadenzaRaw)})`);
+    if(scadenzaRaw) lines.push(`(fino al ${formatPromoDateLabel(scadenzaRaw)})`);
     if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
     if(tipoMateriale) lines.push(tipoMateriale);
     if(colore) lines.push(colore);
@@ -4790,7 +4785,7 @@ function renderArt(){
     const unavailable=articleAvailabilityBadge(a);
     const blocked=isArticleUnavailable(a);
     const metaLine=promoOnly ? `${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}` : `${esc(a.codice||'Senza codice')} • ${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
-    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${unavailable}${promo}</div><div class="artPrice">${money(currentPrice(a))}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
+    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${unavailable}${promo}</div><div class="artPrice">${money(currentPrice(a))}</div><div class="artActions"><button class="btn smallish" type="button" data-action="shareArtPhotosFbCard" data-id="${a.id}">Condividi foto</button><button class="btn primary smallish" type="button" data-action="copyPostFbCard" data-id="${a.id}">Copia FB</button></div></div>`;
   }).join('');
   const emptyText=promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.';
   el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
@@ -6581,13 +6576,47 @@ function bindSearchSuggest(inputId, boxId, kind, onApply){
   });
 }
 
+
+function getArticleForQuickAction(articleId){
+  const id=String(articleId||'').trim();
+  if(!id) return null;
+  const db=loadDB();
+  return (db.articoli||[]).find(x=>String(x?.id||'')===id || String(x?.codice||'')===id) || null;
+}
+function copyArticleFbFromCard(articleId){
+  const art=getArticleForQuickAction(articleId);
+  if(!art){ toast('Articolo non trovato'); return; }
+  return copyText(buildPostFacebook(art), 'Post FB copiato', ()=>{
+    recordArticlePublication('fb', art.id);
+    try{ renderArt(); }catch(_e){}
+  });
+}
+async function warmArticlePhotosFromCard(articleId){
+  const art=getArticleForQuickAction(articleId);
+  if(!art) return null;
+  currentArtId=art.id;
+  const ctx=await prepareArticlePhotoShareContext(art);
+  if(ctx) await warmCurrentArticlePhotoShare(ctx, { silent:true });
+  return ctx;
+}
+async function shareArticlePhotosFromCard(articleId, channel='fb'){
+  const art=getArticleForQuickAction(articleId);
+  if(!art){ toast('Articolo non trovato'); return; }
+  currentArtId=art.id;
+  const ctx=await prepareArticlePhotoShareContext(art);
+  if(!ctx){ toast('Nessuna foto disponibile'); return; }
+  const res=await shareCurrentArticlePhotos(channel);
+  try{ renderArt(); }catch(_e){}
+  return res;
+}
+
 /* ====== EVENTS ====== */
 document.addEventListener('pointerdown',(ev)=>{
-  const btn=ev.target?.closest?.('[data-action="shareArtPhotos"],[data-action="downloadArtPhotos"]');
+  const btn=ev.target?.closest?.('[data-action="shareArtPhotosFbCard"],[data-action="shareArtPhotos"],[data-action="downloadArtPhotos"]');
   if(!btn) return;
   Promise.resolve()
-    .then(()=>getPreparedCurrentArticlePhotoContext() || getCurrentArticlePhotoContext())
-    .then(ctx=>{ if(ctx) return warmCurrentArticlePhotoShare(ctx, { silent:true }); })
+    .then(()=>btn.dataset.id ? warmArticlePhotosFromCard(btn.dataset.id) : (getPreparedCurrentArticlePhotoContext() || getCurrentArticlePhotoContext()))
+    .then(ctx=>{ if(ctx && !btn.dataset.id) return warmCurrentArticlePhotoShare(ctx, { silent:true }); })
     .catch(()=>{});
 });
 
@@ -6730,6 +6759,8 @@ document.addEventListener('click',(ev)=>{
   if(a==='addBrand') return addBrand();
   if(a==='renameBrand') return renameBrand(el.dataset.name||'');
   if(a==='deleteBrand') return deleteBrand(el.dataset.name||'');
+  if(a==='copyPostFbCard') return copyArticleFbFromCard(el.dataset.id || '');
+  if(a==='shareArtPhotosFbCard') return shareArticlePhotosFromCard(el.dataset.id || '', 'fb');
   if(a==='copyPost'){
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
@@ -6890,7 +6921,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-10-promo-filter-button-v61';
+const VG_BUILD='2026-05-11-promo-fino-al-v62';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -7420,7 +7451,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=promo-filter-button-v61', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=promo-fino-al-v62', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
