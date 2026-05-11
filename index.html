@@ -254,7 +254,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v10_7-card-share-fb">
+  <meta name="vg-version" content="v10_6-post-cleanup">
 </head>
 <body>
 <div class="top">
@@ -5820,7 +5820,7 @@ function renderArt(){
     const unavailable=articleAvailabilityBadge(a);
     const blocked=isArticleUnavailable(a);
     const metaLine=promoOnly ? `${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}` : `${esc(a.codice||'Senza codice')} • ${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
-    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${unavailable}${promo}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions"><button class="btn smallish" type="button" data-action="shareArtPhotosFbCard" data-id="${a.id}">Condividi foto</button><button class="btn primary smallish" type="button" data-action="copyPostFbCard" data-id="${a.id}">Copia FB</button></div></div>`;
+    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${unavailable}${promo}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
   }).join('');
   const emptyText=promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.';
   el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
@@ -7783,47 +7783,13 @@ function bindSearchSuggest(inputId, boxId, kind, onApply){
   });
 }
 
-
-function getArticleForQuickAction(articleId){
-  const id=String(articleId||'').trim();
-  if(!id) return null;
-  const db=loadDB();
-  return (db.articoli||[]).find(x=>String(x?.id||'')===id || String(x?.codice||'')===id) || null;
-}
-function copyArticleFbFromCard(articleId){
-  const art=getArticleForQuickAction(articleId);
-  if(!art){ toast('Articolo non trovato'); return; }
-  return copyText(buildPostFacebook(art), 'Post FB copiato', ()=>{
-    recordArticlePublication('fb', art.id);
-    try{ renderArt(); }catch(_e){}
-  });
-}
-async function warmArticlePhotosFromCard(articleId){
-  const art=getArticleForQuickAction(articleId);
-  if(!art) return null;
-  currentArtId=art.id;
-  const ctx=await prepareArticlePhotoShareContext(art);
-  if(ctx) await warmCurrentArticlePhotoShare(ctx, { silent:true });
-  return ctx;
-}
-async function shareArticlePhotosFromCard(articleId, channel='fb'){
-  const art=getArticleForQuickAction(articleId);
-  if(!art){ toast('Articolo non trovato'); return; }
-  currentArtId=art.id;
-  const ctx=await prepareArticlePhotoShareContext(art);
-  if(!ctx){ toast('Nessuna foto disponibile'); return; }
-  const res=await shareCurrentArticlePhotos(channel);
-  try{ renderArt(); }catch(_e){}
-  return res;
-}
-
 /* ====== EVENTS ====== */
 document.addEventListener('pointerdown',(ev)=>{
-  const btn=ev.target?.closest?.('[data-action="shareArtPhotosFbCard"],[data-action="shareArtPhotosFb"],[data-action="shareArtPhotosTg"],[data-action="shareArtPhotos"],[data-action="downloadArtPhotosTg"],[data-action="downloadArtPhotosIg"],[data-action="downloadArtPhotos"]');
+  const btn=ev.target?.closest?.('[data-action="shareArtPhotosFb"],[data-action="shareArtPhotosTg"],[data-action="shareArtPhotos"],[data-action="downloadArtPhotosTg"],[data-action="downloadArtPhotosIg"],[data-action="downloadArtPhotos"]');
   if(!btn) return;
   Promise.resolve()
-    .then(()=>btn.dataset.id ? warmArticlePhotosFromCard(btn.dataset.id) : (getPreparedCurrentArticlePhotoContext() || getCurrentArticlePhotoContext()))
-    .then(ctx=>{ if(ctx && !btn.dataset.id) return warmCurrentArticlePhotoShare(ctx, { silent:true }); })
+    .then(()=>getPreparedCurrentArticlePhotoContext() || getCurrentArticlePhotoContext())
+    .then(ctx=>{ if(ctx) return warmCurrentArticlePhotoShare(ctx, { silent:true }); })
     .catch(()=>{});
 });
 
@@ -7966,8 +7932,6 @@ document.addEventListener('click',(ev)=>{
   if(a==='addBrand') return addBrand();
   if(a==='renameBrand') return renameBrand(el.dataset.name||'');
   if(a==='deleteBrand') return deleteBrand(el.dataset.name||'');
-  if(a==='copyPostFbCard') return copyArticleFbFromCard(el.dataset.id || '');
-  if(a==='shareArtPhotosFbCard') return shareArticlePhotosFromCard(el.dataset.id || '', 'fb');
   if(a==='copyPost'){
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);

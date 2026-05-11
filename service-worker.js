@@ -1,4 +1,4 @@
-const VERSION = 'v63_card_share_fb_buttons';
+const VERSION = 'v62_promo_fino_al';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
