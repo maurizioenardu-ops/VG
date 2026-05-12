@@ -1,4 +1,4 @@
-const VERSION = 'v57_borse_image';
+const VERSION = 'v62_promo_fino_al';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
