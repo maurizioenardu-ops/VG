@@ -3322,11 +3322,7 @@ function buildPostFacebookBase(a, opts={}){
   }
   lines.push(`cod. ${a.codice}`);
   lines.push('', closer);
-  return lines.join('
-').replace(/
-{3,}/g,'
-
-').trim();
+  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
 function buildPostFacebook(a){
   return buildPostFacebookBase(a, { includePrice:false });
