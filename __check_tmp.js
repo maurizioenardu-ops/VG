@@ -3258,126 +3258,94 @@ function instagramCharacterPhrases(a){
   Object.keys(flags).forEach(k=>{ if(flags[k] && pools.traits[k]) list = [...pools.traits[k].map(x=>x.replace(/[.!?]+$/,'')), ...list]; });
   return uniquePostLines(list);
 }
-
-function buildFacebookNarrativeDescription(a){
-  if(!a?.codice) return [];
-  const seed = stableHashSeed([a?.codice, a?.modello, a?.categoria, a?.colore, a?.misura, a?.materiale||a?.variante].join('|'));
-  const model = smartSentenceCase(normalizePostLine(a?.modello||categoryLabelForPost(a)||'questo articolo', a?.brand||''));
-  const categoria = categoryLabelForPost(a).toLowerCase();
-  const colore = safePostDetailValue(a?.colore||'', a);
-  const materiale = safePostDetailValue(a?.materiale||a?.variante||'', a);
-  const misura = safePostDetailValue(postSizeValue(a), a);
-  const flags = postTraitFlags(a);
-  const openings = [
-    `${model} è uno di quei pezzi che non passano in silenzio. O ti prende subito, o ti prende dopo due secondi. 😄`,
-    `${model} ha quella presenza furba: sembra facile, poi ti accorgi che sistema mezzo look da sola. 🔥`,
-    `${model} è il classico pezzo che guardi una volta e poi ti resta lì, a fare casino nella testa. 😏`,
-    `${model} non nasce per stare nell'angolo. Ha carattere, linea e quella faccia da "mettimi e usciamo". ✨`,
-    `${model} è ${categoria.includes('bors')?'una di quelle borse':'uno di quegli articoli'} che fanno subito scena senza bisogno di urlare. E già questo è raro. 😉`,
-    `${model} ha il tipo di presenza che rende più interessante anche un look semplice. Maledettamente efficace. 🔥`,
-    `${model} è compatta nel modo giusto, decisa nel modo giusto e abbastanza elegante da non chiedere permesso. 😄`,
-    `${model} funziona perché non prova a fare troppo. Linea pulita, dettaglio giusto, effetto immediato. ✨`
-  ];
-  const detailBits=[];
-  if(flags.compatto) detailBits.push('compatta quanto basta');
-  if(flags.capiente || flags.oversize) detailBits.push('capiente ma senza diventare pesante');
-  if(flags.elegante || flags.classico) detailBits.push('elegante senza sembrare rigida');
-  if(flags.logo) detailBits.push('con quel dettaglio logo che si nota al punto giusto');
-  if(flags.oro) detailBits.push('con hardware dorato che alza subito il tono');
-  if(flags.argento) detailBits.push('con hardware argento pulito e luminoso');
-  if(flags.martellata || flags.impressa) detailBits.push('con una texture che dà carattere');
-  if(materiale) detailBits.push(`${smartSentenceCase(materiale)} che dà sostanza al colpo d'occhio`);
-  const middlePool = [
-    `La porti con un look tranquillo e lo sveglia. La abbini a qualcosa di più curato e non sfigura. Insomma, fa il suo sporco lavoro con stile.`,
-    `Il bello è che non devi costruirle intorno un romanzo: la metti, esci, e il risultato ha già più senso.`,
-    `Sta bene quando vuoi essere ordinata, ma anche quando vuoi sembrare meno ordinata e più interessante. Che poi è spesso il vero obiettivo.`,
-    `È quel tipo di pezzo che non ruba la scena: la organizza. E fidati, non è poco.`,
-    `La differenza la fanno i dettagli: proporzioni, materiale, colore e quel modo di stare addosso senza sembrare messa lì per caso.`,
-    `Non è solo carina. È pratica, presente e con quel carattere che evita l'effetto "solita roba vista mille volte".`,
-    `La usi a cena, al lavoro, nel weekend, dove ti pare. Se il look è spento, lei almeno fa il suo dovere.`,
-    `Si fa notare senza diventare pesante. Ed è lì che molte cadono male, mentre questa resta centrata.`
-  ];
-  const middle = detailBits.length
-    ? `${detailBits.slice(0,3).join(', ')}. ${pickVariantBySeed(middlePool, seed, 11)}`
-    : pickVariantBySeed(middlePool, seed, 11);
-  const pinLines=[];
-  if(colore) pinLines.push(`📌 Colore: ${smartSentenceCase(colore)}`);
-  if(misura) pinLines.push(`📌 Misura: ${smartSentenceCase(misura)}`);
-  if(materiale) pinLines.push(`📌 Materiale: ${smartSentenceCase(materiale)}`);
-  const quality = articleQualityLabel(a);
-  if(quality) pinLines.push(`📌 Qualità ${quality.toLowerCase()==='originale'?'premium':quality.toLowerCase()}`);
-  if(promoValid(a)){
-    const end=String(a?.scadenzaPromo||'').trim();
-    pinLines.push(`📌 Promozione valida${end ? ` fino al ${formatPromoDateLabel(end)}` : ''}`);
-  }
-  const cta = pickVariantBySeed([
-    '👉 Scrivimi in privato per info e disponibilità — i pezzi belli non restano lì a fare arredamento.',
-    '👉 Per info e disponibilità, mandami un messaggio. Prima che qualcuno con più tempismo se la prenda.',
-    '👉 Scrivimi in privato per dettagli, colori e disponibilità.',
-    '👉 Se vuoi info, disponibilità o altre foto, scrivimi in privato.',
-    '👉 Messaggio privato per disponibilità. Chi arriva prima evita il dramma.',
-    '👉 Per conferma disponibilità e dettagli, scrivimi in privato.'
-  ], seed, 23);
-  return [pickVariantBySeed(openings, seed, 3), '', middle, '', ...pinLines, '', cta].filter(x=>String(x||'').trim());
-}
-
 function buildPostFacebookBase(a, opts={}){
   if(!a?.codice) return '';
   const includePrice = opts?.includePrice===true;
   const priceSymbol = opts?.priceSymbol || '💶';
   const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
-  const premiumLine = articleQualityLabel(a)==='Originale' ? 'QUALITÀ PREMIUM' : '';
-  const descrizioneBreve = shortArticleDescriptionForPost(a);
-  const variante = safePostDetailValue(a?.variante||'', a);
-  const materiale = safePostDetailValue(a?.materiale||'', a);
-  const misura = safePostDetailValue(postSizeValue(a), a);
-  const colore = safePostDetailValue(a?.colore||'', a);
+  const category = String(a?.categoria||'').toLowerCase();
+  const isShoes = /scarpe|sneaker|sandali|stivali|ciabatt/.test(category);
+  const isBelt = /cintur/.test(category);
+  const isWallet = /portafogl|wallet/.test(category);
+  const isBag = /bors|bag|tracoll|pochette|zaino/.test(category);
+  const openings = isShoes ? [
+    'Un modello deciso, comodo e facile da abbinare.',
+    'Linea pulita, presenza forte e stile super versatile.',
+    'Perfette per dare carattere anche al look più semplice.',
+    'Comode da portare, ma con quel dettaglio che si nota subito.'
+  ] : isBelt ? [
+    'Il dettaglio giusto per chiudere il look con stile.',
+    'Semplice, curata e perfetta per dare ordine all’outfit.',
+    'Accessorio pratico, ma con una presenza ben definita.',
+    'Piccolo dettaglio, grande differenza sul risultato finale.'
+  ] : isWallet ? [
+    'Compatto, elegante e comodo da usare tutti i giorni.',
+    'Un accessorio piccolo, ma capace di farsi notare subito.',
+    'Curato nei dettagli e perfetto da portare sempre con sé.',
+    'Pratico senza perdere quel tocco elegante che serve sempre.'
+  ] : isBag ? [
+    'Elegante, pratica e perfetta da usare tutti i giorni.',
+    'Una borsa che completa il look senza bisogno di esagerare.',
+    'Linea curata, dettagli ben visibili e presenza molto chic.',
+    'Bella da vedere, facile da abbinare e con carattere.'
+  ] : [
+    'Modello curato, pratico e facile da abbinare.',
+    'Stile pulito, dettagli ordinati e resa molto elegante.',
+    'Un articolo che si fa notare senza diventare eccessivo.',
+    'Bella presenza, linea equilibrata e uso super versatile.'
+  ];
+  const secondLines = isShoes ? [
+    'La suola e il profilo danno subito un effetto moderno, perfetto sia con outfit casual che più curati.',
+    'Il bello è che restano facili da mettere, ma alzano subito il livello del look.',
+    'Sono quelle scarpe che risolvono l’abbinamento senza fare troppi drammi, miracolo raro nel guardaroba umano.'
+  ] : isBelt ? [
+    'Sta bene su jeans, pantaloni o abiti e aggiunge subito un tocco più rifinito.',
+    'È uno di quei dettagli che sembrano piccoli, poi guardi il look e capisci che mancava proprio lui.',
+    'Pulita nelle linee e facile da sfruttare, senza diventare la solita cintura buttata lì tanto per.'
+  ] : isWallet ? [
+    'Organizzato quanto basta e con una linea che resta elegante anche nell’uso quotidiano.',
+    'Perfetto quando vuoi qualcosa di pratico, ma non vuoi sembrare uscita dall’ufficio smarrimenti.',
+    'Ha il vantaggio di essere comodo senza rinunciare a un effetto curato.'
+  ] : isBag ? [
+    'I dettagli e la forma la rendono adatta sia al giorno che alla sera, senza doverci costruire intorno un romanzo.',
+    'È uno di quei modelli che stanno bene con jeans, blazer, vestiti o look più semplici.',
+    'Compatta o capiente che sia, mantiene una linea ordinata e un effetto davvero elegante.'
+  ] : [
+    'Funziona bene perché resta semplice, ma con abbastanza carattere da non passare inosservato.',
+    'È il classico pezzo facile da usare, ma molto più curato della media, finalmente.',
+    'Si abbina senza fatica e aggiunge subito un tocco più ordinato al look.'
+  ];
   const closer = pickRandom([
-    'Per info scrivimi in privato 📩',
-    'Contattami in privato per dettagli',
-    'Richiedi disponibilità in privato',
-    'Scrivimi per disponibilità e dettagli',
-    'Info e dettagli in privato',
-    'Per colori e informazioni, messaggio privato',
-    'Messaggio privato per conferma disponibilità',
-    'Per sapere se è disponibile, contattami in privato',
-    'Prenotazione e informazioni in privato',
-    'Scrivimi per maggiori informazioni',
-    'Per tutte le info, scrivimi in privato',
-    'Contattami per info su colori e disponibilità'
-  ]) || 'Per info scrivimi in privato 📩';
-  const narrativeLines = buildFacebookNarrativeDescription(a);
-  const lines = narrativeLines.length ? [] : [...promoPostIntroLines(a)];
+    'Info e disponibilità in privato 📩',
+    'Scrivimi in privato per dettagli.',
+    'Per info e disponibilità, mandami un messaggio.',
+    'Dettagli e disponibilità in privato.',
+    'Messaggio privato per info 📩'
+  ]) || 'Info e disponibilità in privato 📩';
+  const lines=[...promoPostIntroLines(a)];
   if(lines.length) lines.push('');
-  if(narrativeLines.length){
-    lines.push(...narrativeLines);
-    lines.push('');
-  }else{
-    if(modelLine) lines.push(smartSentenceCase(modelLine));
-    if(premiumLine) lines.push(premiumLine);
-  }
-  if(descrizioneBreve) lines.push(descrizioneBreve);
-  const seen = new Set();
-  const pushUnique = (value)=>{
-    const txt = compactPostValue(value||'');
-    if(!txt) return;
-    const key = normalizeTextKey(txt);
-    if(!key || seen.has(key)) return;
-    seen.add(key);
-    lines.push(txt);
-  };
-  if(!narrativeLines.length){
-    pushUnique(smartSentenceCase(variante));
-    pushUnique(smartSentenceCase(materiale));
-    if(misura) lines.push(`Mis. ${smartSentenceCase(misura)}`);
-    if(colore) lines.push(`Colore: ${smartSentenceCase(colore)}`);
-  }
+  if(modelLine) lines.push(smartSentenceCase(modelLine));
+  const intro=pickRandom(openings);
+  const second=pickRandom(secondLines);
+  if(intro) lines.push(intro);
+  if(second) lines.push(second);
+  lines.push('');
+  const details=[];
+  const colore = safePostDetailValue(a?.colore||'', a);
+  const misura = safePostDetailValue(postSizeValue(a), a);
+  const materiale = safePostDetailValue(a?.materiale||'', a);
+  const qual = articleQualityLabel(a);
+  if(colore) details.push(`📌 Colore: ${smartSentenceCase(colore)}`);
+  if(misura) details.push(`📌 ${postDimensionLabel(a)}: ${smartSentenceCase(misura)}`);
+  if(materiale && details.length<3) details.push(`📌 Materiale: ${smartSentenceCase(materiale)}`);
+  if(qual) details.push(`📌 Qualità ${String(qual).toLowerCase()}`);
+  lines.push(...details.slice(0,4));
   if(includePrice){
     const prezzoFacebook = formatPostPrezzoVendita(currentPrice(a), priceSymbol);
     if(prezzoFacebook) lines.push(prezzoFacebook);
   }
   lines.push(`cod. ${a.codice}`);
-  if(!narrativeLines.length && closer) lines.push('', closer);
+  lines.push('', closer);
   return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
 function buildPostFacebook(a){
