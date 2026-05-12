@@ -1,4 +1,4 @@
-const VERSION = 'v62_promo_fino_al';
+const VERSION = 'v65_descrizioni_fb_stile_vivo';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

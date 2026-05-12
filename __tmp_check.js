@@ -3270,10 +3270,16 @@ function buildPostFacebook(a){
     'Per tutte le info, scrivimi in privato',
     'Contattami per info su colori e disponibilità'
   ]) || 'Per info scrivimi in privato 📩';
-  const lines=[...promoPostIntroLines(a)];
+  const narrativeLines = buildFacebookNarrativeDescription(a);
+  const lines = narrativeLines.length ? [] : [...promoPostIntroLines(a)];
   if(lines.length) lines.push('');
-  if(modelLine) lines.push(smartSentenceCase(modelLine));
-  if(premiumLine) lines.push(premiumLine);
+  if(narrativeLines.length){
+    lines.push(...narrativeLines);
+    lines.push('');
+  }else{
+    if(modelLine) lines.push(smartSentenceCase(modelLine));
+    if(premiumLine) lines.push(premiumLine);
+  }
   const seen = new Set();
   const pushUnique = (value)=>{
     const txt = compactPostValue(value||'');
@@ -3290,7 +3296,7 @@ function buildPostFacebook(a){
   const prezzoFacebook = formatPostPrezzoVendita(currentPrice(a));
   if(prezzoFacebook) lines.push(prezzoFacebook);
   lines.push(`cod. ${a.codice}`);
-  if(closer) lines.push('', closer);
+  if(!narrativeLines.length && closer) lines.push('', closer);
   return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
 
