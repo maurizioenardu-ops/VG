@@ -1,4 +1,4 @@
-const VERSION = 'vg-2026-05-12-fb-medium-desc-fix-v1';
+const VERSION = 'vg-2026-05-13-descrizioni-varieta-v64';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
