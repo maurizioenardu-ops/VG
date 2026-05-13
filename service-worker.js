@@ -1,13 +1,17 @@
-const VERSION = 'vg-2026-05-13-descrizioni-3livelli-v66';
+const VERSION = 'v59_category_images_settings';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
   './reset.html',
   './reset-cache.html',
   './database.json',
+  './cat-accessori.jpg',
   './cat-borse.jpg',
+  './cat-cinture.jpg',
   './supabaseClient.js'
 ];
 
