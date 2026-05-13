@@ -1,4 +1,4 @@
-const VERSION = 'vg-2026-05-13-descrizioni-varieta-v64';
+const VERSION = 'vg-2026-05-13-descrizioni-3livelli-v66';
 const CACHE = `vg-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
