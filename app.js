@@ -1,6 +1,7 @@
 
 /* ====== DB ====== */
 const KEY='vg_db_full_v7_clean';
+const CAT_IMAGES_KEY='vg_category_images_v2';
 const LEGACY_KEYS=[];
 const PHOTO_DB='vg_photos_v2_clean';
 const PHOTO_STORE='photos';
@@ -2180,7 +2181,9 @@ function formatPromoDateLabel(v=''){
   const raw=String(v||'').trim();
   if(!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
   const [yyyy,mm,dd]=raw.split('-');
-  return `${dd}/${mm}/${yyyy}`;
+  const months=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+  const monthName=months[Math.max(0, Math.min(11, Number(mm)-1))] || mm;
+  return `${Number(dd)} ${monthName} ${yyyy}`;
 }
 function promoHasHistory(a){
   return !!(a && (a.promoAttiva || Number(a.prezzoPromo||0)>0 || getPromoSupplierUsd(a)>0 || getPromoStartDate(a)));
@@ -2190,11 +2193,8 @@ function promoExpiredDisplay(a, today=todayStr()){
   return !!(promoHasHistory(a) && d.length>=8 && d<today);
 }
 function promoPeriodLabel(a){
-  const start=getPromoStartDate(a);
   const end=String(a?.scadenzaPromo||'').trim();
-  if(start && end) return `Promo dal ${formatPromoDateLabel(start)} al ${formatPromoDateLabel(end)}`;
   if(end) return `Promo fino al ${formatPromoDateLabel(end)}`;
-  if(start) return `Promo dal ${formatPromoDateLabel(start)}`;
   return '';
 }
 function promoInfoHtml(a,{marginTop='6px'}={}){
@@ -2748,10 +2748,8 @@ function pickFacebookDetailLines(a){
 function promoPostIntroLines(a){
   if(!promoValid(a)) return [];
   const lines=['⭕️ PROMOZIONE ⭕️'];
-  const start=getPromoStartDate(a);
   const end=String(a?.scadenzaPromo||'').trim();
-  if(start && end) lines.push(`(dal ${formatPromoDateLabel(start)} al ${formatPromoDateLabel(end)})`);
-  else if(end) lines.push(`(fino al ${formatPromoDateLabel(end)})`);
+  if(end) lines.push(`(fino al ${formatPromoDateLabel(end)})`);
   return lines;
 }
 function postTraitFlags(a){
@@ -3242,12 +3240,10 @@ function buildPostTelegram(a){
   const qemoji=emojiQualityForPost(a);
   const lines=[];
   if(promoValid(a)){
-    const promoStart=getPromoStartDate(a);
     const scadenzaRaw=String(a.scadenzaPromo||'').trim();
     const tipoMateriale=materiale || materialeCompat || variante;
     lines.push('⭕️ PROMOZIONE ⭕️');
-    if(promoStart && scadenzaRaw) lines.push(`(dal ${formatPromoDateLabel(promoStart)} al ${formatPromoDateLabel(scadenzaRaw)})`);
-    else if(scadenzaRaw) lines.push(`(fino al ${formatPromoDateLabel(scadenzaRaw)})`);
+    if(scadenzaRaw) lines.push(`(fino al ${formatPromoDateLabel(scadenzaRaw)})`);
     if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
     if(tipoMateriale) lines.push(tipoMateriale);
     if(colore) lines.push(colore);
@@ -4044,16 +4040,30 @@ function articleCategoryOptions(db){
 function categoryImageStorageKey(name){
   return normalizeCategoryName(name);
 }
+function loadCategoryImages(dbArg=null){
+  let local={};
+  try{
+    const raw=localStorage.getItem(CAT_IMAGES_KEY);
+    const parsed=JSON.parse(raw||'{}');
+    if(parsed && typeof parsed==='object' && !Array.isArray(parsed)) local=parsed;
+  }catch(_e){}
+  const dbMap=(dbArg && typeof dbArg==='object' && dbArg.categoryImages && typeof dbArg.categoryImages==='object' && !Array.isArray(dbArg.categoryImages)) ? dbArg.categoryImages : {};
+  return {...dbMap, ...local};
+}
+function saveCategoryImages(map){
+  try{ localStorage.setItem(CAT_IMAGES_KEY, JSON.stringify(map||{})); return true; }
+  catch(err){ console.error(err); toast('Salvataggio immagine fallito: spazio locale pieno'); return false; }
+}
 function customCategoryImageFor(cat, dbArg=null){
   const key=categoryImageStorageKey(cat);
-  const map=(dbArg && typeof dbArg==='object' ? dbArg.categoryImages : null) || loadDB().categoryImages || {};
+  const map=loadCategoryImages(dbArg);
   const val=String(map[key]||'').trim();
   return val || '';
 }
 function categorySettingsThumb(cat, dbArg=null){
   return customCategoryImageFor(cat, dbArg) || artIconForCategory(cat);
 }
-function readCategoryImageFile(file, maxSide=700, quality=0.86){
+function readCategoryImageFile(file, maxSide=420, quality=0.78){
   return new Promise((resolve,reject)=>{
     if(!file){ reject(new Error('Nessun file')); return; }
     if(!/^image\//i.test(file.type||'')){ reject(new Error('File non immagine')); return; }
@@ -4091,9 +4101,14 @@ function changeCategoryImage(catName){
     try{
       const dataUrl=await readCategoryImageFile(file);
       const db=loadDB();
-      db.categoryImages=db.categoryImages && typeof db.categoryImages==='object' ? db.categoryImages : {};
-      db.categoryImages[categoryImageStorageKey(clean)]=dataUrl;
-      if(!saveDB(db)) return;
+      const images=loadCategoryImages(db);
+      images[categoryImageStorageKey(clean)]=dataUrl;
+      if(!saveCategoryImages(images)) return;
+      // Pulisco l'eventuale vecchio salvataggio dentro il DB, così non gonfia l'archivio e non rompe il salvataggio.
+      if(db.categoryImages && typeof db.categoryImages==='object'){
+        delete db.categoryImages[categoryImageStorageKey(clean)];
+        try{ saveDBLocal(db); }catch(_e){}
+      }
       renderCategorySettings();
       renderArt();
       toast('Immagine categoria aggiornata');
@@ -4105,9 +4120,13 @@ function clearCategoryImage(catName){
   const clean=sanitizeCategoryName(catName||'');
   if(!clean) return;
   const db=loadDB();
-  db.categoryImages=db.categoryImages && typeof db.categoryImages==='object' ? db.categoryImages : {};
-  delete db.categoryImages[categoryImageStorageKey(clean)];
-  if(!saveDB(db)) return;
+  const images=loadCategoryImages(db);
+  delete images[categoryImageStorageKey(clean)];
+  if(!saveCategoryImages(images)) return;
+  if(db.categoryImages && typeof db.categoryImages==='object'){
+    delete db.categoryImages[categoryImageStorageKey(clean)];
+    try{ saveDBLocal(db); }catch(_e){}
+  }
   renderCategorySettings();
   renderArt();
   toast('Immagine categoria rimossa');
@@ -4161,6 +4180,8 @@ function renameCategory(oldName){
   if(oldKey!==newKey){
     db.categoryImages=db.categoryImages && typeof db.categoryImages==='object' ? db.categoryImages : {};
     if(db.categoryImages[oldKey] && !db.categoryImages[newKey]){ db.categoryImages[newKey]=db.categoryImages[oldKey]; delete db.categoryImages[oldKey]; }
+    const catImages=loadCategoryImages(db);
+    if(catImages[oldKey] && !catImages[newKey]){ catImages[newKey]=catImages[oldKey]; delete catImages[oldKey]; saveCategoryImages(catImages); }
     const exists=(db.categorie||[]).some(c=>normalizeCategoryName(c)===newKey) || (db.articoli||[]).some(a=>normalizeCategoryName(a?.categoria)===newKey);
     if(exists){ toast('Esiste già una categoria con questo nome'); return; }
   }
@@ -4190,6 +4211,8 @@ function deleteCategory(nome){
     db.categorie=(db.categorie||[]).filter(c=>normalizeCategoryName(c)!==key);
     db.categoryImages=db.categoryImages && typeof db.categoryImages==='object' ? db.categoryImages : {};
     delete db.categoryImages[key];
+    const catImages=loadCategoryImages(db);
+    if(catImages[key]){ delete catImages[key]; saveCategoryImages(catImages); }
     db.articoli=(db.articoli||[]).map(a=>{
       if(normalizeCategoryName(a?.categoria)!==key) return a;
       return {...a, categoria:'', _ts: Date.now()};
@@ -4654,6 +4677,11 @@ function renderArtBreadcrumbs(){
     box.style.display='flex';
     return;
   }
+  if(artBrowseState.level==='mixed'){
+    box.innerHTML=`<span class="artCrumb active">Tutti gli articoli</span><button class="artCrumb" type="button" data-action="clearArtFilters">Anteprime complete</button>`;
+    box.style.display='flex';
+    return;
+  }
   box.innerHTML='';
   box.style.display='none';
 }
@@ -4713,8 +4741,23 @@ function renderCategoryOverview(items,{promoOnly=false,brandFilter='',qualityFil
     return `<div class="artCard tight" data-action="selectArtCategory" data-name="${esc(catLabel)}"><div class="artMeta"><div class="t">${esc(catLabel)}</div><div class="s">Categorie articoli</div></div><div class="artPlaceholder" style="margin-top:8px;display:flex"><img class="artPlaceholderImg" alt="Categoria ${esc(catLabel)}" src="${artIconForCategory(catLabel)}"/></div><div class="artMeta" style="margin-top:12px"><div class="s">${countLine}</div></div></div>`;
   }).join('');
 }
+function updateArtPromoFilterButton(promoCount){
+  const promoBtn=document.getElementById('btnArtPromoOnly');
+  if(promoBtn){
+    promoBtn.textContent = artBrowseState.level==='promo' ? `🔥 Promo attive (${promoCount})` : `🔥 Solo promo (${promoCount})`;
+    promoBtn.classList.toggle('active', artBrowseState.level==='promo');
+    promoBtn.setAttribute('aria-pressed', artBrowseState.level==='promo' ? 'true' : 'false');
+  }
+  const allBtn=document.getElementById('btnArtAllMixed');
+  if(allBtn){
+    allBtn.classList.toggle('active', artBrowseState.level==='mixed');
+    allBtn.setAttribute('aria-pressed', artBrowseState.level==='mixed' ? 'true' : 'false');
+  }
+}
 function renderArt(){
   const db=loadDB();
+  const promoCount=(db.articoli||[]).filter(promoValid).length;
+  updateArtPromoFilterButton(promoCount);
   refreshArticlePreviewFilters();
   const q=document.getElementById('qArt').value.trim().toLowerCase();
   const catFilter=String(document.getElementById('qArtCat')?.value||'').trim();
@@ -6593,6 +6636,19 @@ document.addEventListener('click',(ev)=>{
     go('articoli');
     return renderArt();
   }
+  if(a==='openAllArticlesMixed'){
+    const qArt=document.getElementById('qArt');
+    const qArtCat=document.getElementById('qArtCat');
+    const qArtBrand=document.getElementById('qArtBrand');
+    const qArtQuality=document.getElementById('qArtQuality');
+    if(qArt) qArt.value='';
+    if(qArtCat) qArtCat.value='';
+    if(qArtBrand) qArtBrand.value='';
+    if(qArtQuality) qArtQuality.value='';
+    setArtBrowse('mixed');
+    go('articoli');
+    return renderArt();
+  }
   if(a==='clearArtFilters'){
     const qArt=document.getElementById('qArt');
     const qArtCat=document.getElementById('qArtCat');
@@ -6632,7 +6688,7 @@ document.addEventListener('click',(ev)=>{
             if(k) keep.push(k);
           }
         }catch(_e){}
-        const appKeys=[KEY, UI_KEY, SHIP_ALERTS_KEY, SHIP_SNAPSHOT_KEY, ...(typeof LEGACY_KEYS!=='undefined'?LEGACY_KEYS:[])];
+        const appKeys=[KEY, CAT_IMAGES_KEY, UI_KEY, SHIP_ALERTS_KEY, SHIP_SNAPSHOT_KEY, ...(typeof LEGACY_KEYS!=='undefined'?LEGACY_KEYS:[])];
         [...new Set([...keep, ...appKeys])].forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
         try{ sessionStorage.clear(); }catch(_e){}
         try{
@@ -6829,7 +6885,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-10-category-images-settings-v59';
+const VG_BUILD='2026-05-11-promo-fino-al-v62';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -7359,7 +7415,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=category-images-settings-v59', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=promo-fino-al-v62', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
