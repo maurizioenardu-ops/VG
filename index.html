@@ -2715,20 +2715,24 @@ async function downloadCurrentArticlePhotos(channel='tg'){
   }
 
   try{
+    const base=String(ctx.baseName||'articolo').replace(/[^a-z0-9_\-]+/gi,'_').replace(/^_+|_+$/g,'') || 'articolo';
+
     if(files.length===1){
-      triggerBlobDownload(files[0], files[0].name || `${ctx.baseName}.jpg`);
-      recordArticlePublication(channel);
+      triggerBlobDownload(files[0], files[0].name || `${base}.jpg`);
+      if(typeof recordArticlePublication==='function') recordArticlePublication(channel);
       toast('Foto scaricata. La trovi nei Download e poi in Galleria.');
       return;
     }
 
-    toast(`Preparo ZIP con ${files.length} foto...`);
-    const zipFile = getCachedArticlePhotoZipForCtx(ctx) || await buildZipFromFiles(files, `${ctx.baseName || 'articolo'}_foto.zip`);
-    triggerBlobDownload(zipFile, zipFile.name);
-    recordArticlePublication(channel);
-    toast(`Scaricate ${files.length} foto in un file ZIP. Lo trovi nei Download.`);
+    files.forEach((file, idx)=>{
+      const fallbackName=`${base}_${String(idx+1).padStart(2,'0')}.jpg`;
+      const filename=(file instanceof File && file.name) ? file.name : fallbackName;
+      setTimeout(()=>triggerBlobDownload(file, filename), idx * 250);
+    });
+    if(typeof recordArticlePublication==='function') recordArticlePublication(channel);
+    toast(`Scarico ${files.length} foto separate, senza ZIP.`);
   }catch(err){
-    console.warn('Download ZIP foto articolo fallito', err);
+    console.warn('Download foto separate articolo fallito', err);
     toast('Download foto fallito');
   }
 }
@@ -8680,7 +8684,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-14-finali-30-no-desc-v69';
+const VG_BUILD='2026-05-14-finali-30-no-desc-v70-foto-dirette';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -9270,7 +9274,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=finali-30-no-desc-v69', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=finali-30-no-desc-v70-foto-dirette', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
