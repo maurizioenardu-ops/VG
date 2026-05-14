@@ -4191,48 +4191,48 @@ function facebookVarietyBlocks(a){
     "📩 Per qualsiasi dettaglio, privato."
   ];
   const closersTiming=[
-    "📌 Tempi circa 15 giorni.",
-    "📌 Consegna circa 15 giorni.",
-    "📌 Arrivo circa 15 giorni.",
-    "📌 Tempi indicativi: 15 giorni.",
-    "📌 Arrivo indicativo 15 giorni.",
-    "📌 Consegna indicativa 15 giorni.",
-    "📌 Tempi medi: 15 giorni.",
-    "📌 Su ordine, circa 15 giorni.",
-    "📌 Ordinabile, circa 15 giorni.",
-    "📌 Su richiesta, circa 15 giorni.",
-    "📌 Ordine su richiesta.",
-    "📌 Ordinabile su richiesta.",
-    "📌 Arrivo su ordinazione.",
-    "📌 Ordinabile.",
-    "📌 Su ordinazione.",
+    "Tempi circa 15 giorni.",
+    "Consegna circa 15 giorni.",
+    "Arrivo circa 15 giorni.",
+    "Tempi indicativi: 15 giorni.",
+    "Arrivo indicativo 15 giorni.",
+    "Consegna indicativa 15 giorni.",
+    "Tempi medi: 15 giorni.",
+    "Su ordine, circa 15 giorni.",
+    "Ordinabile, circa 15 giorni.",
+    "Su richiesta, circa 15 giorni.",
+    "Ordine su richiesta.",
+    "Ordinabile su richiesta.",
+    "Arrivo su ordinazione.",
+    "Ordinabile.",
+    "Su ordinazione.",
     "📩 Info e tempi in privato.",
     "📩 Tempi in privato.",
     "📩 Dettagli e tempi in privato.",
     "📩 Foto e tempi in privato.",
-    "📌 Foto, info e tempi in privato."
+    "Foto, info e tempi in privato."
   ];
   const closersReviews=[
-    "📌 Recensioni nel gruppo.",
-    "📌 Recensioni disponibili.",
-    "📌 Recensioni già presenti.",
-    "📌 Recensioni visibili.",
-    "📌 Recensioni clienti presenti.",
-    "📌 Feedback nel gruppo.",
-    "📌 Feedback disponibili.",
-    "📌 Feedback visibili.",
-    "📌 Feedback clienti presenti.",
-    "📌 Feedback reali disponibili.",
-    "📌 Feedback già presenti.",
-    "📌 Feedback clienti nel gruppo.",
-    "📌 Recensioni e feedback presenti.",
-    "📌 Recensioni e foto in privato.",
-    "📌 Feedback e dettagli disponibili.",
-    "📌 Recensioni su richiesta.",
-    "📌 Feedback su richiesta.",
-    "📌 Recensioni consultabili.",
-    "📌 Feedback consultabili.",
-    "📌 Feedback reali nel gruppo."
+    "Recensioni nel gruppo.",
+    "Recensioni disponibili.",
+    "Recensioni già presenti.",
+    "Recensioni visibili.",
+    "Recensioni clienti presenti.",
+    "Feedback nel gruppo.",
+    "Feedback disponibili.",
+    "Feedback visibili.",
+    "Feedback clienti presenti.",
+    "Feedback reali disponibili.",
+    "Feedback già presenti.",
+    "Feedback clienti nel gruppo.",
+    "Recensioni e feedback presenti.",
+    "Recensioni e foto in privato.",
+    "Feedback e dettagli disponibili.",
+    "Recensioni su richiesta.",
+    "Feedback su richiesta.",
+    "Recensioni consultabili.",
+    "Feedback consultabili.",
+    "Feedback reali nel gruppo."
   ];
   const closers=[...closersNormal, ...closersTiming, ...closersReviews];
 
@@ -4705,28 +4705,28 @@ function buildPostFacebookBase(a, opts={}){
     "📩 Foto su richiesta."
   ];
   const finaliTempi=[
-    "📌 Ordinabile.",
-    "📌 Su ordinazione.",
-    "📌 Ordinabile su richiesta.",
-    "📌 Arrivo su ordine.",
-    "📌 Tempi circa 15 giorni.",
-    "📌 Consegna circa 15 giorni.",
-    "📌 Arrivo indicativo 15 giorni.",
-    "📌 Su ordine, circa 15 giorni.",
-    "📌 Tempi medi 15 giorni.",
-    "📌 Ordinabile, tempi circa 15 giorni."
+    "Ordinabile.",
+    "Su ordinazione.",
+    "Ordinabile su richiesta.",
+    "Arrivo su ordine.",
+    "Tempi circa 15 giorni.",
+    "Consegna circa 15 giorni.",
+    "Arrivo indicativo 15 giorni.",
+    "Su ordine, circa 15 giorni.",
+    "Tempi medi 15 giorni.",
+    "Ordinabile, tempi circa 15 giorni."
   ];
   const finaliRecensioni=[
-    "📌 Recensioni nel gruppo.",
-    "📌 Recensioni consultabili.",
-    "📌 Feedback clienti presenti.",
-    "📌 Feedback nel gruppo.",
-    "📌 Recensioni disponibili.",
-    "📌 Feedback disponibili.",
-    "📌 Recensioni visibili.",
-    "📌 Foto reali disponibili.",
-    "📌 Foto e dettagli prima dell’ordine.",
-    "📌 Qualità e tempi indicati prima dell’ordine."
+    "Recensioni nel gruppo.",
+    "Recensioni consultabili.",
+    "Feedback clienti presenti.",
+    "Feedback nel gruppo.",
+    "Recensioni disponibili.",
+    "Feedback disponibili.",
+    "Recensioni visibili.",
+    "Foto reali disponibili.",
+    "Foto e dettagli prima dell’ordine.",
+    "Qualità e tempi indicati prima dell’ordine."
   ];
 
   const lines=[...promoPostIntroLines(a)];
@@ -4738,10 +4738,10 @@ function buildPostFacebookBase(a, opts={}){
   const misura = safePostDetailValue(postSizeValue(a), a);
   const materiale = safePostDetailValue(a?.materiale||'', a);
   const qual = articleQualityLabel(a);
-  if(materiale) details.push(`📌 Materiale: ${smartSentenceCase(materiale)}`);
-  if(qual) details.push(`📌 Qualità ${String(qual).toLowerCase()}`);
-  if(colore) details.push(`📌 Colore: ${smartSentenceCase(colore)}`);
-  if(misura) details.push(`📌 ${postDimensionLabel(a)}: ${smartSentenceCase(misura)}`);
+  if(materiale) details.push(`Materiale: ${smartSentenceCase(materiale)}`);
+  if(qual) details.push(`Qualità ${String(qual).toLowerCase()}`);
+  if(colore) details.push(`Colore: ${smartSentenceCase(colore)}`);
+  if(misura) details.push(`${postDimensionLabel(a)}: ${smartSentenceCase(misura)}`);
   const detailStart=seed % Math.max(details.length, 1);
   const rotatedDetails=details.length ? [...details.slice(detailStart), ...details.slice(0, detailStart)] : [];
   if(rotatedDetails.length){
@@ -8684,7 +8684,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-14-finali-30-no-desc-v70-foto-dirette';
+const VG_BUILD='2026-05-14-finali-30-no-desc-v71-no-pin';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -9274,7 +9274,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=finali-30-no-desc-v70-foto-dirette', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=finali-30-no-desc-v71-no-pin', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

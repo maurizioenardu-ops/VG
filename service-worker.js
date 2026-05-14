@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-05-14-finali-30-no-desc-v70-foto-dirette';
+const VERSION = 'gestionale-2026-05-14-finali-30-no-desc-v71-no-pin';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
