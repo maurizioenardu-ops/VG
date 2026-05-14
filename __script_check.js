@@ -2751,7 +2751,7 @@ function postPhrasePools(mode='fb'){
     'Ha quel dettaglio che cambia il risultato.',
     'Si nota nel modo giusto.',
     'Tiene la scena senza forzare niente.',
-    'Niente di eccessivo. Ed è proprio questo il bello.',
+    'Stile equilibrato, elegante e facile da portare.',
     'C’è differenza tra bello e memorabile.',
     'Ha più personalità di tanta roba che si vede in giro.',
     'Il fascino delle linee fatte bene.',

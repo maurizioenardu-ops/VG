@@ -1,8 +1,8 @@
 {
-  "id": "./?v=v36_share_file_fix",
-  "name": "Vanity & Glamour",
-  "short_name": "V&G",
-  "start_url": "./?v=v36_share_file_fix",
+  "id": "./?v=finali-recensioni-15gg-v67",
+  "name": "Gestionale",
+  "short_name": "Gestionale",
+  "start_url": "./?v=finali-recensioni-15gg-v67",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0f172a",

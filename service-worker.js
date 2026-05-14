@@ -1,17 +1,13 @@
-const VERSION = 'v62_promo_fino_al';
-const CACHE = `vg-runtime-${VERSION}`;
+const VERSION = 'gestionale-2026-05-14-finali-recensioni-15gg-v67';
+const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './icon-192.png',
-  './icon-512.png',
   './reset.html',
   './reset-cache.html',
   './database.json',
-  './cat-accessori.jpg',
   './cat-borse.jpg',
-  './cat-cinture.jpg',
   './supabaseClient.js'
 ];
 

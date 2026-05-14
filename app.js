@@ -2798,7 +2798,7 @@ function postPhrasePools(mode='fb'){
     'Ha quel dettaglio che cambia il risultato.',
     'Si nota nel modo giusto.',
     'Tiene la scena senza forzare niente.',
-    'Niente di eccessivo. Ed è proprio questo il bello.',
+    'Stile equilibrato, elegante e facile da portare.',
     'C’è differenza tra bello e memorabile.',
     'Ha più personalità di tanta roba che si vede in giro.',
     'Il fascino delle linee fatte bene.',
@@ -3149,55 +3149,612 @@ function instagramCharacterPhrases(a){
   Object.keys(flags).forEach(k=>{ if(flags[k] && pools.traits[k]) list = [...pools.traits[k].map(x=>x.replace(/[.!?]+$/,'')), ...list]; });
   return uniquePostLines(list);
 }
+function facebookVarietyBlocks(a){
+  const key=categoryKey(a?.categoria||'');
+  const raw=[a?.brand, a?.modello, a?.categoria, a?.descrizione, a?.materiale, a?.variante, a?.colore, a?.note].filter(Boolean).join(' ').toLowerCase();
+  const brand=safePostDetailValue(a?.brand||'', a);
+  const model=safePostDetailValue(a?.modello||'', a);
+  const color=safePostDetailValue(a?.colore||'', a);
+  const material=safePostDetailValue(a?.materiale||a?.variante||a?.taglia||'', a);
+  const misura=safePostDetailValue(postSizeValue(a), a);
+  const qual=articleQualityLabel(a);
+  const brandNice=brand ? smartSentenceCase(brand) : '';
+  const modelNice=model ? smartSentenceCase(model) : '';
+  const colorNice=color ? smartSentenceCase(color) : '';
+  const materialNice=material ? smartSentenceCase(material) : '';
+  const title=modelNice || brandNice || categoryLabelForPost(a);
+  const add=(arr,...items)=>items.filter(Boolean).forEach(x=>arr.push(String(x).replace(/\s+/g,' ').trim()));
+  const has=(...words)=>words.some(w=>raw.includes(String(w).toLowerCase()));
+
+  let type='generico';
+  if(key.includes('bors')) type='borse';
+  else if(key.includes('sneaker') || key.includes('scarp')) type='scarpe';
+  else if(key.includes('cintur')) type='cinture';
+  else if(key.includes('portafogl')) type='portafogli';
+  else if(key.includes('accessor')) type='accessori';
+
+  const openings=[];
+  const second=[];
+  const accents=[];
+  const closersNormal=[
+    '📩 Info in privato.',
+    '📩 Dettagli in privato.',
+    '📩 Per info, messaggio privato.',
+    '📩 Foto e dettagli in privato.',
+    '📩 Colori e info in privato.',
+    '📩 Misure e dettagli in privato.',
+    '📩 Info su colori disponibili.',
+    '📩 Dettagli prima dell’ordine.',
+    '📩 Foto prima dell’ordine.',
+    '📩 Info complete in privato.',
+    '📩 Per ordine e dettagli, privato.',
+    '📩 Per disponibilità colori, privato.',
+    '📩 Per misure e arrivo, privato.',
+    '📩 Info su qualità e tempi.',
+    '📩 Dettagli articolo in privato.',
+    '📩 Per confermare, messaggio privato.',
+    '📩 Info ordine in privato.',
+    '📩 Foto e qualità in privato.',
+    '📩 Colori, foto e dettagli in privato.',
+    '📩 Per dettagli, scrivetemi in privato.',
+    '📩 Messaggio privato per informazioni.',
+    '📩 Info e foto su richiesta.',
+    '📩 Per colori e misure, privato.',
+    '📩 Dettagli e foto prima di ordinare.',
+    '📩 Info articolo in privato.',
+    '📩 Per qualsiasi dettaglio, privato.',
+    '📩 Foto extra in privato.',
+    '📩 Dettagli completi in privato.',
+    '📩 Info su ordinazione in privato.',
+    '📩 Per conferma articolo, privato.'
+  ];
+  const closersTiming=[
+    '📌 Tempi circa 15 giorni.',
+    '📌 Consegna circa 15 giorni.',
+    '📌 Arrivo indicativo 15 giorni.',
+    '📌 Tempi indicativi: 15 giorni.',
+    '📌 Ordinabile, arrivo circa 15 giorni.',
+    '📌 Su ordine, circa 15 giorni.',
+    '📌 Ordinabile • circa 15 giorni.',
+    '📌 Su richiesta • circa 15 giorni.',
+    '📌 Arrivo circa 15 giorni.',
+    '📌 Tempi medi: 15 giorni.',
+    '📌 Consegna indicativa 15 giorni.',
+    '📩 Info e tempi in privato.',
+    '📩 Dettagli e tempi in privato.',
+    '📩 Foto, colori e tempi in privato.',
+    '📌 Foto, info e tempi prima dell’ordine.',
+    '📌 Dettagli e tempi sempre indicati.',
+    '📌 Qualità e tempi sempre indicati.',
+    '📌 Ordine su richiesta • circa 15 giorni.'
+  ];
+  const closersReviews=[
+    '📌 Recensioni nel gruppo.',
+    '📌 Feedback clienti presenti.',
+    '📌 Recensioni disponibili.',
+    '📌 Feedback visibili nel gruppo.',
+    '📌 Recensioni già presenti.',
+    '📌 Feedback reali disponibili.',
+    '📌 Recensioni clienti presenti.',
+    '📌 Feedback nel gruppo.',
+    '📌 Recensioni visibili.',
+    '📌 Feedback disponibili.',
+    '📌 Recensioni e feedback presenti.',
+    '📌 Feedback clienti nel gruppo.'
+  ];
+  const closers=[...closersNormal, ...closersTiming, ...closersReviews];
+
+  const modelProfiles=[
+    {
+      words:['marmont'],
+      openings:[
+        `${title} ha una linea elegante e riconoscibile, ideale per dare subito più carattere anche ai look semplici.`,
+        `La Marmont resta una scelta molto femminile: compatta, curata e facile da portare in tante occasioni.`,
+        `Un modello dal gusto chic, pensato per chi vuole una borsa piccola ma con presenza.`
+      ],
+      second:[
+        has('matelass','matelasse') ? 'La lavorazione matelassé aggiunge movimento e rende la linea ancora più raffinata.' : 'Il punto forte è l’equilibrio tra formato pratico, dettagli luminosi e resa elegante.',
+        'Sta bene sia con outfit casual che con abbinamenti più curati, senza risultare eccessiva.',
+        'È una di quelle borse che completano il look senza bisogno di aggiungere troppo altro.'
+      ],
+      accents:['Perfetta per uscire leggera, ma con un dettaglio che si nota.']
+    },
+    {
+      words:['jackie'],
+      openings:[
+        `${title} ha una linea pulita e raffinata, con quel gusto classico che non perde mai forza.`,
+        `La Jackie è perfetta per chi ama una borsa elegante, ordinata e facile da usare ogni giorno.`,
+        `Un modello femminile e sobrio, ideale quando vuoi stile senza caricare troppo il look.`
+      ],
+      second:[
+        'La forma morbida e il manico la rendono pratica, mantenendo sempre un effetto curato.',
+        'Funziona bene dal giorno alla sera, soprattutto con outfit essenziali e ben costruiti.',
+        'La sua forza è la discrezione: non urla, ma alza subito il tono dell’insieme.'
+      ],
+      accents:['Una scelta elegante per chi preferisce linee pulite e poco rumorose.']
+    },
+    {
+      words:['ophidia'],
+      openings:[
+        `${title} ha un carattere riconoscibile e un formato molto comodo da gestire.`,
+        `Ophidia unisce praticità e stile, con dettagli che danno subito personalità al look.`,
+        `Un modello compatto ma d’impatto, perfetto quando vuoi un accessorio utile e visibile.`
+      ],
+      second:[
+        'Il formato resta pratico, mentre la linea mantiene una presenza elegante e curata.',
+        'È adatta sia come accessorio quotidiano che come pezzo più protagonista.',
+        'Si abbina facilmente, ma non passa inosservata.'
+      ],
+      accents:['Ottima quando vuoi qualcosa di funzionale, ma meno scontato del solito.']
+    },
+    {
+      words:['neverfull'],
+      openings:[
+        `${title} è la borsa giusta quando serve spazio, praticità e una linea sempre attuale.`,
+        `La Neverfull è capiente e versatile, perfetta per giornate piene, lavoro o viaggio.`,
+        `Una tote comoda e sfruttabile, pensata per chi porta con sé mezzo mondo ma vuole restare ordinata.`
+      ],
+      second:[
+        'Il formato ampio permette di usarla davvero tutti i giorni senza rinunciare a un effetto curato.',
+        'È pratica, leggera da abbinare e perfetta quando una mini bag non basta nemmeno per finta.',
+        'La struttura semplice la rende molto facile da portare, anche con look diversi.'
+      ],
+      accents:['Il bello è che resta elegante anche quando è usata come borsa super quotidiana.']
+    },
+    {
+      words:['on the go','onthego','book tote','shopper','tote'],
+      openings:[
+        `${title} ha una struttura ampia e decisa, perfetta per chi vuole una borsa capiente ma scenica.`,
+        `Una tote dalla presenza importante, ideale quando serve spazio senza perdere stile.`,
+        `Capiente, ordinata e molto sfruttabile: una borsa pensata per accompagnare davvero la giornata.`
+      ],
+      second:[
+        'Il formato generoso la rende pratica per lavoro, viaggi brevi o giornate molto piene.',
+        'Ha una linea solida e visibile, quindi funziona bene anche con outfit semplici.',
+        'È la scelta giusta quando vuoi comodità, ma anche una borsa che si faccia notare.'
+      ],
+      accents:['Pensata per chi cerca spazio vero, non solo una borsa carina da fotografare.']
+    },
+    {
+      words:['speedy','alma','bauletto'],
+      openings:[
+        `${title} ha il fascino del bauletto classico: compatta, strutturata e molto femminile.`,
+        `Un formato ordinato e pratico, perfetto per l’uso quotidiano con un tocco più elegante.`,
+        `La linea a bauletto dà subito struttura al look, senza risultare ingombrante.`
+      ],
+      second:[
+        'Le proporzioni la rendono comoda da portare e abbastanza capiente per l’essenziale.',
+        'Sta bene con outfit semplici proprio perché aggiunge forma e carattere.',
+        'È un modello pratico, ma con una resa più curata della classica borsa da tutti i giorni.'
+      ],
+      accents:['Ideale per chi vuole una borsa compatta ma non troppo piccola.']
+    },
+    {
+      words:['saddle'],
+      openings:[
+        `${title} ha una forma particolare e subito riconoscibile, perfetta per chi cerca qualcosa di diverso.`,
+        `La Saddle punta tutto sulla silhouette: scenica, compatta e piena di carattere.`,
+        `Un modello che diventa protagonista del look grazie alla sua forma distintiva.`
+      ],
+      second:[
+        'Funziona benissimo con outfit puliti, perché il design fa già gran parte del lavoro.',
+        'Le proporzioni restano pratiche, mentre la linea aggiunge subito personalità.',
+        'È la borsa giusta quando vuoi un dettaglio forte senza esagerare col resto.'
+      ],
+      accents:['Silhouette particolare, effetto immediato.']
+    },
+    {
+      words:['lady','cannage'],
+      openings:[
+        `${title} ha una struttura raffinata e femminile, perfetta per un look elegante.`,
+        `Un modello ordinato e chic, ideale quando vuoi una borsa più importante.`,
+        `La linea compatta e curata dà subito un effetto sofisticato.`
+      ],
+      second:[
+        has('cannage') ? 'La lavorazione effetto cannage aggiunge profondità e rende la borsa ancora più elegante.' : 'La struttura resta pulita e adatta anche alle occasioni più curate.',
+        'Si porta bene sia a mano che con tracolla, mantenendo sempre un risultato raffinato.',
+        'È una scelta perfetta per chi vuole eleganza visibile ma non esagerata.'
+      ],
+      accents:['Più adatta a look curati che a outfit troppo sportivi.']
+    },
+    {
+      words:['dionysus'],
+      openings:[
+        `${title} ha una presenza forte e ricercata, pensata per chi ama i dettagli che si notano.`,
+        `Dionysus è un modello deciso: elegante, particolare e con un carattere molto chiaro.`,
+        `Una borsa scenica ma ordinata, perfetta per dare personalità al look.`
+      ],
+      second:[
+        'Il design ricco resta comunque equilibrato e funziona bene anche con outfit semplici.',
+        'È una borsa che non ha bisogno di troppe aggiunte: il dettaglio principale fa già la sua parte.',
+        'La resa è più importante rispetto a una borsa basic, ma resta elegante.'
+      ],
+      accents:['Ottima se vuoi un modello più visibile e meno minimal.']
+    },
+    {
+      words:['bamboo'],
+      openings:[
+        `${title} richiama uno stile raffinato e particolare, con un dettaglio che dà subito identità.`,
+        `La linea Bamboo è elegante ma meno scontata, perfetta per chi cerca qualcosa di riconoscibile.`,
+        `Un modello dal gusto classico, reso più speciale dal dettaglio del manico.`
+      ],
+      second:[
+        'Sta bene con look puliti, perché il dettaglio fa già la differenza.',
+        'È una borsa femminile e curata, adatta sia al giorno che a occasioni più ordinate.',
+        'Il risultato è elegante, ma con un tocco più personale.'
+      ],
+      accents:['Un dettaglio particolare senza diventare eccessivo.']
+    },
+    {
+      words:['pochette','clutch','woc','wallet on chain'],
+      openings:[
+        `${title} è compatta, elegante e perfetta quando vuoi portare solo l’essenziale.`,
+        `Una linea piccola ma curata, ideale per serate, cerimonie o look più puliti.`,
+        `Un accessorio leggero e raffinato, pensato per completare il look senza appesantire.`
+      ],
+      second:[
+        'Il formato ridotto la rende pratica, mentre i dettagli mantengono una presenza elegante.',
+        'È perfetta quando vuoi qualcosa di più fine della borsa quotidiana.',
+        'Sta bene soprattutto con outfit essenziali, dove il dettaglio può risaltare.'
+      ],
+      accents:['Piccola, sì. Invisibile, no.']
+    },
+    {
+      words:['cassette'],
+      openings:[
+        `${title} ha una linea moderna e geometrica, con un effetto molto pulito addosso.`,
+        `Cassette è perfetta per chi ama borse essenziali ma con una texture protagonista.`,
+        `Un modello contemporaneo, ordinato e molto facile da riconoscere.`
+      ],
+      second:[
+        'La struttura compatta la rende pratica, mentre la lavorazione dà carattere.',
+        'Si abbina bene a look minimal, dove la forma può risaltare senza confusione.',
+        'È una borsa moderna, più grafica che classica.'
+      ],
+      accents:['Ideale per chi vuole una presenza contemporanea e non troppo romantica.']
+    },
+    {
+      words:['loulou','niki','kate','sunset','cassandre'],
+      openings:[
+        `${title} ha un’eleganza decisa, perfetta per look puliti ma con carattere.`,
+        `Un modello raffinato e moderno, pensato per aggiungere subito un dettaglio chic.`,
+        `Linea femminile, dettagli curati e una resa molto elegante.`
+      ],
+      second:[
+        'Si porta bene sia di giorno che la sera, soprattutto con outfit essenziali.',
+        'Il risultato è sofisticato senza sembrare troppo costruito.',
+        'È una borsa adatta a chi ama uno stile pulito ma non anonimo.'
+      ],
+      accents:['Elegante, ma con un’impronta più moderna.']
+    },
+    {
+      words:['galleria','cleo','re-edition','reedition'],
+      openings:[
+        `${title} ha una linea ordinata e contemporanea, perfetta per uno stile pulito.`,
+        `Un modello essenziale ma riconoscibile, ideale per chi ama accessori raffinati e pratici.`,
+        `La resa è moderna, femminile e molto facile da abbinare.`
+      ],
+      second:[
+        'Funziona bene con look quotidiani curati, ma anche con abbinamenti più eleganti.',
+        'La forma resta semplice, mentre i dettagli danno un effetto più ricercato.',
+        'È una scelta versatile per chi non vuole una borsa troppo appariscente.'
+      ],
+      accents:['Pulita nella linea, forte nei dettagli.']
+    },
+    {
+      words:['baguette','peekaboo'],
+      openings:[
+        `${title} ha una linea riconoscibile e un gusto molto fashion, senza perdere eleganza.`,
+        `Un modello con carattere, perfetto per chi vuole una borsa compatta ma non banale.`,
+        `La struttura è curata e dà subito un tono più ricercato al look.`
+      ],
+      second:[
+        'È adatta a outfit semplici, perché aggiunge da sola un dettaglio forte.',
+        'Il formato resta pratico, ma la resa è più particolare della solita borsa quotidiana.',
+        'Funziona bene quando vuoi un accessorio con personalità.'
+      ],
+      accents:['Compatta, ma con un effetto molto riconoscibile.']
+    },
+    {
+      words:['birkin','kelly','constance','picotin','evelyne'],
+      openings:[
+        `${title} ha una linea elegante e strutturata, pensata per chi ama borse raffinate e senza tempo.`,
+        `Un modello dal gusto classico, con una presenza molto composta e curata.`,
+        `La sua forza è l’eleganza pulita: niente eccessi, solo una linea molto solida.`
+      ],
+      second:[
+        'È perfetta per look ordinati, ma riesce a dare valore anche a un outfit semplice.',
+        'Le proporzioni e i dettagli trasmettono subito una sensazione di cura.',
+        'Non è una borsa urlata: è più una presenza silenziosa ma importante.'
+      ],
+      accents:['Una scelta raffinata per chi ama linee classiche e molto pulite.']
+    },
+    {
+      words:['mcqueen','oversize'],
+      openings:[
+        `${title} ha una suola importante e una linea pulita, perfetta per dare carattere anche ai look semplici.`,
+        `Sneaker moderne, comode e con una presenza decisa senza diventare pesanti.`,
+        `Il modello oversize funziona perché unisce comodità quotidiana e impatto fashion.`
+      ],
+      second:[
+        'Sta bene con jeans, pantaloni morbidi, completi casual e outfit più street.',
+        'La suola importante dà slancio e rende la scarpa subito riconoscibile.',
+        'È una sneaker versatile, ma con più personalità della classica scarpa sportiva.'
+      ],
+      accents:['Perfetta per chi vuole comodità, ma non vuole sembrare uscito in pantofole.']
+    },
+    {
+      words:['air force','dunk','jordan'],
+      openings:[
+        `${title} ha un’impronta street molto chiara, ideale per outfit casual e dinamici.`,
+        `Una sneaker sportiva ma molto facile da usare anche nei look quotidiani.`,
+        `Linea decisa, carattere urbano e abbinamenti semplici: qui il punto è la versatilità.`
+      ],
+      second:[
+        'Funziona bene con denim, tute curate, pantaloni cargo e look più rilassati.',
+        'È una scarpa pensata per dare ritmo al look senza complicarlo.',
+        'La resa è giovane, pratica e molto immediata.'
+      ],
+      accents:['Una scelta perfetta per look casual con più personalità.']
+    },
+    {
+      words:['samba','gazelle','campus'],
+      openings:[
+        `${title} ha una linea sportiva pulita e retrò, perfetta per look casual curati.`,
+        `Una sneaker leggera nell’effetto, facile da abbinare e sempre molto attuale.`,
+        `Il fascino è proprio nella linea essenziale: semplice, ma con stile.`
+      ],
+      second:[
+        'Sta bene con jeans, gonne, pantaloni morbidi e outfit rilassati ma ordinati.',
+        'Il profilo basso la rende più discreta rispetto alle sneaker oversize.',
+        'È una scarpa comoda, versatile e poco impegnativa da portare.'
+      ],
+      accents:['Ideale quando vuoi una sneaker pulita, non troppo vistosa.']
+    },
+    {
+      words:['golden goose','goose'],
+      openings:[
+        `${title} ha un effetto vissuto e fashion, perfetto per look casual con personalità.`,
+        `Una sneaker dal carattere più rilassato, ma con dettagli che la rendono subito riconoscibile.`,
+        `Il suo punto forte è l’aria street chic: comoda, moderna e mai troppo precisa.`
+      ],
+      second:[
+        'Funziona bene con denim, blazer, pantaloni morbidi e outfit quotidiani curati.',
+        'L’effetto vissuto dà carattere senza sembrare trascurato.',
+        'È pensata per chi ama uno stile casual ma non banale.'
+      ],
+      accents:['Perfetta per un look rilassato ma comunque studiato.']
+    },
+    {
+      words:['orans','oran','sandalo','sandali'],
+      openings:[
+        `${title} ha una linea pulita e raffinata, perfetta per la stagione calda.`,
+        `Un sandalo elegante e semplice da abbinare, ideale quando vuoi comodità senza perdere stile.`,
+        `Essenziale, femminile e molto versatile: il classico dettaglio che sistema il look estivo.`
+      ],
+      second:[
+        'Sta bene con abiti, jeans, pantaloni morbidi e look da giorno più curati.',
+        'La linea resta leggera, ma l’effetto finale è molto elegante.',
+        'È una calzatura facile da usare, ma più curata del solito sandalo basic.'
+      ],
+      accents:['Comodo da portare, ma con una resa molto ordinata.']
+    },
+    {
+      words:['décolleté','decollete','pump','tacco','slingback'],
+      openings:[
+        `${title} ha una linea femminile e slanciata, perfetta per dare subito più eleganza al look.`,
+        `Una scarpa raffinata, ideale per occasioni curate o abbinamenti più chic.`,
+        `Il profilo è elegante e valorizza la figura senza bisogno di troppi dettagli.`
+      ],
+      second:[
+        'Sta bene con abiti, pantaloni eleganti e look da sera, ma anche con jeans ben scelti.',
+        'Il risultato è pulito, femminile e molto curato.',
+        'È la scelta giusta quando vuoi alzare subito il livello dell’outfit.'
+      ],
+      accents:['Più elegante che sportiva, come è giusto che sia.']
+    }
+  ];
+
+  modelProfiles.forEach(profile=>{
+    if(profile.words.some(w=>has(w))){
+      add(openings, ...(profile.openings||[]));
+      add(second, ...(profile.second||[]));
+      add(accents, ...(profile.accents||[]));
+    }
+  });
+
+  const shapeProfiles=[
+    { words:['mini','piccola','nano','round'], lines:['Il formato compatto la rende leggera da portare, ma abbastanza presente da farsi notare.','Perfetta quando vuoi uscire con l’essenziale e mantenere comunque un dettaglio chic.','Piccola nelle dimensioni, curata nell’effetto.'] },
+    { words:['tracolla','crossbody'], lines:['La tracolla la rende comoda e pratica, soprattutto per l’uso quotidiano.','Si porta facilmente lasciando le mani libere, senza perdere eleganza.','È una soluzione comoda per chi vuole praticità ma anche una resa curata.'] },
+    { words:['hobo','mezzaluna'], lines:['La forma morbida cade bene e dà al look un effetto più rilassato.','La linea curva la rende femminile e facile da portare.','Ha un gusto meno rigido, perfetto per outfit quotidiani curati.'] },
+    { words:['zaino','backpack'], lines:['Il formato zaino è pratico e comodo, ideale quando serve libertà di movimento.','Più funzionale di una borsa classica, ma comunque curato nei dettagli.','Perfetto per giornate piene, viaggio o uso quotidiano.'] },
+    { words:['bucket','secchiello'], lines:['La forma a secchiello dà un effetto giovane e meno formale.','Capiente senza sembrare troppo rigida, con una linea facile da usare.','È pratica, morbida e diversa dalla classica borsa strutturata.'] },
+    { words:['capiente','grande','large','xl'], lines:['Il formato ampio la rende comoda per l’uso quotidiano e le giornate più piene.','Ha spazio vero, ma mantiene una resa curata.','È pensata per chi vuole praticità senza rinunciare allo stile.'] },
+    { words:['compatto','compatta','small'], lines:['Il formato resta contenuto e facile da portare.','Tiene l’essenziale senza appesantire il look.','È adatta quando vuoi una presenza elegante ma leggera.'] }
+  ];
+  shapeProfiles.forEach(profile=>{ if(profile.words.some(w=>has(w))) add(accents, ...(profile.lines||[])); });
+
+  const fallback={
+    borse:{
+      openings:[
+        `${title} ha una linea curata e femminile, facile da abbinare senza risultare banale.`,
+        `Una borsa pensata per completare il look con un dettaglio elegante e portabile.`,
+        `Il modello ha una resa ordinata, adatta sia al quotidiano che ad abbinamenti più curati.`,
+        `Una proposta versatile, con proporzioni equilibrate e dettagli ben presenti.`
+      ],
+      second:[
+        'Il formato è pratico e la rende semplice da usare in tante occasioni.',
+        'I dettagli valorizzano la linea senza appesantire il risultato finale.',
+        'Si abbina bene a look casual, eleganti o da tutti i giorni.',
+        'È una borsa da sfruttare davvero, non solo bella da vedere.'
+      ]
+    },
+    scarpe:{
+      openings:[
+        `${title} ha una linea curata e una presenza adatta a look quotidiani ma ben studiati.`,
+        `Una calzatura versatile, pensata per aggiungere carattere senza complicare l’abbinamento.`,
+        `Il modello ha un profilo pulito e facile da portare in tante situazioni.`,
+        `Una proposta comoda e stilosa, ideale per dare più tono all’outfit.`
+      ],
+      second:[
+        'Si abbina facilmente con jeans, pantaloni morbidi e look casual curati.',
+        'La resa è pratica ma non anonima, con dettagli che fanno la differenza.',
+        'È una scelta adatta a chi vuole comodità senza rinunciare allo stile.',
+        'Il profilo resta equilibrato e funziona bene anche nei look più semplici.'
+      ]
+    },
+    cinture:{
+      openings:[
+        `${title} completa il look con un dettaglio pulito e ben visibile.`,
+        `Una cintura curata, perfetta per rifinire outfit semplici o più eleganti.`,
+        `Il dettaglio giusto quando vuoi dare ordine e carattere all’abbinamento.`,
+        `Una scelta versatile, utile per completare il look senza esagerare.`
+      ],
+      second:[
+        'Sta bene con jeans, pantaloni eleganti, abiti o blazer.',
+        'È un accessorio piccolo, ma cambia subito la resa dell’insieme.',
+        'La finitura ordinata la rende facile da usare in tante occasioni.',
+        'Aggiunge personalità senza togliere pulizia al look.'
+      ]
+    },
+    portafogli:{
+      openings:[
+        `${title} è pratico, ordinato e pensato per tenere tutto a portata di mano con stile.`,
+        `Un portafoglio compatto e curato, perfetto per l’uso quotidiano.`,
+        `Un accessorio funzionale, ma con una resa elegante quando lo tiri fuori.`,
+        `La linea è pulita e ben organizzata, ideale per chi vuole praticità senza perdere gusto.`
+      ],
+      second:[
+        'Gli scomparti aiutano a tenere tutto in ordine senza renderlo ingombrante.',
+        'È facile da inserire anche in borse più compatte.',
+        'Il formato lo rende comodo da usare ogni giorno.',
+        'I dettagli gli danno una resa più curata rispetto al classico portafoglio basic.'
+      ]
+    },
+    accessori:{
+      openings:[
+        `${title} aggiunge un dettaglio curato e rende il look più completo.`,
+        `Un accessorio versatile, facile da usare e con una presenza ben definita.`,
+        `Il classico tocco finale che fa sembrare tutto più studiato.`,
+        `Una scelta semplice ma efficace per dare personalità all’insieme.`
+      ],
+      second:[
+        'Si abbina facilmente e non appesantisce il risultato finale.',
+        'È perfetto quando vuoi un dettaglio in più senza esagerare.',
+        'La resa è discreta, ma aiuta subito a completare il look.',
+        'Funziona bene proprio perché resta elegante e facile da portare.'
+      ]
+    },
+    generico:{
+      openings:[
+        `${title} ha una linea curata e una resa ordinata, facile da abbinare.`,
+        `Un modello semplice da usare, ma con dettagli che lo rendono più interessante.`,
+        `Una proposta pratica e curata, pensata per valorizzare il look quotidiano.`
+      ],
+      second:[
+        'I dettagli fanno la differenza e mantengono un effetto pulito.',
+        'Si usa facilmente e resta piacevole da vedere.',
+        'È una scelta versatile, adatta a tante occasioni diverse.'
+      ]
+    }
+  };
+  add(openings, ...((fallback[type]||fallback.generico).openings));
+  add(second, ...((fallback[type]||fallback.generico).second));
+
+  if(colorNice) add(accents,
+    `Il colore ${colorNice} aiuta a mantenerla versatile e facile da abbinare.`,
+    `${colorNice} dà una resa pulita e adatta a molte occasioni.`,
+    `Con il ${colorNice} il risultato resta elegante e molto portabile.`
+  );
+  if(materialNice) add(accents,
+    `${materialNice} aggiunge carattere e rende il modello più curato.`,
+    `La finitura ${materialNice} valorizza la linea senza appesantirla.`,
+    `Il dettaglio ${materialNice} completa bene lo stile del modello.`
+  );
+  if(misura) add(accents,
+    `Le dimensioni ${smartSentenceCase(misura)} lo rendono proporzionato e comodo da usare.`,
+    `Il formato ${smartSentenceCase(misura)} mantiene un buon equilibrio tra praticità e presenza.`,
+    `Con queste misure resta portabile e gradevole addosso.`
+  );
+  if(qual) add(accents,
+    `Qualità ${String(qual).toLowerCase()} con finiture curate e una resa pulita.`,
+    `La qualità ${String(qual).toLowerCase()} si nota soprattutto nei dettagli.`,
+    `Finiture curate e qualità ${String(qual).toLowerCase()} per un effetto più elegante.`
+  );
+
+  return {
+    openings:uniquePostLines(openings),
+    second:uniquePostLines(second),
+    accents:uniquePostLines(accents),
+    closers:uniquePostLines(closers),
+    closersNormal:uniquePostLines(closersNormal),
+    closersTiming:uniquePostLines(closersTiming),
+    closersReviews:uniquePostLines(closersReviews)
+  };
+}
+
 function buildPostFacebookBase(a, opts={}){
   if(!a?.codice) return '';
   const includePrice = opts?.includePrice===true;
   const priceSymbol = opts?.priceSymbol || '💶';
+  const seed=stableHashSeed([a?.codice,a?.brand,a?.modello,a?.categoria,a?.colore,a?.materiale,a?.misura,includePrice?'price':'noprice'].join('|'));
+  const pick=(arr,shift=0)=>pickVariantBySeed(arr, seed, shift);
   const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
-  const premiumLine = articleQualityLabel(a)==='Originale' ? 'QUALITÀ PREMIUM' : '';
-  const variante = safePostDetailValue(a?.variante||'', a);
-  const materiale = safePostDetailValue(a?.materiale||'', a);
-  const misura = safePostDetailValue(postSizeValue(a), a);
-  const colore = safePostDetailValue(a?.colore||'', a);
-  const closer = pickRandom([
-    'Per info scrivimi in privato 📩',
-    'Contattami in privato per dettagli',
-    'Richiedi disponibilità in privato',
-    'Scrivimi per disponibilità e dettagli',
-    'Info e dettagli in privato',
-    'Per colori e informazioni, messaggio privato',
-    'Messaggio privato per conferma disponibilità',
-    'Per sapere se è disponibile, contattami in privato',
-    'Prenotazione e informazioni in privato',
-    'Scrivimi per maggiori informazioni',
-    'Per tutte le info, scrivimi in privato',
-    'Contattami per info su colori e disponibilità'
-  ]) || 'Per info scrivimi in privato 📩';
+  const blocks=facebookVarietyBlocks(a);
   const lines=[...promoPostIntroLines(a)];
   if(lines.length) lines.push('');
   if(modelLine) lines.push(smartSentenceCase(modelLine));
-  if(premiumLine) lines.push(premiumLine);
-  const seen = new Set();
-  const pushUnique = (value)=>{
-    const txt = compactPostValue(value||'');
-    if(!txt) return;
-    const key = normalizeTextKey(txt);
-    if(!key || seen.has(key)) return;
-    seen.add(key);
-    lines.push(txt);
-  };
-  pushUnique(smartSentenceCase(variante));
-  pushUnique(smartSentenceCase(materiale));
-  if(misura) lines.push(`Mis. ${smartSentenceCase(misura)}`);
-  if(colore) lines.push(`Colore: ${smartSentenceCase(colore)}`);
+
+  const intro=pick(blocks.openings, 3);
+  const second=pick(blocks.second, 17);
+  const accent=pick(blocks.accents, 31);
+  const structure=seed % 5;
+  if(structure===0){
+    if(intro) lines.push(intro);
+    if(accent) lines.push(accent);
+    if(second) lines.push(second);
+  }else if(structure===1){
+    if(intro) lines.push(intro);
+    if(second) lines.push(second);
+  }else if(structure===2){
+    if(second) lines.push(second);
+    if(accent) lines.push(accent);
+  }else if(structure===3){
+    if(intro) lines.push(intro);
+    if(accent) lines.push(accent);
+  }else{
+    if(intro) lines.push(intro);
+    if(second) lines.push(second);
+    if(accent && seed % 2===0) lines.push(accent);
+  }
+
+  lines.push('');
+  const details=[];
+  const colore = safePostDetailValue(a?.colore||'', a);
+  const misura = safePostDetailValue(postSizeValue(a), a);
+  const materiale = safePostDetailValue(a?.materiale||'', a);
+  const qual = articleQualityLabel(a);
+  if(colore) details.push(`📌 Colore: ${smartSentenceCase(colore)}`);
+  if(misura) details.push(`📌 ${postDimensionLabel(a)}: ${smartSentenceCase(misura)}`);
+  if(materiale) details.push(`📌 Materiale: ${smartSentenceCase(materiale)}`);
+  if(qual) details.push(`📌 Qualità ${String(qual).toLowerCase()}`);
+  const detailStart=seed % Math.max(details.length, 1);
+  const rotatedDetails=details.length ? [...details.slice(detailStart), ...details.slice(0, detailStart)] : [];
+  lines.push(...rotatedDetails.slice(0,4));
   if(includePrice){
     const prezzoFacebook = formatPostPrezzoVendita(currentPrice(a), priceSymbol);
     if(prezzoFacebook) lines.push(prezzoFacebook);
   }
   lines.push(`cod. ${a.codice}`);
-  if(closer) lines.push('', closer);
+  const closerBucket=seed % 10;
+  let closerPool=blocks.closersNormal||blocks.closers||[];
+  if(closerBucket===0 && (blocks.closersReviews||[]).length) closerPool=blocks.closersReviews;
+  else if((closerBucket===1 || closerBucket===2) && (blocks.closersTiming||[]).length) closerPool=blocks.closersTiming;
+  const closer=pickVariantBySeed(closerPool, seed, 47) || '📩 Info in privato.';
+  lines.push('', closer);
   return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
+
 function buildPostFacebook(a){
   return buildPostFacebookBase(a, { includePrice:false });
 }
@@ -3470,7 +4027,7 @@ function copyTextFrom(el){
 const UI_KEY='vg_ui_prefs_v1';
 function defaultUiPrefs(){
   return {
-    title:'Vanity & Glamour',
+    title:'Gestionale',
     cloud:'Cloud',
     tabs:{home:'Dashboard',articoli:'Articoli',clienti:'Clienti',ordini:'Ordini',finanze:'Finanze',impostazioni:'Impost.'},
     buttons:{save:'Salva',cancel:'Annulla',delete:'Elimina'},
@@ -3480,8 +4037,10 @@ function defaultUiPrefs(){
 function normalizeUiPrefs(v){
   const d=defaultUiPrefs();
   const o=v&&typeof v==='object'?v:{};
+  let title=String(o.title||d.title).trim();
+  if(!title || /^vanity\s*&?\s*glamour$/i.test(title)) title=d.title;
   return {
-    title:String(o.title||d.title),
+    title:title,
     cloud:String(o.cloud||d.cloud),
     tabs:{...d.tabs,...(o.tabs||{})},
     buttons:{...d.buttons,...(o.buttons||{})},
@@ -6442,7 +7001,7 @@ async function exportDB(mode){
   const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download=`vanity_glamour_${mode}_${Date.now()}.json`;
+  a.download=`gestionale_${mode}_${Date.now()}.json`;
   a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1500);
   document.getElementById('importHint').textContent = `Export fatto (${mode}). Database esportato correttamente.`;
@@ -6885,7 +7444,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-11-promo-fino-al-v62';
+const VG_BUILD='2026-05-14-finali-recensioni-15gg-v67';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -7415,7 +7974,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=promo-fino-al-v62', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=finali-recensioni-15gg-v67', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
