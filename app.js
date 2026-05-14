@@ -1335,9 +1335,20 @@ async function getArticleCloudSourcePaths(a){
 }
 async function getPreferredArticlePhotoSources(a){
   const local=await getArticleLocalPhotoSources(a);
-  if(local.length) return local.slice(0,MAX_ARTICLE_PHOTOS);
   const cloud=await getArticleCloudSourcePaths(a);
-  return cloud.slice(0,MAX_ARTICLE_PHOTOS);
+  const out=[];
+  const seen=new Set();
+  const push=(src)=>{
+    const clean=String(src||'').trim();
+    if(!clean) return;
+    const key=canonicalPhotoSourceKey(clean) || clean;
+    if(!key || seen.has(key)) return;
+    seen.add(key);
+    out.push(clean);
+  };
+  local.forEach(push);
+  cloud.forEach(push);
+  return out.slice(0,MAX_ARTICLE_PHOTOS);
 }
 async function getArticlePics(a){
   if(!a) return [];
@@ -1854,7 +1865,7 @@ async function downloadCurrentArticlePhotos(channel='tg'){
   if(!ctx) return;
 
   const preparedFiles=await ensureCurrentArticlePhotoFiles(ctx);
-  const files=dedupePhotoSources(preparedFiles);
+  const files=normalizePreparedPhotoFiles(preparedFiles, MAX_ARTICLE_PHOTOS);
   if(!files.length){
     toast('Download foto fallito');
     return;
@@ -1870,13 +1881,18 @@ async function downloadCurrentArticlePhotos(channel='tg'){
       return;
     }
 
-    files.forEach((file, idx)=>{
+    // Niente ZIP: scarico ogni immagine come file separato.
+    // Alcuni browser mobili possono chiedere/limitare i download multipli: per questo
+    // lancio i download in sequenza ravvicinata e mostro quante foto sono state preparate.
+    for(let idx=0; idx<files.length; idx++){
+      const file=files[idx];
       const fallbackName=`${base}_${String(idx+1).padStart(2,'0')}.jpg`;
       const filename=(file instanceof File && file.name) ? file.name : fallbackName;
-      setTimeout(()=>triggerBlobDownload(file, filename), idx * 250);
-    });
+      triggerBlobDownload(file, filename);
+      await new Promise(resolve=>setTimeout(resolve, 180));
+    }
     if(typeof recordArticlePublication==='function') recordArticlePublication(channel);
-    toast(`Scarico ${files.length} foto separate, senza ZIP.`);
+    toast(`Scaricate ${files.length} foto separate, senza ZIP.`);
   }catch(err){
     console.warn('Download foto separate articolo fallito', err);
     toast('Download foto fallito');
@@ -3713,7 +3729,7 @@ function buildPostFacebookBase(a, opts={}){
   if(!a?.codice) return '';
   const includePrice = opts?.includePrice===true;
   const priceSymbol = opts?.priceSymbol || '💶';
-  const seed=stableHashSeed([a?.codice,a?.brand,a?.modello,a?.categoria,a?.colore,a?.materiale,a?.misura,includePrice?'price':'noprice','finali-30-no-descrizioni'].join('|'));
+  const seed=stableHashSeed([a?.codice,a?.brand,a?.modello,a?.categoria,a?.colore,a?.materiale,a?.misura,includePrice?'price':'noprice','finali-30-no-desc-qualita-compact-download-multi'].join('|'));
   const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
 
   const finaliInfo=[
@@ -3754,24 +3770,21 @@ function buildPostFacebookBase(a, opts={}){
   ];
 
   const lines=[...promoPostIntroLines(a)];
-  if(lines.length) lines.push('');
   if(modelLine) lines.push(smartSentenceCase(modelLine));
+
+  const qual = articleQualityLabel(a);
+  if(qual) lines.push(`QUALITÀ ${String(qual).toUpperCase()}`);
 
   const details=[];
   const colore = safePostDetailValue(a?.colore||'', a);
   const misura = safePostDetailValue(postSizeValue(a), a);
   const materiale = safePostDetailValue(a?.materiale||'', a);
-  const qual = articleQualityLabel(a);
   if(materiale) details.push(`Materiale: ${smartSentenceCase(materiale)}`);
-  if(qual) details.push(`Qualità ${String(qual).toLowerCase()}`);
   if(colore) details.push(`Colore: ${smartSentenceCase(colore)}`);
   if(misura) details.push(`${postDimensionLabel(a)}: ${smartSentenceCase(misura)}`);
   const detailStart=seed % Math.max(details.length, 1);
   const rotatedDetails=details.length ? [...details.slice(detailStart), ...details.slice(0, detailStart)] : [];
-  if(rotatedDetails.length){
-    lines.push('');
-    lines.push(...rotatedDetails.slice(0,4));
-  }
+  if(rotatedDetails.length) lines.push(...rotatedDetails.slice(0,4));
   if(includePrice){
     const prezzoFacebook = formatPostPrezzoVendita(currentPrice(a), priceSymbol);
     if(prezzoFacebook) lines.push(prezzoFacebook);
@@ -3783,8 +3796,8 @@ function buildPostFacebookBase(a, opts={}){
   if(bucket===0) closerPool=finaliRecensioni;
   else if(bucket===1 || bucket===2) closerPool=finaliTempi;
   const closer=pickVariantBySeed(closerPool, seed, 47) || '📩 Info in privato.';
-  lines.push('', closer);
-  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  lines.push(closer);
+  return lines.filter(line=>String(line||'').trim()).join('\n').replace(/\n{2,}/g,'\n').trim();
 }
 
 function buildPostFacebook(a){
