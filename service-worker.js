@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-05-14-finali-brevi-60-v68';
+const VERSION = 'gestionale-2026-05-14-finali-30-no-desc-v69';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
@@ -8,7 +8,9 @@ const STATIC_ASSETS = [
   './reset-cache.html',
   './database.json',
   './cat-borse.jpg',
-  './supabaseClient.js'
+  './supabaseClient.js',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', event => {

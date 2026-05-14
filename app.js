@@ -3707,59 +3707,75 @@ function buildPostFacebookBase(a, opts={}){
   if(!a?.codice) return '';
   const includePrice = opts?.includePrice===true;
   const priceSymbol = opts?.priceSymbol || '💶';
-  const seed=stableHashSeed([a?.codice,a?.brand,a?.modello,a?.categoria,a?.colore,a?.materiale,a?.misura,includePrice?'price':'noprice'].join('|'));
-  const pick=(arr,shift=0)=>pickVariantBySeed(arr, seed, shift);
+  const seed=stableHashSeed([a?.codice,a?.brand,a?.modello,a?.categoria,a?.colore,a?.materiale,a?.misura,includePrice?'price':'noprice','finali-30-no-descrizioni'].join('|'));
   const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
-  const blocks=facebookVarietyBlocks(a);
+
+  const finaliInfo=[
+    "📩 Info in privato.",
+    "📩 Dettagli in privato.",
+    "📩 Foto in privato.",
+    "📩 Info e foto in privato.",
+    "📩 Per dettagli, messaggio privato.",
+    "📩 Colori e dettagli in privato.",
+    "📩 Misure e info in privato.",
+    "📩 Foto e colori in privato.",
+    "📩 Dettagli su richiesta.",
+    "📩 Foto su richiesta."
+  ];
+  const finaliTempi=[
+    "📌 Ordinabile.",
+    "📌 Su ordinazione.",
+    "📌 Ordinabile su richiesta.",
+    "📌 Arrivo su ordine.",
+    "📌 Tempi circa 15 giorni.",
+    "📌 Consegna circa 15 giorni.",
+    "📌 Arrivo indicativo 15 giorni.",
+    "📌 Su ordine, circa 15 giorni.",
+    "📌 Tempi medi 15 giorni.",
+    "📌 Ordinabile, tempi circa 15 giorni."
+  ];
+  const finaliRecensioni=[
+    "📌 Recensioni nel gruppo.",
+    "📌 Recensioni consultabili.",
+    "📌 Feedback clienti presenti.",
+    "📌 Feedback nel gruppo.",
+    "📌 Recensioni disponibili.",
+    "📌 Feedback disponibili.",
+    "📌 Recensioni visibili.",
+    "📌 Foto reali disponibili.",
+    "📌 Foto e dettagli prima dell’ordine.",
+    "📌 Qualità e tempi indicati prima dell’ordine."
+  ];
+
   const lines=[...promoPostIntroLines(a)];
   if(lines.length) lines.push('');
   if(modelLine) lines.push(smartSentenceCase(modelLine));
 
-  const intro=pick(blocks.openings, 3);
-  const second=pick(blocks.second, 17);
-  const accent=pick(blocks.accents, 31);
-  const structure=seed % 5;
-  if(structure===0){
-    if(intro) lines.push(intro);
-    if(accent) lines.push(accent);
-    if(second) lines.push(second);
-  }else if(structure===1){
-    if(intro) lines.push(intro);
-    if(second) lines.push(second);
-  }else if(structure===2){
-    if(second) lines.push(second);
-    if(accent) lines.push(accent);
-  }else if(structure===3){
-    if(intro) lines.push(intro);
-    if(accent) lines.push(accent);
-  }else{
-    if(intro) lines.push(intro);
-    if(second) lines.push(second);
-    if(accent && seed % 2===0) lines.push(accent);
-  }
-
-  lines.push('');
   const details=[];
   const colore = safePostDetailValue(a?.colore||'', a);
   const misura = safePostDetailValue(postSizeValue(a), a);
   const materiale = safePostDetailValue(a?.materiale||'', a);
   const qual = articleQualityLabel(a);
-  if(colore) details.push(`📌 Colore: ${smartSentenceCase(colore)}`);
-  if(misura) details.push(`📌 ${postDimensionLabel(a)}: ${smartSentenceCase(misura)}`);
   if(materiale) details.push(`📌 Materiale: ${smartSentenceCase(materiale)}`);
   if(qual) details.push(`📌 Qualità ${String(qual).toLowerCase()}`);
+  if(colore) details.push(`📌 Colore: ${smartSentenceCase(colore)}`);
+  if(misura) details.push(`📌 ${postDimensionLabel(a)}: ${smartSentenceCase(misura)}`);
   const detailStart=seed % Math.max(details.length, 1);
   const rotatedDetails=details.length ? [...details.slice(detailStart), ...details.slice(0, detailStart)] : [];
-  lines.push(...rotatedDetails.slice(0,4));
+  if(rotatedDetails.length){
+    lines.push('');
+    lines.push(...rotatedDetails.slice(0,4));
+  }
   if(includePrice){
     const prezzoFacebook = formatPostPrezzoVendita(currentPrice(a), priceSymbol);
     if(prezzoFacebook) lines.push(prezzoFacebook);
   }
   lines.push(`cod. ${a.codice}`);
-  const closerBucket=seed % 10;
-  let closerPool=blocks.closersNormal||blocks.closers||[];
-  if(closerBucket===0 && (blocks.closersReviews||[]).length) closerPool=blocks.closersReviews;
-  else if((closerBucket===1 || closerBucket===2) && (blocks.closersTiming||[]).length) closerPool=blocks.closersTiming;
+
+  const bucket=seed % 10;
+  let closerPool=finaliInfo;
+  if(bucket===0) closerPool=finaliRecensioni;
+  else if(bucket===1 || bucket===2) closerPool=finaliTempi;
   const closer=pickVariantBySeed(closerPool, seed, 47) || '📩 Info in privato.';
   lines.push('', closer);
   return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
@@ -7454,7 +7470,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-14-finali-brevi-60-v68';
+const VG_BUILD='2026-05-14-finali-30-no-desc-v69';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -7984,7 +8000,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=finali-brevi-60-v68', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=finali-30-no-desc-v69', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
