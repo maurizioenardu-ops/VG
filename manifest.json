@@ -1,8 +1,8 @@
 {
-  "id": "./?v=gestionale-qualita-compact-download-multi",
+  "id": "./?v=gestionale-qualita-compact-zip-only",
   "name": "Gestionale",
   "short_name": "Gestionale",
-  "start_url": "./?v=gestionale-qualita-compact-download-multi",
+  "start_url": "./?v=gestionale-qualita-compact-zip-only",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0f172a",

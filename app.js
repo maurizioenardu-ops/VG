@@ -1864,38 +1864,33 @@ async function downloadCurrentArticlePhotos(channel='tg'){
   const ctx=await getCurrentArticlePhotoContext();
   if(!ctx) return;
 
-  const preparedFiles=await ensureCurrentArticlePhotoFiles(ctx);
-  const files=normalizePreparedPhotoFiles(preparedFiles, MAX_ARTICLE_PHOTOS);
-  if(!files.length){
-    toast('Download foto fallito');
-    return;
-  }
-
   try{
-    const base=String(ctx.baseName||'articolo').replace(/[^a-z0-9_\-]+/gi,'_').replace(/^_+|_+$/g,'') || 'articolo';
-
-    if(files.length===1){
-      triggerBlobDownload(files[0], files[0].name || `${base}.jpg`);
-      if(typeof recordArticlePublication==='function') recordArticlePublication(channel);
-      toast('Foto scaricata. La trovi nei Download e poi in Galleria.');
+    const preparedFiles=await ensureCurrentArticlePhotoFiles(ctx);
+    const files=normalizePreparedPhotoFiles(preparedFiles, MAX_ARTICLE_PHOTOS);
+    if(!files.length){
+      toast('Download foto fallito');
       return;
     }
 
-    // Niente ZIP: scarico ogni immagine come file separato.
-    // Alcuni browser mobili possono chiedere/limitare i download multipli: per questo
-    // lancio i download in sequenza ravvicinata e mostro quante foto sono state preparate.
-    for(let idx=0; idx<files.length; idx++){
-      const file=files[idx];
-      const fallbackName=`${base}_${String(idx+1).padStart(2,'0')}.jpg`;
-      const filename=(file instanceof File && file.name) ? file.name : fallbackName;
-      triggerBlobDownload(file, filename);
-      await new Promise(resolve=>setTimeout(resolve, 180));
+    const base=String(ctx.baseName||'articolo').replace(/[^a-z0-9_\-]+/gi,'_').replace(/^_+|_+$/g,'') || 'articolo';
+    if(files.length===1){
+      triggerBlobDownload(files[0], files[0].name || `${base}.jpg`);
+      if(typeof recordArticlePublication==='function') recordArticlePublication(channel);
+      toast('Foto scaricata.');
+      return;
     }
+
+    const zipFile=await ensureCurrentArticlePhotoZip(ctx, files, { silent:false });
+    if(!zipFile){
+      toast('Download ZIP fallito');
+      return;
+    }
+    triggerBlobDownload(zipFile, zipFile.name || `${base}_foto.zip`);
     if(typeof recordArticlePublication==='function') recordArticlePublication(channel);
-    toast(`Scaricate ${files.length} foto separate, senza ZIP.`);
+    toast(`ZIP scaricato con ${files.length} foto.`);
   }catch(err){
-    console.warn('Download foto separate articolo fallito', err);
-    toast('Download foto fallito');
+    console.warn('Download ZIP foto articolo fallito', err);
+    toast('Download ZIP fallito');
   }
 }
 async function uploadArticlePhotoToSupabase(file, codice, slot){
@@ -3729,7 +3724,7 @@ function buildPostFacebookBase(a, opts={}){
   if(!a?.codice) return '';
   const includePrice = opts?.includePrice===true;
   const priceSymbol = opts?.priceSymbol || '💶';
-  const seed=stableHashSeed([a?.codice,a?.brand,a?.modello,a?.categoria,a?.colore,a?.materiale,a?.misura,includePrice?'price':'noprice','finali-30-no-desc-qualita-compact-download-multi'].join('|'));
+  const seed=stableHashSeed([a?.codice,a?.brand,a?.modello,a?.categoria,a?.colore,a?.materiale,a?.misura,includePrice?'price':'noprice','finali-30-no-desc-qualita-compact-zip-only'].join('|'));
   const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
 
   const finaliInfo=[
