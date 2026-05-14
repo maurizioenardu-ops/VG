@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-05-14-finali-recensioni-15gg-v67';
+const VERSION = 'gestionale-2026-05-14-finali-brevi-60-v68';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
