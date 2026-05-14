@@ -1,8 +1,8 @@
 {
-  "id": "./?v=gestionale-qualita-compact-zip-only",
+  "id": "./?v=gestionale-solo-originale-zip-only-v2",
   "name": "Gestionale",
   "short_name": "Gestionale",
-  "start_url": "./?v=gestionale-qualita-compact-zip-only",
+  "start_url": "./?v=gestionale-solo-originale-zip-only-v2",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0f172a",

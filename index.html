@@ -4700,7 +4700,7 @@ function buildPostFacebookBase(a, opts={}){
   if(!a?.codice) return '';
   const includePrice = opts?.includePrice===true;
   const priceSymbol = opts?.priceSymbol || '💶';
-  const seed=stableHashSeed([a?.codice,a?.brand,a?.modello,a?.categoria,a?.colore,a?.materiale,a?.misura,includePrice?'price':'noprice','finali-30-no-desc-qualita-compact-zip-only'].join('|'));
+  const seed=stableHashSeed([a?.codice,a?.brand,a?.modello,a?.categoria,a?.colore,a?.materiale,a?.misura,includePrice?'price':'noprice','finali-30-no-desc-solo-originale-zip-only-v2'].join('|'));
   const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
 
   const finaliInfo=[
@@ -4744,7 +4744,8 @@ function buildPostFacebookBase(a, opts={}){
   if(modelLine) lines.push(smartSentenceCase(modelLine));
 
   const qual = articleQualityLabel(a);
-  if(qual) lines.push(`QUALITÀ ${String(qual).toUpperCase()}`);
+  const qualKey = String(qual||'').trim().toLowerCase();
+  if(qualKey==='originale') lines.push('QUALITÀ ORIGINALE');
 
   const details=[];
   const colore = safePostDetailValue(a?.colore||'', a);

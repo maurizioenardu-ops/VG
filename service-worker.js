@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-05-14-qualita-compact-zip-only-v72';
+const VERSION = 'gestionale-2026-05-14-solo-originale-zip-only-v73';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
