@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-05-15-delete-art-from-view-v74';
+const VERSION = 'gestionale-2026-05-15-euro-emoji-v75';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

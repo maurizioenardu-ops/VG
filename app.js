@@ -3723,7 +3723,7 @@ function facebookVarietyBlocks(a){
 function buildPostFacebookBase(a, opts={}){
   if(!a?.codice) return '';
   const includePrice = opts?.includePrice===true;
-  const priceSymbol = opts?.priceSymbol || '€';
+  const priceSymbol = opts?.priceSymbol || '💶';
   const seed=stableHashSeed([a?.codice,a?.brand,a?.modello,a?.categoria,a?.colore,a?.materiale,a?.misura,includePrice?'price':'noprice','finali-30-no-desc-solo-originale-zip-only-v2'].join('|'));
   const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
 
@@ -3800,7 +3800,7 @@ function buildPostFacebook(a){
   return buildPostFacebookBase(a, { includePrice:false });
 }
 function buildPostFacebookWithPrice(a){
-  return buildPostFacebookBase(a, { includePrice:true, priceSymbol:'€' });
+  return buildPostFacebookBase(a, { includePrice:true, priceSymbol:'💶' });
 }
 
 function buildPostInstagram(a){
