@@ -2281,14 +2281,27 @@ function orderIncassato(o){
 
 function orderMargin(o, db){
   const righe=Array.isArray(o?.righe)?o.righe:[];
-  let margin=0;
+  let costTotal=0;
   for(const r of righe){
-    const prezzo=Number(r?.prezzo||0);
     const art=(db?.articoli||[]).find(x=>x.id===r.articoloId || (r.codice && x.codice===r.codice));
     const costo=Number(r?.costoEur || currentCost(art) || art?.costoEur || 0);
-    margin += Math.max(0, prezzo - costo);
+    costTotal += Math.max(0, isFinite(costo) ? costo : 0);
   }
-  return margin;
+  const subtotal=calcOrderSubtotal(righe);
+  const discount=calcOrderDiscount(o);
+  const netFromRows=calcOrderNetTotal(righe, discount);
+  const savedTotal=Number(o?.totale||0);
+  const incassato=Number(o?.incassato||0);
+  let revenue=0;
+  if(orderPaidStatus(o)){
+    revenue = savedTotal>0 ? savedTotal : netFromRows;
+  }else{
+    revenue = incassato>0 ? incassato : netFromRows;
+  }
+  if(!(isFinite(revenue) && revenue>0)){
+    revenue = Math.max(0, subtotal - discount);
+  }
+  return Math.max(0, revenue - costTotal);
 }
 
 /* ====== POST (rules) ====== */

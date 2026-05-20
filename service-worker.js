@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-05-15-euro-emoji-v75';
+const VERSION = 'gestionale-2026-05-20-profit-netto-v76';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
