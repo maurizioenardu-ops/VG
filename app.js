@@ -2344,14 +2344,21 @@ function stripBrandFromText(text, brand){
 function normalizePostLine(text, brand){
   return stripBrandFromText(text, brand).replace(/\s+/g,' ').trim();
 }
-function smartSentenceCase(text){
+function capitalizeGeneratedPostLine(text){
   const raw=String(text||'').replace(/\s+/g,' ').trim();
   if(!raw) return '';
-  const tokenized=raw.replace(/[A-Za-zÀ-ÖØ-öø-ÿ0-9]+/g, token=>{
-    if(/^[A-Z0-9]{2,4}$/.test(token)) return token;
-    return token.toLowerCase();
-  });
-  return tokenized.replace(/^([\s"'“”‘’(\[]*)([A-Za-zÀ-ÖØ-öø-ÿ])/, (m,p1,p2)=>p1+p2.toUpperCase());
+  return raw.replace(/(^|[.!?]\s*)([\s"'“”‘’(\[]*)([a-zà-öø-ÿ])/g, (m,punct,prefix,char)=>punct+prefix+char.toUpperCase());
+}
+function formatGeneratedPostLines(lines=[]){
+  return (Array.isArray(lines)?lines:[])
+    .map(capitalizeGeneratedPostLine)
+    .filter(line=>String(line||'').trim())
+    .join('\n')
+    .replace(/\n{2,}/g,'\n')
+    .trim();
+}
+function smartSentenceCase(text){
+  return capitalizeGeneratedPostLine(text);
 }
 function uniquePostLines(lines=[]){
   const out=[];
@@ -3804,7 +3811,7 @@ function buildPostFacebookBase(a, opts={}){
   else if(bucket===1 || bucket===2) closerPool=finaliTempi;
   const closer=pickVariantBySeed(closerPool, seed, 47) || '📩 Info in privato.';
   lines.push(closer);
-  return lines.filter(line=>String(line||'').trim()).join('\n').replace(/\n{2,}/g,'\n').trim();
+  return formatGeneratedPostLines(lines);
 }
 
 function buildPostFacebook(a){
@@ -3859,7 +3866,7 @@ function buildPostTelegram(a){
     const prezzoVenditaPromo=formatPostPrezzoVendita(currentPrice(a), '€');
     if(prezzoVenditaPromo) lines.push(prezzoVenditaPromo);
     lines.push(`cod. ${a.codice}`);
-    return uniquePostLines(lines).join('\n');
+    return formatGeneratedPostLines(uniquePostLines(lines));
   }
   if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
   if(descrizione) lines.push(descrizione);
@@ -3873,7 +3880,7 @@ function buildPostTelegram(a){
   const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita, '€');
   if(prezzoVendita) lines.push(prezzoVendita);
   lines.push(`cod. ${a.codice}`);
-  return uniquePostLines(lines).join('\n');
+  return formatGeneratedPostLines(uniquePostLines(lines));
 }
 function buildCloudArticleMeta(art){
   return {
