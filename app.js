@@ -3741,7 +3741,7 @@ function facebookVarietyBlocks(a){
 function buildPostFacebookBase(a, opts={}){
   if(!a?.codice) return '';
   const includePrice = opts?.includePrice===true;
-  const priceSymbol = opts?.priceSymbol || '€';
+  const priceSymbol = opts?.priceSymbol || '💶';
   const seed=stableHashSeed([a?.codice,a?.brand,a?.modello,a?.categoria,a?.colore,a?.materiale,a?.misura,includePrice?'price':'noprice','finali-30-no-desc-solo-originale-zip-only-v2'].join('|'));
   const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
 
@@ -3818,7 +3818,7 @@ function buildPostFacebook(a){
   return buildPostFacebookBase(a, { includePrice:false });
 }
 function buildPostFacebookWithPrice(a){
-  return buildPostFacebookBase(a, { includePrice:true, priceSymbol:'€' });
+  return buildPostFacebookBase(a, { includePrice:true, priceSymbol:'💶' });
 }
 
 function buildPostInstagram(a){
@@ -3863,7 +3863,7 @@ function buildPostTelegram(a){
     if(tipoMateriale) lines.push(tipoMateriale);
     if(colore) lines.push(colore);
     if(misura) lines.push(formatPostMisura(misura));
-    const prezzoVenditaPromo=formatPostPrezzoVendita(currentPrice(a), '€');
+    const prezzoVenditaPromo=formatPostPrezzoVendita(currentPrice(a), '💶');
     if(prezzoVenditaPromo) lines.push(prezzoVenditaPromo);
     lines.push(`cod. ${a.codice}`);
     return formatGeneratedPostLines(uniquePostLines(lines));
@@ -3877,7 +3877,7 @@ function buildPostTelegram(a){
   if(materiale || materialeCompat) lines.push(`🧵 ${materiale || materialeCompat}`);
   if(colori) lines.push(colori);
   if(tracolla) lines.push(tracolla);
-  const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita, '€');
+  const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita, '💶');
   if(prezzoVendita) lines.push(prezzoVendita);
   lines.push(`cod. ${a.codice}`);
   return formatGeneratedPostLines(uniquePostLines(lines));
