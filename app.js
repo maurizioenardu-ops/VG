@@ -2211,7 +2211,7 @@ function promoExpiredDisplay(a, today=todayStr()){
 }
 function promoPeriodLabel(a){
   const end=String(a?.scadenzaPromo||'').trim();
-  if(end) return `Promo fino al ${formatPromoDateLabel(end)}`;
+  if(end) return `fino al ${formatPromoDateLabel(end)}`;
   return '';
 }
 function promoInfoHtml(a,{marginTop='6px'}={}){
@@ -2777,10 +2777,8 @@ function pickFacebookDetailLines(a){
 }
 function promoPostIntroLines(a){
   if(!promoValid(a)) return [];
-  const lines=['⭕️ PROMOZIONE ⭕️'];
   const end=String(a?.scadenzaPromo||'').trim();
-  if(end) lines.push(`(fino al ${formatPromoDateLabel(end)})`);
-  return lines;
+  return end ? [`fino al ${formatPromoDateLabel(end)}`] : [];
 }
 function postTraitFlags(a){
   const src = [
@@ -3736,7 +3734,7 @@ function facebookVarietyBlocks(a){
 function buildPostFacebookBase(a, opts={}){
   if(!a?.codice) return '';
   const includePrice = opts?.includePrice===true;
-  const priceSymbol = opts?.priceSymbol || '💶';
+  const priceSymbol = opts?.priceSymbol || '€';
   const seed=stableHashSeed([a?.codice,a?.brand,a?.modello,a?.categoria,a?.colore,a?.materiale,a?.misura,includePrice?'price':'noprice','finali-30-no-desc-solo-originale-zip-only-v2'].join('|'));
   const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
 
@@ -3813,7 +3811,7 @@ function buildPostFacebook(a){
   return buildPostFacebookBase(a, { includePrice:false });
 }
 function buildPostFacebookWithPrice(a){
-  return buildPostFacebookBase(a, { includePrice:true, priceSymbol:'💶' });
+  return buildPostFacebookBase(a, { includePrice:true, priceSymbol:'€' });
 }
 
 function buildPostInstagram(a){
@@ -3853,8 +3851,7 @@ function buildPostTelegram(a){
   if(promoValid(a)){
     const scadenzaRaw=String(a.scadenzaPromo||'').trim();
     const tipoMateriale=materiale || materialeCompat || variante;
-    lines.push('⭕️ PROMOZIONE ⭕️');
-    if(scadenzaRaw) lines.push(`(fino al ${formatPromoDateLabel(scadenzaRaw)})`);
+    if(scadenzaRaw) lines.push(`fino al ${formatPromoDateLabel(scadenzaRaw)}`);
     if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
     if(tipoMateriale) lines.push(tipoMateriale);
     if(colore) lines.push(colore);

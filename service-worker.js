@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-05-20-profit-netto-v76';
+const VERSION = 'gestionale-2026-05-20-euro-promo-fino-v77';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
