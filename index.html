@@ -4845,14 +4845,29 @@ function buildPostFacebookBase(a, opts={}){
   return formatGeneratedPostLines(lines);
 }
 
-function getArticleFacebookPost(a){
+function getArticleFacebookCustomPost(a){
   return String(a?.postFb || a?.postFacebook || a?.post_fb || '').trim();
+}
+function getArticleFacebookPost(a){
+  const custom=getArticleFacebookCustomPost(a);
+  if(custom) return custom;
+  return buildPostFacebookBase(a, {includePrice:false});
 }
 function buildPostFacebook(a){
   return getArticleFacebookPost(a);
 }
 function buildPostFacebookWithPrice(a){
   return getArticleFacebookPost(a);
+}
+function setArticleFacebookPostAuto(text){
+  const el=document.getElementById('a_post_fb');
+  if(!el) return;
+  if(el.dataset.fbCustom==='1') return;
+  if(document.activeElement===el) return;
+  const prevScroll=el.scrollTop;
+  el.value=text||'';
+  fitTextarea(el);
+  el.scrollTop=prevScroll;
 }
 
 function buildPostInstagram(a){
@@ -6865,6 +6880,8 @@ async function openArtEdit(id){
     document.getElementById('a_photo').value='';
     currentArtExistingPics=[];
     renderCurrentArtPhotoPreview();
+    const fbNewEl=document.getElementById('a_post_fb');
+    if(fbNewEl) fbNewEl.dataset.fbCustom='0';
     restoreArticleDraft('');
     updateArticleMeasureState();
     updateArticleCodeStatus();
@@ -6882,8 +6899,12 @@ async function openArtEdit(id){
   document.getElementById('a_note').value=a?.note||'';
   document.getElementById('a_post').value=a?.post||'';
   fitTextarea(document.getElementById('a_post'));
-  document.getElementById('a_post_fb').value=getArticleFacebookPost(a||{});
-  fitTextarea(document.getElementById('a_post_fb'));
+  const fbEditEl=document.getElementById('a_post_fb');
+  if(fbEditEl){
+    fbEditEl.dataset.fbCustom=getArticleFacebookCustomPost(a||{}) ? '1' : '0';
+    fbEditEl.value=getArticleFacebookPost(a||{});
+    fitTextarea(fbEditEl);
+  }
   document.getElementById('a_post_ig').value=buildPostInstagram(a||{});
   fitTextarea(document.getElementById('a_post_ig'));
   document.getElementById('a_photo').value='';
@@ -7015,6 +7036,7 @@ function setReadonlyArticlePost(id,text){
 }
 function setArticleSocialPostsAuto(draft){
   setArticlePostAuto(buildPostTelegram(draft));
+  setArticleFacebookPostAuto(buildPostFacebookBase(draft, {includePrice:false}));
   setReadonlyArticlePost('a_post_ig', buildPostInstagram(draft));
 }
 function stripBrandFromModelName(model, brand){
@@ -7140,6 +7162,7 @@ function renderArtAutoFields(){
     document.getElementById('a_margin_pct').textContent='';
     document.getElementById('a_post').value='';
     fitTextarea(document.getElementById('a_post'));
+    setArticleFacebookPostAuto('');
     setReadonlyArticlePost('a_post_ig','');
     return;
   }
@@ -7309,8 +7332,12 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_note').value=clone.note||'';
   document.getElementById('a_post').value=clone.post||'';
   fitTextarea(document.getElementById('a_post'));
-  document.getElementById('a_post_fb').value=getArticleFacebookPost(clone||{});
-  fitTextarea(document.getElementById('a_post_fb'));
+  const fbCloneEl=document.getElementById('a_post_fb');
+  if(fbCloneEl){
+    fbCloneEl.dataset.fbCustom=getArticleFacebookCustomPost(clone||{}) ? '1' : '0';
+    fbCloneEl.value=getArticleFacebookPost(clone||{});
+    fitTextarea(fbCloneEl);
+  }
   document.getElementById('a_post_ig').value=buildPostInstagram(clone||{});
   fitTextarea(document.getElementById('a_post_ig'));
   document.getElementById('a_photo').value='';
@@ -8759,7 +8786,10 @@ if(__viewFbPostEl){
 
 ['a_post','a_post_fb','a_post_ig','a_note','a_forn_link'].forEach(id=>{
   const el=document.getElementById(id);
-  if(el) ['input','change'].forEach(evt=>el.addEventListener(evt, saveArticleDraft));
+  if(el) ['input','change'].forEach(evt=>el.addEventListener(evt, ()=>{
+    if(id==='a_post_fb') el.dataset.fbCustom='1';
+    saveArticleDraft();
+  }));
 });
 bindSearchSuggest('qArt','qArtSuggest','art', ()=>renderArt());
 document.getElementById('qArtCat')?.addEventListener('change', renderArt);
@@ -8824,7 +8854,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-27-telegram-euro-symbol-noprice-v82';
+const VG_BUILD='2026-05-27-fb-auto-no-price-v83';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -9416,7 +9446,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=telegram-euro-symbol-noprice-v82', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=fb-auto-no-price-v83', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
