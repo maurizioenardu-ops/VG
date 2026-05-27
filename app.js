@@ -918,6 +918,51 @@ function saveDB(db){
   refreshArticleBrandSelects();
   return true;
 }
+
+let __viewFbPostSaveTimer=null;
+let __viewFbPostCloudTimer=null;
+function setViewFbSaveMeta(msg){
+  const meta=document.getElementById('vArtFbSaveMeta');
+  if(meta) meta.textContent=msg||'Modificabile';
+}
+function saveViewFbPostNow(opts={}){
+  const artId=currentArtId;
+  const el=document.getElementById('vArtPostFb');
+  if(!artId || !el) return false;
+  const txt=String(el.value||'');
+  const db=loadDB();
+  const i=(db.articoli||[]).findIndex(x=>x.id===artId);
+  if(i<0) return false;
+  db.articoli[i]={...db.articoli[i], postFb:txt, postFacebook:txt, _ts:Date.now()};
+  saveDBLocal(db);
+  setViewFbSaveMeta('Salvato');
+  if(opts.cloud && cloudEnabled()){
+    const payload={...db.articoli[i]};
+    cloudSaveOne('art', payload, db).then(saved=>{
+      const fresh=loadDB();
+      const j=(fresh.articoli||[]).findIndex(x=>x.id===artId);
+      if(j>=0){
+        fresh.articoli[j]={...fresh.articoli[j], ...saved, postFb:txt, postFacebook:txt, _ts:Date.now()};
+        saveDBLocal(fresh);
+      }
+    }).catch(err=>console.warn('Sync cloud post Facebook fallita', err));
+  }
+  return true;
+}
+function queueViewFbPostSave(){
+  const el=document.getElementById('vArtPostFb');
+  if(el) fitTextarea(el);
+  setViewFbSaveMeta('Salvataggio...');
+  clearTimeout(__viewFbPostSaveTimer);
+  __viewFbPostSaveTimer=setTimeout(()=>saveViewFbPostNow({cloud:false}), 250);
+  clearTimeout(__viewFbPostCloudTimer);
+  __viewFbPostCloudTimer=setTimeout(()=>saveViewFbPostNow({cloud:true}), 1400);
+}
+function flushViewFbPostSave(){
+  clearTimeout(__viewFbPostSaveTimer);
+  clearTimeout(__viewFbPostCloudTimer);
+  if(saveViewFbPostNow({cloud:true})) toast('Post Facebook salvato');
+}
 function safeLower(v){ return String(v==null?'':v).trim().toLowerCase(); }
 function isModalVisible(id){
   const el=document.getElementById(id);
@@ -7397,10 +7442,11 @@ document.addEventListener('click',(ev)=>{
     return copyText(buildPostTelegram(art), 'Post copiato');
   }
   if(a==='copyPostFb'){
+    flushViewFbPostSave();
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    const txt=getArticleFacebookPost(art);
+    const txt=String(document.getElementById('vArtPostFb')?.value || getArticleFacebookPost(art)).trim();
     if(!txt){ toast('Post Facebook vuoto'); return; }
     return copyText(txt, 'Post copiato');
   }
@@ -7491,6 +7537,13 @@ document.addEventListener('click',(ev)=>{
   if(a==='delRow'){ const i=Number(el.dataset.i); ordRows.splice(i,1); renderOrdRows(); updateOrderShoeSizeState(); saveOrderDraft(); return; }
 });
 
+const __viewFbPostEl=document.getElementById('vArtPostFb');
+if(__viewFbPostEl){
+  __viewFbPostEl.addEventListener('input', queueViewFbPostSave);
+  __viewFbPostEl.addEventListener('change', flushViewFbPostSave);
+  __viewFbPostEl.addEventListener('blur', ()=>saveViewFbPostNow({cloud:true}));
+}
+
 ['a_post','a_post_fb','a_post_ig','a_note','a_forn_link'].forEach(id=>{
   const el=document.getElementById(id);
   if(el) ['input','change'].forEach(evt=>el.addEventListener(evt, saveArticleDraft));
@@ -7558,7 +7611,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-15-delete-art-from-view-v74';
+const VG_BUILD='2026-05-27-fb-view-editable-v81';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -8090,7 +8143,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=delete-art-from-view-v74', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=fb-view-editable-v81', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

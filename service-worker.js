@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-05-27-fb-manuale-v80';
+const VERSION = 'gestionale-2026-05-27-fb-view-editable-v81';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
