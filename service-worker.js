@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-05-27-fb-view-editable-v81';
+const VERSION = 'gestionale-2026-05-27-telegram-euro-symbol-noprice-v82';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

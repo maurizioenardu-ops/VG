@@ -559,7 +559,7 @@ window.addEventListener('error',e=>{
     </div>
   </div>
   <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" type="button" data-action="shareArtPhotosFb">Condividi foto</button><span id="vArtFbSaveMeta" class="pubMeta">Modificabile</span><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div></div>
-  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="shareArtPhotosTg">Condividi foto</button><button class="btn smallish" type="button" data-action="downloadArtPhotosTg">Scarica foto</button><span id="vArtPubMetaTg" class="pubMeta">0 · mai</span></div></div>
+  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="copyPostTelegramNoPrice">Copia Telegram senza prezzo</button><button class="btn smallish" type="button" data-action="shareArtPhotosTg">Condividi foto</button><button class="btn smallish" type="button" data-action="downloadArtPhotosTg">Scarica foto</button><span id="vArtPubMetaTg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish" type="button" data-action="downloadArtPhotosIg">Scarica foto</button><span id="vArtPubMetaIg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
@@ -663,7 +663,7 @@ window.addEventListener('error',e=>{
     <div class="blockTitle">Post e contenuti</div>
     <div><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Dettagli utili per il post..."></textarea></div>
     <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="a_post_fb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbEdit">Copia FB</button></div></div>
-    <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="a_post" placeholder="Qui il post Telegram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostTelegramEdit">Copia Telegram</button></div></div>
+    <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="a_post" placeholder="Qui il post Telegram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostTelegramEdit">Copia Telegram</button><button class="btn smallish" type="button" data-action="copyPostTelegramNoPriceEdit">Copia Telegram senza prezzo</button></div></div>
     <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
@@ -4874,7 +4874,7 @@ function buildPostInstagram(a){
   return String(closer||'').trim();
 }
 
-function buildPostTelegram(a){
+function buildPostTelegram(a, includePrice=true){
 
   if(!a.codice) return '';
   const brand=(a.brand||'').trim();
@@ -4907,8 +4907,10 @@ function buildPostTelegram(a){
     pushUnique(tipoMateriale);
     pushUnique(colore);
     pushUnique(misura, v=>formatPostMisura(v));
-    const prezzoVenditaPromo=formatPostPrezzoVendita(currentPrice(a), '💶');
-    if(prezzoVenditaPromo) lines.push(prezzoVenditaPromo);
+    if(includePrice){
+      const prezzoVenditaPromo=formatPostPrezzoVendita(currentPrice(a), '€');
+      if(prezzoVenditaPromo) lines.push(prezzoVenditaPromo);
+    }
     lines.push(`cod. ${a.codice}`);
     return formatGeneratedPostLines(lines);
   }
@@ -4920,8 +4922,10 @@ function buildPostTelegram(a){
   pushUnique(materiale || materialeCompat, v=>`🧵 ${v}`);
   pushUnique(colori);
   pushUnique(tracolla);
-  const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita, '💶');
-  if(prezzoVendita) lines.push(prezzoVendita);
+  if(includePrice){
+    const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita, '€');
+    if(prezzoVendita) lines.push(prezzoVendita);
+  }
   lines.push(`cod. ${a.codice}`);
   return formatGeneratedPostLines(lines);
 }
@@ -8820,7 +8824,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-27-fb-view-editable-v81';
+const VG_BUILD='2026-05-27-telegram-euro-symbol-noprice-v82';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -9412,7 +9416,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=fb-view-editable-v81', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=telegram-euro-symbol-noprice-v82', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

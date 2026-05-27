@@ -3897,7 +3897,7 @@ function buildPostInstagram(a){
   return String(closer||'').trim();
 }
 
-function buildPostTelegram(a){
+function buildPostTelegram(a, includePrice=true){
 
   if(!a.codice) return '';
   const brand=(a.brand||'').trim();
@@ -3920,8 +3920,10 @@ function buildPostTelegram(a){
     if(tipoMateriale) lines.push(tipoMateriale);
     if(colore) lines.push(colore);
     if(misura) lines.push(formatPostMisura(misura));
-    const prezzoVenditaPromo=formatPostPrezzoVendita(currentPrice(a), '💶');
-    if(prezzoVenditaPromo) lines.push(prezzoVenditaPromo);
+    if(includePrice){
+      const prezzoVenditaPromo=formatPostPrezzoVendita(currentPrice(a), '€');
+      if(prezzoVenditaPromo) lines.push(prezzoVenditaPromo);
+    }
     lines.push(`cod. ${a.codice}`);
     return formatGeneratedPostLines(uniquePostLines(lines));
   }
@@ -3934,10 +3936,15 @@ function buildPostTelegram(a){
   if(materiale || materialeCompat) lines.push(`🧵 ${materiale || materialeCompat}`);
   if(colori) lines.push(colori);
   if(tracolla) lines.push(tracolla);
-  const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita, '💶');
-  if(prezzoVendita) lines.push(prezzoVendita);
+  if(includePrice){
+    const prezzoVendita=formatPostPrezzoVendita(a.prezzoVendita, '€');
+    if(prezzoVendita) lines.push(prezzoVendita);
+  }
   lines.push(`cod. ${a.codice}`);
   return formatGeneratedPostLines(uniquePostLines(lines));
+}
+function buildPostTelegramNoPrice(a){
+  return buildPostTelegram(a, false);
 }
 function buildCloudArticleMeta(art){
   return {
@@ -7441,6 +7448,12 @@ document.addEventListener('click',(ev)=>{
     if(!art){ toast('Articolo non trovato'); return; }
     return copyText(buildPostTelegram(art), 'Post copiato');
   }
+  if(a==='copyPostTelegramNoPrice'){
+    const db=loadDB();
+    const art=db.articoli.find(x=>x.id===currentArtId);
+    if(!art){ toast('Articolo non trovato'); return; }
+    return copyText(buildPostTelegramNoPrice(art), 'Post copiato senza prezzo');
+  }
   if(a==='copyPostFb'){
     flushViewFbPostSave();
     const db=loadDB();
@@ -7468,6 +7481,11 @@ document.addEventListener('click',(ev)=>{
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
     return copyText(buildPostTelegram(art), 'Post copiato');
+  }
+  if(a==='copyPostTelegramNoPriceEdit'){
+    const art=readArticleForm?.() || null;
+    if(!art || !art.codice){ toast('Articolo non pronto'); return; }
+    return copyText(buildPostTelegramNoPrice(art), 'Post copiato senza prezzo');
   }
   if(a==='copyPostFbEdit'){
     const txt=String(document.getElementById('a_post_fb')?.value||'').trim();
@@ -7611,7 +7629,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-27-fb-view-editable-v81';
+const VG_BUILD='2026-05-27-telegram-euro-symbol-noprice-v82';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -8143,7 +8161,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=fb-view-editable-v81', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=telegram-euro-symbol-noprice-v82', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
