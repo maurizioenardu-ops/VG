@@ -3839,9 +3839,7 @@ function buildPostFacebookBase(a, opts={}){
   const lines=[...promoPostIntroLines(a)];
   if(modelLine) lines.push(smartSentenceCase(modelLine));
 
-  const qual = articleQualityLabel(a);
-  const qualKey = String(qual||'').trim().toLowerCase();
-  if(qualKey==='originale') lines.push('QUALITÀ ORIGINALE');
+  // Facebook: non scrive mai il tipo di qualità; resta solo l'emoji accanto al modello.
 
   const details=[];
   const colore = safePostDetailValue(a?.colore||'', a);
@@ -3926,12 +3924,14 @@ function buildPostTelegram(a, includePrice=true){
   const misura=normalizePostLine(a.misura||'', brand);
   const materialeCompat=normalizePostLine(a.materiale||a.taglia||'', brand);
   const qemoji=emojiQualityForPost(a);
+  const qualKeyTelegram=String(articleQualityLabel(a)||'').trim().toLowerCase();
   const lines=[];
   if(promoValid(a)){
     const scadenzaRaw=String(a.scadenzaPromo||'').trim();
     const tipoMateriale=materiale || materialeCompat || variante;
     if(scadenzaRaw) lines.push(`fino al ${formatPromoDateLabel(scadenzaRaw)}`);
     if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
+    if(qualKeyTelegram==='originale') lines.push('QUALITÀ ORIGINALE');
     if(tipoMateriale) lines.push(tipoMateriale);
     if(colore) lines.push(colore);
     if(misura) lines.push(formatPostMisura(misura));
@@ -3943,6 +3943,7 @@ function buildPostTelegram(a, includePrice=true){
     return formatGeneratedPostLines(uniquePostLines(lines));
   }
   if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
+  if(qualKeyTelegram==='originale') lines.push('QUALITÀ ORIGINALE');
   if(descrizione) lines.push(descrizione);
   if(variante) lines.push(variante);
   if(colore) lines.push(colore);
@@ -7659,7 +7660,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-27-fb-auto-no-price-v83';
+const VG_BUILD='2026-05-27-fb-solo-emoji-qualita-v85';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -8191,7 +8192,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=fb-auto-no-price-v83', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=fb-solo-emoji-qualita-v85', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
