@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-05-20-euro-emoji-v79';
+const VERSION = 'gestionale-2026-05-27-fb-manuale-v80';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

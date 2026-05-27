@@ -962,7 +962,10 @@ function collectArticleDraft(){
       promoAttiva:!!document.getElementById('a_promo_on')?.checked,
       prezzoPromo:document.getElementById('a_promo_price')?.value||'',
       scadenzaPromo:document.getElementById('a_promo_date')?.value||'',
-      note:document.getElementById('a_note')?.value||''
+      note:document.getElementById('a_note')?.value||'',
+      post:document.getElementById('a_post')?.value||'',
+      postFb:document.getElementById('a_post_fb')?.value||'',
+      postIg:document.getElementById('a_post_ig')?.value||''
     }
   };
 }
@@ -1000,6 +1003,12 @@ function restoreArticleDraft(targetId=''){
   document.getElementById('a_promo_price').value=v.prezzoPromo||'';
   document.getElementById('a_promo_date').value=v.scadenzaPromo||'';
   document.getElementById('a_note').value=v.note||'';
+  document.getElementById('a_post').value=v.post||'';
+  document.getElementById('a_post_fb').value=v.postFb||'';
+  document.getElementById('a_post_ig').value=v.postIg||'';
+  fitTextarea(document.getElementById('a_post'));
+  fitTextarea(document.getElementById('a_post_fb'));
+  fitTextarea(document.getElementById('a_post_ig'));
   renderArtAutoFields();
   return true;
 }
@@ -3814,11 +3823,14 @@ function buildPostFacebookBase(a, opts={}){
   return formatGeneratedPostLines(lines);
 }
 
+function getArticleFacebookPost(a){
+  return String(a?.postFb || a?.postFacebook || a?.post_fb || '').trim();
+}
 function buildPostFacebook(a){
-  return buildPostFacebookBase(a, { includePrice:false });
+  return getArticleFacebookPost(a);
 }
 function buildPostFacebookWithPrice(a){
-  return buildPostFacebookBase(a, { includePrice:true, priceSymbol:'💶' });
+  return getArticleFacebookPost(a);
 }
 
 function buildPostInstagram(a){
@@ -3910,6 +3922,8 @@ function buildCloudArticleMeta(art){
     nonDisponibile: !!art?.nonDisponibile,
     disponibile: art?.disponibile===false ? false : !art?.nonDisponibile,
     post: art?.post||'',
+    postFb: art?.postFb||art?.postFacebook||'',
+    postIg: art?.postIg||'',
     note: art?.note||'',
     foto: normalizeCloudPhotoPathList(art?.foto||[]),
     _ts: parseTimestampLike(art?._ts, Date.now())
@@ -5721,7 +5735,7 @@ async function openArtView(id){
   pill.innerHTML = promoInfoHtml(a,{marginTop:'6px'});
   document.getElementById('vArtPost').value=buildPostTelegram(a);
   fitTextarea(document.getElementById('vArtPost'));
-  document.getElementById('vArtPostFb').value=buildPostFacebook(a);
+  document.getElementById('vArtPostFb').value=getArticleFacebookPost(a);
   fitTextarea(document.getElementById('vArtPostFb'));
   document.getElementById('vArtPostIg').value=buildPostInstagram(a);
   fitTextarea(document.getElementById('vArtPostIg'));
@@ -5775,7 +5789,7 @@ async function openArtEdit(id){
   document.getElementById('a_note').value=a?.note||'';
   document.getElementById('a_post').value=a?.post||'';
   fitTextarea(document.getElementById('a_post'));
-  document.getElementById('a_post_fb').value=buildPostFacebook(a||{});
+  document.getElementById('a_post_fb').value=getArticleFacebookPost(a||{});
   fitTextarea(document.getElementById('a_post_fb'));
   document.getElementById('a_post_ig').value=buildPostInstagram(a||{});
   fitTextarea(document.getElementById('a_post_ig'));
@@ -5907,7 +5921,6 @@ function setReadonlyArticlePost(id,text){
 }
 function setArticleSocialPostsAuto(draft){
   setArticlePostAuto(buildPostTelegram(draft));
-  setReadonlyArticlePost('a_post_fb', buildPostFacebook(draft));
   setReadonlyArticlePost('a_post_ig', buildPostInstagram(draft));
 }
 function renderArtAutoFields(){
@@ -5930,7 +5943,6 @@ function renderArtAutoFields(){
     document.getElementById('a_margin_pct').textContent='';
     document.getElementById('a_post').value='';
     fitTextarea(document.getElementById('a_post'));
-    setReadonlyArticlePost('a_post_fb','');
     setReadonlyArticlePost('a_post_ig','');
     return;
   }
@@ -6100,7 +6112,7 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_note').value=clone.note||'';
   document.getElementById('a_post').value=clone.post||'';
   fitTextarea(document.getElementById('a_post'));
-  document.getElementById('a_post_fb').value=buildPostFacebook(clone||{});
+  document.getElementById('a_post_fb').value=getArticleFacebookPost(clone||{});
   fitTextarea(document.getElementById('a_post_fb'));
   document.getElementById('a_post_ig').value=buildPostInstagram(clone||{});
   fitTextarea(document.getElementById('a_post_ig'));
@@ -6187,6 +6199,8 @@ async function saveArt(){
         scadenzaPromo: document.getElementById('a_promo_date').value.trim()
       }),
       post: document.getElementById('a_post').value,
+      postFb: document.getElementById('a_post_fb').value,
+      postIg: document.getElementById('a_post_ig').value,
       note: document.getElementById('a_note').value,
       foto: keptFoto,
       photoIds: keptPhotoIds
@@ -7212,6 +7226,40 @@ document.addEventListener('keydown',(ev)=>{
   el.click();
 });
 
+
+function readArticleForm(){
+  const code=document.getElementById('a_cod')?.value.trim()||'';
+  const qual=code ? qualityFromCode(code) : '';
+  const usd=Number(document.getElementById('a_usd')?.value||0);
+  const r=calcFromUsd(usd, qual);
+  return {
+    id: currentArtId||'',
+    codice: code,
+    brand: getArticleBrandValue(),
+    modello: document.getElementById('a_mod')?.value.trim()||'',
+    categoria: document.getElementById('a_cat')?.value.trim()||'',
+    descrizione: document.getElementById('a_desc')?.value.trim()||'',
+    fornitore: document.getElementById('a_forn')?.value.trim()||'',
+    fornitoreLink: document.getElementById('a_forn_link')?.value.trim()||'',
+    materiale: document.getElementById('a_taglia')?.value.trim()||'',
+    taglia: '',
+    variante: document.getElementById('a_variante')?.value.trim()||'',
+    colore: document.getElementById('a_color_mode')?.value==='multiple' ? '' : (document.getElementById('a_colore')?.value.trim()||''),
+    misura: document.getElementById('a_mis')?.value.trim()||'',
+    costoUsd: usd,
+    costoEur: r.costo||0,
+    prezzoVendita: r.sell||0,
+    promoAttiva: !!document.getElementById('a_promo_on')?.checked,
+    prezzoPromo: Number(document.getElementById('a_promo_price')?.value||0),
+    costoUsdPromo: Number(document.getElementById('a_usd_promo')?.value||0),
+    scadenzaPromo: document.getElementById('a_promo_date')?.value.trim()||'',
+    post: document.getElementById('a_post')?.value||'',
+    postFb: document.getElementById('a_post_fb')?.value||'',
+    postIg: document.getElementById('a_post_ig')?.value||'',
+    note: document.getElementById('a_note')?.value||''
+  };
+}
+
 document.addEventListener('click',(ev)=>{
   const el=ev.target.closest('[data-action],[data-go],[data-open]');
   if(!el) return;
@@ -7352,13 +7400,17 @@ document.addEventListener('click',(ev)=>{
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    return copyText(buildPostFacebook(art), 'Post copiato');
+    const txt=getArticleFacebookPost(art);
+    if(!txt){ toast('Post Facebook vuoto'); return; }
+    return copyText(txt, 'Post copiato');
   }
   if(a==='copyPostFbWithPrice'){
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    return copyText(buildPostFacebookWithPrice(art), 'Post copiato');
+    const txt=getArticleFacebookPost(art);
+    if(!txt){ toast('Post Facebook vuoto'); return; }
+    return copyText(txt, 'Post copiato');
   }
   if(a==='copyPostIg'){
     const db=loadDB();
@@ -7372,14 +7424,14 @@ document.addEventListener('click',(ev)=>{
     return copyText(buildPostTelegram(art), 'Post copiato');
   }
   if(a==='copyPostFbEdit'){
-    const art=readArticleForm?.() || null;
-    if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(buildPostFacebook(art), 'Post copiato');
+    const txt=String(document.getElementById('a_post_fb')?.value||'').trim();
+    if(!txt){ toast('Post Facebook vuoto'); return; }
+    return copyText(txt, 'Post copiato');
   }
   if(a==='copyPostFbWithPriceEdit'){
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(buildPostFacebookWithPrice(art), 'Post copiato');
+    return copyText(getArticleFacebookPost(art), 'Post copiato');
   }
   if(a==='copyPostIgEdit'){
     const art=readArticleForm?.() || null;
@@ -7439,6 +7491,10 @@ document.addEventListener('click',(ev)=>{
   if(a==='delRow'){ const i=Number(el.dataset.i); ordRows.splice(i,1); renderOrdRows(); updateOrderShoeSizeState(); saveOrderDraft(); return; }
 });
 
+['a_post','a_post_fb','a_post_ig','a_note','a_forn_link'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) ['input','change'].forEach(evt=>el.addEventListener(evt, saveArticleDraft));
+});
 bindSearchSuggest('qArt','qArtSuggest','art', ()=>renderArt());
 document.getElementById('qArtCat')?.addEventListener('change', renderArt);
 document.getElementById('qArtBrand')?.addEventListener('change', renderArt);
@@ -7881,6 +7937,8 @@ async function pullCloudToLocal(opts={}){
         const pulledDescr=(meta.descrizione||legacy.descrizione||local?.descrizione||'').trim();
         const pulledNote=(meta.note||legacy.note||local?.note||'').trim();
         const pulledPost=(meta.post||local?.post||'').trim();
+        const pulledPostFb=(meta.postFb||meta.postFacebook||local?.postFb||local?.postFacebook||'').trim();
+        const pulledPostIg=(meta.postIg||local?.postIg||'').trim();
         const finalFoto=normalizeCloudPhotoPathList(fotoByProd.get(p.id) || meta.foto || meta.fotoCloud || local?.foto || []);
         const pulledCostoUsd=firstFiniteNumber(meta.costoUsd, local?.costoUsd, 0);
         const pulledCostoUsdPromo=firstFiniteNumber(meta.costoUsdPromo, meta.costoUSDPromo, meta.prezzoFornitorePromoUsd, meta.promoCostoUsd, local?.costoUsdPromo, local?.prezzoFornitorePromoUsd, 0);
@@ -7890,7 +7948,7 @@ async function pullCloudToLocal(opts={}){
         const colorShape=deriveColorShape({ colorMode:meta.colorMode||local?.colorMode, colorType:meta.colorType||local?.colorType, colorCount:meta.colorCount||local?.colorCount, colorLabels:meta.colorLabels||local?.colorLabels });
         const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
         const cloudTs=parseTimestampLike(meta._ts, p.updated_at, p.created_at, local?._ts, Date.now());
-        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],_ts:cloudTs,_cloud:true};
+        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],_ts:cloudTs,_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
