@@ -7298,20 +7298,22 @@ document.addEventListener('pointerdown',(ev)=>{
 });
 
 
+
 /* ====== IMPORTA ARTICOLI DA CHATGPT ====== */
-function getBulkImportTextarea(){ return document.getElementById('bulkArticleJson'); }
+function getBulkImportFile(){ return document.getElementById('bulkArticleFile'); }
 function getBulkImportPreviewBox(){ return document.getElementById('bulkArticlePreview'); }
+function getBulkImportFileNameBox(){ return document.getElementById('bulkArticleFileName'); }
 function normalizeBulkArticleArray(raw){
   let data=raw;
   if(typeof raw==='string'){
     const txt=raw.trim();
-    if(!txt) throw new Error('Incolla prima il JSON degli articoli');
+    if(!txt) throw new Error('Il file articoli è vuoto');
     data=JSON.parse(txt);
   }
   if(data && Array.isArray(data.articoli)) data=data.articoli;
   if(data && Array.isArray(data.items)) data=data.items;
   if(data && !Array.isArray(data)) data=[data];
-  if(!Array.isArray(data) || !data.length) throw new Error('JSON senza articoli');
+  if(!Array.isArray(data) || !data.length) throw new Error('File senza articoli');
   return data;
 }
 function valAny(obj, keys, def=''){
@@ -7393,39 +7395,47 @@ function normalizeImportedArticle(input, db){
   if(!obj.postIg) obj.postIg=buildPostInstagram(obj);
   return obj;
 }
-function parseBulkArticlesFromTextarea(){
-  const el=getBulkImportTextarea();
+async function readBulkArticleFileText(){
+  const input=getBulkImportFile();
+  const file=input?.files?.[0];
+  if(!file) throw new Error('Scegli prima il file articoli');
+  const nameBox=getBulkImportFileNameBox();
+  if(nameBox) nameBox.textContent=`File selezionato: ${file.name}`;
+  return await file.text();
+}
+async function parseBulkArticlesFromSelectedFile(){
   const db=loadDB();
-  const raw=normalizeBulkArticleArray(el?.value||'');
+  const txt=await readBulkArticleFileText();
+  const raw=normalizeBulkArticleArray(txt);
   const seen=new Set();
   return raw.map((item,idx)=>{
     const art=normalizeImportedArticle(item, db);
     const key=safeLower(art.codice);
-    if(seen.has(key)) throw new Error(`Codice duplicato nel JSON: ${art.codice}`);
+    if(seen.has(key)) throw new Error(`Codice duplicato nel file: ${art.codice}`);
     seen.add(key);
     return art;
   });
 }
-function previewBulkArticles(){
+async function previewBulkArticles(){
   const box=getBulkImportPreviewBox();
   try{
-    const arts=parseBulkArticlesFromTextarea();
+    const arts=await parseBulkArticlesFromSelectedFile();
     if(box){
       box.innerHTML=arts.map(a=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(a.brand||'')} ${esc(a.modello||'')}</div><div class="s">${esc(a.codice)} • ${esc(a.categoria||'Senza categoria')} • ${money(a.prezzoVendita||0)} • Foto: ${(a.foto||[]).length}</div></div><div class="pill">OK</div></div>`).join('') || '<div class="small">Nessun articolo.</div>';
     }
     toast(`${arts.length} articoli pronti`);
   }catch(err){
     if(box) box.innerHTML=`<div class="card"><div class="small">Errore: ${esc(err?.message||err)}</div></div>`;
-    toast('JSON articoli non valido');
+    toast('File articoli non valido');
     console.error(err);
   }
 }
 async function importBulkArticles(){
   let arts=[];
-  try{ arts=parseBulkArticlesFromTextarea(); }
-  catch(err){ toast(err?.message||'JSON non valido'); console.error(err); return; }
+  try{ arts=await parseBulkArticlesFromSelectedFile(); }
+  catch(err){ toast(err?.message||'File non valido'); console.error(err); return; }
   if(!arts.length){ toast('Nessun articolo da importare'); return; }
-  const ok=confirm(`Importo ${arts.length} articol${arts.length===1?'o':'i'}?`);
+  const ok=confirm(`Importo ${arts.length} articol${arts.length===1?'o':'i'} dal file?`);
   if(!ok) return;
   const db=loadDB();
   db.articoli=[...arts, ...(db.articoli||[])];
@@ -7451,15 +7461,16 @@ async function importBulkArticles(){
   }
   const box=getBulkImportPreviewBox();
   if(box) box.innerHTML=`<div class="card"><div class="t">Import completato</div><div class="small">Articoli locali: ${arts.length}${cloudEnabled()?` • Cloud OK: ${cloudOk}${cloudFail?` • Errori cloud: ${cloudFail}`:''}`:' • Cloud non collegato'}</div></div>`;
-  const el=getBulkImportTextarea(); if(el) el.value='';
+  const input=getBulkImportFile(); if(input) input.value='';
+  const nameBox=getBulkImportFileNameBox(); if(nameBox) nameBox.textContent='Nessun file selezionato.';
   toast(`Importati ${arts.length} articoli`);
 }
 function clearBulkArticles(){
-  const el=getBulkImportTextarea(); if(el) el.value='';
+  const input=getBulkImportFile(); if(input) input.value='';
+  const nameBox=getBulkImportFileNameBox(); if(nameBox) nameBox.textContent='Nessun file selezionato.';
   const box=getBulkImportPreviewBox(); if(box) box.innerHTML='';
   toast('Import pulito');
 }
-
 
 document.addEventListener('keydown',(ev)=>{
   const isActivate=(ev.key==='Enter' || ev.key===' ' || ev.key==='Spacebar');
@@ -8359,7 +8370,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=fb-solo-emoji-qualita-v85', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=import-file-v86', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
