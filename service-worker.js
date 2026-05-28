@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-05-28-importa-articoli-v86';
+const VERSION = 'gestionale-2026-05-27-fb-auto-no-price-v83';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
