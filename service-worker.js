@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-05-28-ai-post-v86';
+const VERSION = 'gestionale-2026-05-27-fb-auto-no-price-v83';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
@@ -54,21 +54,6 @@ self.addEventListener('fetch', event => {
         return fresh;
       } catch (_err) {
         return (await caches.match('./manifest.json')) || Response.error();
-      }
-    })())
-    return;
-  }
-
-  // app.js sempre fresco — mai dalla cache
-  if (url.pathname.endsWith('app.js')) {
-    event.respondWith((async () => {
-      try {
-        const fresh = await fetch(req, { cache: 'no-store' });
-        const cache = await caches.open(CACHE);
-        cache.put(req, fresh.clone());
-        return fresh;
-      } catch (_err) {
-        return caches.match(req);
       }
     })());
     return;

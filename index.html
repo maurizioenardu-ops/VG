@@ -521,74 +521,6 @@ window.addEventListener('error',e=>{
   </div>
 </div>
 
-  <!-- SEZIONE AI POST -->
-  <div id="sec_aipost" class="section">
-    <div class="card">
-      <div class="h2">🤖 AI Post</div>
-      <div class="small">Compila la scheda, carica le foto e genera il post Facebook con l'AI — tutto salvato direttamente nel gestionale.</div>
-    </div>
-
-    <div class="card" style="margin-top:12px">
-      <div class="h2">Scheda articolo</div>
-      <div class="grid2" style="margin-top:10px">
-        <div><div class="k">Codice *</div><input id="ai_codice" placeholder="Es. BRS001" autocomplete="off" spellcheck="false"/></div>
-        <div><div class="k">Brand</div><input id="ai_brand" placeholder="Es. Louis Vuitton" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
-      </div>
-      <div class="grid2" style="margin-top:10px">
-        <div><div class="k">Modello</div><input id="ai_modello" placeholder="Es. Neverfull MM" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
-        <div><div class="k">Categoria</div><input id="ai_categoria" placeholder="Es. Borsa a spalla" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
-      </div>
-      <div class="grid2" style="margin-top:10px">
-        <div><div class="k">Colore</div><input id="ai_colore" placeholder="Es. Nero" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
-        <div><div class="k">Materiale</div><input id="ai_materiale" placeholder="Es. Pelle" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
-      </div>
-      <div class="grid2" style="margin-top:10px">
-        <div><div class="k">Misura (cm)</div><input id="ai_misura" placeholder="Es. 40x30x15" autocomplete="off" spellcheck="false"/></div>
-        <div><div class="k">Prezzo vendita (€)</div><input id="ai_prezzo" type="number" placeholder="Es. 89" min="0"/></div>
-      </div>
-      <div style="margin-top:10px"><div class="k">Costo acquisto (€)</div><input id="ai_costo" type="number" placeholder="Es. 45" min="0"/></div>
-      <div style="margin-top:10px">
-        <div class="k">Note aggiuntive per l'AI</div>
-        <textarea id="ai_note" placeholder="Es. borsa con zip dorata, tracolla inclusa, perfetta come regalo..." style="min-height:60px"></textarea>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:12px">
-      <div class="h2">📸 Foto</div>
-      <div class="small">Carica fino a 6 foto. Verranno salvate nel cloud insieme all'articolo.</div>
-      <label class="btn" style="display:inline-block;margin-top:10px;cursor:pointer">
-        Scegli foto
-        <input id="ai_foto_input" type="file" accept="image/*" multiple style="display:none"/>
-      </label>
-      <div id="ai_foto_preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
-    </div>
-
-    <div class="card" style="margin-top:12px">
-      <div class="h2">✍️ Post generato</div>
-      <div class="actions" style="margin-bottom:10px">
-        <button class="btn primary" type="button" id="ai_btn_genera">🤖 Genera post con AI</button>
-        <button class="btn" type="button" id="ai_btn_rigenera" style="display:none">🔄 Rigenera</button>
-      </div>
-      <div id="ai_loader" style="display:none;color:var(--muted);font-size:13px;font-weight:800;margin-bottom:8px">⚡ Generazione in corso…</div>
-      <textarea id="ai_post_output" placeholder="Il post apparirà qui dopo la generazione…" style="min-height:160px;font-size:14px"></textarea>
-      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn" type="button" id="ai_btn_copia" style="display:none">📋 Copia post</button>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:12px">
-      <div class="h2">💾 Salva nel gestionale</div>
-      <div class="small" style="margin-bottom:10px">Salva l'articolo con il post generato direttamente negli articoli del gestionale.</div>
-      <div id="ai_save_status" style="display:none;padding:10px 12px;border-radius:14px;font-weight:800;font-size:13px;margin-bottom:10px"></div>
-      <div class="actions">
-        <button class="btn primary" type="button" id="ai_btn_salva">💾 Salva articolo + post</button>
-        <button class="btn" type="button" id="ai_btn_reset">🗑️ Pulisci tutto</button>
-      </div>
-    </div>
-    <div style="height:80px"></div>
-  </div>
-  <!-- FINE SEZIONE AI POST -->
-
 <div class="navBottom">
   <div class="inner">
     <button class="active" data-go="home" data-nav="home">Home</button>
@@ -597,7 +529,6 @@ window.addEventListener('error',e=>{
     <button data-go="ordini" data-nav="ordini">Ordini</button>
     <button data-go="finanze" data-nav="finanze">Finanze</button>
     <button data-go="impostazioni" data-nav="impostazioni">Impost.</button>
-    <button data-go="aipost" data-nav="aipost">🤖 AI</button>
   </div>
 </div>
 
@@ -4885,7 +4816,9 @@ function buildPostFacebookBase(a, opts={}){
   const lines=[...promoPostIntroLines(a)];
   if(modelLine) lines.push(smartSentenceCase(modelLine));
 
-  // Facebook: non scrive mai il tipo di qualità; resta solo l'emoji accanto al modello.
+  const qual = articleQualityLabel(a);
+  const qualKey = String(qual||'').trim().toLowerCase();
+  if(qualKey==='originale') lines.push('QUALITÀ ORIGINALE');
 
   const details=[];
   const colore = safePostDetailValue(a?.colore||'', a);
@@ -4969,7 +4902,6 @@ function buildPostTelegram(a, includePrice=true){
   const misura=normalizePostLine(a.misura||'', brand);
   const materialeCompat=normalizePostLine(a.materiale||a.taglia||'', brand);
   const qemoji=emojiQualityForPost(a);
-  const qualKeyTelegram=String(articleQualityLabel(a)||'').trim().toLowerCase();
   const lines=[];
   const seen = new Set();
   const pushUnique = (value, formatter=null)=>{
@@ -4987,7 +4919,6 @@ function buildPostTelegram(a, includePrice=true){
     const tipoMateriale=materiale || materialeCompat || variante;
     if(scadenzaRaw) lines.push(`fino al ${formatPromoDateLabel(scadenzaRaw)}`);
     if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
-    if(qualKeyTelegram==='originale') lines.push('QUALITÀ ORIGINALE');
     pushUnique(tipoMateriale);
     pushUnique(colore);
     pushUnique(misura, v=>formatPostMisura(v));
@@ -4999,7 +4930,6 @@ function buildPostTelegram(a, includePrice=true){
     return formatGeneratedPostLines(lines);
   }
   if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
-  if(qualKeyTelegram==='originale') lines.push('QUALITÀ ORIGINALE');
   pushUnique(variante);
   pushUnique(colore);
   pushUnique(misura, v=>formatPostMisura(v));
@@ -8924,7 +8854,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-27-fb-solo-emoji-qualita-v85';
+const VG_BUILD='2026-05-27-fb-auto-no-price-v83';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -9516,7 +9446,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=fb-solo-emoji-qualita-v85', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=fb-auto-no-price-v83', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
