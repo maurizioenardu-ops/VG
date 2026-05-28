@@ -4845,13 +4845,23 @@ function buildPostFacebookBase(a, opts={}){
   return formatGeneratedPostLines(lines);
 }
 
+function ensureFacebookPostHasCode(text, a){
+  const code=String(a?.codice||'').trim();
+  const raw=String(text||'').trim();
+  if(!code) return raw;
+  const rx=new RegExp(`\b(?:cod\.?|codice)\s*[:.\-]?\s*${escapeRegExp(code)}\b`, 'i');
+  if(rx.test(raw)) return raw;
+  return raw ? `${raw}
+
+cod. ${code}` : `cod. ${code}`;
+}
 function getArticleFacebookCustomPost(a){
   return String(a?.postFb || a?.postFacebook || a?.post_fb || '').trim();
 }
 function getArticleFacebookPost(a){
   const custom=getArticleFacebookCustomPost(a);
-  if(custom) return custom;
-  return buildPostFacebookBase(a, {includePrice:false});
+  if(custom) return ensureFacebookPostHasCode(custom, a);
+  return ensureFacebookPostHasCode(buildPostFacebookBase(a, {includePrice:false}), a);
 }
 function buildPostFacebook(a){
   return getArticleFacebookPost(a);
@@ -8683,7 +8693,7 @@ document.addEventListener('click',(ev)=>{
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    const txt=String(document.getElementById('vArtPostFb')?.value || getArticleFacebookPost(art)).trim();
+    const txt=ensureFacebookPostHasCode(String(document.getElementById('vArtPostFb')?.value || getArticleFacebookPost(art)).trim(), art);
     if(!txt){ toast('Post Facebook vuoto'); return; }
     return copyText(txt, 'Post copiato', ()=>recordArticlePublication('fb'));
   }
@@ -8707,7 +8717,8 @@ document.addEventListener('click',(ev)=>{
     return copyText(buildPostTelegram(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('tg'); });
   }
   if(a==='copyPostFbEdit'){
-    const txt=String(document.getElementById('a_post_fb')?.value||'').trim();
+    const art=readArticleForm?.() || null;
+    const txt=ensureFacebookPostHasCode(String(document.getElementById('a_post_fb')?.value||'').trim(), art);
     if(!txt){ toast('Post Facebook vuoto'); return; }
     return copyText(txt, 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('fb'); });
   }
@@ -9446,7 +9457,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=fb-auto-no-price-v83', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=postfb-cod-clean-v84', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
