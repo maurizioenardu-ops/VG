@@ -256,7 +256,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v10_9-pubblicazione-manuale">
+  <meta name="vg-version" content="v10_8-card-buttons-rollback">
 </head>
 <body>
 <div class="top">
@@ -521,6 +521,74 @@ window.addEventListener('error',e=>{
   </div>
 </div>
 
+  <!-- SEZIONE AI POST -->
+  <div id="sec_aipost" class="section">
+    <div class="card">
+      <div class="h2">🤖 AI Post</div>
+      <div class="small">Compila la scheda, carica le foto e genera il post Facebook con l'AI — tutto salvato direttamente nel gestionale.</div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="h2">Scheda articolo</div>
+      <div class="grid2" style="margin-top:10px">
+        <div><div class="k">Codice *</div><input id="ai_codice" placeholder="Es. BRS001" autocomplete="off" spellcheck="false"/></div>
+        <div><div class="k">Brand</div><input id="ai_brand" placeholder="Es. Louis Vuitton" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div><div class="k">Modello</div><input id="ai_modello" placeholder="Es. Neverfull MM" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
+        <div><div class="k">Categoria</div><input id="ai_categoria" placeholder="Es. Borsa a spalla" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div><div class="k">Colore</div><input id="ai_colore" placeholder="Es. Nero" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
+        <div><div class="k">Materiale</div><input id="ai_materiale" placeholder="Es. Pelle" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div><div class="k">Misura (cm)</div><input id="ai_misura" placeholder="Es. 40x30x15" autocomplete="off" spellcheck="false"/></div>
+        <div><div class="k">Prezzo vendita (€)</div><input id="ai_prezzo" type="number" placeholder="Es. 89" min="0"/></div>
+      </div>
+      <div style="margin-top:10px"><div class="k">Costo acquisto (€)</div><input id="ai_costo" type="number" placeholder="Es. 45" min="0"/></div>
+      <div style="margin-top:10px">
+        <div class="k">Note aggiuntive per l'AI</div>
+        <textarea id="ai_note" placeholder="Es. borsa con zip dorata, tracolla inclusa, perfetta come regalo..." style="min-height:60px"></textarea>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="h2">📸 Foto</div>
+      <div class="small">Carica fino a 6 foto. Verranno salvate nel cloud insieme all'articolo.</div>
+      <label class="btn" style="display:inline-block;margin-top:10px;cursor:pointer">
+        Scegli foto
+        <input id="ai_foto_input" type="file" accept="image/*" multiple style="display:none"/>
+      </label>
+      <div id="ai_foto_preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="h2">✍️ Post generato</div>
+      <div class="actions" style="margin-bottom:10px">
+        <button class="btn primary" type="button" id="ai_btn_genera">🤖 Genera post con AI</button>
+        <button class="btn" type="button" id="ai_btn_rigenera" style="display:none">🔄 Rigenera</button>
+      </div>
+      <div id="ai_loader" style="display:none;color:var(--muted);font-size:13px;font-weight:800;margin-bottom:8px">⚡ Generazione in corso…</div>
+      <textarea id="ai_post_output" placeholder="Il post apparirà qui dopo la generazione…" style="min-height:160px;font-size:14px"></textarea>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" type="button" id="ai_btn_copia" style="display:none">📋 Copia post</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="h2">💾 Salva nel gestionale</div>
+      <div class="small" style="margin-bottom:10px">Salva l'articolo con il post generato direttamente negli articoli del gestionale.</div>
+      <div id="ai_save_status" style="display:none;padding:10px 12px;border-radius:14px;font-weight:800;font-size:13px;margin-bottom:10px"></div>
+      <div class="actions">
+        <button class="btn primary" type="button" id="ai_btn_salva">💾 Salva articolo + post</button>
+        <button class="btn" type="button" id="ai_btn_reset">🗑️ Pulisci tutto</button>
+      </div>
+    </div>
+    <div style="height:80px"></div>
+  </div>
+  <!-- FINE SEZIONE AI POST -->
+
 <div class="navBottom">
   <div class="inner">
     <button class="active" data-go="home" data-nav="home">Home</button>
@@ -529,6 +597,7 @@ window.addEventListener('error',e=>{
     <button data-go="ordini" data-nav="ordini">Ordini</button>
     <button data-go="finanze" data-nav="finanze">Finanze</button>
     <button data-go="impostazioni" data-nav="impostazioni">Impost.</button>
+    <button data-go="aipost" data-nav="aipost">🤖 AI</button>
   </div>
 </div>
 
@@ -558,7 +627,7 @@ window.addEventListener('error',e=>{
       <div id="vArtMarginBox" class="marginBox" style="margin-top:8px"></div>
     </div>
   </div>
-  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" type="button" data-action="shareArtPhotosFb">Condividi foto</button><button class="btn smallish" type="button" data-action="markPublishedFb">Segna pubblicato</button><button class="btn smallish" type="button" data-action="undoPublishedFb">Annulla data</button><span id="vArtFbSaveMeta" class="pubMeta">Modificabile</span><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div></div>
+  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" type="button" data-action="shareArtPhotosFb">Condividi foto</button><span id="vArtFbSaveMeta" class="pubMeta">Modificabile</span><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="copyPostTelegramNoPrice">Copia Telegram senza prezzo</button><button class="btn smallish" type="button" data-action="shareArtPhotosTg">Condividi foto</button><button class="btn smallish" type="button" data-action="downloadArtPhotosTg">Scarica foto</button><span id="vArtPubMetaTg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish" type="button" data-action="downloadArtPhotosIg">Scarica foto</button><span id="vArtPubMetaIg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
@@ -2631,6 +2700,7 @@ async function shareCurrentArticlePhotos(channel='fb'){
   try{
     const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
     if(shared){
+      recordArticlePublication(channel);
       toast(isTelegramChannel ? 'Condivisione aperta. Se Telegram è installato, scegli Telegram dalla condivisione.' : (files.length===1 ? 'Condivisione aperta.' : `Condivisione aperta per ${files.length} foto.`));
       return;
     }
@@ -2639,6 +2709,7 @@ async function shareCurrentArticlePhotos(channel='fb'){
       const sheetFile=getCachedArticlePhotoSheetForCtx(ctx) || await ensureCurrentArticlePhotoSheet(ctx, files);
       const sheetShared = sheetFile ? await tryNativeShareArticleFiles([sheetFile], `${ctx.baseName||'articolo'}_tutte_le_foto`) : false;
       if(sheetShared){
+        recordArticlePublication(channel);
         toast(isTelegramChannel ? `Ho aperto la condivisione. Se Telegram è installato, sceglilo dall'elenco app.` : `La condivisione multipla è stata rifiutata dal browser. Ho aperto una tavola unica con tutte e ${files.length} le foto.`);
         return;
       }
@@ -2657,6 +2728,7 @@ async function shareCurrentArticlePhotos(channel='fb'){
         const sheetFile=getCachedArticlePhotoSheetForCtx(ctx) || await ensureCurrentArticlePhotoSheet(ctx, files);
         const sheetShared = sheetFile ? await tryNativeShareArticleFiles([sheetFile], `${ctx.baseName||'articolo'}_tutte_le_foto`) : false;
         if(sheetShared){
+          recordArticlePublication(channel);
           toast(isTelegramChannel ? `Ho aperto la condivisione. Se Telegram è installato, sceglilo dall'elenco app.` : `La condivisione multipla non è passata. Ho aperto una tavola unica con tutte e ${files.length} le foto.`);
           return;
         }
@@ -2781,6 +2853,7 @@ async function downloadCurrentArticlePhotos(channel='tg'){
     const base=String(ctx.baseName||'articolo').replace(/[^a-z0-9_\-]+/gi,'_').replace(/^_+|_+$/g,'') || 'articolo';
     if(files.length===1){
       triggerBlobDownload(files[0], files[0].name || `${base}.jpg`);
+      if(typeof recordArticlePublication==='function') recordArticlePublication(channel);
       toast('Foto scaricata.');
       return;
     }
@@ -2791,6 +2864,7 @@ async function downloadCurrentArticlePhotos(channel='tg'){
       return;
     }
     triggerBlobDownload(zipFile, zipFile.name || `${base}_foto.zip`);
+    if(typeof recordArticlePublication==='function') recordArticlePublication(channel);
     toast(`ZIP scaricato con ${files.length} foto.`);
   }catch(err){
     console.warn('Download ZIP foto articolo fallito', err);
@@ -3157,7 +3231,7 @@ function renderArticlePublishMeta(article){
     const meta=getArticlePublishMeta(article, ch);
     (nodes[ch]||[]).filter(Boolean).forEach(el=>{
       el.textContent=meta.label;
-      el.title=meta.lastDate ? `Ultima data segnata ${formatPromoDateLabel(meta.lastDate)} · ${meta.count} negli ultimi 7 giorni` : 'Mai segnato';
+      el.title=meta.lastDate ? `Ultima pubblicazione ${formatPromoDateLabel(meta.lastDate)} · ${meta.count} negli ultimi 7 giorni` : 'Mai pubblicato';
     });
   });
 }
@@ -3169,15 +3243,15 @@ function getArticlePublishPreviewState(article, refDay=todayStr()){
   const last=lastDate ? parseIsoDay(lastDate) : null;
   const diff=(ref && last) ? Math.max(0, Math.round((ref-last)/86400000)) : null;
   if(!lastDate || diff===null){
-    return { cls:'ready', title:'Mai segnato' };
+    return { cls:'ready', title:'Mai pubblicato' };
   }
   if(diff>=7){
-    return { cls:'ready', title:`Segnato da 7 giorni o più · ultima data ${formatPromoDateLabel(lastDate)}` };
+    return { cls:'ready', title:`Pubblicato da 7 giorni o più · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
   }
   if(diff>=3){
-    return { cls:'mid', title:`Segnato da 3 a 6 giorni · ultima data ${formatPromoDateLabel(lastDate)}` };
+    return { cls:'mid', title:`Pubblicato da 3 a 6 giorni · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
   }
-  return { cls:'recent', title:`Segnato negli ultimi 2 giorni · ultima data ${formatPromoDateLabel(lastDate)}` };
+  return { cls:'recent', title:`Pubblicato negli ultimi 2 giorni · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
 }
 function articlePublishPreviewDot(article){
   const state=getArticlePublishPreviewState(article);
@@ -3227,41 +3301,6 @@ function recordArticlePublication(channel, articleId=currentArtId, refDay=todayS
   }
   if(String(currentArtId||'')===String(articleId||'')) renderArticlePublishMeta(art);
   return art;
-}
-function removeLastArticlePublication(channel, articleId=currentArtId){
-  const cleanChannel=ARTICLE_PUBLISH_CHANNELS.includes(channel) ? channel : '';
-  if(!cleanChannel || !articleId) return null;
-  const db=loadDB();
-  const idx=(db.articoli||[]).findIndex(a=>String(a?.id)===String(articleId));
-  if(idx<0) return null;
-  const art=db.articoli[idx]||{};
-  const nextLog=normalizeArticlePublishLog(art?.pubblicazioniCanali||art?.publishStats||art?.socialPub||{});
-  const currentList=Array.isArray(nextLog[cleanChannel]) ? nextLog[cleanChannel].slice().sort() : [];
-  if(!currentList.length){
-    renderArticlePublishMeta(art);
-    return art;
-  }
-  currentList.pop();
-  nextLog[cleanChannel]=currentList;
-  const updated={...art, pubblicazioniCanali:nextLog, _ts:Date.now()};
-  db.articoli[idx]=updated;
-  saveDB(db);
-  if(String(currentArtId||'')===String(articleId||'')) renderArticlePublishMeta(updated);
-  return updated;
-}
-function markCurrentArticlePublished(channel='fb'){
-  const updated=recordArticlePublication(channel);
-  if(updated){
-    toast(channel==='fb' ? 'Data Facebook segnata.' : 'Data pubblicazione segnata.');
-    renderArt();
-  }else toast('Articolo non trovato');
-}
-function undoCurrentArticlePublished(channel='fb'){
-  const updated=removeLastArticlePublication(channel);
-  if(updated){
-    toast(channel==='fb' ? 'Ultima data Facebook rimossa.' : 'Ultima data rimossa.');
-    renderArt();
-  }else toast('Articolo non trovato');
 }
 function promoHasHistory(a){
   return !!(a && (a.promoAttiva || Number(a.prezzoPromo||0)>0 || getPromoSupplierUsd(a)>0 || getPromoStartDate(a)));
@@ -8703,13 +8742,11 @@ document.addEventListener('click',(ev)=>{
   if(a==='addBrand') return addBrand();
   if(a==='renameBrand') return renameBrand(el.dataset.name||'');
   if(a==='deleteBrand') return deleteBrand(el.dataset.name||'');
-  if(a==='markPublishedFb') return markCurrentArticlePublished('fb');
-  if(a==='undoPublishedFb') return undoCurrentArticlePublished('fb');
   if(a==='copyPost'){
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    return copyText(buildPostTelegram(art), 'Post copiato');
+    return copyText(buildPostTelegram(art), 'Post copiato', ()=>recordArticlePublication('tg'));
   }
   if(a==='copyPostFb'){
     flushViewFbPostSave();
@@ -8718,7 +8755,7 @@ document.addEventListener('click',(ev)=>{
     if(!art){ toast('Articolo non trovato'); return; }
     const txt=String(document.getElementById('vArtPostFb')?.value || getArticleFacebookPost(art)).trim();
     if(!txt){ toast('Post Facebook vuoto'); return; }
-    return copyText(txt, 'Post copiato');
+    return copyText(txt, 'Post copiato', ()=>recordArticlePublication('fb'));
   }
   if(a==='copyPostFbWithPrice'){
     const db=loadDB();
@@ -8726,33 +8763,33 @@ document.addEventListener('click',(ev)=>{
     if(!art){ toast('Articolo non trovato'); return; }
     const txt=getArticleFacebookPost(art);
     if(!txt){ toast('Post Facebook vuoto'); return; }
-    return copyText(txt, 'Post copiato');
+    return copyText(txt, 'Post copiato', ()=>recordArticlePublication('fb'));
   }
   if(a==='copyPostIg'){
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    return copyText(buildPostInstagram(art), 'Post copiato');
+    return copyText(buildPostInstagram(art), 'Post copiato', ()=>recordArticlePublication('ig'));
   }
   if(a==='copyPostTelegramEdit'){
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(buildPostTelegram(art), 'Post copiato');
+    return copyText(buildPostTelegram(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('tg'); });
   }
   if(a==='copyPostFbEdit'){
     const txt=String(document.getElementById('a_post_fb')?.value||'').trim();
     if(!txt){ toast('Post Facebook vuoto'); return; }
-    return copyText(txt, 'Post copiato');
+    return copyText(txt, 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('fb'); });
   }
   if(a==='copyPostFbWithPriceEdit'){
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(getArticleFacebookPost(art), 'Post copiato');
+    return copyText(getArticleFacebookPost(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('fb'); });
   }
   if(a==='copyPostIgEdit'){
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(buildPostInstagram(art), 'Post copiato');
+    return copyText(buildPostInstagram(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('ig'); });
   }
   if(a==='shareArtPhotosFb' || a==='shareArtPhotos') return shareCurrentArticlePhotos('fb');
   if(a==='shareArtPhotosTg') return shareCurrentArticlePhotos('tg');
@@ -8887,7 +8924,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-28-pubblicazione-manuale-v1';
+const VG_BUILD='2026-05-27-fb-solo-emoji-qualita-v85';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -9479,7 +9516,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=pubblicazione-manuale-v1', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=fb-solo-emoji-qualita-v85', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

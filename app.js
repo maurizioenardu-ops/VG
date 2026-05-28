@@ -1929,6 +1929,7 @@ async function downloadCurrentArticlePhotos(channel='tg'){
     const base=String(ctx.baseName||'articolo').replace(/[^a-z0-9_\-]+/gi,'_').replace(/^_+|_+$/g,'') || 'articolo';
     if(files.length===1){
       triggerBlobDownload(files[0], files[0].name || `${base}.jpg`);
+      if(typeof recordArticlePublication==='function') recordArticlePublication(channel);
       toast('Foto scaricata.');
       return;
     }
@@ -1939,6 +1940,7 @@ async function downloadCurrentArticlePhotos(channel='tg'){
       return;
     }
     triggerBlobDownload(zipFile, zipFile.name || `${base}_foto.zip`);
+    if(typeof recordArticlePublication==='function') recordArticlePublication(channel);
     toast(`ZIP scaricato con ${files.length} foto.`);
   }catch(err){
     console.warn('Download ZIP foto articolo fallito', err);
@@ -8195,3 +8197,267 @@ if('serviceWorker' in navigator){
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
 }
+
+// ============================================================
+// SEZIONE AI POST - Generazione post con Claude AI
+// ============================================================
+(function(){
+
+  // --- Stato interno ---
+  const AI_STATE = {
+    foto: [],       // Array di File objects
+    postGenerato: ''
+  };
+
+  // --- Helpers UI ---
+  function aiEl(id){ return document.getElementById(id); }
+  function aiSetStatus(msg, tipo='info'){
+    const el = aiEl('ai_save_status');
+    if(!el) return;
+    el.style.display = 'block';
+    el.style.background = tipo==='ok' ? '#f0fdf4' : tipo==='err' ? '#fff1f2' : '#eef4ff';
+    el.style.border = `1px solid ${tipo==='ok'?'#86efac':tipo==='err'?'#fecaca':'#bfdbfe'}`;
+    el.style.color = tipo==='ok' ? '#15803d' : tipo==='err' ? '#b91c1c' : '#1d4ed8';
+    el.textContent = msg;
+  }
+  function aiHideStatus(){ const el=aiEl('ai_save_status'); if(el) el.style.display='none'; }
+
+  // --- Preview foto ---
+  function renderFotoPreview(){
+    const box = aiEl('ai_foto_preview');
+    if(!box) return;
+    box.innerHTML = '';
+    AI_STATE.foto.forEach((f, i) => {
+      const url = URL.createObjectURL(f);
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'position:relative;width:72px;height:72px;';
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid #e2e8f0;';
+      const del = document.createElement('button');
+      del.textContent = '✕';
+      del.style.cssText = 'position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:999px;border:none;background:#ef4444;color:#fff;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;';
+      del.onclick = () => { AI_STATE.foto.splice(i,1); renderFotoPreview(); };
+      wrap.appendChild(img);
+      wrap.appendChild(del);
+      box.appendChild(wrap);
+    });
+  }
+
+  // --- Raccoglie dati dal form ---
+  function raccogliDati(){
+    return {
+      codice: (aiEl('ai_codice')?.value||'').trim(),
+      brand: (aiEl('ai_brand')?.value||'').trim(),
+      modello: (aiEl('ai_modello')?.value||'').trim(),
+      categoria: (aiEl('ai_categoria')?.value||'').trim(),
+      colore: (aiEl('ai_colore')?.value||'').trim(),
+      materiale: (aiEl('ai_materiale')?.value||'').trim(),
+      misura: (aiEl('ai_misura')?.value||'').trim(),
+      prezzo: (aiEl('ai_prezzo')?.value||'').trim(),
+      costo: (aiEl('ai_costo')?.value||'').trim(),
+      note: (aiEl('ai_note')?.value||'').trim()
+    };
+  }
+
+  // --- Genera post usando le funzioni già presenti nel gestionale ---
+  async function generaPostAI(){
+    const d = raccogliDati();
+    if(!d.codice){ alert('Inserisci almeno il codice articolo!'); return; }
+
+    const loader = aiEl('ai_loader');
+    const btnGenera = aiEl('ai_btn_genera');
+    const btnRigenera = aiEl('ai_btn_rigenera');
+    const output = aiEl('ai_post_output');
+    const btnCopia = aiEl('ai_btn_copia');
+
+    if(loader) loader.style.display='block';
+    if(btnGenera) btnGenera.disabled=true;
+    if(output) output.value='';
+
+    try {
+      // Usa buildPostFacebookBase già presente nel gestionale — zero costi, zero API esterne!
+      const art = {
+        codice: d.codice,
+        brand: d.brand,
+        modello: d.modello,
+        categoria: d.categoria,
+        colore: d.colore,
+        materiale: d.materiale || d.misura,
+        misura: d.misura,
+        variante: d.misura,
+        prezzoVendita: d.prezzo ? Number(d.prezzo) : 0,
+        costoEur: d.costo ? Number(d.costo) : 0,
+        disponibile: true
+      };
+
+      let testo = '';
+      if(typeof buildPostFacebookBase === 'function'){
+        testo = buildPostFacebookBase(art, { includePrice: !!(d.prezzo) });
+      } else if(typeof getArticleFacebookPost === 'function'){
+        testo = getArticleFacebookPost(art);
+      }
+
+      // Appende note extra prima dell'ultima riga
+      if(d.note && testo){
+        const righe = testo.split('\n');
+        righe.splice(righe.length - 1, 0, d.note);
+        testo = righe.join('\n');
+      }
+
+      if(!testo) throw new Error('Generazione post fallita — controlla i dati inseriti');
+
+      AI_STATE.postGenerato = testo;
+      if(output) output.value = testo;
+      if(btnRigenera) btnRigenera.style.display='inline-block';
+      if(btnCopia) btnCopia.style.display='inline-block';
+
+    } catch(err){
+      if(output) output.value = '';
+      alert('Errore generazione: ' + err.message);
+    } finally {
+      if(loader) loader.style.display='none';
+      if(btnGenera) btnGenera.disabled=false;
+    }
+  }
+  }
+
+  // --- Salva articolo nel gestionale locale + cloud ---
+  async function salvaArticolo(){
+    const d = raccogliDati();
+    if(!d.codice){ alert('Inserisci il codice articolo!'); return; }
+
+    const postTesto = (aiEl('ai_post_output')?.value||'').trim();
+
+    aiSetStatus('⏳ Salvataggio in corso…', 'info');
+
+    try {
+      // Costruisco l'oggetto articolo compatibile con il gestionale
+      const art = {
+        id: uid(),
+        codice: d.codice,
+        brand: d.brand,
+        modello: d.modello,
+        categoria: d.categoria,
+        colore: d.colore,
+        materiale: d.materiale,
+        misura: d.misura,
+        prezzoVendita: d.prezzo ? Number(d.prezzo) : 0,
+        costoEur: d.costo ? Number(d.costo) : 0,
+        postFb: postTesto,
+        postFacebook: postTesto,
+        disponibile: true,
+        nonDisponibile: false,
+        foto: [],
+        _ts: Date.now()
+      };
+
+      // Gestione foto — le converto in base64 per salvarle nel db locale
+      if(AI_STATE.foto.length){
+        const fotoB64 = await Promise.all(AI_STATE.foto.map(f => new Promise((res,rej)=>{
+          const r = new FileReader();
+          r.onload = ()=>res(r.result);
+          r.onerror = ()=>rej(new Error('Lettura foto fallita'));
+          r.readAsDataURL(f);
+        })));
+        art.foto = fotoB64;
+      }
+
+      // Salvo nel db locale (usa la funzione esistente del gestionale)
+      if(typeof saveArticle === 'function'){
+        await saveArticle(art);
+      } else {
+        // Fallback: inserisco direttamente nel db
+        if(!db.articoli) db.articoli=[];
+        const idx = db.articoli.findIndex(a=>a.codice===art.codice);
+        if(idx>=0) db.articoli[idx]={...db.articoli[idx],...art};
+        else db.articoli.unshift(art);
+        if(typeof persistDb === 'function') persistDb();
+        else if(typeof saveDb === 'function') saveDb();
+      }
+
+      // Tento sync cloud se disponibile
+      if(typeof upsertCloudArticle === 'function'){
+        try{ await upsertCloudArticle(art); }
+        catch(cloudErr){ console.warn('Sync cloud fallita (non bloccante):', cloudErr); }
+      }
+
+      aiSetStatus('✅ Articolo salvato con successo!', 'ok');
+
+      // Aggiorno la lista articoli se visibile
+      try{ if(typeof renderAll==='function') renderAll(); }catch(_e){}
+
+    } catch(err){
+      aiSetStatus('❌ Errore salvataggio: ' + err.message, 'err');
+    }
+  }
+
+  // --- Reset form ---
+  function resetForm(){
+    ['ai_codice','ai_brand','ai_modello','ai_categoria','ai_colore','ai_materiale','ai_misura','ai_prezzo','ai_costo','ai_note'].forEach(id=>{
+      const el=aiEl(id); if(el) el.value='';
+    });
+    const out=aiEl('ai_post_output'); if(out) out.value='';
+    const prev=aiEl('ai_foto_preview'); if(prev) prev.innerHTML='';
+    const btnR=aiEl('ai_btn_rigenera'); if(btnR) btnR.style.display='none';
+    const btnC=aiEl('ai_btn_copia'); if(btnC) btnC.style.display='none';
+    AI_STATE.foto=[];
+    AI_STATE.postGenerato='';
+    aiHideStatus();
+  }
+
+  // --- Inizializzazione eventi ---
+  function initAIPost(){
+    // Upload foto
+    const fotoInput = aiEl('ai_foto_input');
+    if(fotoInput){
+      fotoInput.addEventListener('change', ()=>{
+        const files = Array.from(fotoInput.files||[]).filter(f=>f.type.startsWith('image/')).slice(0,6);
+        AI_STATE.foto = [...AI_STATE.foto, ...files].slice(0,6);
+        fotoInput.value='';
+        renderFotoPreview();
+      });
+    }
+
+    // Genera
+    const btnGenera = aiEl('ai_btn_genera');
+    if(btnGenera) btnGenera.addEventListener('click', generaPostAI);
+
+    // Rigenera
+    const btnRigenera = aiEl('ai_btn_rigenera');
+    if(btnRigenera) btnRigenera.addEventListener('click', generaPostAI);
+
+    // Copia
+    const btnCopia = aiEl('ai_btn_copia');
+    if(btnCopia) btnCopia.addEventListener('click', ()=>{
+      const out = aiEl('ai_post_output');
+      if(!out||!out.value) return;
+      navigator.clipboard.writeText(out.value).then(()=>{
+        btnCopia.textContent='✅ Copiato!';
+        setTimeout(()=>{ btnCopia.textContent='📋 Copia post'; },2000);
+      }).catch(()=>{
+        out.select();
+        document.execCommand('copy');
+      });
+    });
+
+    // Salva
+    const btnSalva = aiEl('ai_btn_salva');
+    if(btnSalva) btnSalva.addEventListener('click', salvaArticolo);
+
+    // Reset
+    const btnReset = aiEl('ai_btn_reset');
+    if(btnReset) btnReset.addEventListener('click', ()=>{ if(confirm('Pulisci tutto il form?')) resetForm(); });
+  }
+
+  // Aspetto che il DOM sia pronto
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', initAIPost);
+  } else {
+    setTimeout(initAIPost, 500);
+  }
+
+})();
+// ============================================================
+// FINE SEZIONE AI POST
+// ============================================================
