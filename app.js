@@ -1929,7 +1929,6 @@ async function downloadCurrentArticlePhotos(channel='tg'){
     const base=String(ctx.baseName||'articolo').replace(/[^a-z0-9_\-]+/gi,'_').replace(/^_+|_+$/g,'') || 'articolo';
     if(files.length===1){
       triggerBlobDownload(files[0], files[0].name || `${base}.jpg`);
-      if(typeof recordArticlePublication==='function') recordArticlePublication(channel);
       toast('Foto scaricata.');
       return;
     }
@@ -1940,7 +1939,6 @@ async function downloadCurrentArticlePhotos(channel='tg'){
       return;
     }
     triggerBlobDownload(zipFile, zipFile.name || `${base}_foto.zip`);
-    if(typeof recordArticlePublication==='function') recordArticlePublication(channel);
     toast(`ZIP scaricato con ${files.length} foto.`);
   }catch(err){
     console.warn('Download ZIP foto articolo fallito', err);

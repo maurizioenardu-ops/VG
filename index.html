@@ -256,7 +256,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v10_8-card-buttons-rollback">
+  <meta name="vg-version" content="v10_9-pubblicazione-manuale">
 </head>
 <body>
 <div class="top">
@@ -558,7 +558,7 @@ window.addEventListener('error',e=>{
       <div id="vArtMarginBox" class="marginBox" style="margin-top:8px"></div>
     </div>
   </div>
-  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" type="button" data-action="shareArtPhotosFb">Condividi foto</button><span id="vArtFbSaveMeta" class="pubMeta">Modificabile</span><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div></div>
+  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" type="button" data-action="shareArtPhotosFb">Condividi foto</button><button class="btn smallish" type="button" data-action="markPublishedFb">Segna pubblicato</button><button class="btn smallish" type="button" data-action="undoPublishedFb">Annulla data</button><span id="vArtFbSaveMeta" class="pubMeta">Modificabile</span><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="copyPostTelegramNoPrice">Copia Telegram senza prezzo</button><button class="btn smallish" type="button" data-action="shareArtPhotosTg">Condividi foto</button><button class="btn smallish" type="button" data-action="downloadArtPhotosTg">Scarica foto</button><span id="vArtPubMetaTg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish" type="button" data-action="downloadArtPhotosIg">Scarica foto</button><span id="vArtPubMetaIg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
@@ -2631,7 +2631,6 @@ async function shareCurrentArticlePhotos(channel='fb'){
   try{
     const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
     if(shared){
-      recordArticlePublication(channel);
       toast(isTelegramChannel ? 'Condivisione aperta. Se Telegram è installato, scegli Telegram dalla condivisione.' : (files.length===1 ? 'Condivisione aperta.' : `Condivisione aperta per ${files.length} foto.`));
       return;
     }
@@ -2640,7 +2639,6 @@ async function shareCurrentArticlePhotos(channel='fb'){
       const sheetFile=getCachedArticlePhotoSheetForCtx(ctx) || await ensureCurrentArticlePhotoSheet(ctx, files);
       const sheetShared = sheetFile ? await tryNativeShareArticleFiles([sheetFile], `${ctx.baseName||'articolo'}_tutte_le_foto`) : false;
       if(sheetShared){
-        recordArticlePublication(channel);
         toast(isTelegramChannel ? `Ho aperto la condivisione. Se Telegram è installato, sceglilo dall'elenco app.` : `La condivisione multipla è stata rifiutata dal browser. Ho aperto una tavola unica con tutte e ${files.length} le foto.`);
         return;
       }
@@ -2659,7 +2657,6 @@ async function shareCurrentArticlePhotos(channel='fb'){
         const sheetFile=getCachedArticlePhotoSheetForCtx(ctx) || await ensureCurrentArticlePhotoSheet(ctx, files);
         const sheetShared = sheetFile ? await tryNativeShareArticleFiles([sheetFile], `${ctx.baseName||'articolo'}_tutte_le_foto`) : false;
         if(sheetShared){
-          recordArticlePublication(channel);
           toast(isTelegramChannel ? `Ho aperto la condivisione. Se Telegram è installato, sceglilo dall'elenco app.` : `La condivisione multipla non è passata. Ho aperto una tavola unica con tutte e ${files.length} le foto.`);
           return;
         }
@@ -2784,7 +2781,6 @@ async function downloadCurrentArticlePhotos(channel='tg'){
     const base=String(ctx.baseName||'articolo').replace(/[^a-z0-9_\-]+/gi,'_').replace(/^_+|_+$/g,'') || 'articolo';
     if(files.length===1){
       triggerBlobDownload(files[0], files[0].name || `${base}.jpg`);
-      if(typeof recordArticlePublication==='function') recordArticlePublication(channel);
       toast('Foto scaricata.');
       return;
     }
@@ -2795,7 +2791,6 @@ async function downloadCurrentArticlePhotos(channel='tg'){
       return;
     }
     triggerBlobDownload(zipFile, zipFile.name || `${base}_foto.zip`);
-    if(typeof recordArticlePublication==='function') recordArticlePublication(channel);
     toast(`ZIP scaricato con ${files.length} foto.`);
   }catch(err){
     console.warn('Download ZIP foto articolo fallito', err);
@@ -3162,7 +3157,7 @@ function renderArticlePublishMeta(article){
     const meta=getArticlePublishMeta(article, ch);
     (nodes[ch]||[]).filter(Boolean).forEach(el=>{
       el.textContent=meta.label;
-      el.title=meta.lastDate ? `Ultima pubblicazione ${formatPromoDateLabel(meta.lastDate)} · ${meta.count} negli ultimi 7 giorni` : 'Mai pubblicato';
+      el.title=meta.lastDate ? `Ultima data segnata ${formatPromoDateLabel(meta.lastDate)} · ${meta.count} negli ultimi 7 giorni` : 'Mai segnato';
     });
   });
 }
@@ -3174,15 +3169,15 @@ function getArticlePublishPreviewState(article, refDay=todayStr()){
   const last=lastDate ? parseIsoDay(lastDate) : null;
   const diff=(ref && last) ? Math.max(0, Math.round((ref-last)/86400000)) : null;
   if(!lastDate || diff===null){
-    return { cls:'ready', title:'Mai pubblicato' };
+    return { cls:'ready', title:'Mai segnato' };
   }
   if(diff>=7){
-    return { cls:'ready', title:`Pubblicato da 7 giorni o più · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
+    return { cls:'ready', title:`Segnato da 7 giorni o più · ultima data ${formatPromoDateLabel(lastDate)}` };
   }
   if(diff>=3){
-    return { cls:'mid', title:`Pubblicato da 3 a 6 giorni · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
+    return { cls:'mid', title:`Segnato da 3 a 6 giorni · ultima data ${formatPromoDateLabel(lastDate)}` };
   }
-  return { cls:'recent', title:`Pubblicato negli ultimi 2 giorni · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
+  return { cls:'recent', title:`Segnato negli ultimi 2 giorni · ultima data ${formatPromoDateLabel(lastDate)}` };
 }
 function articlePublishPreviewDot(article){
   const state=getArticlePublishPreviewState(article);
@@ -3232,6 +3227,41 @@ function recordArticlePublication(channel, articleId=currentArtId, refDay=todayS
   }
   if(String(currentArtId||'')===String(articleId||'')) renderArticlePublishMeta(art);
   return art;
+}
+function removeLastArticlePublication(channel, articleId=currentArtId){
+  const cleanChannel=ARTICLE_PUBLISH_CHANNELS.includes(channel) ? channel : '';
+  if(!cleanChannel || !articleId) return null;
+  const db=loadDB();
+  const idx=(db.articoli||[]).findIndex(a=>String(a?.id)===String(articleId));
+  if(idx<0) return null;
+  const art=db.articoli[idx]||{};
+  const nextLog=normalizeArticlePublishLog(art?.pubblicazioniCanali||art?.publishStats||art?.socialPub||{});
+  const currentList=Array.isArray(nextLog[cleanChannel]) ? nextLog[cleanChannel].slice().sort() : [];
+  if(!currentList.length){
+    renderArticlePublishMeta(art);
+    return art;
+  }
+  currentList.pop();
+  nextLog[cleanChannel]=currentList;
+  const updated={...art, pubblicazioniCanali:nextLog, _ts:Date.now()};
+  db.articoli[idx]=updated;
+  saveDB(db);
+  if(String(currentArtId||'')===String(articleId||'')) renderArticlePublishMeta(updated);
+  return updated;
+}
+function markCurrentArticlePublished(channel='fb'){
+  const updated=recordArticlePublication(channel);
+  if(updated){
+    toast(channel==='fb' ? 'Data Facebook segnata.' : 'Data pubblicazione segnata.');
+    renderArt();
+  }else toast('Articolo non trovato');
+}
+function undoCurrentArticlePublished(channel='fb'){
+  const updated=removeLastArticlePublication(channel);
+  if(updated){
+    toast(channel==='fb' ? 'Ultima data Facebook rimossa.' : 'Ultima data rimossa.');
+    renderArt();
+  }else toast('Articolo non trovato');
 }
 function promoHasHistory(a){
   return !!(a && (a.promoAttiva || Number(a.prezzoPromo||0)>0 || getPromoSupplierUsd(a)>0 || getPromoStartDate(a)));
@@ -8673,11 +8703,13 @@ document.addEventListener('click',(ev)=>{
   if(a==='addBrand') return addBrand();
   if(a==='renameBrand') return renameBrand(el.dataset.name||'');
   if(a==='deleteBrand') return deleteBrand(el.dataset.name||'');
+  if(a==='markPublishedFb') return markCurrentArticlePublished('fb');
+  if(a==='undoPublishedFb') return undoCurrentArticlePublished('fb');
   if(a==='copyPost'){
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    return copyText(buildPostTelegram(art), 'Post copiato', ()=>recordArticlePublication('tg'));
+    return copyText(buildPostTelegram(art), 'Post copiato');
   }
   if(a==='copyPostFb'){
     flushViewFbPostSave();
@@ -8686,7 +8718,7 @@ document.addEventListener('click',(ev)=>{
     if(!art){ toast('Articolo non trovato'); return; }
     const txt=String(document.getElementById('vArtPostFb')?.value || getArticleFacebookPost(art)).trim();
     if(!txt){ toast('Post Facebook vuoto'); return; }
-    return copyText(txt, 'Post copiato', ()=>recordArticlePublication('fb'));
+    return copyText(txt, 'Post copiato');
   }
   if(a==='copyPostFbWithPrice'){
     const db=loadDB();
@@ -8694,33 +8726,33 @@ document.addEventListener('click',(ev)=>{
     if(!art){ toast('Articolo non trovato'); return; }
     const txt=getArticleFacebookPost(art);
     if(!txt){ toast('Post Facebook vuoto'); return; }
-    return copyText(txt, 'Post copiato', ()=>recordArticlePublication('fb'));
+    return copyText(txt, 'Post copiato');
   }
   if(a==='copyPostIg'){
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    return copyText(buildPostInstagram(art), 'Post copiato', ()=>recordArticlePublication('ig'));
+    return copyText(buildPostInstagram(art), 'Post copiato');
   }
   if(a==='copyPostTelegramEdit'){
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(buildPostTelegram(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('tg'); });
+    return copyText(buildPostTelegram(art), 'Post copiato');
   }
   if(a==='copyPostFbEdit'){
     const txt=String(document.getElementById('a_post_fb')?.value||'').trim();
     if(!txt){ toast('Post Facebook vuoto'); return; }
-    return copyText(txt, 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('fb'); });
+    return copyText(txt, 'Post copiato');
   }
   if(a==='copyPostFbWithPriceEdit'){
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(getArticleFacebookPost(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('fb'); });
+    return copyText(getArticleFacebookPost(art), 'Post copiato');
   }
   if(a==='copyPostIgEdit'){
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(buildPostInstagram(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('ig'); });
+    return copyText(buildPostInstagram(art), 'Post copiato');
   }
   if(a==='shareArtPhotosFb' || a==='shareArtPhotos') return shareCurrentArticlePhotos('fb');
   if(a==='shareArtPhotosTg') return shareCurrentArticlePhotos('tg');
@@ -8855,7 +8887,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-27-fb-solo-emoji-qualita-v85';
+const VG_BUILD='2026-05-28-pubblicazione-manuale-v1';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -9447,7 +9479,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=fb-solo-emoji-qualita-v85', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=pubblicazione-manuale-v1', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
