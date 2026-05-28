@@ -3839,9 +3839,7 @@ function buildPostFacebookBase(a, opts={}){
   const lines=[...promoPostIntroLines(a)];
   if(modelLine) lines.push(smartSentenceCase(modelLine));
 
-  const qual = articleQualityLabel(a);
-  const qualKey = String(qual||'').trim().toLowerCase();
-  if(qualKey==='originale') lines.push('QUALITÀ ORIGINALE');
+  // Facebook: non scrive mai il tipo di qualità; resta solo l'emoji accanto al modello.
 
   const details=[];
   const colore = safePostDetailValue(a?.colore||'', a);
@@ -3926,12 +3924,14 @@ function buildPostTelegram(a, includePrice=true){
   const misura=normalizePostLine(a.misura||'', brand);
   const materialeCompat=normalizePostLine(a.materiale||a.taglia||'', brand);
   const qemoji=emojiQualityForPost(a);
+  const qualKeyTelegram=String(articleQualityLabel(a)||'').trim().toLowerCase();
   const lines=[];
   if(promoValid(a)){
     const scadenzaRaw=String(a.scadenzaPromo||'').trim();
     const tipoMateriale=materiale || materialeCompat || variante;
     if(scadenzaRaw) lines.push(`fino al ${formatPromoDateLabel(scadenzaRaw)}`);
     if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
+    if(qualKeyTelegram==='originale') lines.push('QUALITÀ ORIGINALE');
     if(tipoMateriale) lines.push(tipoMateriale);
     if(colore) lines.push(colore);
     if(misura) lines.push(formatPostMisura(misura));
@@ -3943,6 +3943,7 @@ function buildPostTelegram(a, includePrice=true){
     return formatGeneratedPostLines(uniquePostLines(lines));
   }
   if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
+  if(qualKeyTelegram==='originale') lines.push('QUALITÀ ORIGINALE');
   if(descrizione) lines.push(descrizione);
   if(variante) lines.push(variante);
   if(colore) lines.push(colore);
@@ -7296,6 +7297,170 @@ document.addEventListener('pointerdown',(ev)=>{
     .catch(()=>{});
 });
 
+
+/* ====== IMPORTA ARTICOLI DA CHATGPT ====== */
+function getBulkImportTextarea(){ return document.getElementById('bulkArticleJson'); }
+function getBulkImportPreviewBox(){ return document.getElementById('bulkArticlePreview'); }
+function normalizeBulkArticleArray(raw){
+  let data=raw;
+  if(typeof raw==='string'){
+    const txt=raw.trim();
+    if(!txt) throw new Error('Incolla prima il JSON degli articoli');
+    data=JSON.parse(txt);
+  }
+  if(data && Array.isArray(data.articoli)) data=data.articoli;
+  if(data && Array.isArray(data.items)) data=data.items;
+  if(data && !Array.isArray(data)) data=[data];
+  if(!Array.isArray(data) || !data.length) throw new Error('JSON senza articoli');
+  return data;
+}
+function valAny(obj, keys, def=''){
+  for(const k of keys){
+    if(obj && obj[k]!=null && String(obj[k]).trim()!=='') return obj[k];
+  }
+  return def;
+}
+function boolAny(v){
+  if(v===true || v===1) return true;
+  const s=String(v||'').trim().toLowerCase();
+  return ['true','1','si','sì','yes','y','attiva','attivo'].includes(s);
+}
+function splitMaybeList(v){
+  if(Array.isArray(v)) return v.map(x=>String(x||'').trim()).filter(Boolean);
+  const s=String(v||'').trim();
+  if(!s) return [];
+  if(/^\[/.test(s)){ try{ const arr=JSON.parse(s); if(Array.isArray(arr)) return arr.map(x=>String(x||'').trim()).filter(Boolean); }catch(_e){} }
+  return s.split(/\n|\s*;\s*|\s*,\s*/).map(x=>x.trim()).filter(Boolean);
+}
+function normalizeImportedArticle(input, db){
+  const src=input||{};
+  const codice=String(valAny(src,['codice','sku','cod','code','articolo','idArticolo'])).trim();
+  if(!codice) throw new Error('Un articolo non ha il codice');
+  const old=(db?.articoli||[]).find(a=>safeLower(a?.codice)===safeLower(codice));
+  if(old) throw new Error(`Codice già presente: ${codice}`);
+  const qual=qualityFromCode(codice);
+  const costoUsd=Number(valAny(src,['costoUsd','prezzoFornitoreUsd','prezzo_usd','fornitoreUsd','usd','costo_usd'],0)||0);
+  const costoUsdPromo=Number(valAny(src,['costoUsdPromo','prezzoFornitorePromoUsd','promoUsd','usdPromo','costo_usd_promo'],0)||0);
+  const r=calcFromUsd(costoUsd, qual);
+  const rPromo=costoUsdPromo>0 ? calcFromUsd(costoUsdPromo, qual) : {costo:0,sell:0,marg:0};
+  const prezzoVenditaRaw=Number(valAny(src,['prezzoVendita','prezzo','sell','prezzo_vendita'],0)||0);
+  const prezzoPromoRaw=Number(valAny(src,['prezzoPromo','prezzo_promo','promoPrezzo'],0)||0);
+  const promoAttiva=boolAny(valAny(src,['promoAttiva','promo','promozione','promo_on'],false));
+  const scadenzaPromo=String(valAny(src,['scadenzaPromo','finoAl','fino_al','dataFinePromo','promoEnd'],'')).trim();
+  const colorMode=String(valAny(src,['colorMode','colorType','tipoColore'],'single')).trim().toLowerCase()==='multiple' ? 'multiple' : 'single';
+  const colorLabels=splitMaybeList(valAny(src,['colorLabels','coloriDisponibili','etichetteColori','variantiColore'],[]));
+  const colorCount=Number(valAny(src,['colorCount','numeroColori','nColori'],colorLabels.length||0)||0);
+  const obj=normalizeArticlePromoState({
+    id: uid(),
+    codice,
+    brand: String(valAny(src,['brand','marca','marchio'])).trim(),
+    modello: String(valAny(src,['modello','nome','name','titolo'])).trim(),
+    categoria: String(valAny(src,['categoria','category','tipo'])).trim(),
+    descrizione: String(valAny(src,['descrizione','description','dettagli'])).trim(),
+    fornitore: String(valAny(src,['fornitore','supplier'])).trim(),
+    fornitoreLink: String(valAny(src,['fornitoreLink','linkFornitore','supplierLink','urlFornitore'])).trim(),
+    materiale: String(valAny(src,['materiale','material','taglia'])).trim(),
+    taglia: '',
+    variante: String(valAny(src,['variante','variant'])).trim(),
+    colore: colorMode==='single' ? String(valAny(src,['colore','color'])).trim() : '',
+    nonDisponibile: boolAny(valAny(src,['nonDisponibile','non_disponibile'],false)),
+    disponibile: !boolAny(valAny(src,['nonDisponibile','non_disponibile'],false)),
+    colorMode,
+    colorType: colorMode,
+    colorCount: colorMode==='multiple' ? Math.max(colorCount, colorLabels.length) : 0,
+    colorLabels: colorMode==='multiple' ? colorLabels : [],
+    colorData: colorMode==='multiple' ? makeStableColorData({colorMode, colorCount:Math.max(colorCount,colorLabels.length), colorLabels}) : null,
+    misura: String(valAny(src,['misura','dimensioni','misure','size'])).trim(),
+    costoUsd,
+    costoUsdPromo,
+    costoEur: r.costo,
+    costoEurPromo: rPromo.costo,
+    prezzoVendita: prezzoVenditaRaw>0 ? prezzoVenditaRaw : r.sell,
+    promoAttiva,
+    prezzoPromo: prezzoPromoRaw>0 ? prezzoPromoRaw : (promoAttiva && rPromo.sell>0 ? rPromo.sell : 0),
+    scadenzaPromo,
+    dataInizioPromo: '',
+    post: String(valAny(src,['postTelegram','telegram','post'])).trim(),
+    postFb: String(valAny(src,['postFb','postFacebook','facebook','fb'])).trim(),
+    postIg: String(valAny(src,['postIg','postInstagram','instagram','ig'])).trim(),
+    note: String(valAny(src,['note','notes'])).trim(),
+    foto: splitMaybeList(valAny(src,['foto','fotoArticolo','fotoArticoli','immagini','images','photos'],[])).slice(0,MAX_ARTICLE_PHOTOS),
+    photoIds: [],
+    _ts: Date.now()
+  });
+  if(!obj.post) obj.post=buildPostTelegram(obj);
+  if(!obj.postFb) obj.postFb=buildPostFacebookBase(obj,{includePrice:false});
+  if(!obj.postIg) obj.postIg=buildPostInstagram(obj);
+  return obj;
+}
+function parseBulkArticlesFromTextarea(){
+  const el=getBulkImportTextarea();
+  const db=loadDB();
+  const raw=normalizeBulkArticleArray(el?.value||'');
+  const seen=new Set();
+  return raw.map((item,idx)=>{
+    const art=normalizeImportedArticle(item, db);
+    const key=safeLower(art.codice);
+    if(seen.has(key)) throw new Error(`Codice duplicato nel JSON: ${art.codice}`);
+    seen.add(key);
+    return art;
+  });
+}
+function previewBulkArticles(){
+  const box=getBulkImportPreviewBox();
+  try{
+    const arts=parseBulkArticlesFromTextarea();
+    if(box){
+      box.innerHTML=arts.map(a=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(a.brand||'')} ${esc(a.modello||'')}</div><div class="s">${esc(a.codice)} • ${esc(a.categoria||'Senza categoria')} • ${money(a.prezzoVendita||0)} • Foto: ${(a.foto||[]).length}</div></div><div class="pill">OK</div></div>`).join('') || '<div class="small">Nessun articolo.</div>';
+    }
+    toast(`${arts.length} articoli pronti`);
+  }catch(err){
+    if(box) box.innerHTML=`<div class="card"><div class="small">Errore: ${esc(err?.message||err)}</div></div>`;
+    toast('JSON articoli non valido');
+    console.error(err);
+  }
+}
+async function importBulkArticles(){
+  let arts=[];
+  try{ arts=parseBulkArticlesFromTextarea(); }
+  catch(err){ toast(err?.message||'JSON non valido'); console.error(err); return; }
+  if(!arts.length){ toast('Nessun articolo da importare'); return; }
+  const ok=confirm(`Importo ${arts.length} articol${arts.length===1?'o':'i'}?`);
+  if(!ok) return;
+  const db=loadDB();
+  db.articoli=[...arts, ...(db.articoli||[])];
+  const cats=new Set((db.categorie||[]).map(x=>normalizeCategoryName(x)));
+  const brands=new Set((db.brands||[]).map(x=>normalizeBrandName(x)));
+  for(const a of arts){
+    if(a.categoria && !cats.has(normalizeCategoryName(a.categoria))){ db.categorie.push(a.categoria); cats.add(normalizeCategoryName(a.categoria)); }
+    if(a.brand && !brands.has(normalizeBrandName(a.brand))){ db.brands.push(a.brand); brands.add(normalizeBrandName(a.brand)); }
+  }
+  if(!saveDB(db)) return;
+  let cloudOk=0, cloudFail=0;
+  if(cloudEnabled()){
+    for(const art of arts){
+      try{
+        const saved=await cloudSaveOne('art', art, db);
+        const idx=db.articoli.findIndex(x=>x.id===art.id || safeLower(x.codice)===safeLower(art.codice));
+        if(idx>=0) db.articoli[idx]={...db.articoli[idx], ...saved, _ts: Date.now()};
+        cloudOk++;
+      }catch(err){ cloudFail++; console.error('Import cloud articolo fallito', art.codice, err); }
+    }
+    saveDBLocal(db);
+    renderAll();
+  }
+  const box=getBulkImportPreviewBox();
+  if(box) box.innerHTML=`<div class="card"><div class="t">Import completato</div><div class="small">Articoli locali: ${arts.length}${cloudEnabled()?` • Cloud OK: ${cloudOk}${cloudFail?` • Errori cloud: ${cloudFail}`:''}`:' • Cloud non collegato'}</div></div>`;
+  const el=getBulkImportTextarea(); if(el) el.value='';
+  toast(`Importati ${arts.length} articoli`);
+}
+function clearBulkArticles(){
+  const el=getBulkImportTextarea(); if(el) el.value='';
+  const box=getBulkImportPreviewBox(); if(box) box.innerHTML='';
+  toast('Import pulito');
+}
+
+
 document.addEventListener('keydown',(ev)=>{
   const isActivate=(ev.key==='Enter' || ev.key===' ' || ev.key==='Spacebar');
   if(!isActivate) return;
@@ -7412,6 +7577,9 @@ document.addEventListener('click',(ev)=>{
   if(a==='artBackToBrands'){ setArtBrowse('tutti'); return renderArt(); }
   if(a==='newCli') return openCliEdit(null);
   if(a==='newOrd') return openOrdEdit(null);
+  if(a==='previewBulkArticles') return previewBulkArticles();
+  if(a==='importBulkArticles') return importBulkArticles();
+  if(a==='clearBulkArticles') return clearBulkArticles();
   if(a==='exportFull') return exportDB('full');
   if(a==='exportLite') return exportDB('lite');
   if(a==='refreshDiag'){ renderDiagnostics(); toast('Diagnostica aggiornata'); return; }
@@ -7659,7 +7827,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-27-fb-auto-no-price-v83';
+const VG_BUILD='2026-05-27-fb-solo-emoji-qualita-v85';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -8191,7 +8359,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=fb-auto-no-price-v83', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=fb-solo-emoji-qualita-v85', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

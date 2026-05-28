@@ -256,7 +256,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v10_8-card-buttons-rollback">
+  <meta name="vg-version" content="v10_9-importa-articoli-chatgpt">
 </head>
 <body>
 <div class="top">
@@ -434,6 +434,18 @@ window.addEventListener('error',e=>{
       </div>
       <div class="small" style="margin-top:10px" id="importHint">Scegli prima se vuoi sostituire tutto il database oppure unire il JSON ai dati già presenti.</div>
     </div>
+    <div class="card" style="margin-top:12px">
+      <div class="h2">Importa articoli da ChatGPT</div>
+      <div class="small">Incolla un JSON con uno o più articoli. La PWA controlla i codici duplicati, mostra anteprima e salva anche sul cloud se sei collegato.</div>
+      <textarea id="bulkArticleJson" style="margin-top:10px;min-height:170px" placeholder='Esempio: [{"codice":"315074","brand":"LV","modello":"Alma Trunk BB","categoria":"Borse","costoUsd":230,"colore":"Nero","misura":"23.5x17.5x11.5","materiale":"Pelle di vitello","foto":["https://..."]}]'></textarea>
+      <div class="actions compact" style="margin-top:8px">
+        <button class="btn" type="button" data-action="previewBulkArticles">Anteprima articoli</button>
+        <button class="btn primary" type="button" data-action="importBulkArticles">Importa articoli</button>
+        <button class="btn" type="button" data-action="clearBulkArticles">Pulisci</button>
+      </div>
+      <div id="bulkArticlePreview" class="list" style="margin-top:10px"></div>
+    </div>
+
     
       <div class="card" style="margin-top:12px">
         <div class="h2">Cloud</div>
@@ -4816,9 +4828,7 @@ function buildPostFacebookBase(a, opts={}){
   const lines=[...promoPostIntroLines(a)];
   if(modelLine) lines.push(smartSentenceCase(modelLine));
 
-  const qual = articleQualityLabel(a);
-  const qualKey = String(qual||'').trim().toLowerCase();
-  if(qualKey==='originale') lines.push('QUALITÀ ORIGINALE');
+  // Facebook: non scrive mai il tipo di qualità; resta solo l'emoji accanto al modello.
 
   const details=[];
   const colore = safePostDetailValue(a?.colore||'', a);
@@ -4902,6 +4912,7 @@ function buildPostTelegram(a, includePrice=true){
   const misura=normalizePostLine(a.misura||'', brand);
   const materialeCompat=normalizePostLine(a.materiale||a.taglia||'', brand);
   const qemoji=emojiQualityForPost(a);
+  const qualKeyTelegram=String(articleQualityLabel(a)||'').trim().toLowerCase();
   const lines=[];
   const seen = new Set();
   const pushUnique = (value, formatter=null)=>{
@@ -4919,6 +4930,7 @@ function buildPostTelegram(a, includePrice=true){
     const tipoMateriale=materiale || materialeCompat || variante;
     if(scadenzaRaw) lines.push(`fino al ${formatPromoDateLabel(scadenzaRaw)}`);
     if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
+    if(qualKeyTelegram==='originale') lines.push('QUALITÀ ORIGINALE');
     pushUnique(tipoMateriale);
     pushUnique(colore);
     pushUnique(misura, v=>formatPostMisura(v));
@@ -4930,6 +4942,7 @@ function buildPostTelegram(a, includePrice=true){
     return formatGeneratedPostLines(lines);
   }
   if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
+  if(qualKeyTelegram==='originale') lines.push('QUALITÀ ORIGINALE');
   pushUnique(variante);
   pushUnique(colore);
   pushUnique(misura, v=>formatPostMisura(v));
@@ -8854,7 +8867,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-27-fb-auto-no-price-v83';
+const VG_BUILD='2026-05-27-fb-solo-emoji-qualita-v85';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -9446,7 +9459,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=fb-auto-no-price-v83', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=fb-solo-emoji-qualita-v85', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
