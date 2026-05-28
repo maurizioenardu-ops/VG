@@ -138,8 +138,8 @@ window.addEventListener('error',e=>{
       <div class="actions">
         <button class="btn" data-action="exportFull">Export DB (tutto)</button>
         <button class="btn" data-action="exportLite">Export DB (senza foto)</button>
-        <button class="btn" type="button" data-action="importJson">Import JSON</button>
-        <input id="importFile" type="file" accept=".json,application/json,text/json" style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0"/>
+        <button class="btn" type="button" id="btnImportFile" data-action="chooseImportFile">Import JSON</button>
+        <input id="importFile" type="file" accept=".json,application/json,text/json" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"/>
         <button class="btn danger" data-action="hardReset">Reset totale</button>
       </div>
       <div class="small" style="margin-top:10px" id="importHint"></div>
@@ -843,7 +843,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='newOrd') return openOrdEdit(null);
   if(a==='exportFull') return exportDB('full');
   if(a==='exportLite') return exportDB('lite');
-  if(a==='importJson'){
+  if(a==='chooseImportFile'){
     ev.preventDefault();
     const inp=document.getElementById('importFile');
     if(inp){ inp.value=''; inp.click(); }
