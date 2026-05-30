@@ -4851,9 +4851,22 @@ function ensureFacebookPostHasCode(text, a){
   const code=String(a?.codice||'').trim();
   const raw=String(text||'').trim();
   if(!code) return raw;
-  const rx=new RegExp(`\b(?:cod\.?|codice)\s*[:.\-]?\s*${escapeRegExp(code)}\b`, 'i');
-  if(rx.test(raw)) return raw;
-  return raw ? `${raw}
+  const codeLineRx=new RegExp(`^\\s*(?:cod\\.?|codice)\\s*[:.\\-]?\\s*${escapeRegExp(code)}\\s*$`, 'i');
+  const lines=raw.split(/\r?\n/);
+  let found=false;
+  const cleaned=[];
+  for(const line of lines){
+    if(codeLineRx.test(String(line||'').trim())){
+      if(found) continue;
+      found=true;
+      cleaned.push(`cod. ${code}`);
+    }else{
+      cleaned.push(line);
+    }
+  }
+  const normalized=cleaned.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  if(found) return normalized;
+  return normalized ? `${normalized}
 
 cod. ${code}` : `cod. ${code}`;
 }
