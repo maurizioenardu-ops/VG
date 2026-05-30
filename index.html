@@ -591,6 +591,7 @@ window.addEventListener('error',e=>{
       <div><div class="k">Modello</div><input id="a_mod" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
       <div><div class="k">Categoria</div><select id="a_cat"><option value="">Seleziona categoria</option></select></div>
     </div>
+    <div style="margin-top:10px"><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Descrizione articolo da inserire nel post Facebook sotto il nome modello..."></textarea></div>
     <div style="margin-top:10px"><div class="k">Disponibilità</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_unavailable" type="checkbox" style="width:auto;margin-right:8px"/>Segna come NON DISPONIBILE</label><div class="helper" style="margin-top:6px">L'articolo resta visibile in lista, ma viene segnato come non disponibile e non si può aggiungere agli ordini.</div></div>
     <div style="margin-top:10px"><div class="k">Fornitore</div><select id="a_forn"></select><div id="a_forn_hint" class="date" style="margin-top:6px">Scelta automatica dal codice articolo.</div></div>
   </div>
@@ -661,7 +662,6 @@ window.addEventListener('error',e=>{
 
   <div class="formBlock postblk inputSoft">
     <div class="blockTitle">Post e contenuti</div>
-    <div><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Dettagli utili per il post..."></textarea></div>
     <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="a_post_fb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbEdit">Copia FB</button></div></div>
     <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="a_post" placeholder="Qui il post Telegram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostTelegramEdit">Copia Telegram</button><button class="btn smallish" type="button" data-action="copyPostTelegramNoPriceEdit">Copia Telegram senza prezzo</button></div></div>
     <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
@@ -4815,6 +4815,8 @@ function buildPostFacebookBase(a, opts={}){
 
   const lines=[...promoPostIntroLines(a)];
   if(modelLine) lines.push(smartSentenceCase(modelLine));
+  const descLine = String(a?.descrizione||'').trim();
+  if(descLine) lines.push(descLine);
 
   const qual = articleQualityLabel(a);
   const qualKey = String(qual||'').trim().toLowerCase();
@@ -4855,13 +4857,32 @@ function ensureFacebookPostHasCode(text, a){
 
 cod. ${code}` : `cod. ${code}`;
 }
+function ensureFacebookPostHasDescriptionBelowModel(text, a){
+  const desc=String(a?.descrizione||'').trim();
+  const raw=String(text||'').trim();
+  if(!desc || !raw) return raw;
+  if(normalizeTextKey(raw).includes(normalizeTextKey(desc))) return raw;
+  const lines=raw.split(/\r?\n/);
+  let insertAt=0;
+  for(let i=0;i<lines.length;i++){
+    if(String(lines[i]||'').trim()){
+      insertAt=i+1;
+      break;
+    }
+  }
+  lines.splice(insertAt, 0, desc);
+  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+function normalizeFacebookPostForArticle(text, a){
+  return ensureFacebookPostHasCode(ensureFacebookPostHasDescriptionBelowModel(text, a), a);
+}
 function getArticleFacebookCustomPost(a){
   return String(a?.postFb || a?.postFacebook || a?.post_fb || '').trim();
 }
 function getArticleFacebookPost(a){
   const custom=getArticleFacebookCustomPost(a);
-  if(custom) return ensureFacebookPostHasCode(custom, a);
-  return ensureFacebookPostHasCode(buildPostFacebookBase(a, {includePrice:false}), a);
+  if(custom) return normalizeFacebookPostForArticle(custom, a);
+  return normalizeFacebookPostForArticle(buildPostFacebookBase(a, {includePrice:false}), a);
 }
 function buildPostFacebook(a){
   return getArticleFacebookPost(a);

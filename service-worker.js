@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-05-28-postfb-cod-clean-v84';
+const VERSION = 'gestionale-2026-05-30-desc-fb-v85';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
