@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-05-31-publish-order-v89';
+const VERSION = 'gestionale-2026-05-31-no-materiale-v90';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

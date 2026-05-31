@@ -256,7 +256,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v10_9-misure-lungh-h">
+  <meta name="vg-version" content="v11_0-no-materiale-post">
 </head>
 <body>
 <div class="top">
@@ -3705,7 +3705,15 @@ function formatMoneyCompactEuro(value){
 }
 function formatFbDetailLine(label, value){
   const clean=String(value||'').trim();
-  return clean ? `✔️ ${label}: ${clean}` : '';
+  if(!clean) return '';
+  const lbl=String(label||'').trim();
+  if(/^materiale$/i.test(lbl)) return `✔️ ${smartSentenceCase(clean)}`;
+  return `✔️ ${lbl}: ${clean}`;
+}
+function formatMaterialPostLine(value, prefix=''){
+  const clean=compactPostValue(value||'');
+  if(!clean) return '';
+  return `${prefix||''}${smartSentenceCase(clean)}`.trim();
 }
 function compactPostValue(text){
   return String(text||'').replace(/\s+/g,' ').trim();
@@ -4869,7 +4877,7 @@ function buildPostFacebookBase(a, opts={}){
   const misura = safePostDetailValue(postSizeValue(a), a);
   const altezzaCintura = safePostDetailValue(postBeltHeightValue(a), a);
   const materiale = safePostDetailValue(a?.materiale||'', a);
-  if(materiale) details.push(`Materiale: ${smartSentenceCase(materiale)}`);
+  if(materiale) details.push(formatMaterialPostLine(materiale));
   if(colore) details.push(`Colore: ${smartSentenceCase(colore)}`);
   if(misura){ const misuraLine=formatPostMeasureLine(a, misura); if(misuraLine) details.push(misuraLine); }
   if(altezzaCintura){ const hLine=formatPostBeltHeightLine(a, altezzaCintura); if(hLine) details.push(hLine); }
@@ -4987,15 +4995,27 @@ function stripArticlePrivateNotesFromPost(text, a){
   }
   return raw.replace(/\n{3,}/g,'\n\n').trim();
 }
+function stripPublicMaterialWordFromPost(text){
+  let raw=String(text||'').trim();
+  if(!raw) return raw;
+  raw=raw.split(/\r?\n/).map(line=>{
+    const m=String(line||'').match(/^(\s*(?:✔️\s*)?)(?:materiale)\s*[:\-]\s*(.+)$/i);
+    if(!m) return line;
+    const prefix=m[1]||'';
+    const value=compactPostValue(m[2]||'');
+    return value ? `${prefix}${smartSentenceCase(value)}`.trim() : '';
+  }).filter(line=>String(line||'').trim()).join('\n');
+  return raw.replace(/\n{3,}/g,'\n\n').trim();
+}
 function normalizePublicPostForArticle(text, a){
-  return stripArticlePrivateNotesFromPost(text, a);
+  return stripPublicMaterialWordFromPost(stripArticlePrivateNotesFromPost(text, a));
 }
 function normalizeFacebookPostForArticle(text, a){
   let out=stripArticlePrivateNotesFromPost(text, a);
   out=ensureFacebookPostHasDescriptionBelowModel(out, a);
   out=ensureFacebookPostHasArticleMeasures(out, a);
   out=ensureFacebookPostHasCode(out, a);
-  return stripArticlePrivateNotesFromPost(out, a);
+  return stripPublicMaterialWordFromPost(stripArticlePrivateNotesFromPost(out, a));
 }
 function getArticleFacebookCustomPost(a){
   return String(a?.postFb || a?.postFacebook || a?.post_fb || '').trim();
@@ -9653,7 +9673,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=postfb-cod-clean-v84', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=no-materiale-v90', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
