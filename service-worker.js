@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-05-31-fb-codice-singolo-v86';
+const VERSION = 'gestionale-2026-05-31-misure-h-v86';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

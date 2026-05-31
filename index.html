@@ -256,7 +256,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v10_8-card-buttons-rollback">
+  <meta name="vg-version" content="v10_9-misure-lungh-h">
 </head>
 <body>
 <div class="top">
@@ -617,7 +617,8 @@ window.addEventListener('error',e=>{
       </div>
     </div>
     <div class="grid2" style="margin-top:10px">
-      <div><div class="k">Misura</div><input id="a_mis" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="a_mis_hint" class="helper"></div></div>
+      <div><div class="k" id="a_mis_label">Mis.</div><input id="a_mis" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="a_mis_hint" class="helper"></div></div>
+      <div id="a_belt_h_wrap" style="display:none"><div class="k">H</div><input id="a_belt_h" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Es. 3,5 cm"/><div id="a_belt_h_hint" class="helper">Altezza cintura.</div></div>
       <div id="a_color_count_wrap">
         <div class="k" id="a_color_count_label">Colori disponibili</div>
         <input id="a_color_count" inputmode="numeric" autocomplete="off" placeholder="Es. 5"/>
@@ -984,6 +985,9 @@ function normalizeDBShape(o){
     codice:normalizeSpaceText(x?.codice||x?.sku||''),
     brand:normalizeSpaceText(x?.brand||x?.marca||''),
     categoria:normalizeSpaceText(x?.categoria||''),
+    misura:normalizeSpaceText(x?.misura||x?.dimensioni||''),
+    altezzaCintura:normalizeSpaceText(x?.altezzaCintura||x?.hCintura||x?.h||x?.altezza||''),
+    hCintura:normalizeSpaceText(x?.hCintura||x?.altezzaCintura||x?.h||x?.altezza||''),
     colore:normalizeSpaceText(x?.colore||''),
     ...deriveColorShape(x),
     costoUsd:firstFiniteNumber(x?.costoUsd, x?.costoUSD, x?.usd, 0),
@@ -1864,6 +1868,8 @@ function collectArticleDraft(){
       colorLabels:document.getElementById('a_color_labels')?.value||'',
       nonDisponibile:!!document.getElementById('a_unavailable')?.checked,
       misura:document.getElementById('a_mis')?.value||'',
+      altezzaCintura:document.getElementById('a_belt_h')?.value||'',
+      hCintura:document.getElementById('a_belt_h')?.value||'',
       costoUsd:document.getElementById('a_usd')?.value||'',
       costoUsdPromo:document.getElementById('a_usd_promo')?.value||'',
       promoAttiva:!!document.getElementById('a_promo_on')?.checked,
@@ -1904,6 +1910,7 @@ function restoreArticleDraft(targetId=''){
   document.getElementById('a_unavailable').checked=!!v.nonDisponibile;
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=v.misura||'';
+  document.getElementById('a_belt_h').value=v.altezzaCintura||v.hCintura||'';
   document.getElementById('a_usd').value=v.costoUsd||'';
   document.getElementById('a_usd_promo').value=v.costoUsdPromo||'';
   document.getElementById('a_promo_on').checked=!!v.promoAttiva;
@@ -3404,9 +3411,8 @@ function uniquePostLines(lines=[]){
   }
   return out;
 }
-function formatPostMisura(misura){
-  const clean=String(misura||'').replace(/^mis\.?\s*/i,'').trim();
-  return clean ? `Mis. ${clean}` : '';
+function formatPostMisura(misura, article=null){
+  return formatPostMeasureLine(article||{}, misura);
 }
 function formatPostPrezzoVendita(prezzo, symbol='€'){
   const n=Number(prezzo);
@@ -3690,13 +3696,34 @@ function formatFbDetailLine(label, value){
 function compactPostValue(text){
   return String(text||'').replace(/\s+/g,' ').trim();
 }
+function isBeltArticle(a){
+  const key=categoryKey(typeof a==='string' ? a : (a?.categoria||''));
+  return key.includes('cintur') || key.includes('belt');
+}
+function postMeasureLabel(a){
+  return isBeltArticle(a) ? 'Lungh.' : 'Mis.';
+}
 function postDimensionLabel(a){
-  const key=categoryKey(a?.categoria||'');
-  return (key.includes('scarp') || key.includes('sneaker')) ? 'Misure' : 'Dimensioni';
+  return postMeasureLabel(a);
 }
 function postSizeValue(a){
   const misura=compactPostValue(a?.misura||'');
   return misura || '';
+}
+function postBeltHeightValue(a){
+  if(!isBeltArticle(a)) return '';
+  return compactPostValue(a?.altezzaCintura||a?.hCintura||a?.h||a?.altezza||'');
+}
+function stripMeasurePrefix(value){
+  return String(value||'').replace(/^(?:mis\.?|misura|misure|dimensioni|dim\.?|lungh\.?|lunghezza|h|alt\.?|altezza)\s*[:.\-]?\s*/i,'').trim();
+}
+function formatPostMeasureLine(a, value=postSizeValue(a)){
+  const clean=stripMeasurePrefix(value);
+  return clean ? `${postMeasureLabel(a)} ${clean}` : '';
+}
+function formatPostBeltHeightLine(a, value=postBeltHeightValue(a)){
+  const clean=stripMeasurePrefix(value);
+  return (isBeltArticle(a) && clean) ? `H ${clean}` : '';
 }
 
 function safePostDetailValue(value, a){
@@ -3803,8 +3830,10 @@ function buildPostHeadline(a, mode='fb'){
 }
 function pickFacebookDetailLines(a){
   const detailCandidates=[];
-  const sizeValue=postSizeValue(a);
-  if(sizeValue) detailCandidates.push(formatFbDetailLine(postDimensionLabel(a), sizeValue));
+  const sizeLine=formatPostMeasureLine(a);
+  if(sizeLine) detailCandidates.push(`✔️ ${sizeLine}`);
+  const beltHeightLine=formatPostBeltHeightLine(a);
+  if(beltHeightLine) detailCandidates.push(`✔️ ${beltHeightLine}`);
   const colore=safePostDetailValue(a?.colore||'', a);
   if(colore) detailCandidates.push(formatFbDetailLine('Colore', colore));
   const materiale=safePostDetailValue(a?.materiale||a?.variante||'', a);
@@ -4773,7 +4802,7 @@ function buildPostFacebookBase(a, opts={}){
   if(!a?.codice) return '';
   const includePrice = opts?.includePrice===true;
   const priceSymbol = opts?.priceSymbol || '💶';
-  const seed=stableHashSeed([a?.codice,a?.brand,a?.modello,a?.categoria,a?.colore,a?.materiale,a?.misura,includePrice?'price':'noprice','finali-30-no-desc-solo-originale-zip-only-v2'].join('|'));
+  const seed=stableHashSeed([a?.codice,a?.brand,a?.modello,a?.categoria,a?.colore,a?.materiale,a?.misura,a?.altezzaCintura||a?.hCintura||'',includePrice?'price':'noprice','finali-30-no-desc-solo-originale-zip-only-v2'].join('|'));
   const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
 
   const finaliInfo=[
@@ -4824,10 +4853,12 @@ function buildPostFacebookBase(a, opts={}){
   const details=[];
   const colore = safePostDetailValue(a?.colore||'', a);
   const misura = safePostDetailValue(postSizeValue(a), a);
+  const altezzaCintura = safePostDetailValue(postBeltHeightValue(a), a);
   const materiale = safePostDetailValue(a?.materiale||'', a);
   if(materiale) details.push(`Materiale: ${smartSentenceCase(materiale)}`);
   if(colore) details.push(`Colore: ${smartSentenceCase(colore)}`);
-  if(misura) details.push(`${postDimensionLabel(a)}: ${smartSentenceCase(misura)}`);
+  if(misura){ const misuraLine=formatPostMeasureLine(a, misura); if(misuraLine) details.push(misuraLine); }
+  if(altezzaCintura){ const hLine=formatPostBeltHeightLine(a, altezzaCintura); if(hLine) details.push(hLine); }
   const detailStart=seed % Math.max(details.length, 1);
   const rotatedDetails=details.length ? [...details.slice(detailStart), ...details.slice(0, detailStart)] : [];
   if(rotatedDetails.length) lines.push(...rotatedDetails.slice(0,4));
@@ -4891,8 +4922,36 @@ function ensureFacebookPostHasDescriptionBelowModel(text, a){
   lines.splice(insertAt, 0, desc);
   return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
+function ensureFacebookPostHasArticleMeasures(text, a){
+  const raw=String(text||'').trim();
+  if(!raw) return raw;
+  const wanted=[formatPostMeasureLine(a), formatPostBeltHeightLine(a)].filter(Boolean);
+  if(!wanted.length) return raw;
+  const rawKey=normalizeTextKey(raw);
+  const missing=wanted.filter(line=>{
+    const key=normalizeTextKey(line);
+    if(!key) return false;
+    if(rawKey.includes(key)) return false;
+    if(key.startsWith('lungh') && /\b(lungh|lunghezza)\b/i.test(raw)) return false;
+    if(key.startsWith('mis') && /\b(mis|misura|misure|dimensioni|dim)\b/i.test(raw)) return false;
+    if(key.startsWith('h') && /(^|\n)\s*h\s*[:.\-]?\s*\S+/i.test(raw)) return false;
+    return true;
+  });
+  if(!missing.length) return raw;
+  const lines=raw.split(/\r?\n/);
+  let insertAt=0;
+  const descKey=normalizeTextKey(a?.descrizione||'');
+  for(let i=0;i<lines.length;i++){
+    const line=String(lines[i]||'').trim();
+    if(!line) continue;
+    insertAt=i+1;
+    if(descKey && normalizeTextKey(line).includes(descKey)){ insertAt=i+1; break; }
+  }
+  lines.splice(insertAt, 0, ...missing);
+  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
 function normalizeFacebookPostForArticle(text, a){
-  return ensureFacebookPostHasCode(ensureFacebookPostHasDescriptionBelowModel(text, a), a);
+  return ensureFacebookPostHasCode(ensureFacebookPostHasArticleMeasures(ensureFacebookPostHasDescriptionBelowModel(text, a), a), a);
 }
 function getArticleFacebookCustomPost(a){
   return String(a?.postFb || a?.postFacebook || a?.post_fb || '').trim();
@@ -4970,7 +5029,8 @@ function buildPostTelegram(a, includePrice=true){
     if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
     pushUnique(tipoMateriale);
     pushUnique(colore);
-    pushUnique(misura, v=>formatPostMisura(v));
+    pushUnique(misura, v=>formatPostMisura(v, a));
+    pushUnique(postBeltHeightValue(a), v=>formatPostBeltHeightLine(a, v));
     if(includePrice){
       const prezzoVenditaPromo=formatPostPrezzoVendita(currentPrice(a), '€');
       if(prezzoVenditaPromo) lines.push(prezzoVenditaPromo);
@@ -4981,7 +5041,8 @@ function buildPostTelegram(a, includePrice=true){
   if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
   pushUnique(variante);
   pushUnique(colore);
-  pushUnique(misura, v=>formatPostMisura(v));
+  pushUnique(misura, v=>formatPostMisura(v, a));
+  pushUnique(postBeltHeightValue(a), v=>formatPostBeltHeightLine(a, v));
   if(a.scatola) lines.push('Con scatola 🎁');
   pushUnique(materiale || materialeCompat, v=>`🧵 ${v}`);
   pushUnique(colori);
@@ -5009,6 +5070,8 @@ function buildCloudArticleMeta(art){
     colorCount: deriveColorShape(art).colorCount,
     colorLabels: deriveColorShape(art).colorLabels,
     misura: art?.misura||'',
+    altezzaCintura: art?.altezzaCintura||art?.hCintura||'',
+    hCintura: art?.hCintura||art?.altezzaCintura||'',
     costoUsd: Number(art?.costoUsd||0),
     costoUsdPromo: Number(art?.costoUsdPromo||0),
     costoEur: Number(art?.costoEur||0),
@@ -6916,7 +6979,7 @@ async function openArtEdit(id){
   const set=(k,v)=>document.getElementById(k).value=(v===0?0:(v||''));
 
   if(!a){
-    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_usd','a_usd_promo','a_promo_price','a_promo_date','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
+    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_belt_h','a_usd','a_usd_promo','a_promo_price','a_promo_date','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
     .forEach(fid => document.getElementById(fid).value='');
     document.getElementById('a_color_mode').value='single';
     document.getElementById('a_color_count').value='';
@@ -6942,7 +7005,7 @@ async function openArtEdit(id){
   refreshArticleCategorySelects(a?.categoria||'');
   set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
   set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
-  set('a_mis', a?.misura); set('a_usd', a?.costoUsd||''); set('a_usd_promo', a?.costoUsdPromo||'');
+  set('a_mis', a?.misura); set('a_belt_h', a?.altezzaCintura||a?.hCintura||''); set('a_usd', a?.costoUsd||''); set('a_usd_promo', a?.costoUsdPromo||'');
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
   set('a_promo_date', a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||'');
   document.getElementById('a_note').value=a?.note||'';
@@ -7232,6 +7295,8 @@ function renderArtAutoFields(){
       scadenzaPromo:document.getElementById('a_promo_date').value.trim(),
       prezzoVendita:0,
       misura:document.getElementById('a_mis').value.trim(),
+      altezzaCintura:document.getElementById('a_belt_h')?.value.trim()||'',
+      hCintura:document.getElementById('a_belt_h')?.value.trim()||'',
       materiale:document.getElementById('a_taglia').value.trim(),
       taglia:'',
       variante:document.getElementById('a_variante').value.trim(),
@@ -7270,6 +7335,8 @@ function renderArtAutoFields(){
     promoAttiva:promoOn, prezzoPromo:promoPrice, costoUsdPromo:promoUsd, costoEurPromo:rPromo.costo, scadenzaPromo:promoDate,
     prezzoVendita:r.sell,
     misura:document.getElementById('a_mis').value.trim(),
+    altezzaCintura:document.getElementById('a_belt_h')?.value.trim()||'',
+    hCintura:document.getElementById('a_belt_h')?.value.trim()||'',
     materiale:document.getElementById('a_taglia').value.trim(),
     taglia:'',
     variante:document.getElementById('a_variante').value.trim(),
@@ -7373,6 +7440,7 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_unavailable').checked=isArticleUnavailable(clone);
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=clone.misura||'';
+  document.getElementById('a_belt_h').value=clone.altezzaCintura||clone.hCintura||'';
   document.getElementById('a_usd').value=clone.costoUsd||'';
   document.getElementById('a_usd_promo').value=clone.costoUsdPromo||'';
   document.getElementById('a_promo_on').checked=!!clone.promoAttiva;
@@ -7412,10 +7480,18 @@ async function saveArt(){
 
     const categoriaValue=document.getElementById('a_cat').value.trim();
     const misuraValue=document.getElementById('a_mis').value.trim();
+    const altezzaCinturaValue=document.getElementById('a_belt_h')?.value.trim()||'';
+    const isBeltCategoryValue=articleCategoryIsBelt(categoriaValue);
     if(articleCategoryNeedsMeasure(categoriaValue) && !misuraValue){
       updateArticleMeasureState();
-      toast('Per scarpe e cinture la misura è obbligatoria');
+      toast(isBeltCategoryValue ? 'Per le cinture la lunghezza è obbligatoria' : 'Per le scarpe la misura è obbligatoria');
       document.getElementById('a_mis')?.focus();
+      return;
+    }
+    if(isBeltCategoryValue && !altezzaCinturaValue){
+      updateArticleMeasureState();
+      toast('Per le cinture devi indicare anche H');
+      document.getElementById('a_belt_h')?.focus();
       return;
     }
 
@@ -7458,6 +7534,8 @@ async function saveArt(){
       colorLabels: colorMode==='multiple' ? colorLabels : [],
       colorData: colorMode==='multiple' ? makeStableColorData({colorMode, colorCount, colorLabels}) : null,
       misura: misuraValue,
+      altezzaCintura: altezzaCinturaValue,
+      hCintura: altezzaCinturaValue,
       costoUsd: usd,
       costoUsdPromo: promoUsd,
       costoEur: r.costo,
@@ -7843,19 +7921,44 @@ async function deleteCli(){
 }
 
 
-function articleCategoryNeedsMeasure(rawCat=''){
+function articleCategoryIsShoe(rawCat=''){
   const cat=normalizeTextKey(rawCat||'');
-  return ['scarpa','scarpe','shoe','shoes','cintura','cinture','belt','belts'].some(token=>cat===token || cat.includes(token));
+  return ['scarpa','scarpe','sneaker','sneakers','shoe','shoes'].some(token=>cat===token || cat.includes(token));
+}
+function articleCategoryIsBelt(rawCat=''){
+  const cat=normalizeTextKey(rawCat||'');
+  return ['cintura','cinture','belt','belts'].some(token=>cat===token || cat.includes(token));
+}
+function articleCategoryNeedsMeasure(rawCat=''){
+  return articleCategoryIsShoe(rawCat) || articleCategoryIsBelt(rawCat);
 }
 function updateArticleMeasureState(){
   const catSel=document.getElementById('a_cat');
   const mis=document.getElementById('a_mis');
+  const label=document.getElementById('a_mis_label');
   const hint=document.getElementById('a_mis_hint');
+  const hWrap=document.getElementById('a_belt_h_wrap');
+  const hInput=document.getElementById('a_belt_h');
+  const hHint=document.getElementById('a_belt_h_hint');
   if(!mis) return false;
-  const needed=articleCategoryNeedsMeasure(catSel?.value||'');
+  const cat=catSel?.value||'';
+  const isBelt=articleCategoryIsBelt(cat);
+  const isShoe=articleCategoryIsShoe(cat);
+  const needed=isBelt || isShoe;
+  if(label) label.textContent=isBelt ? 'Lungh.' : 'Mis.';
   mis.required=needed;
-  mis.placeholder=needed ? 'Misura obbligatoria' : '';
-  if(hint) hint.textContent=needed ? 'Per scarpe e cinture la misura è obbligatoria.' : '';
+  mis.placeholder=isBelt ? 'Es. 110 cm' : (isShoe ? 'Es. 38' : 'Es. 25 x 18 x 8 cm');
+  if(hint){
+    if(isBelt) hint.textContent='Lunghezza cintura. Valori consigliati: 70, 75, 80… fino a 130 cm.';
+    else if(isShoe) hint.textContent='Per le scarpe scegli una misura da 34 a 45.';
+    else hint.textContent='Per borse e portafogli indica le misure se disponibili.';
+  }
+  if(hWrap) hWrap.style.display=isBelt ? '' : 'none';
+  if(hInput){
+    hInput.required=isBelt;
+    if(!isBelt) hInput.value='';
+  }
+  if(hHint) hHint.textContent='Altezza cintura. Esempio: 3,5 cm.';
   return needed;
 }
 
@@ -8577,6 +8680,8 @@ function readArticleForm(){
     variante: document.getElementById('a_variante')?.value.trim()||'',
     colore: document.getElementById('a_color_mode')?.value==='multiple' ? '' : (document.getElementById('a_colore')?.value.trim()||''),
     misura: document.getElementById('a_mis')?.value.trim()||'',
+    altezzaCintura: document.getElementById('a_belt_h')?.value.trim()||'',
+    hCintura: document.getElementById('a_belt_h')?.value.trim()||'',
     costoUsd: usd,
     costoEur: r.costo||0,
     prezzoVendita: r.sell||0,
@@ -8855,14 +8960,15 @@ bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_usd','a_usd_promo','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
   ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));
   if(id==='a_cod') el.addEventListener('input', updateArticleCodeStatus);
   if(id==='a_color_mode') el.addEventListener('change', ()=>{ updateArticleColorModeUI(); saveArticleDraft(); });
-  if(id==='a_color_count' || id==='a_color_labels' || id==='a_colore') el.addEventListener('change', saveArticleDraft);
+  if(id==='a_color_count' || id==='a_color_labels' || id==='a_colore' || id==='a_belt_h') el.addEventListener('change', saveArticleDraft);
 });
+document.getElementById('a_cat')?.addEventListener('change', ()=>{ updateArticleMeasureState(); renderArtAutoFields(); saveArticleDraft(); });
 
 bindSearchSuggest('o_cli_q','oCliSuggest','orderCli', value=>fillClientSelect(loadDB(), value, true));
 document.getElementById('o_art_pick')?.addEventListener('change', ()=>{ renderSelectedOrderArticlesSummary(); saveOrderDraft(); });
@@ -8884,7 +8990,6 @@ document.getElementById('importFile').addEventListener('change',(e)=>{
   e.target.value='';
 });
 document.getElementById('a_brand')?.addEventListener('change', ()=>{ handleBrandSelectionChange(); saveArticleDraft(); });
-document.getElementById('a_cat')?.addEventListener('change', ()=>{ updateArticleMeasureState(); renderArtAutoFields(); saveArticleDraft(); });
 document.getElementById('a_photo')?.addEventListener('change', async ()=>{ await refreshArtPhotoPreviewFromInput(); saveArticleDraft(); });
 document.getElementById('btnCloudLogin')?.addEventListener('click', ()=>show('mCloudLogin'));
 document.getElementById('btnCloudLogout')?.addEventListener('click', cloudLogout);
@@ -9357,7 +9462,7 @@ async function pullCloudToLocal(opts={}){
         const colorShape=deriveColorShape({ colorMode:meta.colorMode||local?.colorMode, colorType:meta.colorType||local?.colorType, colorCount:meta.colorCount||local?.colorCount, colorLabels:meta.colorLabels||local?.colorLabels });
         const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
         const cloudTs=parseTimestampLike(meta._ts, p.updated_at, p.created_at, local?._ts, Date.now());
-        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
+        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
