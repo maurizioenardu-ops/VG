@@ -4850,11 +4850,30 @@ function ensureFacebookPostHasCode(text, a){
   const code=String(a?.codice||'').trim();
   const raw=String(text||'').trim();
   if(!code) return raw;
-  const rx=new RegExp(`\b(?:cod\.?|codice)\s*[:.\-]?\s*${escapeRegExp(code)}\b`, 'i');
-  if(rx.test(raw)) return raw;
-  return raw ? `${raw}
 
-cod. ${code}` : `cod. ${code}`;
+  const safeCode=escapeRegExp(code);
+  const codeLineRx=new RegExp(`^\\s*(?:cod\\.?|codice)\\s*[:.\\-]?\\s*${safeCode}\\s*$`, 'i');
+  const codeAnywhereRx=new RegExp(`(?:^|[^A-Za-z0-9_])(?:cod\\.?|codice)\\s*[:.\\-]?\\s*${safeCode}(?=$|[^A-Za-z0-9_])`, 'i');
+
+  const lines=raw.split(/\r?\n/);
+  let found=false;
+  const cleaned=[];
+  for(const line of lines){
+    if(codeLineRx.test(String(line||''))){
+      if(!found){
+        cleaned.push(`cod. ${code}`);
+        found=true;
+      }
+      continue;
+    }
+    cleaned.push(line);
+  }
+
+  if(found){
+    return cleaned.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  }
+  if(codeAnywhereRx.test(raw)) return raw;
+  return raw ? `${raw}\n\ncod. ${code}` : `cod. ${code}`;
 }
 function ensureFacebookPostHasDescriptionBelowModel(text, a){
   const desc=String(a?.descrizione||'').trim();
@@ -8713,7 +8732,9 @@ document.addEventListener('click',(ev)=>{
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    const txt=ensureFacebookPostHasCode(String(document.getElementById('vArtPostFb')?.value || getArticleFacebookPost(art)).trim(), art);
+    const fbEl=document.getElementById('vArtPostFb');
+    const txt=normalizeFacebookPostForArticle(String(fbEl?.value || getArticleFacebookPost(art)).trim(), art);
+    if(fbEl) fbEl.value=txt;
     if(!txt){ toast('Post Facebook vuoto'); return; }
     return copyText(txt, 'Post copiato', ()=>recordArticlePublication('fb'));
   }
@@ -8738,7 +8759,9 @@ document.addEventListener('click',(ev)=>{
   }
   if(a==='copyPostFbEdit'){
     const art=readArticleForm?.() || null;
-    const txt=ensureFacebookPostHasCode(String(document.getElementById('a_post_fb')?.value||'').trim(), art);
+    const fbEl=document.getElementById('a_post_fb');
+    const txt=normalizeFacebookPostForArticle(String(fbEl?.value||'').trim(), art);
+    if(fbEl) fbEl.value=txt;
     if(!txt){ toast('Post Facebook vuoto'); return; }
     return copyText(txt, 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('fb'); });
   }
