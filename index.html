@@ -3338,7 +3338,7 @@ function orderMargin(o, db){
 /* ====== POST (rules) ====== */
 function emojiQualityForPost(a){
   const q=qualityFromCode(a.codice);
-  return (q==='ORIGINALE') ? '🥇' : '🔝💯';
+  return (q==='ORIGINALE') ? '🥇' : '🥈';
 }
 function escapeRegExp(str){
   return String(str||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
@@ -4818,9 +4818,8 @@ function buildPostFacebookBase(a, opts={}){
   const descLine = String(a?.descrizione||'').trim();
   if(descLine) lines.push(descLine);
 
-  const qual = articleQualityLabel(a);
-  const qualKey = String(qual||'').trim().toLowerCase();
-  if(qualKey==='originale') lines.push('QUALITÀ ORIGINALE');
+  const qualEmoji = emojiQualityForPost(a);
+  if(qualEmoji && !lines.some(x=>String(x||'').includes(qualEmoji))) lines.push(qualEmoji);
 
   const details=[];
   const colore = safePostDetailValue(a?.colore||'', a);
@@ -4851,22 +4850,9 @@ function ensureFacebookPostHasCode(text, a){
   const code=String(a?.codice||'').trim();
   const raw=String(text||'').trim();
   if(!code) return raw;
-  const codeLineRx=new RegExp(`^\\s*(?:cod\\.?|codice)\\s*[:.\\-]?\\s*${escapeRegExp(code)}\\s*$`, 'i');
-  const lines=raw.split(/\r?\n/);
-  let found=false;
-  const cleaned=[];
-  for(const line of lines){
-    if(codeLineRx.test(String(line||'').trim())){
-      if(found) continue;
-      found=true;
-      cleaned.push(`cod. ${code}`);
-    }else{
-      cleaned.push(line);
-    }
-  }
-  const normalized=cleaned.join('\n').replace(/\n{3,}/g,'\n\n').trim();
-  if(found) return normalized;
-  return normalized ? `${normalized}
+  const rx=new RegExp(`\b(?:cod\.?|codice)\s*[:.\-]?\s*${escapeRegExp(code)}\b`, 'i');
+  if(rx.test(raw)) return raw;
+  return raw ? `${raw}
 
 cod. ${code}` : `cod. ${code}`;
 }
@@ -6417,7 +6403,7 @@ function normalizeQualityValue(v){
   const key=raw.toLowerCase().replace(/[^a-zàèéìòóù0-9]+/g,'');
   if(['originale','orig','or'].includes(key)) return 'Originale';
   if(['standard','std','top100','top','100'].includes(key)) return 'Standard';
-  if(/[🔝💯]/.test(raw)) return 'Standard';
+  if(/[🔝💯🥈]/.test(raw)) return 'Standard';
   return raw.charAt(0).toUpperCase()+raw.slice(1).toLowerCase();
 }
 function articleQualityLabel(a){
