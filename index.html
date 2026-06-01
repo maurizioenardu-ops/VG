@@ -642,9 +642,9 @@ window.addEventListener('error',e=>{
   <div id="vArtVideos" style="display:none;margin-top:10px">
     <div class="k">Video</div>
     <div id="vArtVideoList" style="display:flex;flex-direction:column;gap:8px;margin-top:6px"></div>
-    <div class="actions compact" style="margin-top:8px">
-      <button class="btn smallish" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtVideos">🔗 Condividi video</button>
-    </div>
+  </div>
+  <div style="margin-top:10px">
+    <button class="btn" style="width:100%;background:#16a34a;border-color:#16a34a;color:#fff;min-height:42px;font-size:15px;font-weight:900" type="button" data-action="shareArtAll">🔗 Condividi</button>
   </div>
   <div class="hr"></div>
   <div class="grid2">
@@ -666,8 +666,8 @@ window.addEventListener('error',e=>{
       <div id="vArtMarginBox" class="marginBox" style="margin-top:8px"></div>
     </div>
   </div>
-  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" type="button" data-action="shareArtPhotosFb">Condividi foto</button><span id="vArtFbSaveMeta" class="pubMeta">Modificabile</span><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div></div>
-  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="copyPostTelegramNoPrice">Copia Telegram senza prezzo</button><button class="btn smallish" type="button" data-action="shareArtPhotosTg">Condividi foto</button><button class="btn smallish" type="button" data-action="downloadArtPhotosTg">Scarica foto</button><span id="vArtPubMetaTg" class="pubMeta">0 · mai</span></div></div>
+  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><span id="vArtFbSaveMeta" class="pubMeta">Modificabile</span><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div></div>
+  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="copyPostTelegramNoPrice">Copia Telegram senza prezzo</button><button class="btn smallish" type="button" data-action="downloadArtPhotosTg">Scarica foto</button><span id="vArtPubMetaTg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish" type="button" data-action="downloadArtPhotosIg">Scarica foto</button><span id="vArtPubMetaIg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
@@ -2996,21 +2996,14 @@ function renderArtVideoPreview(){
 window.removeArtExistingVideo=function(i){ currentArtExistingVideoIds.splice(i,1); renderArtVideoPreview(); };
 window.removeArtPendingVideo=function(i){ currentArtPendingVideos.splice(i,1); renderArtVideoPreview(); };
 
-async function playArtVideo(path){
-  toast('⏳ Carico video…');
-  const url=await getArtVideoSignedUrl(path);
-  if(!url){ toast('⚠️ Video non disponibile'); return; }
-  // Apri in nuova tab
-  window.open(url,'_blank');
-}
-
-async function shareArtVideos(){
+async function shareArtAll(){
   const db=loadDB();
   const a=db.articoli.find(x=>x.id===currentArtId); if(!a) return;
-  const vids=Array.isArray(a.videoIds)?a.videoIds.filter(Boolean):[];
-  if(!vids.length){ toast('Nessun video per questo articolo'); return; }
-  toast('⏳ Preparo video per la condivisione…');
+  toast('⏳ Preparo file…');
   const files=[];
+
+  // VIDEO PRIMA
+  const vids=Array.isArray(a.videoIds)?a.videoIds.filter(Boolean):[];
   for(let i=0;i<vids.length;i++){
     try{
       const sb=await ensureCloud(); if(!sb) continue;
@@ -3021,12 +3014,35 @@ async function shareArtVideos(){
       }
     }catch(e){ console.warn('Video non preparato:',e); }
   }
+
+  // POI FOTO
+  const pics=await getArticlePics(a);
+  for(let i=0;i<pics.length;i++){
+    try{
+      const blob=await downloadArticlePhotoBlobForShare(pics[i]);
+      if(blob){
+        const ext=guessPhotoExtension(pics[i],blob);
+        const type=blob?.type||(ext==='png'?'image/png':'image/jpeg');
+        files.push(new File([blob],`foto_${String(i+1).padStart(2,'0')}.${ext}`,{type}));
+      }
+    }catch(e){ console.warn('Foto non preparata:',e); }
+  }
+
+  if(!files.length){ toast('Nessun file da condividere'); return; }
   try{
-    if(files.length&&canNativeShareFiles(files)){ await navigator.share({files}); toast('✅ Condivisione aperta!'); }
-    else if(typeof navigator.share==='function'){ await navigator.share({title:a.modello||a.codice||'Video articolo',text:'Video articolo'}); }
-    else toast('Condivisione non supportata su questo browser');
+    if(canNativeShareFiles(files)){
+      await navigator.share({files});
+      toast('✅ Condivisione aperta!');
+    } else if(typeof navigator.share==='function'){
+      await navigator.share({title:a.modello||a.codice||'Articolo'});
+      toast('✅ Condivisione aperta!');
+    } else {
+      toast('Condivisione non supportata su questo browser');
+    }
   }catch(err){
     if(isShareAbortError(err)) return;
+    if(isShareActivationError(err)){ toast('⚠️ Tocca di nuovo Condividi'); return; }
+    console.warn('shareArtAll fallito:',err);
     toast('⚠️ Condivisione non riuscita');
   }
 }
@@ -7180,19 +7196,25 @@ async function openArtView(id){
   const thumbs=document.getElementById('vArtThumbs');
   hero.src=pics[0]||''; hero.style.display=pics[0]?'block':'none';
   thumbs.innerHTML=pics.map(src=>`<img src="${src}" onclick="document.getElementById('vArtHero').src='${src}'"/>`).join('');
-  // Video section
+  // Video section con preview reali
   const videosDiv=document.getElementById('vArtVideos');
   const videoList=document.getElementById('vArtVideoList');
   if(videosDiv&&videoList){
     const vids=Array.isArray(a.videoIds)?a.videoIds.filter(Boolean):[];
     if(vids.length){
       videosDiv.style.display='block';
-      videoList.innerHTML=vids.map((path,i)=>`
-        <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px">
-          <span style="font-size:20px">🎥</span>
-          <span style="font-size:12px;font-weight:800;color:#475569;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${path.split('/').pop()}</span>
-          <button class="btn smallish" style="min-height:34px;white-space:nowrap" type="button" onclick="playArtVideo('${path}')">▶ Riproduci</button>
-        </div>`).join('');
+      videoList.innerHTML=vids.map(()=>`<div style="background:#f1f5f9;border-radius:12px;height:60px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:13px;font-weight:800">⏳ Carico anteprima…</div>`).join('');
+      // Carica URL firmati e mostra video
+      vids.forEach(async(path,i)=>{
+        const url=await getArtVideoSignedUrl(path);
+        const items=videoList.querySelectorAll(':scope > div, :scope > video');
+        if(!url) return;
+        const ext=path.split('.').pop()||'mp4';
+        const el=document.createElement('video');
+        el.src=url; el.controls=true; el.preload='metadata';
+        el.style.cssText='width:100%;border-radius:12px;border:1px solid #e2e8f0;background:#000;max-height:220px;display:block';
+        if(items[i]) items[i].replaceWith(el);
+      });
     } else {
       videosDiv.style.display='none';
       videoList.innerHTML='';
@@ -9201,8 +9223,7 @@ document.addEventListener('click',(ev)=>{
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
     return copyText(buildPostInstagram(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('ig'); });
   }
-  if(a==='shareArtPhotosFb' || a==='shareArtPhotos') return shareCurrentArticlePhotos('fb');
-  if(a==='shareArtPhotosTg') return shareCurrentArticlePhotos('tg');
+  if(a==='shareArtPhotosFb' || a==='shareArtPhotos' || a==='shareArtPhotosTg') return shareArtAll();
   if(a==='downloadArtPhotosTg') return downloadCurrentArticlePhotos('tg');
   if(a==='downloadArtPhotosIg') return downloadCurrentArticlePhotos('ig');
   if(a==='downloadArtPhotos') return downloadCurrentArticlePhotos('tg');
@@ -9236,7 +9257,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='clearPendingArtPhotos'){ resetPendingArtPhotoFiles(); renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Nuove foto annullate'); return; }
   if(a==='pickArtVideos'){ document.getElementById('a_video')?.click(); return; }
   if(a==='clearArtVideos'){ currentArtExistingVideoIds=[]; currentArtPendingVideos=[]; renderArtVideoPreview(); toast('Video rimossi'); return; }
-  if(a==='shareArtVideos'){ shareArtVideos(); return; }
+  if(a==='shareArtAll'){ shareArtAll(); return; }
   if(a==='closeEdit'){ saveArticleDraft(); return hide('mArtEdit'); }
   if(a==='clearArtPhotos'){ currentArtExistingPics=[]; currentArtPhotosCleared=true; document.getElementById('a_photo').value=''; renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Foto attuali rimosse'); return; }
   if(a==='saveArt') return saveArt();
@@ -9261,7 +9282,11 @@ document.addEventListener('click',(ev)=>{
 
   /* Social actions */
   if(a==='newSocialPost') return openSocialEdit(null);
-  if(a==='editSocialPost'){ const id=el.closest('[data-id]')?.dataset.id||el.dataset.id; return openSocialEdit(id); }
+  if(a==='editSocialPost'){
+    if(ev.target.closest('button')) return; // click su pulsante interno → ignora
+    const id=el.closest('[data-id]')?.dataset.id||el.dataset.id;
+    return openSocialEdit(id);
+  }
   if(a==='saveSocialPost') return saveSocialPost();
   if(a==='closeSocialEdit'){ document.getElementById('mSocialEdit').style.display='none'; activeModalId=null; editingSocialId=null; return; }
   if(a==='deleteSocialPost') return deleteSocialPost();
@@ -10095,10 +10120,10 @@ function renderSocial(){
           <div class="socialPubMeta" style="${isRosso?'color:#b45309;font-weight:900':''}">${socialDateLabel(p.prossimaPub)}${p.pubCount?' · '+p.pubCount+' pub.':''}</div>
         </div>
         <div style="display:flex;gap:6px">
-          <button class="btn smallish" style="background:#16a34a;border-color:#16a34a;color:#fff;min-height:36px" data-action="shareSocialPost" data-id="${p.id}" onclick="event.stopPropagation()">🔗 Condividi</button>
+          <button class="btn smallish" style="background:#16a34a;border-color:#16a34a;color:#fff;min-height:36px" data-action="shareSocialPost" data-id="${p.id}">🔗 Condividi</button>
           ${isRosso
-            ? `<button class="btn smallish" style="background:#f59e0b;border-color:#f59e0b;color:#fff;min-height:36px" data-action="markSocialPublished" data-id="${p.id}" onclick="event.stopPropagation()">✓ Fatto</button>`
-            : `<button class="btn smallish" style="min-height:36px" data-action="copyPostSocial" data-id="${p.id}" onclick="event.stopPropagation()">📋 Copia</button>`
+            ? `<button class="btn smallish" style="background:#f59e0b;border-color:#f59e0b;color:#fff;min-height:36px" data-action="markSocialPublished" data-id="${p.id}">✓ Fatto</button>`
+            : `<button class="btn smallish" style="min-height:36px" data-action="copyPostSocial" data-id="${p.id}">📋 Copia</button>`
           }
         </div>
       </div>
@@ -10264,13 +10289,15 @@ async function shareSocialPost(id){
   const p=db.posts.find(x=>x.id===id); if(!p) return;
   toast('⏳ Preparo file…');
   const files=[];
-  for(let i=0;i<(p.media||[]).length;i++){
-    const m=p.media[i];
+  // Video prima
+  const videoMedia=(p.media||[]).filter(m=>m.type==='video');
+  const imageMedia=(p.media||[]).filter(m=>m.type==='image');
+  for(const m of [...videoMedia,...imageMedia]){
     try{
       const blob=await downloadSocialMediaBlob(m.path);
       if(blob){
-        const ext=m.path.split('.').pop()||'jpg';
-        files.push(new File([blob],`media_${String(i+1).padStart(2,'0')}.${ext}`,{type:m.mime||blob.type}));
+        const ext=m.path.split('.').pop()||( m.type==='video'?'mp4':'jpg');
+        files.push(new File([blob],`${m.type==='video'?'video':'foto'}_${files.length+1}.${ext}`,{type:m.mime||blob.type}));
       }
     }catch(e){ console.warn('Media non preparato:',e); }
   }
@@ -10279,72 +10306,11 @@ async function shareSocialPost(id){
   try{
     if(files.length&&canNativeShareFiles(files)){ await navigator.share({files,text,title}); toast('✅ Condivisione aperta!'); }
     else if(typeof navigator.share==='function'){ await navigator.share({text,title}); toast('✅ Testo condiviso!'); }
-    else { fallbackCopyText(text); toast('📋 Testo copiato'); }
+    else{ fallbackCopyText(text); toast('📋 Testo copiato'); }
   }catch(err){
     if(isShareAbortError(err)) return;
     if(isShareActivationError(err)){ toast('⚠️ Tocca di nuovo Condividi'); return; }
     fallbackCopyText(text); toast('⚠️ Condivisione non riuscita — testo copiato');
-  }
-}
-
-async function shareSocialPost(id){
-  const db=loadSocial();
-  const p=db.posts.find(x=>x.id===id); if(!p) return;
-
-  toast('⏳ Preparo file per la condivisione…');
-  const files=[];
-
-  // Prepara foto
-  if(Array.isArray(p.foto)&&p.foto.length){
-    for(let i=0;i<p.foto.length;i++){
-      try{
-        const resp=await fetch(p.foto[i]);
-        const blob=await resp.blob();
-        const ext=blob.type.includes('png')?'png':blob.type.includes('webp')?'webp':'jpg';
-        files.push(new File([blob],`foto_${String(i+1).padStart(2,'0')}.${ext}`,{type:blob.type||'image/jpeg'}));
-      }catch(e){ console.warn('Foto non preparata:',e); }
-    }
-  }
-
-  // Prepara video
-  if(p.hasLocalVideo){
-    try{
-      let blob=await loadVideoBlob(id);
-      if(!blob && p.videoStoragePath){
-        toast('⏳ Scarico video dal cloud…');
-        const sb=await ensureCloud();
-        if(sb){
-          const {data,error}=await sb.storage.from(SOCIAL_VIDEO_BUCKET).download(p.videoStoragePath);
-          if(!error&&data) blob=data;
-        }
-      }
-      if(blob){
-        const ext=(p.videoStoragePath||'').split('.').pop()||'mp4';
-        files.push(new File([blob],`video.${ext}`,{type:blob.type||'video/mp4'}));
-      }
-    }catch(e){ console.warn('Video non preparato:',e); }
-  }
-
-  const text=p.testo||'';
-  const title=p.titolo||'Post social';
-
-  try{
-    if(files.length && canNativeShareFiles(files)){
-      await navigator.share({files, text, title});
-      toast('✅ Condivisione aperta!');
-    } else if(typeof navigator.share==='function'){
-      await navigator.share({text, title});
-      toast('✅ Testo condiviso!');
-    } else {
-      fallbackCopyText(text);
-      toast('📋 Testo copiato (condivisione non supportata)');
-    }
-  }catch(err){
-    if(isShareAbortError(err)) return;
-    console.warn('Condivisione social fallita:',err);
-    if(isShareActivationError(err)){ toast('⚠️ Tocca di nuovo Condividi'); return; }
-    fallbackCopyText(text);
-    toast('⚠️ Condivisione non riuscita — testo copiato');
   }
 }
 function fallbackCopyText(text){
