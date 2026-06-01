@@ -17,7 +17,10 @@ body{-webkit-tap-highlight-color:transparent}
 .top h1{margin:0;font-size:20px;font-weight:900}
 .date{margin-top:4px;font-size:12px;opacity:.86}
 .app{max-width:560px;margin:0 auto;min-height:100vh;padding:12px 12px 84px}
-.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:12px 0}
+.tabs{display:flex;overflow-x:auto;gap:8px;margin:12px 0;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}.tabs::-webkit-scrollbar{display:none}.tab{flex:0 0 auto;min-width:72px}
+/* Social styles */
+.socialCard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;box-shadow:0 10px 24px rgba(15,23,42,.05);display:flex;flex-direction:column;gap:8px}.socialCard.oggi{border-color:#f59e0b;background:linear-gradient(180deg,#fffbeb,#fff)}.socialCard.scaduto{border-color:#ef4444;background:linear-gradient(180deg,#fff5f5,#fff)}.socialTypePill{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:900;background:#eef2ff;border:1px solid #c7d2fe;color:#1e3a8a}.socialTypePill.promo{background:#fef3c7;border-color:#fde68a;color:#92400e}.socialTypePill.carosello{background:#f0fdf4;border-color:#86efac;color:#166534}.socialTypePill.video{background:#fdf4ff;border-color:#e9d5ff;color:#7e22ce}.socialTypePill.consigli{background:#fff7ed;border-color:#fed7aa;color:#c2410c}.socialTypePill.testimonial{background:#f0fdf4;border-color:#6ee7b7;color:#065f46}.socialTypePill.lancio{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}.platformBadge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:900;padding:3px 8px;border-radius:999px;border:1px solid var(--line)}.platformBadge.fb{background:#e7f3ff;border-color:#93c5fd;color:#1d4ed8}.platformBadge.ig{background:#fdf2f8;border-color:#f0abfc;color:#86198f}.platformBadge.entrambi{background:#f0fdf4;border-color:#86efac;color:#166534}.socialPubMeta{font-size:11px;color:#64748b;font-weight:800}.socialTodayBanner{background:linear-gradient(135deg,#fef3c7,#fff7ed);border:1px solid #f59e0b;border-radius:18px;padding:12px;margin-top:10px}.socialSuggestGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.socialSuggestItem{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px;cursor:pointer}.socialSuggestItem:active{background:#f8fafc}.socialSuggestEmoji{font-size:22px;margin-bottom:4px}.socialSuggestTitle{font-size:13px;font-weight:900;color:#0f172a;line-height:1.2}.socialSuggestDesc{font-size:11px;color:#64748b;font-weight:800;margin-top:2px;line-height:1.3}
+#mSocialEdit .modal{background:#F3F0EA !important}
 .tab{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 8px;font-weight:900;text-align:center;cursor:pointer;box-shadow:0 6px 14px rgba(15,23,42,.04)}
 .tab.active{background:#fef3c7;border-color:#f59e0b}
 .cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}.cards.dashMain{grid-template-columns:1fr 1fr}.cards.dashMain .stat{min-height:96px}
@@ -272,6 +275,7 @@ window.addEventListener('error',e=>{
     <div class="tab" data-go="clienti" data-tab="clienti">Clienti</div>
     <div class="tab" data-go="ordini" data-tab="ordini">Ordini</div>
     <div class="tab" data-go="finanze" data-tab="finanze">Finanze</div>
+    <div class="tab" data-go="social" data-tab="social">📲 Social</div>
   </div>
 
   <div id="sec_home" class="section active">
@@ -414,6 +418,45 @@ window.addEventListener('error',e=>{
     </div>
   </div>
 
+  <!-- SEZIONE SOCIAL MEDIA -->
+  <div id="sec_social" class="section">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div class="h2">Post Social</div>
+        <button class="btn" type="button" data-action="newSocialPost">+ Nuovo</button>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap" id="socialFilterBtns">
+        <button class="btn smallish" style="background:#e0ecff;border-color:#93c5fd" data-action="filterSocial" data-filter="tutti">Tutti</button>
+        <button class="btn smallish" data-action="filterSocial" data-filter="oggi">📅 Oggi</button>
+        <button class="btn smallish" data-action="filterSocial" data-filter="fb">📘 FB</button>
+        <button class="btn smallish" data-action="filterSocial" data-filter="ig">📸 IG</button>
+        <button class="btn smallish" data-action="filterSocial" data-filter="promo">🔥 Promo</button>
+        <button class="btn smallish" data-action="filterSocial" data-filter="carosello">🎠 Carosello</button>
+        <button class="btn smallish" data-action="filterSocial" data-filter="informativo">💡 Info</button>
+      </div>
+    </div>
+
+    <div id="socialTodayBanner" style="display:none" class="socialTodayBanner">
+      <div style="font-size:11px;font-weight:1000;text-transform:uppercase;color:#92400e;letter-spacing:.06em;margin-bottom:8px">📣 Da pubblicare oggi o in ritardo</div>
+      <div id="socialTodayList" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+
+    <div class="heroSpot" style="margin-top:12px;cursor:pointer" data-action="toggleSocialSuggest">
+      <div class="eyebrow">💡 Ispirazione</div>
+      <div class="title" style="font-size:17px">Idee per i tuoi post FB/IG</div>
+      <div class="desc">Tocca per vedere template pronti da usare subito →</div>
+    </div>
+    <div id="socialSuggestPanel" style="display:none;margin-top:0">
+      <div class="socialSuggestGrid" id="socialSuggestGrid"></div>
+    </div>
+
+    <div style="height:10px"></div>
+    <div id="listSocial" class="list"></div>
+    <div id="socialEmpty" style="display:none;margin-top:12px">
+      <div class="agendaEmpty">Nessun post salvato. Crea il tuo primo contenuto social! 🚀</div>
+    </div>
+  </div>
+
   <div id="sec_impostazioni" class="section">
     <div class="card">
       <div class="h2">Impostazioni</div>
@@ -528,9 +571,80 @@ window.addEventListener('error',e=>{
     <button data-go="clienti" data-nav="clienti">Clienti</button>
     <button data-go="ordini" data-nav="ordini">Ordini</button>
     <button data-go="finanze" data-nav="finanze">Finanze</button>
+    <button data-go="social" data-nav="social">Social</button>
     <button data-go="impostazioni" data-nav="impostazioni">Impost.</button>
   </div>
 </div>
+
+<!-- MODAL SOCIAL POST -->
+<div id="mSocialEdit" class="modalwrap"><div class="modal artModal">
+  <div class="h2" id="socialEditTitle">Nuovo post social</div>
+  <div style="margin-top:10px"><div class="k">Titolo / Tema</div><input id="sp_titolo" placeholder="Es. Promo settimana, Unboxing Prada..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+  <div class="grid2" style="margin-top:10px">
+    <div><div class="k">Tipo contenuto</div>
+      <select id="sp_tipo">
+        <option value="informativo">💡 Informativo</option>
+        <option value="promo">🔥 Promo / Offerta</option>
+        <option value="carosello">🎠 Carosello prodotti</option>
+        <option value="video">🎥 Video / Reel</option>
+        <option value="consigli">📚 Consigli / Guida</option>
+        <option value="lancio">🆕 Lancio prodotto</option>
+        <option value="testimonial">⭐ Recensione cliente</option>
+        <option value="faq">❓ FAQ</option>
+        <option value="unboxing">📦 Unboxing</option>
+        <option value="trend">✨ Trend / Novità</option>
+      </select>
+    </div>
+    <div><div class="k">Piattaforma</div>
+      <select id="sp_piattaforma">
+        <option value="entrambi">✅ FB + IG</option>
+        <option value="fb">📘 Solo Facebook</option>
+        <option value="ig">📸 Solo Instagram</option>
+      </select>
+    </div>
+  </div>
+  <div style="margin-top:10px"><div class="k">Testo / Copy del post</div><textarea id="sp_testo" placeholder="Scrivi il copy del post qui... Puoi usare emoji, hashtag, call to action." style="min-height:120px"></textarea></div>
+  <div class="grid2" style="margin-top:10px">
+    <div>
+      <div class="k">Ciclo pubblicazione</div>
+      <select id="sp_ciclo">
+        <option value="0">📌 Nessun ciclo (una tantum)</option>
+        <option value="7">🔁 Ogni settimana</option>
+        <option value="14">🔁 Ogni 2 settimane</option>
+        <option value="21">🔁 Ogni 3 settimane</option>
+        <option value="30">🔁 Ogni mese</option>
+        <option value="60">🔁 Ogni 2 mesi</option>
+        <option value="90">🔁 Ogni 3 mesi</option>
+      </select>
+    </div>
+    <div><div class="k">Prossima pubblicazione</div><input id="sp_data" type="date"/></div>
+  </div>
+  <div style="margin-top:10px"><div class="k">Note interne</div><textarea id="sp_note" placeholder="Note private, idee, promemoria..." style="min-height:60px"></textarea></div>
+  <div style="margin-top:10px">
+    <div class="k">📸 Foto del post (max 5)</div>
+    <input id="sp_photo" type="file" accept="image/*" multiple style="margin-top:6px"/>
+    <div id="sp_photo_prev" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
+    <div class="helper" style="margin-top:6px">Le foto vengono salvate direttamente nel post. Usale come riferimento visivo o da scaricare/condividere.</div>
+  </div>
+  <div style="margin-top:10px">
+    <div class="k">🎥 Video locale (da telefono/pc)</div>
+    <input id="sp_video_file" type="file" accept="video/*" style="margin-top:6px"/>
+    <div id="sp_video_prev" style="margin-top:8px;display:none">
+      <video id="sp_video_player" controls style="width:100%;border-radius:14px;border:1px solid #e2e8f0;max-height:220px;background:#000"></video>
+      <button type="button" data-action="removeSocialVideo" class="btn danger smallish" style="margin-top:6px;width:100%">🗑 Rimuovi video</button>
+    </div>
+    <div class="helper" style="margin-top:4px">Il video viene salvato localmente nel dispositivo. Funziona anche offline.</div>
+  </div>
+  <div style="margin-top:10px">
+    <div class="k">🔗 Oppure: link video esterno (YouTube, Reel…)</div>
+    <input id="sp_video" type="url" placeholder="https://youtube.com/... o https://instagram.com/reel/..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
+  </div>
+  <div class="actions compact bottomMini" style="margin-top:12px">
+    <button class="btn primary smallish" type="button" data-action="saveSocialPost">Salva</button>
+    <button class="btn smallish" type="button" data-action="closeSocialEdit">Annulla</button>
+    <button class="btn danger smallish" type="button" data-action="deleteSocialPost">Elimina</button>
+  </div>
+</div></div>
 
 <!-- MODALS -->
 <div id="mArtView" class="modalwrap"><div class="modal">
@@ -9002,6 +9116,34 @@ document.addEventListener('click',(ev)=>{
   if(a==='confirmYes') return closeConfirm(true);
   if(a==='confirmNo') return closeConfirm(false);
   if(a==='delRow'){ const i=Number(el.dataset.i); ordRows.splice(i,1); renderOrdRows(); updateOrderShoeSizeState(); saveOrderDraft(); return; }
+
+  /* Social actions */
+  if(a==='newSocialPost') return openSocialEdit(null);
+  if(a==='editSocialPost'){ const id=el.closest('[data-id]')?.dataset.id||el.dataset.id; return openSocialEdit(id); }
+  if(a==='saveSocialPost') return saveSocialPost();
+  if(a==='closeSocialEdit'){ document.getElementById('mSocialEdit').style.display='none'; activeModalId=null; editingSocialId=null; return; }
+  if(a==='deleteSocialPost') return deleteSocialPost();
+  if(a==='markSocialPublished'){ const id=el.dataset.id; if(id) markSocialPublished(id); return; }
+  if(a==='copyPostSocial'){ const id=el.dataset.id; if(id) copyPostSocialById(id); return; }
+  if(a==='filterSocial'){
+    socialFilter=el.dataset.filter||'tutti';
+    document.querySelectorAll('#socialFilterBtns .btn').forEach(b=>{ b.style.background=''; b.style.borderColor=''; });
+    el.style.background='#e0ecff'; el.style.borderColor='#93c5fd';
+    renderSocial(); return;
+  }
+  if(a==='toggleSocialSuggest'){
+    socialSuggestOpen=!socialSuggestOpen;
+    const panel=document.getElementById('socialSuggestPanel');
+    if(panel) panel.style.display=socialSuggestOpen?'block':'none';
+    return;
+  }
+  if(a==='useSocialSuggest'){ const idx=Number(el.dataset.idx); useSocialSuggestion(idx); return; }
+  if(a==='removeSocialVideo'){
+    socialPendingVideoFile=null;
+    socialHasExistingVideo=false;
+    showSocialVideoPreview(null);
+    return;
+  }
 });
 
 const __viewFbPostEl=document.getElementById('vArtPostFb');
@@ -9640,11 +9782,565 @@ async function cloudLogout(){
   }catch(err){ toast('Logout cloud fallito'); console.error(err); }
 }
 
+/* ====== SOCIAL MEDIA POSTS ====== */
+const SOCIAL_KEY='vg_social_v1';
+const SOCIAL_VIDEO_DB='vg_social_videos_v1';
+const SOCIAL_VIDEO_STORE='videos';
+
+/* ---- Video IndexedDB ---- */
+function openSocialVideoDb(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(SOCIAL_VIDEO_DB,1);
+    req.onupgradeneeded=e=>e.target.result.createObjectStore(SOCIAL_VIDEO_STORE);
+    req.onsuccess=e=>resolve(e.target.result);
+    req.onerror=e=>reject(e.target.error);
+  });
+}
+async function saveVideoBlob(postId,blob){
+  const db=await openSocialVideoDb();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(SOCIAL_VIDEO_STORE,'readwrite');
+    tx.objectStore(SOCIAL_VIDEO_STORE).put(blob,postId);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=e=>reject(e.target.error);
+  });
+}
+async function loadVideoBlob(postId){
+  try{
+    const db=await openSocialVideoDb();
+    return new Promise((resolve,reject)=>{
+      const tx=db.transaction(SOCIAL_VIDEO_STORE,'readonly');
+      const req=tx.objectStore(SOCIAL_VIDEO_STORE).get(postId);
+      req.onsuccess=e=>resolve(e.target.result||null);
+      req.onerror=e=>reject(e.target.error);
+    });
+  }catch(_e){ return null; }
+}
+async function deleteVideoBlob(postId){
+  try{
+    const db=await openSocialVideoDb();
+    return new Promise((resolve,reject)=>{
+      const tx=db.transaction(SOCIAL_VIDEO_STORE,'readwrite');
+      tx.objectStore(SOCIAL_VIDEO_STORE).delete(postId);
+      tx.oncomplete=()=>resolve();
+      tx.onerror=e=>reject(e.target.error);
+    });
+  }catch(_e){}
+}
+
+/* ---- Supabase Storage per video ---- */
+const SOCIAL_VIDEO_BUCKET='social-videos';
+
+async function uploadVideoToSupabase(postId, file){
+  try{
+    const sb=await ensureCloud();
+    if(!sb||!cloudSession) return null;
+    const userId=cloudSession.user?.id||'shared';
+    const ext=(file.name||'').split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g,'')||'mp4';
+    const path=`${userId}/${postId}.${ext}`;
+    const {error}=await sb.storage.from(SOCIAL_VIDEO_BUCKET).upload(path, file,{upsert:true, contentType:file.type||'video/mp4'});
+    if(error) throw error;
+    return path;
+  }catch(err){
+    console.warn('Upload video Supabase fallito:',err);
+    return null;
+  }
+}
+
+async function getVideoSignedUrl(storagePath){
+  if(!storagePath) return null;
+  try{
+    const sb=await ensureCloud();
+    if(!sb) return null;
+    const {data,error}=await sb.storage.from(SOCIAL_VIDEO_BUCKET).createSignedUrl(storagePath,7200);
+    if(error) return null;
+    return data?.signedUrl||null;
+  }catch(_e){ return null; }
+}
+
+async function deleteVideoFromSupabase(storagePath){
+  if(!storagePath) return;
+  try{
+    const sb=await ensureCloud();
+    if(!sb||!cloudSession) return;
+    await sb.storage.from(SOCIAL_VIDEO_BUCKET).remove([storagePath]);
+  }catch(_e){}
+}
+
+async function cacheVideoFromSupabase(postId, storagePath){
+  // Download from Supabase and cache in IndexedDB
+  try{
+    const url=await getVideoSignedUrl(storagePath);
+    if(!url) return null;
+    const resp=await fetch(url);
+    if(!resp.ok) return null;
+    const blob=await resp.blob();
+    await saveVideoBlob(postId, blob);
+    return URL.createObjectURL(blob);
+  }catch(_e){ return null; }
+}
+let socialFilter='tutti';
+let editingSocialId=null;
+let socialSuggestOpen=false;
+
+const SOCIAL_SUGGESTIONS=[
+  {emoji:'📦',titolo:'Unboxing prodotto',desc:'Mostra come arriva la borsa',tipo:'unboxing',piattaforma:'ig',ciclo:14,testo:'Guardate che arrivo! 😍✨\nQuesta meraviglia è appena arrivata e non vediamo l\'ora di mostrarvi ogni dettaglio.\n💌 Scriveteci in DM per info e disponibilità!\n.\n#unboxing #borse #luxury #shopparallelo'},
+  {emoji:'🔥',titolo:'Promo della settimana',desc:'Offerta a tempo limitato',tipo:'promo',piattaforma:'entrambi',ciclo:7,testo:'⚡ PROMO SETTIMANA ⚡\n\nOfferta speciale per questa settimana soltanto!\n👜 [NOME PRODOTTO] a soli €[PREZZO]\n\n⏳ Disponibilità limitata\n📲 Scrivi in DM per info\n.\n#promo #offerta #borse #luxury'},
+  {emoji:'💡',titolo:'Come riconoscere la qualità',desc:'Post educativo sul prodotto',tipo:'consigli',piattaforma:'entrambi',ciclo:30,testo:'💡 Lo sapevi?\n\nEcco come riconoscere un prodotto di qualità A-grade:\n✅ Pelle morbida e uniforme\n✅ Cuciture precise e simmetriche\n✅ Hardware pesante e non ossidato\n✅ Odore di vera pelle\n\nI nostri prodotti soddisfano tutti questi criteri 💪\n📲 Scrivi per info!\n#guide #qualità #borse'},
+  {emoji:'⭐',titolo:'Recensione cliente',desc:'Testimonianza con foto',tipo:'testimonial',piattaforma:'entrambi',ciclo:21,testo:'La nostra cliente [NOME] è raggiante con la sua nuova borsa! 🥰\n\n"[CITAZIONE CLIENTE]"\n\nGrazie per la fiducia! Ogni ordine è una gioia ❤️\n💌 Vuoi essere la prossima? Scrivici!\n#clientisoddisfatti #recensione #borse'},
+  {emoji:'🆕',titolo:'Nuovo arrivo',desc:'Lancio di un prodotto',tipo:'lancio',piattaforma:'entrambi',ciclo:0,testo:'🆕 NUOVO ARRIVO 🆕\n\n[BRAND] [MODELLO] disponibile adesso!\n✨ Colore: [COLORE]\n📐 Misure: [MISURE]\n💰 Prezzo: €[PREZZO]\n\n🔥 Quantità limitata - chi prima arriva!\n📲 DM per prenotare\n#nuovoarrivo #[brand] #borse'},
+  {emoji:'❓',titolo:'FAQ: Come funzioniamo',desc:'Spiega il servizio',tipo:'faq',piattaforma:'entrambi',ciclo:60,testo:'❓ DOMANDE FREQUENTI ❓\n\n🙋 Come faccio un ordine?\n➡️ Scrivi in DM con il prodotto che ti interessa!\n\n🚚 Quanto ci vuole per la spedizione?\n➡️ Di solito 7-15 giorni lavorativi\n\n💳 Come si paga?\n➡️ Bonifico, PayPal o contrassegno\n\nHai altre domande? Scrivici! 👇\n#faq #info #borse'},
+  {emoji:'🎠',titolo:'Carosello nuovi arrivi',desc:'Slideshow di più prodotti',tipo:'carosello',piattaforma:'ig',ciclo:14,testo:'Scorri per vedere tutti i nuovi arrivi della settimana! 👉\n\nBorse, accessori e tanto altro ti aspettano!\n💌 Scrivi per info su qualsiasi pezzo\n📦 Spedizioni in tutta Italia\n.\n#nuoviarrivi #carosello #borse #luxury'},
+  {emoji:'✨',titolo:'Trend del momento',desc:'Le borse più richieste ora',tipo:'trend',piattaforma:'entrambi',ciclo:30,testo:'✨ TREND DEL MOMENTO ✨\n\nLe borse più richieste in questo periodo?\nEccole!\n\n1️⃣ [PRODOTTO 1]\n2️⃣ [PRODOTTO 2]\n3️⃣ [PRODOTTO 3]\n\nSono già disponibili nel nostro catalogo!\n📲 DM per prezzi e info\n#trend #borse #luxury #moda'},
+];
+
+function loadSocial(){
+  try{ return JSON.parse(localStorage.getItem(SOCIAL_KEY)||'{"posts":[]}'); }catch(_e){ return {posts:[]}; }
+}
+function saveSocial(db){ localStorage.setItem(SOCIAL_KEY, JSON.stringify(db)); }
+function todaySocialStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+function socialTypeName(tipo){
+  const m={informativo:'💡 Informativo',promo:'🔥 Promo',carosello:'🎠 Carosello',video:'🎥 Video',consigli:'📚 Consigli',lancio:'🆕 Lancio',testimonial:'⭐ Recensione',faq:'❓ FAQ',unboxing:'📦 Unboxing',trend:'✨ Trend'};
+  return m[tipo]||tipo||'Altro';
+}
+function socialTipoClass(tipo){
+  const m={promo:'promo',carosello:'carosello',video:'video',consigli:'consigli',testimonial:'testimonial',lancio:'lancio'};
+  return m[tipo]||'';
+}
+function piattaformaLabel(p){
+  if(p==='fb') return '<span class="platformBadge fb">📘 Facebook</span>';
+  if(p==='ig') return '<span class="platformBadge ig">📸 Instagram</span>';
+  return '<span class="platformBadge entrambi">✅ FB + IG</span>';
+}
+function socialDaysLabel(ciclo){
+  if(!ciclo||ciclo==0) return '📌 Una tantum';
+  if(ciclo==7) return '🔁 Ogni settimana';
+  if(ciclo==14) return '🔁 Ogni 2 settimane';
+  if(ciclo==21) return '🔁 Ogni 3 settimane';
+  if(ciclo==30) return '🔁 Ogni mese';
+  if(ciclo==60) return '🔁 Ogni 2 mesi';
+  if(ciclo==90) return '🔁 Ogni 3 mesi';
+  return '🔁 Ogni '+ciclo+' giorni';
+}
+function socialDateLabel(dateStr){
+  if(!dateStr) return '-';
+  const today=todaySocialStr();
+  if(dateStr===today) return '⚡ Oggi!';
+  if(dateStr<today) return '⛔ In ritardo ('+dateStr+')';
+  const d=new Date(dateStr+'T00:00:00'); const t=new Date(today+'T00:00:00');
+  const diff=Math.round((d-t)/(1000*60*60*24));
+  if(diff===1) return '⏰ Domani';
+  if(diff<=7) return '📅 Tra '+diff+' giorni';
+  return '📅 '+dateStr.split('-').reverse().join('/');
+}
+
+function renderSocialSuggestions(){
+  const grid=document.getElementById('socialSuggestGrid'); if(!grid) return;
+  grid.innerHTML=SOCIAL_SUGGESTIONS.map((s,i)=>`
+    <div class="socialSuggestItem" data-action="useSocialSuggest" data-idx="${i}">
+      <div class="socialSuggestEmoji">${s.emoji}</div>
+      <div class="socialSuggestTitle">${s.titolo}</div>
+      <div class="socialSuggestDesc">${s.desc}</div>
+    </div>`).join('');
+}
+
+function renderSocial(){
+  const db=loadSocial();
+  const today=todaySocialStr();
+  let posts=[...db.posts];
+  // Sort: scaduti first, then oggi, then by date, then no date
+  posts.sort((a,b)=>{
+    const da=a.prossimaPub||'9999';
+    const db2=b.prossimaPub||'9999';
+    return da<db2?-1:da>db2?1:0;
+  });
+
+  // Today/overdue banner
+  const urgenti=posts.filter(p=>p.prossimaPub && p.prossimaPub<=today);
+  const todayBanner=document.getElementById('socialTodayBanner');
+  const todayList=document.getElementById('socialTodayList');
+  if(todayBanner && todayList){
+    if(urgenti.length){
+      todayBanner.style.display='block';
+      todayList.innerHTML=urgenti.map(p=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;border:1px solid #fde68a;border-radius:14px;padding:10px 12px">
+          <div>
+            <div class="t" style="font-size:13px">${esc(p.titolo||'Post senza titolo')}</div>
+            <div style="margin-top:3px;font-size:11px;color:#92400e;font-weight:800">${socialDateLabel(p.prossimaPub)}</div>
+          </div>
+          <button class="btn smallish" style="background:#f59e0b;border-color:#f59e0b;color:#fff;min-height:36px;white-space:nowrap" data-action="markSocialPublished" data-id="${p.id}">✓ Fatto</button>
+        </div>`).join('');
+    } else {
+      todayBanner.style.display='none';
+    }
+  }
+
+  // Apply filter
+  let filtered=posts;
+  if(socialFilter==='oggi') filtered=posts.filter(p=>p.prossimaPub && p.prossimaPub<=today);
+  else if(socialFilter==='fb') filtered=posts.filter(p=>p.piattaforma==='fb'||p.piattaforma==='entrambi');
+  else if(socialFilter==='ig') filtered=posts.filter(p=>p.piattaforma==='ig'||p.piattaforma==='entrambi');
+  else if(socialFilter!=='tutti') filtered=posts.filter(p=>p.tipo===socialFilter);
+
+  const list=document.getElementById('listSocial');
+  const empty=document.getElementById('socialEmpty');
+  if(!list) return;
+
+  if(!filtered.length){
+    list.innerHTML='';
+    if(empty) empty.style.display='block';
+    return;
+  }
+  if(empty) empty.style.display='none';
+
+  list.innerHTML=filtered.map(p=>{
+    const isOggi=p.prossimaPub && p.prossimaPub<=today;
+    const cardClass=isOggi?(p.prossimaPub<today?'socialCard scaduto':'socialCard oggi'):'socialCard';
+    const preview=p.testo?p.testo.replace(/\n/g,' ').slice(0,80)+(p.testo.length>80?'…':''):'';
+    const hasFoto=Array.isArray(p.foto)&&p.foto.length>0;
+    const hasVideo=!!(p.videoUrl&&p.videoUrl.trim());
+    const fotoHtml=hasFoto?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${p.foto.slice(0,4).map((src,i)=>`<img src="${src}" style="width:60px;height:60px;object-fit:cover;border-radius:10px;border:1px solid #e2e8f0"/>`).join('')}${p.foto.length>4?`<div style="width:60px;height:60px;border-radius:10px;border:1px solid #e2e8f0;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#64748b">+${p.foto.length-4}</div>`:''}</div>`:'';
+    const videoHtml=hasVideo?`<a href="${esc(p.videoUrl)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:900;color:#7c3aed;text-decoration:none;margin-top:4px" onclick="event.stopPropagation()">🎥 Apri video</a>`:'';
+    return `
+    <div class="${cardClass}" data-action="editSocialPost" data-id="${p.id}" style="cursor:pointer">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0">
+          <div class="t" style="font-size:14px;line-height:1.2">${esc(p.titolo||'Post senza titolo')}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">
+            <span class="socialTypePill ${socialTipoClass(p.tipo)}">${socialTypeName(p.tipo)}</span>
+            ${piattaformaLabel(p.piattaforma)}
+            ${hasFoto?`<span style="font-size:11px;font-weight:900;color:#64748b">📸 ${p.foto.length} foto</span>`:''}
+            ${hasVideo?`<span style="font-size:11px;font-weight:900;color:#7c3aed">🔗 Video</span>`:''}
+            ${p.hasLocalVideo && p.videoStoragePath?`<span style="font-size:11px;font-weight:900;color:#059669">🎥 ☁️ Video</span>`:p.hasLocalVideo?`<span style="font-size:11px;font-weight:900;color:#0284c7">🎥 Video locale</span>`:''}
+            ${p.hasPendingVideoUpload?`<span style="font-size:11px;font-weight:900;color:#b45309">⏳ Upload pendente</span>`:''}
+          </div>
+        </div>
+      </div>
+      ${preview?`<div class="small" style="font-size:12px;line-height:1.35;color:#475569">${esc(preview)}</div>`:''}
+      ${fotoHtml}
+      ${videoHtml}
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:4px">
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <div class="socialPubMeta">${socialDaysLabel(p.cicloGiorni)}</div>
+          <div class="socialPubMeta" style="${isOggi?'color:#b45309;font-weight:900':''}">${socialDateLabel(p.prossimaPub)} ${p.pubCount?'· '+p.pubCount+' pub.':''}</div>
+        </div>
+        ${isOggi?`<button class="btn smallish" style="background:#f59e0b;border-color:#f59e0b;color:#fff;min-height:36px" data-action="markSocialPublished" data-id="${p.id}" onclick="event.stopPropagation()">✓ Pubblicato</button>`:`<button class="btn smallish" style="min-height:34px" data-action="copyPostSocial" data-id="${p.id}" onclick="event.stopPropagation()">Copia testo</button>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function openSocialEdit(id=null){
+  editingSocialId=id;
+  socialPendingPhotos=[];
+  socialExistingPhotos=[];
+  socialPendingVideoFile=null;
+  socialHasExistingVideo=false;
+  showSocialVideoPreview(null);
+  const titleEl=document.getElementById('socialEditTitle');
+  const db=loadSocial();
+  const today=todaySocialStr();
+  if(id){
+    const p=db.posts.find(x=>x.id===id);
+    if(!p) return;
+    if(titleEl) titleEl.textContent='Modifica post';
+    document.getElementById('sp_titolo').value=p.titolo||'';
+    document.getElementById('sp_tipo').value=p.tipo||'informativo';
+    document.getElementById('sp_piattaforma').value=p.piattaforma||'entrambi';
+    document.getElementById('sp_testo').value=p.testo||'';
+    document.getElementById('sp_ciclo').value=String(p.cicloGiorni||0);
+    document.getElementById('sp_data').value=p.prossimaPub||today;
+    document.getElementById('sp_note').value=p.note||'';
+    document.getElementById('sp_video').value=p.videoUrl||'';
+    socialExistingPhotos=Array.isArray(p.foto)?[...p.foto]:[];
+    const delBtn=document.querySelector('[data-action="deleteSocialPost"]');
+    if(delBtn) delBtn.style.display='';
+    // Load video: local IndexedDB first, then Supabase
+    if(p.hasLocalVideo){
+      const blob=await loadVideoBlob(id);
+      if(blob){
+        socialHasExistingVideo=true;
+        showSocialVideoPreview(URL.createObjectURL(blob));
+      } else if(p.videoStoragePath){
+        // Not cached locally — try downloading from Supabase
+        toast('⏳ Carico video dal cloud…');
+        const objUrl=await cacheVideoFromSupabase(id, p.videoStoragePath);
+        if(objUrl){ socialHasExistingVideo=true; showSocialVideoPreview(objUrl); }
+        else toast('⚠️ Video cloud non raggiungibile — verifica connessione');
+      }
+    }
+  } else {
+    if(titleEl) titleEl.textContent='Nuovo post social';
+    document.getElementById('sp_titolo').value='';
+    document.getElementById('sp_tipo').value='informativo';
+    document.getElementById('sp_piattaforma').value='entrambi';
+    document.getElementById('sp_testo').value='';
+    document.getElementById('sp_ciclo').value='7';
+    document.getElementById('sp_data').value=today;
+    document.getElementById('sp_note').value='';
+    document.getElementById('sp_video').value='';
+    const delBtn=document.querySelector('[data-action="deleteSocialPost"]');
+    if(delBtn) delBtn.style.display='none';
+  }
+  renderSocialPhotoPreview();
+  document.getElementById('mSocialEdit').style.display='flex';
+  activeModalId='mSocialEdit';
+}
+
+async function saveSocialPost(){
+  const titolo=(document.getElementById('sp_titolo')?.value||'').trim();
+  if(!titolo){ toast('Inserisci un titolo'); return; }
+  const db=loadSocial();
+  const allFoto=[...socialExistingPhotos,...socialPendingPhotos];
+  const postId=editingSocialId||uid();
+  const existingPost=editingSocialId?db.posts.find(x=>x.id===editingSocialId):null;
+
+  let videoStoragePath=existingPost?.videoStoragePath||'';
+  let hasLocalVideo=socialHasExistingVideo||!!socialPendingVideoFile;
+  let hasPendingVideoUpload=existingPost?.hasPendingVideoUpload||false;
+
+  // Handle new video file
+  if(socialPendingVideoFile){
+    // Save locally first (always)
+    try{ await saveVideoBlob(postId, socialPendingVideoFile); }
+    catch(_e){ toast('⚠️ Video non salvato in locale'); hasLocalVideo=false; }
+
+    // Try upload to Supabase
+    if(cloudSession){
+      toast('⏳ Carico video su cloud…');
+      const path=await uploadVideoToSupabase(postId, socialPendingVideoFile);
+      if(path){
+        videoStoragePath=path;
+        hasPendingVideoUpload=false;
+        toast('✅ Video caricato su cloud!');
+      } else {
+        hasPendingVideoUpload=true;
+        toast('⚠️ Video salvato solo in locale — sync cloud non disponibile.\nCreare bucket "social-videos" su Supabase Storage.');
+      }
+    } else {
+      hasPendingVideoUpload=true;
+    }
+  } else if(!socialHasExistingVideo && editingSocialId){
+    // Video removed
+    await deleteVideoBlob(editingSocialId);
+    if(videoStoragePath) await deleteVideoFromSupabase(videoStoragePath);
+    videoStoragePath='';
+    hasLocalVideo=false;
+    hasPendingVideoUpload=false;
+  }
+
+  const post={
+    id:postId,
+    titolo,
+    tipo:document.getElementById('sp_tipo')?.value||'informativo',
+    piattaforma:document.getElementById('sp_piattaforma')?.value||'entrambi',
+    testo:(document.getElementById('sp_testo')?.value||'').trim(),
+    note:(document.getElementById('sp_note')?.value||'').trim(),
+    videoUrl:(document.getElementById('sp_video')?.value||'').trim(),
+    hasLocalVideo,
+    videoStoragePath,
+    hasPendingVideoUpload,
+    foto:allFoto,
+    cicloGiorni:Number(document.getElementById('sp_ciclo')?.value||0),
+    prossimaPub:document.getElementById('sp_data')?.value||todaySocialStr(),
+    ultimaPub:existingPost?.ultimaPub||'',
+    pubCount:existingPost?.pubCount||0,
+    createdAt:existingPost?.createdAt||new Date().toISOString()
+  };
+
+  if(editingSocialId){
+    const idx=db.posts.findIndex(x=>x.id===editingSocialId);
+    if(idx>=0) db.posts[idx]=post; else db.posts.push(post);
+  } else {
+    db.posts.push(post);
+  }
+  try{ saveSocial(db); }
+  catch(e){
+    toast('⚠️ Errore salvataggio: le foto potrebbero essere troppo grandi. Prova con meno foto.');
+    return;
+  }
+  socialPendingPhotos=[];
+  socialExistingPhotos=[];
+  socialPendingVideoFile=null;
+  socialHasExistingVideo=false;
+  document.getElementById('mSocialEdit').style.display='none';
+  activeModalId=null;
+  renderSocial();
+  if(!socialPendingVideoFile) toast(editingSocialId?'Post aggiornato ✅':'Post salvato! 🎉');
+  editingSocialId=null;
+}
+
+function deleteSocialPost(){
+  if(!editingSocialId) return;
+  const idToDelete=editingSocialId;
+  const db=loadSocial();
+  const post=db.posts.find(x=>x.id===idToDelete);
+  confirmAction('Elimina post social?','Questa operazione non è reversibile.',()=>{
+    const db2=loadSocial();
+    db2.posts=db2.posts.filter(x=>x.id!==idToDelete);
+    saveSocial(db2);
+    deleteVideoBlob(idToDelete).catch(()=>{});
+    if(post?.videoStoragePath) deleteVideoFromSupabase(post.videoStoragePath).catch(()=>{});
+    document.getElementById('mSocialEdit').style.display='none';
+    activeModalId=null;
+    editingSocialId=null;
+    renderSocial();
+    toast('Post eliminato');
+  });
+}
+
+function markSocialPublished(id){
+  const db=loadSocial();
+  const p=db.posts.find(x=>x.id===id); if(!p) return;
+  const today=todaySocialStr();
+  p.ultimaPub=today;
+  p.pubCount=(p.pubCount||0)+1;
+  if(p.cicloGiorni && p.cicloGiorni>0){
+    // Advance to next cycle from today
+    const base=new Date(today+'T00:00:00');
+    base.setDate(base.getDate()+Number(p.cicloGiorni));
+    p.prossimaPub=base.getFullYear()+'-'+String(base.getMonth()+1).padStart(2,'0')+'-'+String(base.getDate()).padStart(2,'0');
+    toast('✅ Pubblicato! Prossima: '+p.prossimaPub.split('-').reverse().join('/'));
+  } else {
+    p.prossimaPub='';
+    toast('✅ Pubblicato!');
+  }
+  saveSocial(db);
+  renderSocial();
+}
+
+function copyPostSocialById(id){
+  const db=loadSocial();
+  const p=db.posts.find(x=>x.id===id); if(!p||!p.testo){ toast('Nessun testo da copiare'); return; }
+  try{
+    if(navigator.clipboard){ navigator.clipboard.writeText(p.testo).then(()=>toast('Testo copiato! 📋')).catch(()=>fallbackCopyText(p.testo)); }
+    else fallbackCopyText(p.testo);
+  }catch(_e){ toast('Copia non riuscita'); }
+}
+function fallbackCopyText(text){
+  const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try{ document.execCommand('copy'); toast('Testo copiato! 📋'); }catch(_e){ toast('Copia non riuscita'); }
+  document.body.removeChild(ta);
+}
+
+let socialPendingPhotos=[];  // Array of base64 strings for new photos
+let socialExistingPhotos=[]; // Array of base64 strings already saved
+let socialPendingVideoFile=null;  // File object for new video
+let socialHasExistingVideo=false; // Whether saved post has a video in IndexedDB
+
+function compressSocialPhoto(file, maxPx=900, quality=0.72){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        let {width:w,height:h}=img;
+        if(w>maxPx||h>maxPx){ const s=Math.min(maxPx/w,maxPx/h); w=Math.round(w*s); h=Math.round(h*s); }
+        const c=document.createElement('canvas'); c.width=w; c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(c.toDataURL('image/jpeg',quality));
+      };
+      img.onerror=reject;
+      img.src=e.target.result;
+    };
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderSocialPhotoPreview(){
+  const wrap=document.getElementById('sp_photo_prev'); if(!wrap) return;
+  const all=[...socialExistingPhotos,...socialPendingPhotos];
+  wrap.innerHTML=all.map((src,i)=>`
+    <div style="position:relative;display:inline-block">
+      <img src="${src}" style="width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid #e2e8f0;display:block"/>
+      <button type="button" onclick="removeSocialPhoto(${i})" style="position:absolute;top:-6px;right:-6px;background:#ef4444;color:#fff;border:none;border-radius:999px;width:20px;height:20px;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">✕</button>
+    </div>`).join('');
+}
+
+function removeSocialPhoto(idx){
+  const existCount=socialExistingPhotos.length;
+  if(idx<existCount) socialExistingPhotos.splice(idx,1);
+  else socialPendingPhotos.splice(idx-existCount,1);
+  renderSocialPhotoPreview();
+}
+
+function initSocialPhotoInput(){
+  const input=document.getElementById('sp_photo'); if(!input) return;
+  input.addEventListener('change', async ()=>{
+    const files=Array.from(input.files||[]);
+    const all=socialExistingPhotos.length+socialPendingPhotos.length;
+    const slots=5-all;
+    if(slots<=0){ toast('Massimo 5 foto per post'); input.value=''; return; }
+    const toAdd=files.slice(0,slots);
+    for(const f of toAdd){
+      try{ const b64=await compressSocialPhoto(f); socialPendingPhotos.push(b64); }
+      catch(_e){ toast('Errore lettura foto'); }
+    }
+    if(files.length>slots) toast('Massimo 5 foto — alcune ignorate');
+    renderSocialPhotoPreview();
+    input.value='';
+  });
+}
+
+function showSocialVideoPreview(src){
+  const wrap=document.getElementById('sp_video_prev');
+  const player=document.getElementById('sp_video_player');
+  if(!wrap||!player) return;
+  if(src){ player.src=src; wrap.style.display='block'; }
+  else { player.src=''; wrap.style.display='none'; }
+}
+
+function initSocialVideoInput(){
+  const input=document.getElementById('sp_video_file'); if(!input) return;
+  input.addEventListener('change',()=>{
+    const file=input.files?.[0];
+    if(!file){ socialPendingVideoFile=null; showSocialVideoPreview(null); return; }
+    socialPendingVideoFile=file;
+    socialHasExistingVideo=false;
+    const url=URL.createObjectURL(file);
+    showSocialVideoPreview(url);
+    input.value='';
+  });
+}
+function useSocialSuggestion(idx){
+  const s=SOCIAL_SUGGESTIONS[idx]; if(!s) return;
+  const today=todaySocialStr();
+  editingSocialId=null;
+  socialPendingPhotos=[];
+  socialExistingPhotos=[];
+  socialPendingVideoFile=null;
+  socialHasExistingVideo=false;
+  showSocialVideoPreview(null);
+  const titleEl=document.getElementById('socialEditTitle');
+  if(titleEl) titleEl.textContent='Nuovo post social';
+  document.getElementById('sp_titolo').value=s.titolo;
+  document.getElementById('sp_tipo').value=s.tipo;
+  document.getElementById('sp_piattaforma').value=s.piattaforma;
+  document.getElementById('sp_testo').value=s.testo;
+  document.getElementById('sp_ciclo').value=String(s.ciclo||0);
+  document.getElementById('sp_data').value=today;
+  document.getElementById('sp_note').value='';
+  document.getElementById('sp_video').value='';
+  renderSocialPhotoPreview();
+  const delBtn=document.querySelector('[data-action="deleteSocialPost"]');
+  if(delBtn) delBtn.style.display='none';
+  document.getElementById('mSocialEdit').style.display='flex';
+  activeModalId='mSocialEdit';
+}
+window.removeSocialPhoto=removeSocialPhoto;
+
 /* init */
 async function bootApp(){
   await runOneTimeFreshReset();
   await runOneTimeArticlePublishReset();
   renderAll();
+  renderSocial();
+  renderSocialSuggestions();
+  initSocialPhotoInput();
+  initSocialVideoInput();
   initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship']);
   updateArticleColorModeUI();
   document.getElementById('a_color_suggest_btn')?.addEventListener('click', async ()=>{ try{ await suggestArticleColorLabelsFromImage(); }catch(err){ console.warn('Suggerimento colori fallito', err); toast('Non sono riuscita a leggere bene la foto'); } });
