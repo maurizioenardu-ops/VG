@@ -3011,53 +3011,64 @@ window.artHeroVideo=function(url){
 async function shareArtAll(){
   const db=loadDB();
   const a=db.articoli.find(x=>x.id===currentArtId); if(!a) return;
+
+  // Usa sistema warming esistente per le foto (già collaudato)
+  let ctx=getPreparedCurrentArticlePhotoContext();
+  if(!ctx) ctx=await getCurrentArticlePhotoContext();
+
+  // Se foto non ancora pronte, avvia warming e chiedi di ripremere
+  if(ctx && !areCachedArticlePhotoFilesComplete(ctx)){
+    warmCurrentArticlePhotoShare(ctx,{silent:true}).catch(()=>{});
+    const readyCount=(getCachedArticlePhotoFilesForCtx(ctx)||[]).length;
+    toast(readyCount>0
+      ? `Sto preparando: ${readyCount}/${ctx.pics.length} foto pronte. Premi Condividi tra un attimo.`
+      : `Sto preparando le foto. Premi Condividi tra un attimo.`
+    );
+    return;
+  }
+
   toast('⏳ Preparo file…');
   const files=[];
 
-  // VIDEO PRIMA
+  // 1. VIDEO PRIMA
   const vids=Array.isArray(a.videoIds)?a.videoIds.filter(Boolean):[];
   for(let i=0;i<vids.length;i++){
     try{
       const sb=await ensureCloud(); if(!sb) continue;
       const {data,error}=await sb.storage.from(SUPABASE_BUCKET).download(vids[i]);
       if(!error&&data){
-        const ext=vids[i].split('.').pop()||'mp4';
+        const ext=(vids[i].split('.').pop()||'mp4').replace(/[^a-z0-9]/gi,'').toLowerCase()||'mp4';
         files.push(new File([data],`video_${i+1}.${ext}`,{type:data.type||'video/mp4'}));
       }
     }catch(e){ console.warn('Video non preparato:',e); }
   }
 
-  // POI FOTO
-  const pics=await getArticlePics(a);
-  for(let i=0;i<pics.length;i++){
-    try{
-      const blob=await downloadArticlePhotoBlobForShare(pics[i]);
-      if(blob){
-        const ext=guessPhotoExtension(pics[i],blob);
-        const type=blob?.type||(ext==='png'?'image/png':'image/jpeg');
-        files.push(new File([blob],`foto_${String(i+1).padStart(2,'0')}.${ext}`,{type}));
-      }
-    }catch(e){ console.warn('Foto non preparata:',e); }
+  // 2. POI FOTO (già pronte dal warming)
+  if(ctx){
+    const photoFiles=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
+    files.push(...photoFiles);
   }
 
   if(!files.length){ toast('Nessun file da condividere'); return; }
 
-  // Testo FB
+  // 3. Testo FB
   const text=(document.getElementById('vArtPostFb')?.value||'').trim();
 
   try{
     if(canNativeShareFiles(files)){
-      await navigator.share({files, ...(text?{text}:{}) });
+      await navigator.share({files, ...(text?{text}:{})});
+      recordArticlePublication('fb');
       toast('✅ Condivisione aperta!');
     } else if(typeof navigator.share==='function'){
-      await navigator.share({title:a.modello||a.codice||'Articolo', ...(text?{text}:{}) });
+      await navigator.share({...(text?{text}:{}), title:a.modello||a.codice||'Articolo'});
       toast('✅ Condivisione aperta!');
     } else {
-      toast('Condivisione non supportata su questo browser');
+      if(text){ fallbackCopyText(text); toast('📋 Testo FB copiato'); }
+      else toast('Condivisione non supportata su questo browser');
     }
   }catch(err){
     if(isShareAbortError(err)) return;
-    if(isShareActivationError(err)){ toast('⚠️ Tocca di nuovo Condividi'); return; }
+    if(isShareActivationError(err)){ toast('⚠️ File non ancora pronti. Premi di nuovo Condividi.'); return; }
     console.warn('shareArtAll fallito:',err);
     toast('⚠️ Condivisione non riuscita');
   }
