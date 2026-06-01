@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-06-01-social-videos-media-v93';
+const VERSION = 'gestionale-2026-06-01-social-videos-save-fix-v95';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

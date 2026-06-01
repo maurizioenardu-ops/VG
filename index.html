@@ -119,6 +119,7 @@ body{-webkit-tap-highlight-color:transparent}
 .navBottom .inner{max-width:560px;margin:0 auto;display:flex;justify-content:space-between}
 .navBottom button{border:none;background:none;padding:10px 4px 12px;font-weight:900;color:var(--muted);font-size:10px;touch-action:manipulation}
 .navBottom button.active{color:var(--blue)}
+.navBottom button[data-nav="post"]{font-size:9px;line-height:1.05;max-width:76px;white-space:normal}
 /* modal */
 .modalwrap{position:fixed;inset:0;background:rgba(15,23,42,.4);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}
 .modal{background:#fff;width:100%;max-width:560px;border-radius:20px;border:1px solid var(--line);padding:14px;max-height:85vh;overflow:auto}
@@ -276,7 +277,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v12_2-social-videos-supabase-media">
+  <meta name="vg-version" content="v12_4-social-videos-save-fix">
 </head>
 <body>
 <div class="top">
@@ -529,6 +530,7 @@ window.addEventListener('error',e=>{
       <div class="grid2" style="margin-top:10px">
         <div><div class="k">Tab Home</div><input id="e_tab_home" placeholder="Dashboard"/></div>
         <div><div class="k">Tab Articoli</div><input id="e_tab_articoli" placeholder="Articoli"/></div>
+        <div><div class="k">Tab Social-Videos</div><input id="e_tab_post" placeholder="Social-Videos"/></div>
       </div>
       <div class="grid2" style="margin-top:10px">
         <div><div class="k">Tab Clienti</div><input id="e_tab_clienti" placeholder="Clienti"/></div>
@@ -559,7 +561,7 @@ window.addEventListener('error',e=>{
   <div class="inner">
     <button class="active" data-go="home" data-nav="home">Home</button>
     <button data-go="articoli" data-nav="articoli">Articoli</button>
-    <button data-go="post" data-nav="post">Post</button>
+    <button data-go="post" data-nav="post">Social-Videos</button>
     <button data-go="clienti" data-nav="clienti">Clienti</button>
     <button data-go="ordini" data-nav="ordini">Ordini</button>
     <button data-go="finanze" data-nav="finanze">Finanze</button>
@@ -751,7 +753,7 @@ window.addEventListener('error',e=>{
     <div><div class="k">Ultima pubblicazione</div><input id="cy_last" type="date" autocomplete="off"/></div>
   </div>
   <div style="margin-top:10px"><div class="k">Testo post FB/IG</div><textarea id="cy_text" placeholder="Scrivi qui il testo da copiare e ripubblicare ciclicamente..." autocomplete="off" autocapitalize="sentences" spellcheck="true"></textarea></div>
-  <div style="margin-top:10px"><div class="k">Carica immagini/video</div><input id="cy_media_files" type="file" multiple accept="image/*,video/*"/><div class="cyclicUploadHint">Carica foto, caroselli o video nel bucket Supabase <b>social-videos</b>.</div><div id="cy_media_preview" class="cyclicMediaGrid"></div></div>
+  <div style="margin-top:10px"><div class="k">Carica immagini/video</div><input id="cy_media_files" type="file" multiple accept="image/*,video/*"/><div class="cyclicUploadHint">Carica foto, caroselli o video nel bucket Supabase <b>social-videos</b>.</div><div id="cy_upload_status" class="cyclicUploadHint"></div><div id="cy_media_preview" class="cyclicMediaGrid"></div></div>
   <div style="margin-top:10px"><div class="k">Link immagine/video</div><input id="cy_media" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Link opzionale a immagine, video, Drive, Supabase, ecc."/><div class="helper">Puoi usare anche un link esterno se il file è già online.</div></div>
   <div class="actions compact bottomMini">
     <button class="btn primary smallish" type="button" data-action="saveCyclicPost">Salva</button>
@@ -5404,7 +5406,7 @@ function defaultUiPrefs(){
   return {
     title:'Gestionale',
     cloud:'Cloud',
-    tabs:{home:'Dashboard',articoli:'Articoli',clienti:'Clienti',ordini:'Ordini',finanze:'Finanze',impostazioni:'Impost.'},
+    tabs:{home:'Dashboard',articoli:'Articoli',post:'Social-Videos',clienti:'Clienti',ordini:'Ordini',finanze:'Finanze',impostazioni:'Impost.'},
     buttons:{save:'Salva',cancel:'Annulla',delete:'Elimina'},
     css:''
   };
@@ -5428,7 +5430,7 @@ function fillUiEditor(){
   const p=loadUiPrefs();
   const set=(id,val)=>{ const el=document.getElementById(id); if(el) el.value=val||''; };
   set('e_title',p.title); set('e_cloud',p.cloud);
-  set('e_tab_home',p.tabs.home); set('e_tab_articoli',p.tabs.articoli); set('e_tab_clienti',p.tabs.clienti);
+  set('e_tab_home',p.tabs.home); set('e_tab_articoli',p.tabs.articoli); set('e_tab_post',p.tabs.post); set('e_tab_clienti',p.tabs.clienti);
   set('e_tab_ordini',p.tabs.ordini); set('e_tab_finanze',p.tabs.finanze); set('e_tab_impostazioni',p.tabs.impostazioni);
   set('e_btn_save',p.buttons.save); set('e_btn_cancel',p.buttons.cancel); set('e_btn_delete',p.buttons.delete);
   set('e_css',p.css);
@@ -5437,7 +5439,7 @@ function readUiEditor(){
   const get=id=>document.getElementById(id)?.value?.trim()||'';
   return normalizeUiPrefs({
     title:get('e_title'), cloud:get('e_cloud'),
-    tabs:{home:get('e_tab_home'),articoli:get('e_tab_articoli'),clienti:get('e_tab_clienti'),ordini:get('e_tab_ordini'),finanze:get('e_tab_finanze'),impostazioni:get('e_tab_impostazioni')},
+    tabs:{home:get('e_tab_home'),articoli:get('e_tab_articoli'),post:get('e_tab_post'),clienti:get('e_tab_clienti'),ordini:get('e_tab_ordini'),finanze:get('e_tab_finanze'),impostazioni:get('e_tab_impostazioni')},
     buttons:{save:get('e_btn_save'),cancel:get('e_btn_cancel'),delete:get('e_btn_delete')},
     css:document.getElementById('e_css')?.value||''
   });
@@ -7114,7 +7116,8 @@ function safeStorageFilename(name='media'){
 async function uploadCyclicMediaFileToCloud(postId, file, index=0){
   const sb=await ensureCloud();
   if(!sb) throw new Error('Supabase non disponibile');
-  if(!cloudSession) throw new Error('Login cloud mancante');
+  // Per Social-Videos usiamo la chiave anon: basta la policy Storage su Supabase.
+  // Non serve login cloud per caricare nel bucket pubblico.
   const cleanPost=String(postId||uid()).replace(/[^a-z0-9_-]/gi,'_');
   const filename=safeStorageFilename(file?.name||`media-${index+1}`);
   const path=`${cleanPost}/${Date.now()}-${index+1}-${filename}`;
@@ -7141,6 +7144,13 @@ async function removeCyclicMediaFromCloud(mediaFiles){
     const sb=await ensureCloud();
     if(sb && cloudSession) await sb.storage.from(SUPABASE_POST_BUCKET).remove(paths);
   }catch(err){ console.warn('Rimozione media post ciclico fallita', err); }
+}
+function setCyclicUploadStatus(msg='', isError=false){
+  const el=document.getElementById('cy_upload_status');
+  if(!el) return;
+  el.textContent=msg||'';
+  el.style.color=isError?'#b91c1c':'#64748b';
+  el.style.fontWeight=isError?'1000':'800';
 }
 function renderCyclicEditMediaPreview(){
   const box=document.getElementById('cy_media_preview');
@@ -7202,6 +7212,7 @@ function openCyclicPostEdit(id=null){
   document.getElementById('cy_media').value=p?.mediaLink||'';
   const fileInput=document.getElementById('cy_media_files');
   if(fileInput) fileInput.value='';
+  setCyclicUploadStatus('');
   renderCyclicEditMediaPreview();
   show('mCyclicPostEdit');
   scheduleModalTextareaFit('mCyclicPostEdit');
@@ -7226,12 +7237,16 @@ async function saveCyclicPost(){
   const selected=Array.from(document.getElementById('cy_media_files')?.files||[]).filter(Boolean);
   if(selected.length){
     try{
+      setCyclicUploadStatus(`Carico ${selected.length} media su Supabase...`);
       toast('Carico media su Supabase...');
       const uploaded=await uploadCyclicMediaFilesToCloud(id, selected);
       mediaFiles=[...mediaFiles, ...uploaded];
+      setCyclicUploadStatus(`Media caricati: ${uploaded.length}`);
     }catch(err){
-      console.error('Upload media post ciclico fallito', err);
-      toast('Upload fallito: controlla bucket social-videos e login cloud');
+      console.error('Upload media Social-Videos fallito', err);
+      const msg=String(err?.message||err||'errore sconosciuto');
+      setCyclicUploadStatus('Upload fallito: '+msg+'. Controlla bucket social-videos e policy INSERT.', true);
+      toast('Upload fallito: controlla bucket/policy');
       return;
     }
   }
@@ -7240,7 +7255,7 @@ async function saveCyclicPost(){
   saveDB(db);
   currentCyclicPostId=id;
   hide('mCyclicPostEdit');
-  toast('Post ciclico salvato');
+  toast('Social-Videos salvato');
 }
 
 function deleteCyclicPost(){
@@ -7253,14 +7268,14 @@ function deleteCyclicPost(){
     saveDB(db);
     currentCyclicPostId=null;
     hide('mCyclicPostEdit');
-    toast('Post ciclico eliminato');
+    toast('Social-Videos eliminato');
   });
 }
 
 function markCyclicPostPublished(id, quiet=false){
   const db=loadDB();
   const i=(db.socialPosts||[]).findIndex(x=>String(x.id)===String(id));
-  if(i<0){ toast('Post non trovato'); return; }
+  if(i<0){ toast('Social-Videos non trovato'); return; }
   db.socialPosts[i]={...db.socialPosts[i], ultimaPubblicazione:todayStr(), _ts:Date.now()};
   saveDB(db);
   if(!quiet) toast('Segnato pubblicato oggi');
@@ -7274,7 +7289,7 @@ function copyCyclicPostById(id, fromEdit=false){
     const db=loadDB();
     post=(db.socialPosts||[]).find(x=>String(x.id)===String(id));
   }
-  if(!post){ toast('Post non trovato'); return; }
+  if(!post){ toast('Social-Videos non trovato'); return; }
   const txt=String(post.testo||'').trim();
   if(!txt){ toast('Testo post vuoto'); return; }
   return copyText(txt, 'Post copiato', ()=>{ if(post.id) markCyclicPostPublished(post.id, true); });
@@ -9449,7 +9464,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-06-01-social-videos-media-supabase-v93';
+const VG_BUILD='2026-06-01-social-videos-save-fix-v95';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -10050,7 +10065,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=no-materiale-v90', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=social-videos-save-fix-v95', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
