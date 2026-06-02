@@ -623,10 +623,6 @@ window.addEventListener('error',e=>{
     <div id="sp_media_prev" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
     <div class="helper" style="margin-top:4px">Immagini e video vengono caricati su Supabase. Max 5 file. Richiede connessione.</div>
   </div>
-  <div style="margin-top:10px">
-    <div class="k">🔗 Link esterno (YouTube, Reel…)</div>
-    <input id="sp_video" type="url" placeholder="https://youtube.com/... o https://instagram.com/reel/..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
-  </div>
   <div class="actions compact bottomMini" style="margin-top:12px">
     <button class="btn primary smallish" type="button" data-action="saveSocialPost">Salva</button>
     <button class="btn smallish" type="button" data-action="closeSocialEdit">Annulla</button>
@@ -9335,6 +9331,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='markSocialPublished'){ const id=el.dataset.id; if(id) markSocialPublished(id); return; }
   if(a==='copyPostSocial'){ const id=el.dataset.id; if(id) copyPostSocialById(id); return; }
   if(a==='shareSocialPost'){ const id=el.closest('[data-id]')?.dataset.id||el.dataset.id; if(id) shareSocialPost(id); return; }
+  if(a==='downloadSocialPost'){ const id=el.closest('[data-id]')?.dataset.id||el.dataset.id; if(id) downloadSocialPostMedia(id); return; }
   if(a==='filterSocial'){
     socialFilter=el.dataset.filter||'tutti';
     document.querySelectorAll('#socialFilterBtns .btn').forEach(b=>{ b.style.background=''; b.style.borderColor=''; });
@@ -10138,7 +10135,7 @@ function renderSocial(){
     const media=Array.isArray(p.media)?p.media:[];
     const nFoto=media.filter(m=>m.type==='image').length;
     const nVideo=media.filter(m=>m.type==='video').length;
-    const hasVideoUrl=!!(p.videoUrl&&p.videoUrl.trim());
+    
     const sem=getSemaforo(p);
     const isRosso=sem==='rosso';
     const mediaPreview=media.length?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">
@@ -10155,7 +10152,6 @@ function renderSocial(){
             ${piattaformaLabel(p.piattaforma)}
             ${nFoto?`<span style="font-size:11px;font-weight:900;color:#64748b">📸 ${nFoto}</span>`:''}
             ${nVideo?`<span style="font-size:11px;font-weight:900;color:#7c3aed">🎥 ${nVideo}</span>`:''}
-            ${hasVideoUrl?`<span style="font-size:11px;font-weight:900;color:#7c3aed">🔗</span>`:''}
           </div>
         </div>
         <div class="semaforo ${sem}" title="${sem==='verde'?'Ok':sem==='giallo'?'In scadenza':sem==='rosso'?'Da pubblicare':'Nessun ciclo'}"></div>
@@ -10173,6 +10169,7 @@ function renderSocial(){
             ? `<button class="btn smallish" style="background:#f59e0b;border-color:#f59e0b;color:#fff;min-height:36px" data-action="markSocialPublished" data-id="${p.id}">✓ Fatto</button>`
             : `<button class="btn smallish" style="min-height:36px" data-action="copyPostSocial" data-id="${p.id}">📋 Copia</button>`
           }
+          ${media.length?`<button class="btn smallish" style="min-height:36px" data-action="downloadSocialPost" data-id="${p.id}">📥</button>`:''}
         </div>
       </div>
     </div>`;
@@ -10200,7 +10197,7 @@ async function openSocialEdit(id=null){
     document.getElementById('sp_ciclo').value=String(p.cicloGiorni||0);
     document.getElementById('sp_data').value=p.prossimaPub||today;
     document.getElementById('sp_note').value=p.note||'';
-    document.getElementById('sp_video').value=p.videoUrl||'';
+    // sp_video rimosso
     // Carica media esistente da Supabase
     if(Array.isArray(p.media)&&p.media.length){
       for(const m of p.media){
@@ -10222,7 +10219,7 @@ async function openSocialEdit(id=null){
     document.getElementById('sp_ciclo').value='7';
     document.getElementById('sp_data').value=today;
     document.getElementById('sp_note').value='';
-    document.getElementById('sp_video').value='';
+    // sp_video rimosso
     const delBtn=document.querySelector('[data-action="deleteSocialPost"]');
     if(delBtn) delBtn.style.display='none';
   }
@@ -10263,7 +10260,7 @@ async function saveSocialPost(){
     piattaforma:document.getElementById('sp_piattaforma')?.value||'entrambi',
     testo:(document.getElementById('sp_testo')?.value||'').trim(),
     note:(document.getElementById('sp_note')?.value||'').trim(),
-    videoUrl:(document.getElementById('sp_video')?.value||'').trim(),
+    videoUrl:'',
     media:uploadedMedia,
     cicloGiorni:Number(document.getElementById('sp_ciclo')?.value||0),
     prossimaPub:document.getElementById('sp_data')?.value||todaySocialStr(),
@@ -10334,6 +10331,27 @@ function copyPostSocialById(id){
   }catch(_e){ toast('Copia non riuscita'); }
 }
 
+async function downloadSocialPostMedia(id){
+  const db=loadSocial();
+  const p=db.posts.find(x=>x.id===id);
+  if(!p||(p.media||[]).length===0){ toast('Nessun file da scaricare'); return; }
+  toast('⏳ Scarico file…');
+  let ok=0;
+  for(let i=0;i<p.media.length;i++){
+    const m=p.media[i];
+    try{
+      const blob=await downloadSocialMediaBlob(m.path);
+      if(!blob) continue;
+      const ext=(m.path||'').split('.').pop().replace(/[^a-z0-9]/gi,'')||(m.type==='video'?'mp4':'jpg');
+      const name=`${(p.titolo||'post').replace(/[^a-z0-9]/gi,'_').slice(0,30)}_${i+1}.${ext}`;
+      triggerBlobDownload(blob, name);
+      ok++;
+      await new Promise(r=>setTimeout(r,400));
+    }catch(e){ console.warn('Download fallito:',e); }
+  }
+  toast(ok>0?`✅ ${ok} file scaricati!`:'⚠️ Download non riuscito — verifica connessione');
+}
+
 async function loadSocialCardPreviews(posts){
   for(const p of posts){
     const media=Array.isArray(p.media)?p.media:[];
@@ -10368,10 +10386,24 @@ async function shareSocialPost(id){
   }
   const text=p.testo||'';
   const title=p.titolo||'Post';
+
+  // Copia testo negli appunti PRIMA del share — identico agli articoli
+  if(text){
+    try{ await navigator.clipboard.writeText(text); }
+    catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
+  }
+
   try{
-    if(files.length&&canNativeShareFiles(files)){ await navigator.share({files,text,title}); toast('✅ Condivisione aperta!'); }
-    else if(typeof navigator.share==='function'){ await navigator.share({text,title}); toast('✅ Testo condiviso!'); }
-    else{ fallbackCopyText(text); toast('📋 Testo copiato'); }
+    if(files.length&&canNativeShareFiles(files)){
+      await navigator.share({files});
+      toast(text?'✅ File condivisi! Testo copiato — incollalo come didascalia 📋':'✅ Condivisione aperta!');
+    } else if(typeof navigator.share==='function'){
+      await navigator.share({text,title});
+      toast('✅ Testo condiviso!');
+    } else {
+      fallbackCopyText(text);
+      toast('📋 Testo copiato');
+    }
   }catch(err){
     if(isShareAbortError(err)) return;
     if(isShareActivationError(err)){ toast('⚠️ Tocca di nuovo Condividi'); return; }
@@ -10466,7 +10498,7 @@ function useSocialSuggestion(idx){
   document.getElementById('sp_ciclo').value=String(s.ciclo||0);
   document.getElementById('sp_data').value=today;
   document.getElementById('sp_note').value='';
-  document.getElementById('sp_video').value='';
+  // sp_video rimosso
   renderSocialMediaPreview();
   const delBtn=document.querySelector('[data-action="deleteSocialPost"]');
   if(delBtn) delBtn.style.display='none';
