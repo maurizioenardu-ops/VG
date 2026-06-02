@@ -637,9 +637,6 @@ window.addEventListener('error',e=>{
   <img id="vArtHero" class="hero" alt=""/>
   <video id="vArtHeroVideo" class="hero" controls style="display:none;width:100%"></video>
   <div id="vArtThumbs" class="thumbs"></div>
-  <div style="margin-top:10px">
-    <button class="btn" style="width:100%;background:#16a34a;border-color:#16a34a;color:#fff;min-height:42px;font-size:15px;font-weight:900" type="button" data-action="shareArtAll">🔗 Condividi</button>
-  </div>
   <div class="hr"></div>
   <div class="grid2">
     <div><div class="k">Codice</div><div id="vArtCod" class="t">-</div></div>
@@ -660,7 +657,7 @@ window.addEventListener('error',e=>{
       <div id="vArtMarginBox" class="marginBox" style="margin-top:8px"></div>
     </div>
   </div>
-  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><span id="vArtFbSaveMeta" class="pubMeta">Modificabile</span><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div></div>
+  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtAll">🔗 Condividi</button><span id="vArtFbSaveMeta" class="pubMeta" style="display:none"></span><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="copyPostTelegramNoPrice">Copia Telegram senza prezzo</button><button class="btn smallish" type="button" data-action="downloadArtPhotosTg">Scarica foto</button><span id="vArtPubMetaTg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish" type="button" data-action="downloadArtPhotosIg">Scarica foto</button><span id="vArtPubMetaIg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
@@ -10334,22 +10331,33 @@ function copyPostSocialById(id){
 async function downloadSocialPostMedia(id){
   const db=loadSocial();
   const p=db.posts.find(x=>x.id===id);
-  if(!p||(p.media||[]).length===0){ toast('Nessun file da scaricare'); return; }
-  toast('⏳ Scarico file…');
-  let ok=0;
-  for(let i=0;i<p.media.length;i++){
-    const m=p.media[i];
+  const media=Array.isArray(p?.media)?p.media.filter(m=>m.path):[];
+  if(!media.length){ toast('Nessun file da scaricare'); return; }
+  toast('⏳ Scarico '+media.length+' file…');
+  const files=[];
+  for(let i=0;i<media.length;i++){
+    const m=media[i];
     try{
       const blob=await downloadSocialMediaBlob(m.path);
       if(!blob) continue;
       const ext=(m.path||'').split('.').pop().replace(/[^a-z0-9]/gi,'')||(m.type==='video'?'mp4':'jpg');
-      const name=`${(p.titolo||'post').replace(/[^a-z0-9]/gi,'_').slice(0,30)}_${i+1}.${ext}`;
-      triggerBlobDownload(blob, name);
-      ok++;
-      await new Promise(r=>setTimeout(r,400));
-    }catch(e){ console.warn('Download fallito:',e); }
+      const prefix=m.type==='video'?'video':'foto';
+      files.push(new File([blob],`${prefix}_${String(i+1).padStart(2,'0')}.${ext}`,{type:blob.type||( m.type==='video'?'video/mp4':'image/jpeg')}));
+    }catch(e){ console.warn('Download file fallito:',e); }
   }
-  toast(ok>0?`✅ ${ok} file scaricati!`:'⚠️ Download non riuscito — verifica connessione');
+  if(!files.length){ toast('⚠️ Nessun file scaricabile — verifica connessione'); return; }
+  try{
+    // Crea uno ZIP con tutti i file e scarica in un colpo solo
+    const safeName=(p.titolo||'post').replace(/[^a-z0-9]/gi,'_').slice(0,30);
+    const zip=await buildZipFromFiles(files, `${safeName}.zip`);
+    triggerBlobDownload(zip, `${safeName}.zip`);
+    toast(`✅ ZIP con ${files.length} file scaricato!`);
+  }catch(e){
+    console.warn('ZIP fallito, provo singolo:',e);
+    // Fallback: scarica solo il primo file
+    triggerBlobDownload(files[0], files[0].name);
+    toast(`✅ Scaricato 1 file (ZIP non disponibile)`);
+  }
 }
 
 async function loadSocialCardPreviews(posts){
