@@ -277,7 +277,7 @@ window.addEventListener('error',e=>{
     <div class="tab" data-go="clienti" data-tab="clienti">Clienti</div>
     <div class="tab" data-go="ordini" data-tab="ordini">Ordini</div>
     <div class="tab" data-go="finanze" data-tab="finanze">Finanze</div>
-    <div class="tab" data-go="social" data-tab="social">📲 Social</div>
+    <div class="tab" data-go="social" data-tab="social">Bacheca</div>
   </div>
 
   <div id="sec_home" class="section active">
@@ -424,7 +424,7 @@ window.addEventListener('error',e=>{
   <div id="sec_social" class="section">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-        <div class="h2">Post Social</div>
+        <div class="h2">Bacheca</div>
         <button class="btn" type="button" data-action="newSocialPost">+ Nuovo</button>
       </div>
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap" id="socialFilterBtns">
@@ -450,7 +450,7 @@ window.addEventListener('error',e=>{
     <div style="height:10px"></div>
     <div id="listSocial" class="list"></div>
     <div id="socialEmpty" style="display:none;margin-top:12px">
-      <div class="agendaEmpty">Nessun post salvato. Crea il tuo primo contenuto social! 🚀</div>
+      <div class="agendaEmpty">Nessun post salvato. Crea il tuo primo post! 🚀</div>
     </div>
   </div>
 
@@ -568,14 +568,14 @@ window.addEventListener('error',e=>{
     <button data-go="clienti" data-nav="clienti">Clienti</button>
     <button data-go="ordini" data-nav="ordini">Ordini</button>
     <button data-go="finanze" data-nav="finanze">Finanze</button>
-    <button data-go="social" data-nav="social">Social</button>
+    <button data-go="social" data-nav="social">Bacheca</button>
     <button data-go="impostazioni" data-nav="impostazioni">Impost.</button>
   </div>
 </div>
 
 <!-- MODAL SOCIAL POST -->
 <div id="mSocialEdit" class="modalwrap"><div class="modal artModal">
-  <div class="h2" id="socialEditTitle">Nuovo post social</div>
+  <div class="h2" id="socialEditTitle">Nuovo post</div>
   <div style="margin-top:10px"><div class="k">Titolo / Tema</div><input id="sp_titolo" placeholder="Es. Promo settimana, Unboxing Prada..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">Tipo contenuto</div>
@@ -10214,7 +10214,7 @@ async function openSocialEdit(id=null){
     const delBtn=document.querySelector('[data-action="deleteSocialPost"]');
     if(delBtn) delBtn.style.display='';
   } else {
-    if(titleEl) titleEl.textContent='Nuovo post social';
+    if(titleEl) titleEl.textContent='Nuovo post';
     document.getElementById('sp_titolo').value='';
     document.getElementById('sp_tipo').value='informativo';
     document.getElementById('sp_piattaforma').value='entrambi';
@@ -10291,19 +10291,19 @@ function deleteSocialPost(){
   const idToDelete=editingSocialId;
   const db=loadSocial();
   const post=db.posts.find(x=>x.id===idToDelete);
-  confirmAction('Elimina post social?','Questa operazione non è reversibile.',()=>{
+  // Chiudo il modal prima così mConfirm non si nasconde dietro
+  document.getElementById('mSocialEdit').style.display='none';
+  activeModalId=null;
+  askConfirm('Eliminare questo post?',()=>{
     const db2=loadSocial();
     db2.posts=db2.posts.filter(x=>x.id!==idToDelete);
     saveSocial(db2);
-    // Elimina media da Supabase
     const paths=(post?.media||[]).map(m=>m.path).filter(Boolean);
     if(paths.length) deleteSocialMediaFiles(paths).catch(()=>{});
-    document.getElementById('mSocialEdit').style.display='none';
-    activeModalId=null;
     editingSocialId=null;
     renderSocial();
     toast('Post eliminato');
-  });
+  },'Elimina post');
 }
 
 function markSocialPublished(id){
@@ -10367,7 +10367,7 @@ async function shareSocialPost(id){
     }catch(e){ console.warn('Media non preparato:',e); }
   }
   const text=p.testo||'';
-  const title=p.titolo||'Post social';
+  const title=p.titolo||'Post';
   try{
     if(files.length&&canNativeShareFiles(files)){ await navigator.share({files,text,title}); toast('✅ Condivisione aperta!'); }
     else if(typeof navigator.share==='function'){ await navigator.share({text,title}); toast('✅ Testo condiviso!'); }
@@ -10458,7 +10458,7 @@ function useSocialSuggestion(idx){
   socialPendingMedia=[];
   socialExistingMedia=[];
   const titleEl=document.getElementById('socialEditTitle');
-  if(titleEl) titleEl.textContent='Nuovo post social';
+  if(titleEl) titleEl.textContent='Nuovo post';
   document.getElementById('sp_titolo').value=s.titolo;
   document.getElementById('sp_tipo').value=s.tipo;
   document.getElementById('sp_piattaforma').value=s.piattaforma;
