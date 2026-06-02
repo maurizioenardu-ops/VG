@@ -3051,19 +3051,24 @@ async function shareArtAll(){
 
   if(!files.length){ toast('Nessun file da condividere'); return; }
 
-  // 3. Testo FB
+  // Testo FB — copialo negli appunti PRIMA del share
+  // (navigator.share con files ignora il text su molti dispositivi)
   const text=(document.getElementById('vArtPostFb')?.value||'').trim();
+  if(text){
+    try{ await navigator.clipboard.writeText(text); }
+    catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
+  }
 
   try{
     if(canNativeShareFiles(files)){
-      await navigator.share({files, ...(text?{text}:{})});
+      await navigator.share({files});
       recordArticlePublication('fb');
-      toast('✅ Condivisione aperta!');
+      toast(text?'✅ File condivisi! Testo FB copiato — incollalo come didascalia 📋':'✅ Condivisione aperta!');
     } else if(typeof navigator.share==='function'){
-      await navigator.share({...(text?{text}:{}), title:a.modello||a.codice||'Articolo'});
+      await navigator.share({title:a.modello||a.codice||'Articolo'});
       toast('✅ Condivisione aperta!');
     } else {
-      if(text){ fallbackCopyText(text); toast('📋 Testo FB copiato'); }
+      if(text) toast('📋 Testo FB copiato negli appunti');
       else toast('Condivisione non supportata su questo browser');
     }
   }catch(err){
@@ -9996,13 +10001,14 @@ const SOCIAL_KEY='vg_social_v1';
 const SOCIAL_MEDIA_BUCKET='social-videos'; // bucket già configurato
 
 /* ---- Supabase Storage per media social (foto + video) ---- */
-async function uploadSocialMediaFile(postId, file, idx){
+async function uploadSocialMediaFile(postId, file, _idx){
   const sb=await ensureCloud();
   if(!sb||!cloudSession) throw new Error('Non connesso a Supabase');
   const isVideo=file.type.startsWith('video');
   const ext=(file.name||'').split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g,'')||(isVideo?'mp4':'jpg');
-  const path=`${postId}/media_${String(idx).padStart(2,'0')}.${ext}`;
-  const {error}=await sb.storage.from(SOCIAL_MEDIA_BUCKET).upload(path,file,{upsert:true,contentType:file.type||(isVideo?'video/mp4':'image/jpeg')});
+  // Path univoco — usa uid() per evitare conflitti anche se si cancellano e riaggiungono file
+  const path=`${postId}/${uid()}.${ext}`;
+  const {error}=await sb.storage.from(SOCIAL_MEDIA_BUCKET).upload(path,file,{upsert:false,contentType:file.type||(isVideo?'video/mp4':'image/jpeg')});
   if(error) throw error;
   return {path, type:isVideo?'video':'image', mime:file.type};
 }
