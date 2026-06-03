@@ -137,6 +137,15 @@ textarea{min-height:90px;resize:none;overflow:hidden}
 select[multiple]{min-height:150px}
 .hero{width:100%;height:190px;border-radius:16px;object-fit:cover;border:1px solid var(--line);background:#f3f4f6}
 video.hero{background:#000}
+#authGate{position:fixed;inset:0;z-index:99999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+#authGate .authBox{width:100%;max-width:380px;background:#fff;border-radius:24px;padding:28px 24px;box-shadow:0 20px 60px rgba(15,23,42,.12);display:flex;flex-direction:column;gap:14px}
+#authGate .authLogo{font-size:40px;text-align:center}
+#authGate .authTitle{font-size:22px;font-weight:1000;color:#0f172a;text-align:center;line-height:1.2;margin-top:-4px}
+#authGate .authSub{font-size:13px;font-weight:800;color:#64748b;text-align:center;margin-top:-6px}
+#authGate input{width:100%;box-sizing:border-box}
+#authGate .authErr{font-size:13px;font-weight:900;color:#ef4444;text-align:center;display:none;margin-top:-6px}
+#authGate .authBtn{width:100%;min-height:48px;font-size:16px;font-weight:900;background:var(--accent,#2563eb);color:#fff;border:none;border-radius:14px;cursor:pointer;margin-top:4px}
+#authGate .authBtn:active{opacity:.85}
 .thumbs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .thumbs img{width:70px;height:70px;border-radius:12px;object-fit:cover;border:1px solid var(--line);cursor:pointer}
 .orderPhotoGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}.orderPhotoGrid img{width:100%;aspect-ratio:1/1;border-radius:14px;object-fit:cover;border:1px solid var(--line);background:#f3f4f6}.helperRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
@@ -264,6 +273,26 @@ window.addEventListener('error',e=>{
   <meta name="vg-version" content="v11_0-no-materiale-post">
 </head>
 <body>
+
+<!-- AUTH GATE — blocca tutto finché non sei loggato -->
+<div id="authGate" style="display:none">
+  <div class="authBox">
+    <div class="authLogo">🔐</div>
+    <div class="authTitle" id="authAppTitle">Gestionale</div>
+    <div class="authSub">Accedi per continuare</div>
+    <div>
+      <div class="k">Email</div>
+      <input id="authEmail" type="email" placeholder="tua@email.com" autocomplete="username" autocapitalize="off" spellcheck="false" style="margin-top:6px"/>
+    </div>
+    <div>
+      <div class="k">Password</div>
+      <input id="authPassword" type="password" placeholder="••••••••" autocomplete="current-password" style="margin-top:6px"/>
+    </div>
+    <div id="authErr" class="authErr">Email o password non corretti</div>
+    <button class="authBtn" id="authLoginBtn" type="button">Accedi</button>
+  </div>
+</div>
+
 <div class="top">
   <h1 id="appTitle">Gestionale</h1>
   <div id="dateLine" class="date">--/--/----</div>
@@ -2213,18 +2242,32 @@ async function idbCount(){
     req.onerror=()=>rej(req.error||new Error('Errore conteggio foto'));
   });
 }
-async function getPublicFotoUrl(path){
+// Cache URL firmati per evitare troppe chiamate (scade dopo 90 minuti)
+const _signedUrlCache=new Map();
+function _cleanFotoPath(src){
+  const s=String(src||'').trim();
+  return s.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
+}
+async function getSignedFotoUrl(path){
   const src=String(path||'').trim();
   if(!src) return '';
-  if(/^data:|^https?:\/\//i.test(src)) return src;
+  if(/^data:|^blob:|^https?:\/\//i.test(src)) return src;
   if(isTemporaryLocalPhotoRef(src)) return '';
-  const clean=src.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
-  const fallback=buildPublicStorageUrl(clean);
+  const clean=_cleanFotoPath(src);
+  // Controlla cache
+  const cached=_signedUrlCache.get(clean);
+  if(cached && cached.expires > Date.now()) return cached.url;
   const sb=await ensureCloud();
-  if(!sb) return fallback || src;
-  const { data } = sb.storage.from(SUPABASE_BUCKET).getPublicUrl(clean);
-  return data?.publicUrl || fallback || src;
+  if(!sb) return '';
+  try{
+    const {data,error}=await sb.storage.from(SUPABASE_BUCKET).createSignedUrl(clean, 5400); // 90 min
+    if(error||!data?.signedUrl) return '';
+    _signedUrlCache.set(clean,{url:data.signedUrl, expires: Date.now()+5000*1000});
+    return data.signedUrl;
+  }catch(_e){ return ''; }
 }
+// Mantieni compatibilità con codice esistente
+async function getPublicFotoUrl(path){ return getSignedFotoUrl(path); }
 
 async function listCloudFotoPathsByCode(codice){
   const code=String(codice||'').trim();
@@ -3133,10 +3176,13 @@ async function getCloudArticlePhotoUrls(artId){
   if(!sb||!cloudSession||!artId) return [];
   const { data, error } = await sb.from('prodotti_foto').select('path,ordine').eq('prodotto_id', artId).order('ordine',{ascending:true});
   if(error) throw error;
-  return (data||[]).map(r=>{
-    const { data:urlData } = sb.storage.from(SUPABASE_BUCKET).getPublicUrl(r.path);
-    return urlData?.publicUrl || '';
-  }).filter(Boolean);
+  const paths=(data||[]).map(r=>r.path).filter(Boolean);
+  const urls=[];
+  for(const p of paths){
+    const url=await getSignedFotoUrl(p);
+    if(url) urls.push(url);
+  }
+  return urls;
 }
 
 async function deleteArticlePhotosFromSupabase(paths=[]){
@@ -10002,8 +10048,12 @@ async function cloudLogin(){
 async function cloudLogout(){
   try{
     const sb=await ensureCloud(); if(!sb) return;
-    await sb.auth.signOut(); cloudSession=null; cloudUi(); toast('Cloud scollegato');
-  }catch(err){ toast('Logout cloud fallito'); console.error(err); }
+    await sb.auth.signOut();
+    cloudSession=null;
+    cloudUi();
+    showAuthGate();
+    toast('Disconnesso. Arrivederci! 👋');
+  }catch(err){ toast('Logout fallito'); console.error(err); }
 }
 
 /* ====== SOCIAL MEDIA POSTS ====== */
@@ -10530,6 +10580,55 @@ function useSocialSuggestion(idx){
   activeModalId='mSocialEdit';
 }
 
+/* ====== AUTH GATE ====== */
+function showAuthGate(){
+  const gate=document.getElementById('authGate');
+  if(gate) gate.style.display='flex';
+  // Aggiorna titolo nel gate con il nome del gestionale
+  const titleEl=document.getElementById('authAppTitle');
+  const appTitleEl=document.getElementById('appTitle');
+  if(titleEl && appTitleEl) titleEl.textContent=appTitleEl.textContent||'Gestionale';
+}
+function hideAuthGate(){
+  const gate=document.getElementById('authGate');
+  if(gate) gate.style.display='none';
+}
+function initAuthGate(){
+  const btn=document.getElementById('authLoginBtn');
+  const emailEl=document.getElementById('authEmail');
+  const passEl=document.getElementById('authPassword');
+  const errEl=document.getElementById('authErr');
+  if(!btn) return;
+  const doLogin=async()=>{
+    const email=(emailEl?.value||'').trim();
+    const pass=passEl?.value||'';
+    if(!email||!pass){ if(errEl){ errEl.textContent='Inserisci email e password'; errEl.style.display='block'; } return; }
+    btn.textContent='Accesso in corso…'; btn.disabled=true;
+    if(errEl) errEl.style.display='none';
+    try{
+      const sb=await ensureCloud();
+      if(!sb){ throw new Error('Supabase non disponibile'); }
+      const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+      if(error) throw error;
+      cloudSession=data.session||null;
+      if(passEl) passEl.value='';
+      hideAuthGate();
+      cloudUi();
+      // Carica dati dopo login
+      try{ await autoCloudPullNow('login'); }catch(_e){}
+      toast('Benvenuto! 👋');
+    }catch(err){
+      if(errEl){ errEl.textContent='Email o password non corretti'; errEl.style.display='block'; }
+      console.warn('Auth gate login fallito:',err);
+    }finally{
+      btn.textContent='Accedi'; btn.disabled=false;
+    }
+  };
+  btn.addEventListener('click', doLogin);
+  // Enter per fare login
+  [emailEl,passEl].forEach(el=>el?.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); }));
+}
+
 /* init */
 async function bootApp(){
   await runOneTimeFreshReset();
@@ -10551,7 +10650,25 @@ async function bootApp(){
   cloudUi();
   refreshAutoCloudPull();
   requestPersistentStorage();
-  ensureCloud().catch(err=>console.warn('Cloud init fallita', err));
+  initAuthGate();
+
+  // Controlla se l'utente è già loggato
+  try{
+    const sb=await ensureCloud();
+    if(sb){
+      const {data:{session}}=await sb.auth.getSession();
+      cloudSession=session||null;
+    }
+  }catch(_e){}
+
+  if(!cloudSession){
+    // Non loggato → mostra gate
+    showAuthGate();
+  } else {
+    // Già loggato → carica dati
+    hideAuthGate();
+    try{ refreshAutoCloudPull(); }catch(_e){}
+  }
 }
 bootApp();
 try{
