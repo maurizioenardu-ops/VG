@@ -7903,9 +7903,25 @@ async function saveArt(){
         costoUsdPromo: promoUsd,
         scadenzaPromo: document.getElementById('a_promo_date').value.trim()
       }),
-      post: normalizePublicPostForArticle(document.getElementById('a_post').value, {note:document.getElementById('a_note').value}),
-      postFb: normalizeFacebookPostForArticle(document.getElementById('a_post_fb').value, {codice:code, modello:document.getElementById('a_mod').value.trim(), categoria:categoriaValue, descrizione:document.getElementById('a_desc').value.trim(), misura:misuraValue, altezzaCintura:altezzaCinturaValue, hCintura:altezzaCinturaValue, note:document.getElementById('a_note').value}),
-      postIg: normalizePublicPostForArticle(document.getElementById('a_post_ig').value, {note:document.getElementById('a_note').value}),
+      postFb: normalizeFacebookPostForArticle(
+        // Se la nota è cambiata, strip anche il vecchio contenuto dalle note precedenti
+        (old?.note && old.note !== document.getElementById('a_note').value)
+          ? stripArticlePrivateNotesFromPost(document.getElementById('a_post_fb').value, {note: old.note})
+          : document.getElementById('a_post_fb').value,
+        {codice:code, modello:document.getElementById('a_mod').value.trim(), categoria:categoriaValue, descrizione:document.getElementById('a_desc').value.trim(), misura:misuraValue, altezzaCintura:altezzaCinturaValue, hCintura:altezzaCinturaValue, note:document.getElementById('a_note').value}
+      ),
+      postIg: normalizePublicPostForArticle(
+        (old?.note && old.note !== document.getElementById('a_note').value)
+          ? stripArticlePrivateNotesFromPost(document.getElementById('a_post_ig').value, {note: old.note})
+          : document.getElementById('a_post_ig').value,
+        {note:document.getElementById('a_note').value}
+      ),
+      post: normalizePublicPostForArticle(
+        (old?.note && old.note !== document.getElementById('a_note').value)
+          ? stripArticlePrivateNotesFromPost(document.getElementById('a_post').value, {note: old.note})
+          : document.getElementById('a_post').value,
+        {note:document.getElementById('a_note').value}
+      ),
       note: document.getElementById('a_note').value,
       foto: keptFoto,
       photoIds: keptPhotoIds,
