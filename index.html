@@ -270,7 +270,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v11_0-no-materiale-post">
+  <meta name="vg-version" content="v11_2-private-articoli-signed-emoji-fix">
 </head>
 <body>
 
@@ -2242,32 +2242,54 @@ async function idbCount(){
     req.onerror=()=>rej(req.error||new Error('Errore conteggio foto'));
   });
 }
-// Cache URL firmati per evitare troppe chiamate (scade dopo 90 minuti)
-const _signedUrlCache=new Map();
-function _cleanFotoPath(src){
-  const s=String(src||'').trim();
-  return s.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
+const FOTO_SIGNED_URL_CACHE=new Map();
+
+function normalizeFotoStoragePath(src){
+  const raw=String(src||'').trim();
+  if(!raw || /^data:|^blob:/i.test(raw) || isTemporaryLocalPhotoRef(raw)) return '';
+  if(/^https?:\/\//i.test(raw)){
+    try{
+      const u=new URL(raw, location.href);
+      const path=decodeURIComponent(u.pathname||'');
+      const re=new RegExp(`/storage/v1/object/(?:public|sign|authenticated)/${SUPABASE_BUCKET}/(.+)$`);
+      const m=path.match(re);
+      if(m && m[1]) return m[1].replace(/^\/+/, '');
+      const bucketSeg=`/${SUPABASE_BUCKET}/`;
+      const idx=path.indexOf(bucketSeg);
+      if(idx>=0) return path.slice(idx+bucketSeg.length).replace(/^\/+/, '');
+      return '';
+    }catch(_e){ return ''; }
+  }
+  return raw.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
 }
-async function getSignedFotoUrl(path){
+
+async function getSignedFotoUrl(path, seconds=5400){
   const src=String(path||'').trim();
   if(!src) return '';
-  if(/^data:|^blob:|^https?:\/\//i.test(src)) return src;
+  if(/^data:|^blob:/i.test(src)) return src;
   if(isTemporaryLocalPhotoRef(src)) return '';
-  const clean=_cleanFotoPath(src);
-  // Controlla cache
-  const cached=_signedUrlCache.get(clean);
-  if(cached && cached.expires > Date.now()) return cached.url;
+  const clean=normalizeFotoStoragePath(src);
+  if(!clean) return src;
+  const now=Date.now();
+  const cached=FOTO_SIGNED_URL_CACHE.get(clean);
+  if(cached && cached.url && cached.expireAt>now) return cached.url;
   const sb=await ensureCloud();
-  if(!sb) return '';
-  try{
-    const {data,error}=await sb.storage.from(SUPABASE_BUCKET).createSignedUrl(clean, 5400); // 90 min
-    if(error||!data?.signedUrl) return '';
-    _signedUrlCache.set(clean,{url:data.signedUrl, expires: Date.now()+5000*1000});
-    return data.signedUrl;
-  }catch(_e){ return ''; }
+  if(!sb || !cloudSession) return '';
+  const {data,error}=await sb.storage.from(SUPABASE_BUCKET).createSignedUrl(clean, seconds);
+  if(error){
+    console.warn('URL firmato foto articolo fallito:', error);
+    return '';
+  }
+  const url=data?.signedUrl||'';
+  if(url) FOTO_SIGNED_URL_CACHE.set(clean,{url,expireAt:now+Math.max(30,(Number(seconds)||5400)-60)*1000});
+  return url;
 }
-// Mantieni compatibilità con codice esistente
-async function getPublicFotoUrl(path){ return getSignedFotoUrl(path); }
+
+// Nome mantenuto per compatibilità con tutto il codice esistente.
+// Ora NON genera più URL pubblici: usa link firmati sul bucket articoli privato.
+async function getPublicFotoUrl(path){
+  return await getSignedFotoUrl(path);
+}
 
 async function listCloudFotoPathsByCode(codice){
   const code=String(codice||'').trim();
@@ -2418,7 +2440,7 @@ async function getArticlePics(a){
     const clean=String(src||'').trim();
     if(!clean) continue;
     let finalUrl='';
-    if(/^data:|^blob:|^https?:\/\//i.test(clean)) finalUrl=clean;
+    if(/^data:|^blob:/i.test(clean)) finalUrl=clean;
     else finalUrl=await getPublicFotoUrl(clean);
     if(!finalUrl) continue;
     const key=canonicalPhotoSourceKey(finalUrl) || finalUrl;
@@ -2609,21 +2631,23 @@ async function tryNativeShareArticleFiles(files, baseName){
 async function downloadArticlePhotoBlobForShare(rawSrc){
   const src=String(rawSrc||'').trim();
   if(!src) throw new Error('Sorgente foto vuota');
-  if(/^data:|^blob:|^https?:\/\//i.test(src)) return await blobFromPhotoSrc(src);
+  if(/^data:|^blob:/i.test(src)) return await blobFromPhotoSrc(src);
 
-  const clean=src.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
+  const clean=normalizeFotoStoragePath(src);
+  if(!clean && /^https?:\/\//i.test(src)) return await blobFromPhotoSrc(src);
+
   const sb=await ensureCloud();
-  if(sb){
+  if(sb && cloudSession && clean){
     try{
       const { data, error } = await sb.storage.from(SUPABASE_BUCKET).download(clean);
       if(error) throw error;
       if(data) return data;
     }catch(err){
-      console.warn('Download diretto Supabase fallito, provo URL pubblico', err);
+      console.warn('Download diretto Supabase fallito, provo URL firmato', err);
     }
   }
 
-  const url=await getPublicFotoUrl(clean);
+  const url=await getSignedFotoUrl(clean || src);
   if(!url) throw new Error('URL foto non disponibile');
   return await blobFromPhotoSrc(url);
 }
@@ -3176,13 +3200,8 @@ async function getCloudArticlePhotoUrls(artId){
   if(!sb||!cloudSession||!artId) return [];
   const { data, error } = await sb.from('prodotti_foto').select('path,ordine').eq('prodotto_id', artId).order('ordine',{ascending:true});
   if(error) throw error;
-  const paths=(data||[]).map(r=>r.path).filter(Boolean);
-  const urls=[];
-  for(const p of paths){
-    const url=await getSignedFotoUrl(p);
-    if(url) urls.push(url);
-  }
-  return urls;
+  const urls=await Promise.all((data||[]).map(r=>getSignedFotoUrl(r.path)));
+  return urls.filter(Boolean);
 }
 
 async function deleteArticlePhotosFromSupabase(paths=[]){
@@ -3650,6 +3669,33 @@ function orderMargin(o, db){
 function emojiQualityForPost(a){
   const q=qualityFromCode(a.codice);
   return (q==='ORIGINALE') ? '🥇' : '🥈';
+}
+function stripQualityEmojisFromText(text){
+  return String(text||'')
+    .replace(/(?:🔝\s*💯|🔝|💯)/g,' ')
+    .replace(/[🥇🥈]/g,' ')
+    .replace(/\s{2,}/g,' ')
+    .trim();
+}
+function normalizePostModelLine(text, brand){
+  return stripQualityEmojisFromText(normalizePostLine(text, brand));
+}
+function appendSingleQualityEmoji(text, a){
+  const base=stripQualityEmojisFromText(text);
+  const emoji=emojiQualityForPost(a);
+  return [base, emoji].filter(Boolean).join(' ').trim();
+}
+function dedupeQualityEmojisInPost(text, a){
+  const chosen=emojiQualityForPost(a);
+  const raw=String(text||'');
+  if(!raw) return raw;
+  return raw.split(/\r?\n/).map(line=>{
+    const original=String(line||'');
+    const count=(original.match(/[🥇🥈]/g)||[]).length + ((original.match(/(?:🔝\s*💯|🔝|💯)/g)||[]).length);
+    if(count<2) return original;
+    const clean=stripQualityEmojisFromText(original);
+    return [clean, chosen].filter(Boolean).join(' ').trim();
+  }).join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
 function escapeRegExp(str){
   return String(str||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
@@ -4125,14 +4171,12 @@ function postCategoryDescriptors(a, mode='fb'){
   return uniquePostLines(descriptors);
 }
 function postPrimaryName(a, mode='fb'){
-  const model=normalizePostLine(a?.modello||'', a?.brand||'');
+  const model=normalizePostModelLine(a?.modello||'', a?.brand||'');
   if(mode==='fb' && model) return model;
   return pickRandom(postCategoryDescriptors(a, mode)) || model || categoryLabelForPost(a);
 }
 function postNameWithQuality(a, mode='fb'){
-  const base=postPrimaryName(a, mode);
-  const qemoji=emojiQualityForPost(a);
-  return [base, qemoji].filter(Boolean).join(' ').trim();
+  return appendSingleQualityEmoji(postPrimaryName(a, mode), a);
 }
 function buildPostHeadline(a, mode='fb'){
   const named=postNameWithQuality(a, mode);
@@ -5298,14 +5342,14 @@ function stripPublicMaterialWordFromPost(text){
   return raw.replace(/\n{3,}/g,'\n\n').trim();
 }
 function normalizePublicPostForArticle(text, a){
-  return stripPublicMaterialWordFromPost(stripArticlePrivateNotesFromPost(text, a));
+  return dedupeQualityEmojisInPost(stripPublicMaterialWordFromPost(stripArticlePrivateNotesFromPost(text, a)), a);
 }
 function normalizeFacebookPostForArticle(text, a){
   let out=stripArticlePrivateNotesFromPost(text, a);
   out=ensureFacebookPostHasDescriptionBelowModel(out, a);
   out=ensureFacebookPostHasArticleMeasures(out, a);
   out=ensureFacebookPostHasCode(out, a);
-  return stripPublicMaterialWordFromPost(stripArticlePrivateNotesFromPost(out, a));
+  return dedupeQualityEmojisInPost(stripPublicMaterialWordFromPost(stripArticlePrivateNotesFromPost(out, a)), a);
 }
 function getArticleFacebookCustomPost(a){
   return String(a?.postFb || a?.postFacebook || a?.post_fb || '').trim();
@@ -5355,7 +5399,7 @@ function buildPostTelegram(a, includePrice=true){
 
   if(!a.codice) return '';
   const brand=(a.brand||'').trim();
-  const modello=normalizePostLine(a.modello||'', brand);
+  const modello=normalizePostModelLine(a.modello||'', brand);
   const variante=normalizePostLine(a.variante||'', brand);
   const colore=normalizePostLine(a.colore||'', brand);
   const materiale=normalizePostLine(a.materiale||'', brand);
@@ -9493,7 +9537,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-05-27-fb-auto-no-price-v83';
+const VG_BUILD='2026-06-03-private-articoli-signed-v84';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
