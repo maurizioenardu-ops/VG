@@ -270,7 +270,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v11_2-private-articoli-signed-emoji-fix">
+  <meta name="vg-version" content="v11_3-storico-ordini-articoli-eliminati">
 </head>
 <body>
 
@@ -1232,6 +1232,7 @@ function normalizeDBShape(o){
     categoria:sanitizeCategoryName(a?.categoria||''),
     brand:sanitizeBrandName(a?.brand||'')
   }));
+  db.ordini=(db.ordini||[]).map(o=>hydrateOrderWithHistoricalSnapshots(o, db));
   return db;
 }
 
@@ -2122,7 +2123,7 @@ function restoreOrderDraft(targetId='', prefillArticleId=null){
   ordRows=Array.isArray(draft.rows)?draft.rows:[];
   if(prefillArticleId){
     const a=db.articoli.find(x=>x.id===prefillArticleId);
-    if(a && !ordRows.some(r=>r.articoloId===prefillArticleId)) ordRows.push({articoloId:a.id, codice:a?.codice||'', modello:a?.modello||'', prezzo:Number(currentPrice(a)||0), richiedeNumeroColore:getArticleColorMode(a)==='multiple', colorCount:getArticleColorCount(a), colorLabels:getArticleColorLabels(a), colorData:makeStableColorData(deriveColorShape(a)), numeroColore:'', colore:a?.colore||''});
+    if(a && !ordRows.some(r=>r.articoloId===prefillArticleId)) ordRows.push(hydrateOrderRowWithHistoricalArticle({articoloId:a.id, codice:a?.codice||'', modello:a?.modello||'', brand:a?.brand||'', categoria:a?.categoria||'', qualita:articleQualityLabel(a), prezzo:Number(currentPrice(a)||0), costoEur:Number(currentCost(a)||0), richiedeNumeroColore:getArticleColorMode(a)==='multiple', colorCount:getArticleColorCount(a), colorLabels:getArticleColorLabels(a), colorData:makeStableColorData(deriveColorShape(a)), numeroColore:'', colore:a?.colore||''}, db));
   }
   document.getElementById('o_cli').value=v.clienteId||'';
   document.getElementById('o_stato').value=v.stato||'Richiesto';
@@ -3648,12 +3649,173 @@ function orderIncassato(o){
   return Number(o?.incassato||0);
 }
 
+
+function historicalText(){
+  for(const value of arguments){
+    const text=normalizeSpaceText(value||'');
+    if(text) return text;
+  }
+  return '';
+}
+function historicalNumber(){
+  for(const value of arguments){
+    if(value===null || value===undefined || value==='') continue;
+    const n=Number(value);
+    if(Number.isFinite(n) && n>0) return n;
+  }
+  return 0;
+}
+function normalizeOrderArticleSnapshot(snap={}){
+  const shape=deriveColorShape(snap||{});
+  return {
+    id: historicalText(snap?.id, snap?.articoloId),
+    codice: historicalText(snap?.codice, snap?.sku),
+    modello: historicalText(snap?.modello, snap?.nome),
+    brand: historicalText(snap?.brand, snap?.marca),
+    categoria: sanitizeCategoryName(historicalText(snap?.categoria)),
+    qualita: historicalText(snap?.qualita, snap?.qualità),
+    colore: historicalText(snap?.colore),
+    misura: historicalText(snap?.misura, snap?.taglia),
+    altezzaCintura: historicalText(snap?.altezzaCintura, snap?.hCintura, snap?.h, snap?.altezza),
+    hCintura: historicalText(snap?.hCintura, snap?.altezzaCintura, snap?.h, snap?.altezza),
+    costoEur: historicalNumber(snap?.costoEur, snap?.costoEUR, snap?.costo, snap?.prezzo_acquisto),
+    prezzoVendita: historicalNumber(snap?.prezzoVendita, snap?.prezzo_vendita, snap?.prezzo, snap?.prezzoVenditaStorico),
+    prezzoOrdine: historicalNumber(snap?.prezzoOrdine, snap?.prezzoRiga, snap?.prezzo),
+    colorMode: shape.colorMode,
+    colorCount: shape.colorCount,
+    colorLabels: shape.colorLabels,
+    colorData: makeStableColorData(shape),
+    foto: Array.isArray(snap?.foto) ? snap.foto.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS) : [],
+    photoIds: Array.isArray(snap?.photoIds) ? snap.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS) : [],
+    videoIds: Array.isArray(snap?.videoIds) ? snap.videoIds.filter(Boolean).slice(0,MAX_ART_VIDEOS||3) : []
+  };
+}
+function makeOrderArticleSnapshot(article, row={}){
+  const prev=normalizeOrderArticleSnapshot(row?.articoloSnapshot||row?.articoloStorico||{});
+  const source=article||{};
+  const shape=deriveColorShape(article||row||prev||{});
+  const liveCost=article ? Number(currentCost(article)||0) : 0;
+  const livePrice=article ? Number(currentPrice(article)||0) : 0;
+  const snap=normalizeOrderArticleSnapshot({
+    id: historicalText(source?.id, row?.articoloId, prev.id),
+    codice: historicalText(source?.codice, row?.codice, prev.codice),
+    modello: historicalText(source?.modello, row?.modello, prev.modello),
+    brand: historicalText(source?.brand, row?.brand, prev.brand),
+    categoria: historicalText(source?.categoria, row?.categoria, prev.categoria),
+    qualita: historicalText(article ? articleQualityLabel(article) : '', source?.qualita, source?.qualità, row?.qualita, prev.qualita, qualityFromCode(row?.codice||source?.codice||prev.codice||'')),
+    colore: historicalText(row?.colore, source?.colore, prev.colore),
+    misura: historicalText(source?.misura, row?.misura, prev.misura),
+    altezzaCintura: historicalText(source?.altezzaCintura, source?.hCintura, row?.altezzaCintura, row?.hCintura, prev.altezzaCintura),
+    hCintura: historicalText(source?.hCintura, source?.altezzaCintura, row?.hCintura, row?.altezzaCintura, prev.hCintura),
+    costoEur: historicalNumber(row?.costoEur, prev.costoEur, liveCost, source?.costoEur),
+    prezzoVendita: historicalNumber(source?.prezzoVendita, prev.prezzoVendita, livePrice, row?.prezzoVendita),
+    prezzoOrdine: historicalNumber(row?.prezzo, prev.prezzoOrdine, livePrice, source?.prezzoVendita),
+    colorMode: shape.colorMode,
+    colorCount: shape.colorCount,
+    colorLabels: shape.colorLabels,
+    colorData: makeStableColorData(shape),
+    foto: Array.isArray(source?.foto) && source.foto.length ? source.foto : prev.foto,
+    photoIds: Array.isArray(source?.photoIds) && source.photoIds.length ? source.photoIds : prev.photoIds,
+    videoIds: Array.isArray(source?.videoIds) && source.videoIds.length ? source.videoIds : prev.videoIds
+  });
+  return snap;
+}
+function findArticleForOrderRow(db, row={}){
+  const list=db?.articoli||[];
+  const id=String(row?.articoloId||'');
+  const code=normalizeTextKey(row?.codice||'');
+  return list.find(a=>String(a?.id||'')===id) || (code ? list.find(a=>normalizeTextKey(a?.codice||'')===code) : null) || null;
+}
+function hydrateOrderRowWithHistoricalArticle(row={}, db){
+  const art=findArticleForOrderRow(db||loadDB(), row);
+  const snap=makeOrderArticleSnapshot(art, row);
+  const shape=deriveColorShape(row?.colorCount||row?.colorLabels?.length ? row : snap);
+  const out={
+    ...row,
+    articoloId: historicalText(row?.articoloId, snap.id),
+    codice: historicalText(row?.codice, snap.codice),
+    modello: historicalText(row?.modello, snap.modello),
+    brand: historicalText(row?.brand, snap.brand),
+    categoria: historicalText(row?.categoria, snap.categoria),
+    qualita: historicalText(row?.qualita, snap.qualita),
+    costoEur: historicalNumber(row?.costoEur, snap.costoEur),
+    prezzo: historicalNumber(row?.prezzo, snap.prezzoOrdine, snap.prezzoVendita),
+    richiedeNumeroColore: shape.colorMode==='multiple' || !!row?.richiedeNumeroColore,
+    colorCount: shape.colorCount,
+    colorLabels: shape.colorLabels,
+    colorData: makeStableColorData(shape),
+    numeroColore: normalizeSpaceText(row?.numeroColore||''),
+    colore: historicalText(row?.colore, snap.colore),
+    articoloSnapshot: snap
+  };
+  if(!art && (snap.id || snap.codice)) out.articoloStorico=true;
+  return out;
+}
+function makeOrderClientSnapshot(client, prev={}){
+  const source=client||{};
+  return {
+    id: historicalText(source?.id, prev?.id),
+    nome: historicalText(source?.nome, prev?.nome),
+    telefono: normalizePhone(historicalText(source?.telefono, prev?.telefono)),
+    email: normalizeEmail(historicalText(source?.email, prev?.email)),
+    indirizzo: historicalText(source?.indirizzo, prev?.indirizzo),
+    cap: historicalText(source?.cap, prev?.cap),
+    citta: historicalText(source?.citta, prev?.citta),
+    provincia: historicalText(source?.provincia, prev?.provincia),
+    note: typeof source?.note==='string' ? source.note : (typeof prev?.note==='string' ? prev.note : '')
+  };
+}
+function hydrateOrderWithHistoricalSnapshots(order={}, db){
+  const data=db||loadDB();
+  const client=(data.clienti||[]).find(c=>String(c?.id||'')===String(order?.clienteId||''));
+  const righe=(Array.isArray(order?.righe)?order.righe:[]).map(r=>hydrateOrderRowWithHistoricalArticle(r, data));
+  const scontoCliente=calcOrderDiscount(order);
+  const subTotale=calcOrderSubtotal(righe);
+  const totalValue=Number(order?.totale);
+  return {
+    ...order,
+    clienteSnapshot: makeOrderClientSnapshot(client, order?.clienteSnapshot||order?.clienteStorico||{}),
+    righe,
+    subTotale,
+    scontoCliente,
+    totale:(totalValue>0 || subTotale===0) ? totalValue : calcOrderNetTotal(righe, scontoCliente),
+    incassato:Number(order?.incassato||0)
+  };
+}
+function hydrateHistoricalSnapshotsBeforeArticleRemoval(db, article){
+  if(!db || !article) return 0;
+  const artId=String(article?.id||'');
+  const artCode=normalizeTextKey(article?.codice||'');
+  let touched=0;
+  db.ordini=(db.ordini||[]).map(order=>{
+    let changed=false;
+    const rows=(Array.isArray(order?.righe)?order.righe:[]).map(row=>{
+      const rowId=String(row?.articoloId||'');
+      const rowCode=normalizeTextKey(row?.codice||'');
+      const match=(artId && rowId===artId) || (artCode && rowCode===artCode);
+      if(!match) return row;
+      changed=true;
+      return hydrateOrderRowWithHistoricalArticle({
+        ...row,
+        articoloSnapshot: makeOrderArticleSnapshot(article, row),
+        articoloEliminato:true,
+        articoloEliminatoIl:new Date().toISOString()
+      }, db);
+    });
+    if(!changed) return order;
+    touched++;
+    return hydrateOrderWithHistoricalSnapshots({...order, righe:rows, _ts:Date.now()}, db);
+  });
+  return touched;
+}
+
 function orderMargin(o, db){
-  const righe=Array.isArray(o?.righe)?o.righe:[];
+  const righe=(Array.isArray(o?.righe)?o.righe:[]).map(r=>hydrateOrderRowWithHistoricalArticle(r, db||loadDB()));
   let costTotal=0;
   for(const r of righe){
-    const art=(db?.articoli||[]).find(x=>x.id===r.articoloId || (r.codice && x.codice===r.codice));
-    const costo=Number(r?.costoEur || currentCost(art) || art?.costoEur || 0);
+    const art=findArticleForOrderRow(db||loadDB(), r);
+    const snap=normalizeOrderArticleSnapshot(r?.articoloSnapshot||{});
+    const costo=historicalNumber(r?.costoEur, snap.costoEur, art ? currentCost(art) : 0, art?.costoEur);
     costTotal += Math.max(0, isFinite(costo) ? costo : 0);
   }
   const subtotal=calcOrderSubtotal(righe);
@@ -7078,13 +7240,13 @@ function renderOrd(){
   const db=loadDB();
   const q=document.getElementById('qOrd').value.trim().toLowerCase();
   const items=db.ordini.filter(o=>{
-    const c=db.clienti.find(x=>x.id===o.clienteId);
+    const c=db.clienti.find(x=>x.id===o.clienteId) || o.clienteSnapshot || o.clienteStorico || null;
     const hay=((o.id||'')+' '+(o.stato||'')+' '+(c?c.nome:'')).toLowerCase();
     return !q || hay.includes(q);
   }).sort((a,b)=>String(b._ts||0).localeCompare(String(a._ts||0)));
   const el=document.getElementById('listOrd');
   el.innerHTML=items.map(o=>{
-    const c=db.clienti.find(x=>x.id===o.clienteId);
+    const c=db.clienti.find(x=>x.id===o.clienteId) || o.clienteSnapshot || o.clienteStorico || null;
     const righe=Array.isArray(o.righe)?o.righe:[];
     const subTotale=calcOrderSubtotal(righe);
     const scontoCliente=calcOrderDiscount(o);
@@ -8122,11 +8284,14 @@ async function deleteArt(){
     const db=loadDB();
     const old=db.articoli.find(a=>a.id===artId);
     if(!old){ hide('mArtEdit'); hide('mArtView'); currentArtId=null; renderArt(); return; }
-    for(const pid of (old?.photoIds||[])){
-      try{ await idbDelete(pid); }catch(_e){}
+    const storicoCount=hydrateHistoricalSnapshotsBeforeArticleRemoval(db, old);
+    if(!storicoCount){
+      for(const pid of (old?.photoIds||[])){
+        try{ await idbDelete(pid); }catch(_e){}
+      }
+      try{ await deleteArticlePhotosFromSupabase(old?.foto||[]); }catch(_e){}
+      if(Array.isArray(old?.videoIds)&&old.videoIds.length){ try{ await deleteArtVideosFromSupabase(old.videoIds); }catch(_e){} }
     }
-    try{ await deleteArticlePhotosFromSupabase(old?.foto||[]); }catch(_e){}
-    if(Array.isArray(old?.videoIds)&&old.videoIds.length){ try{ await deleteArtVideosFromSupabase(old.videoIds); }catch(_e){} }
     db.articoli=db.articoli.filter(a=>a.id!==artId);
     currentArtId=null;
     if(!saveDB(db)) return;
@@ -8138,14 +8303,14 @@ initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','
 updateArticleColorModeUI();
     if(old && cloudEnabled()){
       try{
-        await cloudDeleteOne('art', old);
-        toast('Articolo eliminato');
+        await cloudDeleteOne('art', {...old, _keepStoricoMedia:!!storicoCount});
+        toast(storicoCount ? 'Articolo eliminato, ordini e guadagni storici mantenuti' : 'Articolo eliminato');
       }catch(err){
         console.error('Eliminazione cloud articolo fallita', err);
-        toast('Articolo eliminato, ma cloud non aggiornato');
+        toast(storicoCount ? 'Storico ordini mantenuto. Cloud non aggiornato' : 'Articolo eliminato, ma cloud non aggiornato');
       }
     }else{
-      toast('Articolo eliminato');
+      toast(storicoCount ? 'Articolo eliminato, ordini e guadagni storici mantenuti' : 'Articolo eliminato');
     }
   },'Elimina articolo');
 }
@@ -8213,10 +8378,26 @@ function pickOrderRowPhoto(art, row, artPics){
 async function getOrderArticleSnapshotPhotos(rows, db){
   const pics=[];
   for(const r of (rows||[])) {
-    const art=(db.articoli||[]).find(a=>a.id===r.articoloId || a.codice===r.codice);
-    if(!art) continue;
+    const art=findArticleForOrderRow(db||loadDB(), r);
     try{
-      const artPics=await getArticlePics(art);
+      let artPics=[];
+      if(art){
+        artPics=await getArticlePics(art);
+      }else{
+        const snap=normalizeOrderArticleSnapshot(r?.articoloSnapshot||{});
+        const stored=await getStoredPhotoSources(snap.photoIds||[]).catch(()=>[]);
+        const refs=[];
+        for(const src of (snap.foto||[])){
+          const clean=String(src||'').trim();
+          if(!clean) continue;
+          if(/^data:|^blob:|^https?:/i.test(clean)) refs.push(clean);
+          else{
+            const url=await getPublicFotoUrl(clean);
+            if(url) refs.push(url);
+          }
+        }
+        artPics=mergeUniquePics(refs, stored);
+      }
       const picked=pickOrderRowPhoto(art, r, artPics);
       if(picked && !pics.includes(picked)) pics.push(picked);
       if(pics.length>=12) return pics;
@@ -8249,7 +8430,7 @@ async function openOrdView(id){
   const db=loadDB(); const o=db.ordini.find(x=>x.id===id);
   if(!o) return;
   currentOrdId=id;
-  const c=db.clienti.find(x=>x.id===o.clienteId);
+  const c=db.clienti.find(x=>x.id===o.clienteId) || o.clienteSnapshot || o.clienteStorico || null;
   const subTotale=calcOrderSubtotal(o.righe||[]);
   const scontoCliente=calcOrderDiscount(o);
   const totale=(Number(o?.totale)>0 || subTotale===0) ? Number(o?.totale||0) : calcOrderNetTotal(o.righe||[], scontoCliente);
@@ -8568,10 +8749,13 @@ async function openOrdEdit(id, prefillArticleId=null){
     if(a && !ordRows.some(r=>String(r.articoloId)===String(prefillArticleId))){
       const labels=getArticleColorLabels(a);
       const defaultColor=(getArticleColorMode(a)==='single') ? normalizeSpaceText(a?.colore||labels[0]||'') : '';
-      ordRows.push({
+      ordRows.push(hydrateOrderRowWithHistoricalArticle({
         articoloId:a.id,
         codice:a?.codice||'',
         modello:a?.modello||'',
+        brand:a?.brand||'',
+        categoria:a?.categoria||'',
+        qualita:articleQualityLabel(a),
         prezzo:Number(currentPrice(a)||0),
         costoEur:Number(currentCost(a)||0),
         richiedeNumeroColore:getArticleColorMode(a)==='multiple',
@@ -8579,7 +8763,7 @@ async function openOrdEdit(id, prefillArticleId=null){
         colorLabels:labels,
         numeroColore:'',
         colore:defaultColor
-      });
+      }, db));
     }
   }
   renderOrdRows();
@@ -8749,7 +8933,7 @@ function addRow(){
     const pickColor=String(document.getElementById('o_pick_color')?.value||'').trim();
     const isMultiple=getArticleColorMode(a)==='multiple' && Number(getArticleColorCount(a)||0)>0;
     const colorLabel=isMultiple ? ((parseInt(pickColor,10)>0 && labels[parseInt(pickColor,10)-1]) ? labels[parseInt(pickColor,10)-1] : '') : normalizeSpaceText(pickColor || a?.colore || labels[0] || '');
-    ordRows.push({articoloId:artId,codice:a?.codice||'',modello:a?.modello||'',prezzo,costoEur:Number(currentCost(a)||0),richiedeNumeroColore:isMultiple,colorCount:getArticleColorCount(a),colorLabels:labels,colorData:makeStableColorData({colorMode:isMultiple?'multiple':'single', colorCount:getArticleColorCount(a), colorLabels:labels}),numeroColore:isMultiple ? pickColor : '',colore:colorLabel});
+    ordRows.push(hydrateOrderRowWithHistoricalArticle({articoloId:artId,codice:a?.codice||'',modello:a?.modello||'',brand:a?.brand||'',categoria:a?.categoria||'',qualita:articleQualityLabel(a),prezzo,costoEur:Number(currentCost(a)||0),richiedeNumeroColore:isMultiple,colorCount:getArticleColorCount(a),colorLabels:labels,colorData:makeStableColorData({colorMode:isMultiple?'multiple':'single', colorCount:getArticleColorCount(a), colorLabels:labels}),numeroColore:isMultiple ? pickColor : '',colore:colorLabel}, db));
   });
   const pick=document.getElementById('o_art_pick');
   const colorPick=document.getElementById('o_pick_color');
@@ -8803,8 +8987,9 @@ function renderOrdRows(){
     if(r?.colore) badges.push(`<span class="orderBadge">Colore ${esc(r.colore)}</span>`);
     if(needsMeasure) badges.push(`<span class="orderBadge">Misura ${esc(globalSize||'da scegliere')}</span>`);
     const colorUi=needsColor ? `<div class="orderInlineField"><label>Colore</label><select data-role="rowColorNum" data-i="${i}">${buildOrderColorOptions(r.colorCount, r.numeroColore||'', r.colorLabels||[])}</select></div>` : '';
-    const meta=[art?.brand, displayCategoryValue(art?.categoria||r?.categoria||''), art?.qualita].filter(Boolean).map(v=>esc(v)).join(' • ');
-    return `<div class="orderCard"><div><div class="title">${esc(r.modello||art?.modello||'Articolo selezionato')}</div><div class="meta">${meta || 'Riga ordine'}</div><div class="orderBadges">${badges.join('')}</div><div class="orderRowControls">${colorUi}</div></div><button class="orderRemoveBtn" type="button" aria-label="Rimuovi articolo" title="Rimuovi articolo" data-action="delRow" data-i="${i}">Rimuovi</button></div>`;
+    const snap=normalizeOrderArticleSnapshot(r?.articoloSnapshot||{});
+    const meta=[art?.brand||r?.brand||snap.brand, displayCategoryValue(art?.categoria||r?.categoria||snap.categoria||''), art?.qualita||r?.qualita||snap.qualita, r?.articoloStorico?'storico':''].filter(Boolean).map(v=>esc(v)).join(' • ');
+    return `<div class="orderCard"><div><div class="title">${esc(r.modello||art?.modello||snap.modello||'Articolo selezionato')}</div><div class="meta">${meta || 'Riga ordine'}</div><div class="orderBadges">${badges.join('')}</div><div class="orderRowControls">${colorUi}</div></div><button class="orderRemoveBtn" type="button" aria-label="Rimuovi articolo" title="Rimuovi articolo" data-action="delRow" data-i="${i}">Rimuovi</button></div>`;
   }).join('') || `<div class="orderSelectedSummary empty">Nessun articolo aggiunto.</div>`;
   const sum=document.getElementById('o_rows_summary');
   if(sum){
@@ -8909,19 +9094,28 @@ async function saveOrd(){
     note: document.getElementById('o_note').value.trim(),
     mis: misuraValue,
     tracking: document.getElementById('o_tracking').value.trim(),
-    righe: ordRows.map(r=>({
-      ...r,
-      articoloId:String(r?.articoloId||''),
-      codice:normalizeSpaceText(r?.codice||''),
-      modello:normalizeSpaceText(r?.modello||''),
-      prezzo:Number(r?.prezzo||0),
-      richiedeNumeroColore:!!r?.richiedeNumeroColore,
-      colorCount:Math.max(0, parseInt(r?.colorCount||0,10) || 0),
-      colorLabels:Array.isArray(r?.colorLabels)?r.colorLabels.map(v=>normalizeSpaceText(v||'')).filter(Boolean):[],
-      colorData: makeStableColorData({colorMode:(!!r?.richiedeNumeroColore?'multiple':'single'), colorCount:Number(r?.colorCount||0), colorLabels:Array.isArray(r?.colorLabels)?r.colorLabels:[]}),
-      numeroColore:normalizeSpaceText(r?.numeroColore||''),
-      colore:normalizeSpaceText(r?.colore||'')
-    })),
+    clienteSnapshot: makeOrderClientSnapshot((db.clienti||[]).find(c=>String(c.id)===String(cli))),
+    righe: ordRows.map(r=>{
+      const h=hydrateOrderRowWithHistoricalArticle(r, db);
+      return {
+        ...h,
+        articoloId:String(h?.articoloId||''),
+        codice:normalizeSpaceText(h?.codice||''),
+        modello:normalizeSpaceText(h?.modello||''),
+        brand:normalizeSpaceText(h?.brand||''),
+        categoria:normalizeSpaceText(h?.categoria||''),
+        qualita:normalizeSpaceText(h?.qualita||''),
+        costoEur:Number(h?.costoEur||0),
+        prezzo:Number(h?.prezzo||0),
+        richiedeNumeroColore:!!h?.richiedeNumeroColore,
+        colorCount:Math.max(0, parseInt(h?.colorCount||0,10) || 0),
+        colorLabels:Array.isArray(h?.colorLabels)?h.colorLabels.map(v=>normalizeSpaceText(v||'')).filter(Boolean):[],
+        colorData: makeStableColorData({colorMode:(!!h?.richiedeNumeroColore?'multiple':'single'), colorCount:Number(h?.colorCount||0), colorLabels:Array.isArray(h?.colorLabels)?h.colorLabels:[]}),
+        numeroColore:normalizeSpaceText(h?.numeroColore||''),
+        colore:normalizeSpaceText(h?.colore||''),
+        articoloSnapshot:makeOrderArticleSnapshot(findArticleForOrderRow(db,h), h)
+      };
+    }),
     fotoArticoli: [],
     fotoManuali: [...existingManualLegacy, ...newManualLegacy].slice(0,1),
     orderPhotoIds: [...new Set([...existingManualIds, ...newManualIds])].slice(0,1),
@@ -9545,7 +9739,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-06-03-private-articoli-signed-v84';
+const VG_BUILD='2026-06-14-storico-ordini-articoli-eliminati-v96';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -9764,7 +9958,8 @@ async function deleteCloudArticle(art){
     if(isUuid(art?.id)){
       const { data:rows } = await sb.from('prodotti_foto').select('path').eq('prodotto_id', art.id);
       const paths=(rows||[]).map(r=>r.path).filter(Boolean);
-      if(paths.length) await deleteArticlePhotosFromSupabase(paths);
+      const keepStoricoMedia=!!(art?._keepStoricoMedia || art?._keepHistoryMedia);
+      if(paths.length && !keepStoricoMedia) await deleteArticlePhotosFromSupabase(paths);
       await sb.from('prodotti_foto').delete().eq('prodotto_id', art.id);
       const {error}=await sb.from('prodotti').delete().eq('id', art.id);
       if(error) throw error;
@@ -9997,7 +10192,7 @@ async function pullCloudToLocal(opts={}){
         return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true})),
-      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
+      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, brand:localRow?.brand||row?.brand||'', categoria:localRow?.categoria||row?.categoria||'', qualita:localRow?.qualita||row?.qualita||'', costoEur:historicalNumber(localRow?.costoEur,row?.costoEur), articoloSnapshot:localRow?.articoloSnapshot||row?.articoloSnapshot||null, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
     };
     const mergedCategories=[...new Set([
       ...(Array.isArray(localDb?.categorie)?localDb.categorie:[]),
@@ -10735,7 +10930,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=no-materiale-v90', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=storico-ordini-v96', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
