@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-06-14-storico-ordini-v96';
+const VERSION = 'gestionale-2026-06-14-storico-ordini-v97-promo-margin';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

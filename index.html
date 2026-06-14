@@ -3623,9 +3623,13 @@ function currentPrice(a){
   return supplier>0 ? supplier : Number(a?.prezzoVendita||0);
 }
 function currentCost(a){
-  if(promoValid(a) && getPromoSupplierUsd(a)>0){
-    const promoCost=promoSupplierCalc(a).costo;
-    if(promoCost>0) return promoCost;
+  if(promoValid(a)){
+    if(getPromoSupplierUsd(a)>0){
+      const promoCost=promoSupplierCalc(a).costo;
+      if(promoCost>0) return promoCost;
+    }
+    const promoEur=firstFiniteNumber(a?.costoEurPromo, a?.costoEURPromo, a?.promoCostoEur, 0);
+    if(promoEur>0) return promoEur;
   }
   return Number(a?.costoEur||0);
 }
@@ -7069,14 +7073,16 @@ function articleAvailabilityBadge(a){
   return '<div class="pill unavailable" style="margin-top:6px">NON DISPONIBILE</div>';
 }
 function articleMarginInfo(a){
-  const usd=Number(a?.costoUsd||0);
-  if(!isFinite(usd) || usd<=0) return null;
-  const qualKey=normalizeQualityValue(articleQualityLabel(a)).toUpperCase();
-  const base=calcFromUsd(usd, qualKey==='ORIGINALE' ? 'ORIGINALE' : 'STANDARD');
-  const current=Math.max(0, Number(currentPrice(a)||0) - Number(base?.costo||0));
+  const usingPromoSupplier=promoValid(a) && getPromoSupplierUsd(a)>0;
+  const usd=usingPromoSupplier ? getPromoSupplierUsd(a) : Number(a?.costoUsd||0);
   const sale=Number(currentPrice(a)||0);
+  const cost=Number(currentCost(a)||0);
+  if(!isFinite(cost) || cost<=0 || !isFinite(sale) || sale<=0) return null;
+  const qualKey=normalizeQualityValue(articleQualityLabel(a)).toUpperCase();
+  const base=(isFinite(usd) && usd>0) ? calcFromUsd(usd, qualKey==='ORIGINALE' ? 'ORIGINALE' : 'STANDARD') : { marg:0 };
+  const current=Math.max(0, sale - cost);
   const pct=(sale>0 && current>0) ? Math.round((current/sale)*100) : 0;
-  const target=Math.max(1, Number(base?.marg||0));
+  const target=Math.max(1, Number(base?.marg||current||1));
   const ratio=current/target;
   if(ratio >= 0.92){
     return { tone:'good', label:'Buon margine', amount:current, pct };
@@ -7087,15 +7093,10 @@ function articleMarginInfo(a){
   return { tone:'low', label:'Margine al limite', amount:current, pct };
 }
 function articleCostInfo(a){
-  const usd=Number(a?.costoUsd||0);
-  const eurStored=Number(a?.costoEur||0);
-  if(isFinite(usd) && usd>0){
-    const qualKey=normalizeQualityValue(articleQualityLabel(a)).toUpperCase();
-    const base=calcFromUsd(usd, qualKey==='ORIGINALE' ? 'ORIGINALE' : 'STANDARD');
-    const eur=isFinite(Number(base?.costo)) && Number(base?.costo)>0 ? Number(base.costo) : eurStored;
-    return { eur, usd };
-  }
-  if(isFinite(eurStored) && eurStored>0) return { eur:eurStored, usd:0 };
+  const usingPromoSupplier=promoValid(a) && getPromoSupplierUsd(a)>0;
+  const usd=usingPromoSupplier ? getPromoSupplierUsd(a) : Number(a?.costoUsd||0);
+  const eur=Number(currentCost(a)||0);
+  if(isFinite(eur) && eur>0) return { eur, usd:(isFinite(usd) && usd>0) ? usd : 0 };
   return null;
 }
 function articleCostInfoHtml(a){
