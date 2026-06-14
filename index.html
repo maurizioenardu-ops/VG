@@ -270,7 +270,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v11_3-storico-ordini-articoli-eliminati">
+  <meta name="vg-version" content="v11_4-navigazione-rapida-lazy">
 </head>
 <body>
 
@@ -5768,6 +5768,7 @@ function currentHistoryPage(){
 }
 function go(name, push=true){
   renderPageState(name);
+  renderPageContent(name,{reason:'nav'});
   const state={page:name};
   if(name==='articoli') state.artBrowse={...artBrowseState};
   if(push) history.pushState(state,'', '#'+name);
@@ -5781,8 +5782,8 @@ window.addEventListener('popstate',(e)=>{
   if(page==='articoli'){
     const b=state.artBrowse||{level:'categorie',categoria:'',brand:''};
     setArtBrowse(b.level||'categorie', b.categoria||'', b.brand||'', false);
-    renderArt();
   }
+  renderPageContent(page,{reason:'pop'});
 });
 
 /* ====== UI helpers ====== */
@@ -7230,13 +7231,51 @@ function renderArt(){
   el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
   hydrateArticleThumbs(items);
 }
+let __articleThumbHydrateToken=0;
+let __articleThumbObserver=null;
 async function hydrateArticleThumbs(items){
-  for(const a of items){
-    const pics=await getArticlePics(a);
-    const el=document.querySelector('[data-photo-for="'+a.id+'"]');
-    const ph=document.querySelector('[data-placeholder-for="'+a.id+'"]');
-    if(el && pics[0]){ el.src=pics[0]; el.style.display='block'; if(ph) ph.style.display='none'; }
-    else if(ph){ ph.style.display='flex'; }
+  const token=++__articleThumbHydrateToken;
+  const dbItems=new Map((Array.isArray(items)?items:[]).map(a=>[String(a?.id||''), a]));
+  const thumbs=Array.from(document.querySelectorAll('#listArt [data-photo-for]'));
+  if(__articleThumbObserver){ try{ __articleThumbObserver.disconnect(); }catch(_e){} __articleThumbObserver=null; }
+  const loadOne=async(img)=>{
+    if(!img || img.dataset.loaded==='1') return;
+    const id=String(img.getAttribute('data-photo-for')||'');
+    const a=dbItems.get(id);
+    if(!a) return;
+    img.dataset.loaded='1';
+    try{
+      const pics=await getArticlePics(a);
+      if(token!==__articleThumbHydrateToken) return;
+      const ph=document.querySelector('[data-placeholder-for="'+id.replace(/"/g,'\"')+'"]');
+      if(img && pics[0]){ img.loading='lazy'; img.decoding='async'; img.src=pics[0]; img.style.display='block'; if(ph) ph.style.display='none'; }
+      else if(ph){ ph.style.display='flex'; }
+    }catch(_e){
+      const ph=document.querySelector('[data-placeholder-for="'+id.replace(/"/g,'\"')+'"]');
+      if(ph) ph.style.display='flex';
+    }
+  };
+  // Carica subito solo le prime card visibili, poi il resto quando entra vicino allo schermo.
+  thumbs.slice(0,8).forEach(img=>loadOne(img));
+  if('IntersectionObserver' in window){
+    __articleThumbObserver=new IntersectionObserver(entries=>{
+      entries.forEach(entry=>{
+        if(entry.isIntersecting){
+          __articleThumbObserver.unobserve(entry.target);
+          loadOne(entry.target);
+        }
+      });
+    },{root:null, rootMargin:'420px 0px', threshold:0.01});
+    thumbs.slice(8).forEach(img=>__articleThumbObserver.observe(img));
+  }else{
+    let i=8;
+    const pump=()=>{
+      const slice=thumbs.slice(i,i+6);
+      i+=6;
+      slice.forEach(img=>loadOne(img));
+      if(i<thumbs.length) setTimeout(pump,60);
+    };
+    setTimeout(pump,80);
   }
 }
 function pseudoPromoBadge(a){
@@ -7487,7 +7526,41 @@ function renderFinanze(){
   renderStorageInfo();
 }
 
-function renderAll(){ renderHome(); renderArt(); renderCli(); renderOrd(); renderFinanze(); renderCategorySettings(); renderBrandSettings(); refreshArticleCategorySelects(); refreshArticleBrandSelects(); }
+let __backgroundRenderTimer=null;
+function renderPageContent(name=currentHistoryPage(), opts={}){
+  const page=String(name||'home');
+  try{
+    if(page==='home') renderHome();
+    else if(page==='articoli') renderArt();
+    else if(page==='clienti') renderCli();
+    else if(page==='ordini') renderOrd();
+    else if(page==='finanze') renderFinanze();
+    else if(page==='social') { renderSocial(); renderSocialSuggestions(); }
+    else if(page==='impostazioni') { renderCategorySettings(); renderBrandSettings(); renderDiagnostics(); fillUiEditor(); applyUiPrefs(); }
+  }catch(err){ console.error('Render pagina fallito:', page, err); }
+}
+function scheduleBackgroundRender(){
+  if(__backgroundRenderTimer) clearTimeout(__backgroundRenderTimer);
+  const run=()=>{
+    const current=currentHistoryPage();
+    const pages=['home','articoli','clienti','ordini','finanze','social','impostazioni'].filter(p=>p!==current);
+    const renderNext=()=>{
+      const p=pages.shift();
+      if(!p) return;
+      renderPageContent(p,{reason:'background'});
+      setTimeout(renderNext,80);
+    };
+    renderNext();
+    refreshArticleCategorySelects();
+    refreshArticleBrandSelects();
+  };
+  if('requestIdleCallback' in window) __backgroundRenderTimer=requestIdleCallback(run,{timeout:1500});
+  else __backgroundRenderTimer=setTimeout(run,500);
+}
+function renderAll(){
+  renderPageContent(currentHistoryPage(),{reason:'active'});
+  scheduleBackgroundRender();
+}
 
 /* ====== ART view/edit ====== */
 let currentArtId=null;
@@ -10908,8 +10981,6 @@ async function bootApp(){
   await runOneTimeFreshReset();
   await runOneTimeArticlePublishReset();
   renderAll();
-  renderSocial();
-  renderSocialSuggestions();
   initSocialMediaInput();
   initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship']);
   updateArticleColorModeUI();
