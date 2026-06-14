@@ -686,7 +686,7 @@ window.addEventListener('error',e=>{
       <div id="vArtMarginBox" class="marginBox" style="margin-top:8px"></div>
     </div>
   </div>
-  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtAll">🔗 Condividi</button><span id="vArtFbSaveMeta" class="pubMeta" style="display:none"></span><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div></div>
+  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn smallish" style="background:#facc15;border-color:#eab308;color:#713f12" type="button" data-action="shareArtAllWithPrice">💶 Condividi</button><button class="btn smallish" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtAll">🔗 Condividi</button><span id="vArtFbSaveMeta" class="pubMeta" style="display:none"></span><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="copyPostTelegramNoPrice">Copia Telegram senza prezzo</button><button class="btn smallish" type="button" data-action="downloadArtPhotosTg">Scarica foto</button><span id="vArtPubMetaTg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish" type="button" data-action="downloadArtPhotosIg">Scarica foto</button><span id="vArtPubMetaIg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
@@ -3069,7 +3069,8 @@ window.artHeroVideo=function(url){
   if(vid){ vid.src=url; vid.style.display='block'; vid.play().catch(()=>{}); }
 };
 
-async function shareArtAll(){
+async function shareArtAll(opts={}){
+  const withPrice = opts===true || opts?.withPrice===true;
   const db=loadDB();
   const a=db.articoli.find(x=>x.id===currentArtId); if(!a) return;
 
@@ -3114,7 +3115,10 @@ async function shareArtAll(){
 
   // Testo FB — copialo negli appunti PRIMA del share
   // (navigator.share con files ignora il text su molti dispositivi)
-  const text=(document.getElementById('vArtPostFb')?.value||'').trim();
+  const fbEl=document.getElementById('vArtPostFb');
+  const baseText=String(fbEl?.value || getArticleFacebookPost(a) || '').trim();
+  let text=normalizeFacebookPostForArticle(baseText, a);
+  if(withPrice) text=ensureFacebookPostHasPriceAtEnd(text, a, '💶');
   if(text){
     try{ await navigator.clipboard.writeText(text); }
     catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
@@ -3124,7 +3128,7 @@ async function shareArtAll(){
     if(canNativeShareFiles(files)){
       await navigator.share({files});
       recordArticlePublication('fb');
-      toast(text?'✅ File condivisi! Testo FB copiato — incollalo come didascalia 📋':'✅ Condivisione aperta!');
+      toast(text ? (withPrice ? '✅ File condivisi! Post FB con prezzo copiato 📋' : '✅ File condivisi! Post FB copiato 📋') : '✅ Condivisione aperta!');
     } else if(typeof navigator.share==='function'){
       await navigator.share({title:a.modello||a.codice||'Articolo'});
       toast('✅ Condivisione aperta!');
@@ -5407,6 +5411,24 @@ function buildPostFacebookBase(a, opts={}){
   return formatGeneratedPostLines(lines);
 }
 
+function facebookPostPriceLine(a, symbol='💶'){
+  return formatPostPrezzoVendita(currentPrice(a), symbol);
+}
+function stripFacebookPostPriceLines(text){
+  const raw=String(text||'').trim();
+  if(!raw) return raw;
+  return raw.split(/\r?\n/).filter(line=>{
+    const t=String(line||'').replace(/\s+/g,' ').trim();
+    if(!t) return true;
+    return !/^(?:💶|€)\s*\d+(?:[,.]\d{1,2})?\s*$/i.test(t);
+  }).join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+function ensureFacebookPostHasPriceAtEnd(text, a, symbol='💶'){
+  const raw=stripFacebookPostPriceLines(text);
+  const price=facebookPostPriceLine(a, symbol);
+  if(!price) return raw;
+  return raw ? `${raw}\n${price}` : price;
+}
 function ensureFacebookPostHasCode(text, a){
   const code=String(a?.codice||'').trim();
   const raw=String(text||'').trim();
@@ -5537,7 +5559,7 @@ function buildPostFacebook(a){
   return getArticleFacebookPost(a);
 }
 function buildPostFacebookWithPrice(a){
-  return getArticleFacebookPost(a);
+  return ensureFacebookPostHasPriceAtEnd(getArticleFacebookPost(a), a, '💶');
 }
 function setArticleFacebookPostAuto(text){
   const el=document.getElementById('a_post_fb');
@@ -9534,9 +9556,9 @@ document.addEventListener('click',(ev)=>{
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    const txt=getArticleFacebookPost(art);
+    const txt=buildPostFacebookWithPrice(art);
     if(!txt){ toast('Post Facebook vuoto'); return; }
-    return copyText(txt, 'Post copiato', ()=>recordArticlePublication('fb'));
+    return copyText(txt, 'Post con prezzo copiato', ()=>recordArticlePublication('fb'));
   }
   if(a==='copyPostIg'){
     const db=loadDB();
@@ -9560,7 +9582,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='copyPostFbWithPriceEdit'){
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(getArticleFacebookPost(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('fb'); });
+    return copyText(buildPostFacebookWithPrice(art), 'Post con prezzo copiato', ()=>{ if(currentArtId) recordArticlePublication('fb'); });
   }
   if(a==='copyPostIgEdit'){
     const art=readArticleForm?.() || null;
@@ -9601,6 +9623,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='clearPendingArtPhotos'){ resetPendingArtPhotoFiles(); renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Nuove foto annullate'); return; }
   if(a==='pickArtVideos'){ document.getElementById('a_video')?.click(); return; }
   if(a==='clearArtVideos'){ currentArtExistingVideoIds=[]; currentArtPendingVideos=[]; renderArtVideoPreview(); toast('Video rimossi'); return; }
+  if(a==='shareArtAllWithPrice'){ shareArtAll({withPrice:true}); return; }
   if(a==='shareArtAll'){ shareArtAll(); return; }
   if(a==='closeEdit'){ saveArticleDraft(); return hide('mArtEdit'); }
   if(a==='clearArtPhotos'){ currentArtExistingPics=[]; currentArtPhotosCleared=true; document.getElementById('a_photo').value=''; renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Foto attuali rimosse'); return; }
@@ -9740,7 +9763,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-06-14-storico-ordini-articoli-eliminati-v96';
+const VG_BUILD='2026-06-14-post-fb-prezzo-v99';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -10931,7 +10954,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=storico-ordini-v96', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=post-fb-prezzo-v99', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
