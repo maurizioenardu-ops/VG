@@ -1,8 +1,8 @@
 {
-  "id": "./?v=storico-ordini-v96",
+  "id": "./?v=qualita-unica-v100",
   "name": "Gestionale",
   "short_name": "Gestionale",
-  "start_url": "./?v=storico-ordini-v96",
+  "start_url": "./?v=qualita-unica-v100",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0f172a",

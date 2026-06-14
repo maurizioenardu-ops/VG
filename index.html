@@ -1115,6 +1115,7 @@ function normalizeDBShape(o){
     codice:normalizeSpaceText(x?.codice||x?.sku||''),
     brand:normalizeSpaceText(x?.brand||x?.marca||''),
     categoria:normalizeSpaceText(x?.categoria||''),
+    qualita:normalizeQualityValue(x?.qualita||x?.qualità||qualityFromCode(x?.codice||x?.sku||'')),
     misura:normalizeSpaceText(x?.misura||x?.dimensioni||''),
     altezzaCintura:normalizeSpaceText(x?.altezzaCintura||x?.hCintura||x?.h||x?.altezza||''),
     hCintura:normalizeSpaceText(x?.hCintura||x?.altezzaCintura||x?.h||x?.altezza||''),
@@ -1164,6 +1165,7 @@ function normalizeDBShape(o){
       articoloId:String(r?.articoloId||''),
       codice:normalizeSpaceText(r?.codice||r?.sku||''),
       modello:normalizeSpaceText(r?.modello||r?.nome||''),
+      qualita:normalizeQualityValue(r?.qualita||r?.qualità||''),
       prezzo:Number(r?.prezzo||r?.prezzo_unitario||0),
       sconto:Number(r?.sconto||0),
       richiedeNumeroColore: deriveColorShape(r).colorMode==='multiple' || !!r?.richiedeNumeroColore,
@@ -1208,6 +1210,7 @@ function normalizeDBShape(o){
       articoloId:artDedup.idMap.get(String(r?.articoloId||'')) || String(r?.articoloId||''),
       codice:normalizeSpaceText(r?.codice||r?.sku||''),
       modello:normalizeSpaceText(r?.modello||r?.nome||''),
+      qualita:normalizeQualityValue(r?.qualita||r?.qualità||''),
       prezzo:Number(r?.prezzo||r?.prezzo_unitario||0)
     }))
   }));
@@ -3681,7 +3684,7 @@ function normalizeOrderArticleSnapshot(snap={}){
     modello: historicalText(snap?.modello, snap?.nome),
     brand: historicalText(snap?.brand, snap?.marca),
     categoria: sanitizeCategoryName(historicalText(snap?.categoria)),
-    qualita: historicalText(snap?.qualita, snap?.qualità),
+    qualita: normalizeQualityValue(historicalText(snap?.qualita, snap?.qualità)),
     colore: historicalText(snap?.colore),
     misura: historicalText(snap?.misura, snap?.taglia),
     altezzaCintura: historicalText(snap?.altezzaCintura, snap?.hCintura, snap?.h, snap?.altezza),
@@ -3745,7 +3748,7 @@ function hydrateOrderRowWithHistoricalArticle(row={}, db){
     modello: historicalText(row?.modello, snap.modello),
     brand: historicalText(row?.brand, snap.brand),
     categoria: historicalText(row?.categoria, snap.categoria),
-    qualita: historicalText(row?.qualita, snap.qualita),
+    qualita: normalizeQualityValue(historicalText(row?.qualita, snap.qualita)),
     costoEur: historicalNumber(row?.costoEur, snap.costoEur),
     prezzo: historicalNumber(row?.prezzo, snap.prezzoOrdine, snap.prezzoVendita),
     richiedeNumeroColore: shape.colorMode==='multiple' || !!row?.richiedeNumeroColore,
@@ -7080,8 +7083,8 @@ function normalizeQualityValue(v){
   if(!raw) return '';
   const key=raw.toLowerCase().replace(/[^a-zàèéìòóù0-9]+/g,'');
   if(['originale','orig','or'].includes(key)) return 'Originale';
-  if(['standard','std','top100','top','100'].includes(key)) return 'Standard';
-  if(/[🔝💯🥈]/.test(raw)) return 'Standard';
+  if(['standard','std','top100','top','100','topqualita','topqualità','topquality','qualitatop','qualitàtop'].includes(key)) return 'Standard';
+  if((key.includes('top') && (key.includes('qualita') || key.includes('qualità') || key.includes('quality'))) || /[🔝💯🥈]/.test(raw)) return 'Standard';
   return raw.charAt(0).toUpperCase()+raw.slice(1).toLowerCase();
 }
 function articleQualityLabel(a){
@@ -8846,7 +8849,7 @@ function renderSelectedOrderArticlesSummary(){
   }
   const model=((a.modello||a.brand||'').trim() || 'Articolo');
   const code=(a.codice||'').trim();
-  const meta=[a.brand, displayCategoryValue(a.categoria), a.qualita, '€ '+money(currentPrice(a)||0)].filter(Boolean).join(' • ');
+  const meta=[a.brand, displayCategoryValue(a.categoria), articleQualityLabel(a), '€ '+money(currentPrice(a)||0)].filter(Boolean).join(' • ');
   box.className='orderSelectedSummary';
   box.innerHTML=`<div class="title"><span>Da aggiungere</span></div><div class="orderChoiceList"><span class="orderChoiceChip">${esc(model)}${code?`<span class="orderChoiceMeta">Cod. ${esc(code)}${meta?` • ${esc(meta)}`:''}</span>`:''}</span></div>`;
   renderSelectedOrderColorPicker(a);
@@ -9011,7 +9014,7 @@ function renderOrdRows(){
     if(needsMeasure) badges.push(`<span class="orderBadge">Misura ${esc(globalSize||'da scegliere')}</span>`);
     const colorUi=needsColor ? `<div class="orderInlineField"><label>Colore</label><select data-role="rowColorNum" data-i="${i}">${buildOrderColorOptions(r.colorCount, r.numeroColore||'', r.colorLabels||[])}</select></div>` : '';
     const snap=normalizeOrderArticleSnapshot(r?.articoloSnapshot||{});
-    const meta=[art?.brand||r?.brand||snap.brand, displayCategoryValue(art?.categoria||r?.categoria||snap.categoria||''), art?.qualita||r?.qualita||snap.qualita, r?.articoloStorico?'storico':''].filter(Boolean).map(v=>esc(v)).join(' • ');
+    const meta=[art?.brand||r?.brand||snap.brand, displayCategoryValue(art?.categoria||r?.categoria||snap.categoria||''), (art ? articleQualityLabel(art) : normalizeQualityValue(r?.qualita||snap.qualita||'')), r?.articoloStorico?'storico':''].filter(Boolean).map(v=>esc(v)).join(' • ');
     return `<div class="orderCard"><div><div class="title">${esc(r.modello||art?.modello||snap.modello||'Articolo selezionato')}</div><div class="meta">${meta || 'Riga ordine'}</div><div class="orderBadges">${badges.join('')}</div><div class="orderRowControls">${colorUi}</div></div><button class="orderRemoveBtn" type="button" aria-label="Rimuovi articolo" title="Rimuovi articolo" data-action="delRow" data-i="${i}">Rimuovi</button></div>`;
   }).join('') || `<div class="orderSelectedSummary empty">Nessun articolo aggiunto.</div>`;
   const sum=document.getElementById('o_rows_summary');
@@ -9127,7 +9130,7 @@ async function saveOrd(){
         modello:normalizeSpaceText(h?.modello||''),
         brand:normalizeSpaceText(h?.brand||''),
         categoria:normalizeSpaceText(h?.categoria||''),
-        qualita:normalizeSpaceText(h?.qualita||''),
+        qualita:normalizeQualityValue(h?.qualita||''),
         costoEur:Number(h?.costoEur||0),
         prezzo:Number(h?.prezzo||0),
         richiedeNumeroColore:!!h?.richiedeNumeroColore,
@@ -10216,7 +10219,7 @@ async function pullCloudToLocal(opts={}){
         return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true})),
-      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, brand:localRow?.brand||row?.brand||'', categoria:localRow?.categoria||row?.categoria||'', qualita:localRow?.qualita||row?.qualita||'', costoEur:historicalNumber(localRow?.costoEur,row?.costoEur), articoloSnapshot:localRow?.articoloSnapshot||row?.articoloSnapshot||null, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
+      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, brand:localRow?.brand||row?.brand||'', categoria:localRow?.categoria||row?.categoria||'', qualita:normalizeQualityValue(localRow?.qualita||row?.qualita||''), costoEur:historicalNumber(localRow?.costoEur,row?.costoEur), articoloSnapshot:localRow?.articoloSnapshot||row?.articoloSnapshot||null, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
     };
     const mergedCategories=[...new Set([
       ...(Array.isArray(localDb?.categorie)?localDb.categorie:[]),

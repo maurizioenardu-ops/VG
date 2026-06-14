@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-06-14-storico-ordini-v97-promo-margin';
+const VERSION = 'gestionale-2026-06-14-qualita-unica-v100';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
@@ -7,9 +7,6 @@ const STATIC_ASSETS = [
   './reset.html',
   './reset-cache.html',
   './database.json',
-  './cat-borse.jpg',
-  './cat-cinture.jpg',
-  './cat-accessori.jpg',
   './supabaseClient.js',
   './icon-192.png',
   './icon-512.png'
@@ -17,7 +14,10 @@ const STATIC_ASSETS = [
 
 self.addEventListener('install', event => {
   self.skipWaiting();
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(STATIC_ASSETS)));
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await Promise.allSettled(STATIC_ASSETS.map(asset => cache.add(asset)));
+  })());
 });
 
 self.addEventListener('activate', event => {
@@ -28,35 +28,55 @@ self.addEventListener('activate', event => {
   })());
 });
 
+async function updateIndexInBackground(req) {
+  try {
+    const fresh = await fetch(req, { cache: 'reload' });
+    if (fresh && fresh.ok) {
+      const cache = await caches.open(CACHE);
+      await cache.put('./index.html', fresh.clone());
+    }
+  } catch (_err) {}
+}
+
 self.addEventListener('fetch', event => {
   const req = event.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
+  // Navigazione rapida: mostra subito l'app dalla cache e aggiorna in sottofondo.
+  // Prima era network-first: su 4G/GitHub Pages aspettava la rete a ogni apertura.
   if (req.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
     event.respondWith((async () => {
-      try {
-        const fresh = await fetch(req, { cache: 'reload' });
-        const cache = await caches.open(CACHE);
-        cache.put('./index.html', fresh.clone());
+      const cached = await caches.match('./index.html') || await caches.match(req);
+      const freshPromise = fetch(req, { cache: 'reload' }).then(async fresh => {
+        if (fresh && fresh.ok) {
+          const cache = await caches.open(CACHE);
+          await cache.put('./index.html', fresh.clone());
+        }
         return fresh;
-      } catch (_err) {
-        return (await caches.match('./index.html')) || (await caches.match('./reset-cache.html')) || Response.error();
+      }).catch(() => null);
+
+      if (cached) {
+        event.waitUntil(updateIndexInBackground(req));
+        return cached;
       }
+
+      return (await freshPromise) || (await caches.match('./reset-cache.html')) || Response.error();
     })());
     return;
   }
 
   if (url.pathname.endsWith('manifest.json')) {
     event.respondWith((async () => {
-      try {
-        const fresh = await fetch(req, { cache: 'no-store' });
-        const cache = await caches.open(CACHE);
-        cache.put('./manifest.json', fresh.clone());
+      const cached = await caches.match(req) || await caches.match('./manifest.json');
+      const freshPromise = fetch(req, { cache: 'no-store' }).then(async fresh => {
+        if (fresh && fresh.ok) {
+          const cache = await caches.open(CACHE);
+          await cache.put('./manifest.json', fresh.clone());
+        }
         return fresh;
-      } catch (_err) {
-        return (await caches.match('./manifest.json')) || Response.error();
-      }
+      }).catch(() => null);
+      return cached || (await freshPromise) || Response.error();
     })());
     return;
   }
@@ -66,11 +86,13 @@ self.addEventListener('fetch', event => {
     if (cached) return cached;
     try {
       const fresh = await fetch(req);
-      const cache = await caches.open(CACHE);
-      cache.put(req, fresh.clone());
+      if (fresh && fresh.ok) {
+        const cache = await caches.open(CACHE);
+        cache.put(req, fresh.clone());
+      }
       return fresh;
     } catch (_err) {
-      return caches.match(req);
+      return caches.match(req) || Response.error();
     }
   })());
 });
