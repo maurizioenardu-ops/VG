@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-06-14-navigazione-rapida-v101';
+const VERSION = 'gestionale-2026-06-14-qualita-unica-v100';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
