@@ -686,7 +686,7 @@ window.addEventListener('error',e=>{
       <div id="vArtMarginBox" class="marginBox" style="margin-top:8px"></div>
     </div>
   </div>
-  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn smallish" style="background:#facc15;border-color:#eab308;color:#713f12" type="button" data-action="shareArtAllWithPrice">💶 Condividi</button><button class="btn smallish" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtAll">🔗 Condividi</button><span id="vArtFbSaveMeta" class="pubMeta" style="display:none"></span><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div></div>
+  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtAll">🔗 Condividi</button><span id="vArtFbSaveMeta" class="pubMeta" style="display:none"></span><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="copyPostTelegramNoPrice">Copia Telegram senza prezzo</button><button class="btn smallish" type="button" data-action="downloadArtPhotosTg">Scarica foto</button><span id="vArtPubMetaTg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish" type="button" data-action="downloadArtPhotosIg">Scarica foto</button><span id="vArtPubMetaIg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
@@ -1115,7 +1115,6 @@ function normalizeDBShape(o){
     codice:normalizeSpaceText(x?.codice||x?.sku||''),
     brand:normalizeSpaceText(x?.brand||x?.marca||''),
     categoria:normalizeSpaceText(x?.categoria||''),
-    qualita:normalizeQualityValue(x?.qualita||x?.qualità||qualityFromCode(x?.codice||x?.sku||'')),
     misura:normalizeSpaceText(x?.misura||x?.dimensioni||''),
     altezzaCintura:normalizeSpaceText(x?.altezzaCintura||x?.hCintura||x?.h||x?.altezza||''),
     hCintura:normalizeSpaceText(x?.hCintura||x?.altezzaCintura||x?.h||x?.altezza||''),
@@ -1165,7 +1164,6 @@ function normalizeDBShape(o){
       articoloId:String(r?.articoloId||''),
       codice:normalizeSpaceText(r?.codice||r?.sku||''),
       modello:normalizeSpaceText(r?.modello||r?.nome||''),
-      qualita:normalizeQualityValue(r?.qualita||r?.qualità||''),
       prezzo:Number(r?.prezzo||r?.prezzo_unitario||0),
       sconto:Number(r?.sconto||0),
       richiedeNumeroColore: deriveColorShape(r).colorMode==='multiple' || !!r?.richiedeNumeroColore,
@@ -1210,7 +1208,6 @@ function normalizeDBShape(o){
       articoloId:artDedup.idMap.get(String(r?.articoloId||'')) || String(r?.articoloId||''),
       codice:normalizeSpaceText(r?.codice||r?.sku||''),
       modello:normalizeSpaceText(r?.modello||r?.nome||''),
-      qualita:normalizeQualityValue(r?.qualita||r?.qualità||''),
       prezzo:Number(r?.prezzo||r?.prezzo_unitario||0)
     }))
   }));
@@ -3072,8 +3069,7 @@ window.artHeroVideo=function(url){
   if(vid){ vid.src=url; vid.style.display='block'; vid.play().catch(()=>{}); }
 };
 
-async function shareArtAll(opts={}){
-  const withPrice = opts===true || opts?.withPrice===true;
+async function shareArtAll(){
   const db=loadDB();
   const a=db.articoli.find(x=>x.id===currentArtId); if(!a) return;
 
@@ -3118,10 +3114,7 @@ async function shareArtAll(opts={}){
 
   // Testo FB — copialo negli appunti PRIMA del share
   // (navigator.share con files ignora il text su molti dispositivi)
-  const fbEl=document.getElementById('vArtPostFb');
-  const baseText=String(fbEl?.value || getArticleFacebookPost(a) || '').trim();
-  let text=normalizeFacebookPostForArticle(baseText, a);
-  if(withPrice) text=ensureFacebookPostHasPriceAtEnd(text, a, '💶');
+  const text=(document.getElementById('vArtPostFb')?.value||'').trim();
   if(text){
     try{ await navigator.clipboard.writeText(text); }
     catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
@@ -3131,7 +3124,7 @@ async function shareArtAll(opts={}){
     if(canNativeShareFiles(files)){
       await navigator.share({files});
       recordArticlePublication('fb');
-      toast(text ? (withPrice ? '✅ File condivisi! Post FB con prezzo copiato 📋' : '✅ File condivisi! Post FB copiato 📋') : '✅ Condivisione aperta!');
+      toast(text?'✅ File condivisi! Testo FB copiato — incollalo come didascalia 📋':'✅ Condivisione aperta!');
     } else if(typeof navigator.share==='function'){
       await navigator.share({title:a.modello||a.codice||'Articolo'});
       toast('✅ Condivisione aperta!');
@@ -3630,13 +3623,9 @@ function currentPrice(a){
   return supplier>0 ? supplier : Number(a?.prezzoVendita||0);
 }
 function currentCost(a){
-  if(promoValid(a)){
-    if(getPromoSupplierUsd(a)>0){
-      const promoCost=promoSupplierCalc(a).costo;
-      if(promoCost>0) return promoCost;
-    }
-    const promoEur=firstFiniteNumber(a?.costoEurPromo, a?.costoEURPromo, a?.promoCostoEur, 0);
-    if(promoEur>0) return promoEur;
+  if(promoValid(a) && getPromoSupplierUsd(a)>0){
+    const promoCost=promoSupplierCalc(a).costo;
+    if(promoCost>0) return promoCost;
   }
   return Number(a?.costoEur||0);
 }
@@ -3684,7 +3673,7 @@ function normalizeOrderArticleSnapshot(snap={}){
     modello: historicalText(snap?.modello, snap?.nome),
     brand: historicalText(snap?.brand, snap?.marca),
     categoria: sanitizeCategoryName(historicalText(snap?.categoria)),
-    qualita: normalizeQualityValue(historicalText(snap?.qualita, snap?.qualità)),
+    qualita: historicalText(snap?.qualita, snap?.qualità),
     colore: historicalText(snap?.colore),
     misura: historicalText(snap?.misura, snap?.taglia),
     altezzaCintura: historicalText(snap?.altezzaCintura, snap?.hCintura, snap?.h, snap?.altezza),
@@ -3748,7 +3737,7 @@ function hydrateOrderRowWithHistoricalArticle(row={}, db){
     modello: historicalText(row?.modello, snap.modello),
     brand: historicalText(row?.brand, snap.brand),
     categoria: historicalText(row?.categoria, snap.categoria),
-    qualita: normalizeQualityValue(historicalText(row?.qualita, snap.qualita)),
+    qualita: historicalText(row?.qualita, snap.qualita),
     costoEur: historicalNumber(row?.costoEur, snap.costoEur),
     prezzo: historicalNumber(row?.prezzo, snap.prezzoOrdine, snap.prezzoVendita),
     richiedeNumeroColore: shape.colorMode==='multiple' || !!row?.richiedeNumeroColore,
@@ -5414,24 +5403,6 @@ function buildPostFacebookBase(a, opts={}){
   return formatGeneratedPostLines(lines);
 }
 
-function facebookPostPriceLine(a, symbol='💶'){
-  return formatPostPrezzoVendita(currentPrice(a), symbol);
-}
-function stripFacebookPostPriceLines(text){
-  const raw=String(text||'').trim();
-  if(!raw) return raw;
-  return raw.split(/\r?\n/).filter(line=>{
-    const t=String(line||'').replace(/\s+/g,' ').trim();
-    if(!t) return true;
-    return !/^(?:💶|€)\s*\d+(?:[,.]\d{1,2})?\s*$/i.test(t);
-  }).join('\n').replace(/\n{3,}/g,'\n\n').trim();
-}
-function ensureFacebookPostHasPriceAtEnd(text, a, symbol='💶'){
-  const raw=stripFacebookPostPriceLines(text);
-  const price=facebookPostPriceLine(a, symbol);
-  if(!price) return raw;
-  return raw ? `${raw}\n${price}` : price;
-}
 function ensureFacebookPostHasCode(text, a){
   const code=String(a?.codice||'').trim();
   const raw=String(text||'').trim();
@@ -5562,7 +5533,7 @@ function buildPostFacebook(a){
   return getArticleFacebookPost(a);
 }
 function buildPostFacebookWithPrice(a){
-  return ensureFacebookPostHasPriceAtEnd(getArticleFacebookPost(a), a, '💶');
+  return getArticleFacebookPost(a);
 }
 function setArticleFacebookPostAuto(text){
   const el=document.getElementById('a_post_fb');
@@ -7083,8 +7054,8 @@ function normalizeQualityValue(v){
   if(!raw) return '';
   const key=raw.toLowerCase().replace(/[^a-zàèéìòóù0-9]+/g,'');
   if(['originale','orig','or'].includes(key)) return 'Originale';
-  if(['standard','std','top100','top','100','topqualita','topqualità','topquality','qualitatop','qualitàtop'].includes(key)) return 'Standard';
-  if((key.includes('top') && (key.includes('qualita') || key.includes('qualità') || key.includes('quality'))) || /[🔝💯🥈]/.test(raw)) return 'Standard';
+  if(['standard','std','top100','top','100'].includes(key)) return 'Standard';
+  if(/[🔝💯🥈]/.test(raw)) return 'Standard';
   return raw.charAt(0).toUpperCase()+raw.slice(1).toLowerCase();
 }
 function articleQualityLabel(a){
@@ -7098,16 +7069,14 @@ function articleAvailabilityBadge(a){
   return '<div class="pill unavailable" style="margin-top:6px">NON DISPONIBILE</div>';
 }
 function articleMarginInfo(a){
-  const usingPromoSupplier=promoValid(a) && getPromoSupplierUsd(a)>0;
-  const usd=usingPromoSupplier ? getPromoSupplierUsd(a) : Number(a?.costoUsd||0);
-  const sale=Number(currentPrice(a)||0);
-  const cost=Number(currentCost(a)||0);
-  if(!isFinite(cost) || cost<=0 || !isFinite(sale) || sale<=0) return null;
+  const usd=Number(a?.costoUsd||0);
+  if(!isFinite(usd) || usd<=0) return null;
   const qualKey=normalizeQualityValue(articleQualityLabel(a)).toUpperCase();
-  const base=(isFinite(usd) && usd>0) ? calcFromUsd(usd, qualKey==='ORIGINALE' ? 'ORIGINALE' : 'STANDARD') : { marg:0 };
-  const current=Math.max(0, sale - cost);
+  const base=calcFromUsd(usd, qualKey==='ORIGINALE' ? 'ORIGINALE' : 'STANDARD');
+  const current=Math.max(0, Number(currentPrice(a)||0) - Number(base?.costo||0));
+  const sale=Number(currentPrice(a)||0);
   const pct=(sale>0 && current>0) ? Math.round((current/sale)*100) : 0;
-  const target=Math.max(1, Number(base?.marg||current||1));
+  const target=Math.max(1, Number(base?.marg||0));
   const ratio=current/target;
   if(ratio >= 0.92){
     return { tone:'good', label:'Buon margine', amount:current, pct };
@@ -7118,10 +7087,15 @@ function articleMarginInfo(a){
   return { tone:'low', label:'Margine al limite', amount:current, pct };
 }
 function articleCostInfo(a){
-  const usingPromoSupplier=promoValid(a) && getPromoSupplierUsd(a)>0;
-  const usd=usingPromoSupplier ? getPromoSupplierUsd(a) : Number(a?.costoUsd||0);
-  const eur=Number(currentCost(a)||0);
-  if(isFinite(eur) && eur>0) return { eur, usd:(isFinite(usd) && usd>0) ? usd : 0 };
+  const usd=Number(a?.costoUsd||0);
+  const eurStored=Number(a?.costoEur||0);
+  if(isFinite(usd) && usd>0){
+    const qualKey=normalizeQualityValue(articleQualityLabel(a)).toUpperCase();
+    const base=calcFromUsd(usd, qualKey==='ORIGINALE' ? 'ORIGINALE' : 'STANDARD');
+    const eur=isFinite(Number(base?.costo)) && Number(base?.costo)>0 ? Number(base.costo) : eurStored;
+    return { eur, usd };
+  }
+  if(isFinite(eurStored) && eurStored>0) return { eur:eurStored, usd:0 };
   return null;
 }
 function articleCostInfoHtml(a){
@@ -8849,7 +8823,7 @@ function renderSelectedOrderArticlesSummary(){
   }
   const model=((a.modello||a.brand||'').trim() || 'Articolo');
   const code=(a.codice||'').trim();
-  const meta=[a.brand, displayCategoryValue(a.categoria), articleQualityLabel(a), '€ '+money(currentPrice(a)||0)].filter(Boolean).join(' • ');
+  const meta=[a.brand, displayCategoryValue(a.categoria), a.qualita, '€ '+money(currentPrice(a)||0)].filter(Boolean).join(' • ');
   box.className='orderSelectedSummary';
   box.innerHTML=`<div class="title"><span>Da aggiungere</span></div><div class="orderChoiceList"><span class="orderChoiceChip">${esc(model)}${code?`<span class="orderChoiceMeta">Cod. ${esc(code)}${meta?` • ${esc(meta)}`:''}</span>`:''}</span></div>`;
   renderSelectedOrderColorPicker(a);
@@ -9014,7 +8988,7 @@ function renderOrdRows(){
     if(needsMeasure) badges.push(`<span class="orderBadge">Misura ${esc(globalSize||'da scegliere')}</span>`);
     const colorUi=needsColor ? `<div class="orderInlineField"><label>Colore</label><select data-role="rowColorNum" data-i="${i}">${buildOrderColorOptions(r.colorCount, r.numeroColore||'', r.colorLabels||[])}</select></div>` : '';
     const snap=normalizeOrderArticleSnapshot(r?.articoloSnapshot||{});
-    const meta=[art?.brand||r?.brand||snap.brand, displayCategoryValue(art?.categoria||r?.categoria||snap.categoria||''), (art ? articleQualityLabel(art) : normalizeQualityValue(r?.qualita||snap.qualita||'')), r?.articoloStorico?'storico':''].filter(Boolean).map(v=>esc(v)).join(' • ');
+    const meta=[art?.brand||r?.brand||snap.brand, displayCategoryValue(art?.categoria||r?.categoria||snap.categoria||''), art?.qualita||r?.qualita||snap.qualita, r?.articoloStorico?'storico':''].filter(Boolean).map(v=>esc(v)).join(' • ');
     return `<div class="orderCard"><div><div class="title">${esc(r.modello||art?.modello||snap.modello||'Articolo selezionato')}</div><div class="meta">${meta || 'Riga ordine'}</div><div class="orderBadges">${badges.join('')}</div><div class="orderRowControls">${colorUi}</div></div><button class="orderRemoveBtn" type="button" aria-label="Rimuovi articolo" title="Rimuovi articolo" data-action="delRow" data-i="${i}">Rimuovi</button></div>`;
   }).join('') || `<div class="orderSelectedSummary empty">Nessun articolo aggiunto.</div>`;
   const sum=document.getElementById('o_rows_summary');
@@ -9130,7 +9104,7 @@ async function saveOrd(){
         modello:normalizeSpaceText(h?.modello||''),
         brand:normalizeSpaceText(h?.brand||''),
         categoria:normalizeSpaceText(h?.categoria||''),
-        qualita:normalizeQualityValue(h?.qualita||''),
+        qualita:normalizeSpaceText(h?.qualita||''),
         costoEur:Number(h?.costoEur||0),
         prezzo:Number(h?.prezzo||0),
         richiedeNumeroColore:!!h?.richiedeNumeroColore,
@@ -9559,9 +9533,9 @@ document.addEventListener('click',(ev)=>{
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
     if(!art){ toast('Articolo non trovato'); return; }
-    const txt=buildPostFacebookWithPrice(art);
+    const txt=getArticleFacebookPost(art);
     if(!txt){ toast('Post Facebook vuoto'); return; }
-    return copyText(txt, 'Post con prezzo copiato', ()=>recordArticlePublication('fb'));
+    return copyText(txt, 'Post copiato', ()=>recordArticlePublication('fb'));
   }
   if(a==='copyPostIg'){
     const db=loadDB();
@@ -9585,7 +9559,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='copyPostFbWithPriceEdit'){
     const art=readArticleForm?.() || null;
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(buildPostFacebookWithPrice(art), 'Post con prezzo copiato', ()=>{ if(currentArtId) recordArticlePublication('fb'); });
+    return copyText(getArticleFacebookPost(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('fb'); });
   }
   if(a==='copyPostIgEdit'){
     const art=readArticleForm?.() || null;
@@ -9626,7 +9600,6 @@ document.addEventListener('click',(ev)=>{
   if(a==='clearPendingArtPhotos'){ resetPendingArtPhotoFiles(); renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Nuove foto annullate'); return; }
   if(a==='pickArtVideos'){ document.getElementById('a_video')?.click(); return; }
   if(a==='clearArtVideos'){ currentArtExistingVideoIds=[]; currentArtPendingVideos=[]; renderArtVideoPreview(); toast('Video rimossi'); return; }
-  if(a==='shareArtAllWithPrice'){ shareArtAll({withPrice:true}); return; }
   if(a==='shareArtAll'){ shareArtAll(); return; }
   if(a==='closeEdit'){ saveArticleDraft(); return hide('mArtEdit'); }
   if(a==='clearArtPhotos'){ currentArtExistingPics=[]; currentArtPhotosCleared=true; document.getElementById('a_photo').value=''; renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Foto attuali rimosse'); return; }
@@ -9766,7 +9739,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-06-14-post-fb-prezzo-v99';
+const VG_BUILD='2026-06-14-storico-ordini-articoli-eliminati-v96';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -10219,7 +10192,7 @@ async function pullCloudToLocal(opts={}){
         return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true})),
-      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, brand:localRow?.brand||row?.brand||'', categoria:localRow?.categoria||row?.categoria||'', qualita:normalizeQualityValue(localRow?.qualita||row?.qualita||''), costoEur:historicalNumber(localRow?.costoEur,row?.costoEur), articoloSnapshot:localRow?.articoloSnapshot||row?.articoloSnapshot||null, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
+      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, brand:localRow?.brand||row?.brand||'', categoria:localRow?.categoria||row?.categoria||'', qualita:localRow?.qualita||row?.qualita||'', costoEur:historicalNumber(localRow?.costoEur,row?.costoEur), articoloSnapshot:localRow?.articoloSnapshot||row?.articoloSnapshot||null, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
     };
     const mergedCategories=[...new Set([
       ...(Array.isArray(localDb?.categorie)?localDb.categorie:[]),
@@ -10957,7 +10930,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=post-fb-prezzo-v99', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=storico-ordini-v96', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
