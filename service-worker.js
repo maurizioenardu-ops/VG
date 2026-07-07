@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-07-07-anteprime-fallback-cloud-v107';
+const VERSION = 'gestionale-2026-07-07-anteprime-definitive-v108';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
