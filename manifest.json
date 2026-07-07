@@ -1,8 +1,8 @@
 {
-  "id": "./?v=foto-locali-v105",
+  "id": "./?v=anteprime-fallback-cloud-v107",
   "name": "Gestionale",
   "short_name": "Gestionale",
-  "start_url": "./?v=foto-locali-v105",
+  "start_url": "./?v=anteprime-fallback-cloud-v107",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0f172a",

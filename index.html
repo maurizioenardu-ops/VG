@@ -270,7 +270,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v12-foto-locali-indexeddb">
+  <meta name="vg-version" content="v13-anteprime-fallback-cloud">
 </head>
 <body>
 
@@ -498,8 +498,8 @@ window.addEventListener('error',e=>{
           Import JSON<input id="importFile" type="file" accept="application/json" style="display:none"/>
         </label>
         <button class="btn" data-action="refreshDiag">Aggiorna diagnostica</button>
-        <button class="btn" data-action="regenThumbs">Rigenera anteprime</button>
-        <button class="btn" data-action="clearThumbs">Svuota anteprime</button>
+        <button class="btn primary" data-action="regenThumbs">Rigenera anteprime</button>
+        <button class="btn danger" data-action="clearThumbs">Svuota solo anteprime</button>
         <button class="btn danger" data-action="repairArchive">Ripara archivio</button>
         <button class="btn danger" data-action="hardReset">Reset totale</button>
       </div>
@@ -976,8 +976,8 @@ window.addEventListener('error',e=>{
   <div class="h2" id="confirmTitle">Conferma</div>
   <div id="confirmText" class="small" style="font-size:14px;color:#111827"></div>
   <div class="actions bottomMini" style="margin-top:12px">
-    <button class="btn danger" type="button" data-action="confirmYes">Conferma</button>
-    <button class="btn" type="button" data-action="confirmNo">Annulla</button>
+    <button id="confirmYesBtn" class="btn danger" type="button" data-action="confirmYes">Conferma</button>
+    <button id="confirmNoBtn" class="btn" type="button" data-action="confirmNo">Annulla</button>
   </div>
 </div></div>
 
@@ -2531,18 +2531,18 @@ async function getArticleThumbCandidates(a){
     const prefix=/^data:|^blob:/i.test(clean) ? 'embedded' : 'cloud';
     addThumbCandidate(out, seen, { kind:'source', key:articleThumbCacheKeyFromSource(clean, prefix), source:clean });
   }
-  // Se non abbiamo riferimenti salvati nell'articolo, proviamo la tabella cloud.
-  // Evitiamo questa query quando abbiamo già ID locali o path foto, così la lista resta veloce.
-  if(!out.length){
-    try{
-      const cloud=await getArticleCloudSourcePaths(a);
-      for(const src of cloud){
-        const clean=String(src||'').trim();
-        if(!clean) continue;
-        addThumbCandidate(out, seen, { kind:'source', key:articleThumbCacheKeyFromSource(clean, 'cloud'), source:clean });
-      }
-    }catch(_e){}
-  }
+  // IMPORTANTISSIMO: alcuni articoli hanno ancora photoIds locali vecchi/mancanti,
+  // ma le foto vere esistono nel cloud e infatti si vedono aprendo il dettaglio.
+  // Prima provavamo il cloud solo se non esisteva nessun riferimento locale: risultato,
+  // la lista restava senza anteprima. Ora aggiungiamo sempre il cloud come fallback.
+  try{
+    const cloud=await getArticleCloudSourcePaths(a);
+    for(const src of cloud){
+      const clean=String(src||'').trim();
+      if(!clean) continue;
+      addThumbCandidate(out, seen, { kind:'source', key:articleThumbCacheKeyFromSource(clean, 'cloud'), source:clean });
+    }
+  }catch(_e){}
   return out.slice(0,MAX_ARTICLE_PHOTOS);
 }
 async function resolveArticleThumbCandidateUrl(candidate){
@@ -2631,6 +2631,12 @@ async function getArticleThumbForList(a){
       console.warn('Sorgente miniatura non valida', a?.codice||a?.id, err);
     }
   }
+  // Ultima rete di sicurezza: usa esattamente la stessa strada del dettaglio articolo.
+  // Se nel dettaglio la foto c'è, almeno la lista deve poterla mostrare subito.
+  try{
+    const pics=await getArticlePics(a);
+    if(pics && pics[0]) return pics[0];
+  }catch(_e){}
   return '';
 }
 async function clearArticleThumbCache(){
@@ -6056,7 +6062,21 @@ function toast(msg){
   clearTimeout(window.__t); window.__t=setTimeout(()=>t.style.display='none',1400);
 }
 let confirmCallback=null;
-function askConfirm(text, cb, title='Conferma'){ document.getElementById('confirmTitle').textContent=title; document.getElementById('confirmText').textContent=text; confirmCallback=cb; show('mConfirm'); }
+function askConfirm(text, cb, title='Conferma', okLabel='Conferma', okTone='danger'){
+  const titleEl=document.getElementById('confirmTitle');
+  const textEl=document.getElementById('confirmText');
+  const yes=document.getElementById('confirmYesBtn') || document.querySelector('[data-action="confirmYes"]');
+  const no=document.getElementById('confirmNoBtn') || document.querySelector('[data-action="confirmNo"]');
+  if(titleEl) titleEl.textContent=title;
+  if(textEl) textEl.textContent=text;
+  if(yes){
+    yes.textContent=okLabel||'Conferma';
+    yes.className='btn '+(okTone==='primary'?'primary':okTone==='secondary'?'secondary':okTone==='ghost'?'ghost':'danger');
+  }
+  if(no) no.textContent='Annulla';
+  confirmCallback=cb;
+  show('mConfirm');
+}
 function closeConfirm(run){ hide('mConfirm'); const fn=confirmCallback; confirmCallback=null; if(run && typeof fn==='function') fn(); }
 function toggleCloudSyncMini(){ return; }
 function copyText(text, okMsg='Copiato', onSuccess=null){
@@ -6146,7 +6166,7 @@ function applyUiPrefs(){
   document.querySelectorAll('[data-nav]').forEach(el=>{ const k=el.dataset.nav; if(p.tabs[k]) el.textContent=p.tabs[k]; });
   document.querySelectorAll('[data-action="saveArt"],[data-action="saveCli"],[data-action="saveOrd"]').forEach(el=>el.textContent=p.buttons.save);
   document.querySelectorAll('[data-action="closeEdit"],[data-action="closeCli"],[data-action="closeOrd"],[data-action="closeCloudLogin"],[data-action="confirmNo"]').forEach(el=>el.textContent=p.buttons.cancel);
-  document.querySelectorAll('[data-action="deleteArt"],[data-action="deleteCli"],[data-action="deleteOrd"],[data-action="confirmYes"]').forEach(el=>el.textContent=p.buttons.delete);
+  document.querySelectorAll('[data-action="deleteArt"],[data-action="deleteCli"],[data-action="deleteOrd"]').forEach(el=>el.textContent=p.buttons.delete);
   if(!cloudBusy && !cloudSession){ const cloudEl=document.getElementById('cloudState'); if(cloudEl) cloudEl.textContent=p.cloud; }
   let styleEl=document.getElementById('uiCustomStyle');
   if(!styleEl){ styleEl=document.createElement('style'); styleEl.id='uiCustomStyle'; document.head.appendChild(styleEl); }
@@ -9774,16 +9794,16 @@ document.addEventListener('click',(ev)=>{
   if(a==='exportLite') return exportDB('lite');
   if(a==='refreshDiag'){ renderDiagnostics(); toast('Diagnostica aggiornata'); return; }
   if(a==='regenThumbs'){
-    askConfirm('Rigenero le miniature locali per tutte le foto articoli? Può richiedere qualche minuto.', ()=>regenerateArticleThumbCache().catch(err=>{toast('Rigenerazione anteprime fallita'); console.error(err);}), 'Rigenera anteprime');
+    askConfirm('Rigenero le miniature locali per tutte le foto articoli. Non cancello articoli, ordini o foto originali su Supabase. Può richiedere qualche minuto.', ()=>regenerateArticleThumbCache().catch(err=>{toast('Rigenerazione anteprime fallita'); console.error(err);}), 'Rigenera anteprime', 'Rigenera', 'primary');
     return;
   }
   if(a==='clearThumbs'){
-    askConfirm('Svuoto solo la cache miniature? Le foto originali non vengono toccate.', async ()=>{
+    askConfirm('Svuoto solo le anteprime locali salvate sul telefono. Le foto originali, articoli, clienti e ordini non vengono toccati.', async ()=>{
       const n=await clearArticleThumbCache();
       renderDiagnostics();
       renderArt();
       toast(`Anteprime svuotate: ${n}`);
-    }, 'Svuota anteprime');
+    }, 'Svuota anteprime', 'Svuota anteprime', 'danger');
     return;
   }
   if(a==='saveUiPrefs'){ saveUiPrefsData(readUiEditor()); applyUiPrefs(); toast('Interfaccia aggiornata'); return; }
