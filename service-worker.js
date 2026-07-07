@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-06-14-storico-ordini-v96';
+const VERSION = 'gestionale-2026-07-07-anteprime-promo-v104';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
@@ -35,14 +35,13 @@ self.addEventListener('fetch', event => {
 
   if (req.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
     event.respondWith((async () => {
-      try {
-        const fresh = await fetch(req, { cache: 'reload' });
+      const cached = await caches.match('./index.html');
+      const refresh = fetch(req, { cache: 'no-store' }).then(async fresh => {
         const cache = await caches.open(CACHE);
         cache.put('./index.html', fresh.clone());
         return fresh;
-      } catch (_err) {
-        return (await caches.match('./index.html')) || (await caches.match('./reset-cache.html')) || Response.error();
-      }
+      }).catch(() => null);
+      return cached || (await refresh) || (await caches.match('./reset-cache.html')) || Response.error();
     })());
     return;
   }

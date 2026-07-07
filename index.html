@@ -270,7 +270,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v11_3-storico-ordini-articoli-eliminati">
+  <meta name="vg-version" content="v11_4-anteprime-promo-scadenza">
 </head>
 <body>
 
@@ -5512,14 +5512,38 @@ function stripPublicMaterialWordFromPost(text){
   return raw.replace(/\n{3,}/g,'\n\n').trim();
 }
 function normalizePublicPostForArticle(text, a){
-  return dedupeQualityEmojisInPost(stripPublicMaterialWordFromPost(stripArticlePrivateNotesFromPost(text, a)), a);
+  return dedupeQualityEmojisInPost(stripPublicMaterialWordFromPost(stripArticlePrivateNotesFromPost(stripExpiredPromoLinesFromPost(text, a)), a), a);
+}
+function stripExpiredPromoLinesFromPost(text, a){
+  let raw=String(text||'').trim();
+  if(!raw) return raw;
+  // Se la promo non è valida, eliminiamo frasi vecchie tipo "IN PROMO FINO AL..."
+  // dai testi salvati a mano. Così FB/Telegram non pubblicano offerte scadute.
+  if(promoValid(a)) return raw;
+  const priceNow=firstFiniteNumber(a?.prezzoVendita, currentPrice(a), 0);
+  const pricePromo=firstFiniteNumber(a?.prezzoPromo, promoSupplierCalc(a).sell, 0);
+  const priceLineKey=(line)=>normalizeTextKey(String(line||'').replace(/[€💶]/g,''));
+  return raw.split(/\r?\n/).filter(line=>{
+    const txt=String(line||'').trim();
+    const key=normalizeTextKey(txt);
+    if(!key) return true;
+    if(/promo|offerta|sconto|scadenz|finoal|🔥/.test(key)) return false;
+    // Se era rimasto il vecchio prezzo promo, togli solo quella riga.
+    if(pricePromo>0 && pricePromo!==priceNow){
+      const numeric=txt.replace(/[^0-9,.]/g,'').replace(',','.');
+      const n=Number(numeric);
+      if(Number.isFinite(n) && Math.abs(n-pricePromo)<0.01 && /[€💶]|euro/i.test(txt)) return false;
+    }
+    return true;
+  }).join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
 function normalizeFacebookPostForArticle(text, a){
   let out=stripArticlePrivateNotesFromPost(text, a);
+  out=stripExpiredPromoLinesFromPost(out, a);
   out=ensureFacebookPostHasDescriptionBelowModel(out, a);
   out=ensureFacebookPostHasArticleMeasures(out, a);
   out=ensureFacebookPostHasCode(out, a);
-  return dedupeQualityEmojisInPost(stripPublicMaterialWordFromPost(stripArticlePrivateNotesFromPost(out, a)), a);
+  return dedupeQualityEmojisInPost(stripPublicMaterialWordFromPost(stripArticlePrivateNotesFromPost(stripExpiredPromoLinesFromPost(out, a)), a), a);
 }
 function getArticleFacebookCustomPost(a){
   return String(a?.postFb || a?.postFacebook || a?.post_fb || '').trim();
@@ -5533,7 +5557,12 @@ function buildPostFacebook(a){
   return getArticleFacebookPost(a);
 }
 function buildPostFacebookWithPrice(a){
-  return getArticleFacebookPost(a);
+  const base=getArticleFacebookPost(a);
+  const prezzo=formatPostPrezzoVendita(currentPrice(a), '💶');
+  if(!prezzo) return base;
+  const rx=new RegExp('(^|\\n)\\s*(?:💶|€)\\s*'+escapeRegExp(String(currentPrice(a))).replace('\\.','[,.]')+'\\s*(?=\\n|$)', 'i');
+  if(rx.test(base)) return base;
+  return formatGeneratedPostLines([base, prezzo]);
 }
 function setArticleFacebookPostAuto(text){
   const el=document.getElementById('a_post_fb');
@@ -7204,14 +7233,60 @@ function renderArt(){
   el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
   hydrateArticleThumbs(items);
 }
-async function hydrateArticleThumbs(items){
-  for(const a of items){
-    const pics=await getArticlePics(a);
-    const el=document.querySelector('[data-photo-for="'+a.id+'"]');
-    const ph=document.querySelector('[data-placeholder-for="'+a.id+'"]');
-    if(el && pics[0]){ el.src=pics[0]; el.style.display='block'; if(ph) ph.style.display='none'; }
-    else if(ph){ ph.style.display='flex'; }
+let ARTICLE_THUMB_HYDRATE_TOKEN=0;
+function articleThumbSelector(id, attr){
+  try{ return `[${attr}=\"${CSS.escape(String(id||''))}\"]`; }catch(_e){ return `[${attr}=\"${String(id||'').replace(/\"/g,'\\\"')}\"]`; }
+}
+function setArticleThumbState(id, url){
+  const el=document.querySelector(articleThumbSelector(id,'data-photo-for'));
+  const ph=document.querySelector(articleThumbSelector(id,'data-placeholder-for'));
+  if(!el) return;
+  if(!url){
+    el.removeAttribute('src');
+    el.style.display='none';
+    if(ph) ph.style.display='flex';
+    return;
   }
+  el.loading='lazy';
+  el.decoding='async';
+  el.onload=()=>{ el.style.display='block'; if(ph) ph.style.display='none'; };
+  el.onerror=()=>{
+    // Non nascondiamo per sempre l'anteprima: fallback pulito e nuovo tentativo morbido.
+    el.removeAttribute('src');
+    el.style.display='none';
+    if(ph) ph.style.display='flex';
+    setTimeout(()=>{ if(document.body.contains(el) && !el.src) el.src=url; }, 1200);
+  };
+  if(el.src!==url) el.src=url;
+}
+async function hydrateOneArticleThumb(a, token){
+  if(!a || !a.id || token!==ARTICLE_THUMB_HYDRATE_TOKEN) return;
+  try{
+    const pics=await getArticlePics(a);
+    if(token!==ARTICLE_THUMB_HYDRATE_TOKEN) return;
+    setArticleThumbState(a.id, pics && pics[0] ? pics[0] : '');
+  }catch(err){
+    console.warn('Anteprima articolo non caricata', a?.codice||a?.id, err);
+    if(token===ARTICLE_THUMB_HYDRATE_TOKEN) setArticleThumbState(a.id, '');
+  }
+}
+async function hydrateArticleThumbs(items){
+  const token=++ARTICLE_THUMB_HYDRATE_TOKEN;
+  const list=(Array.isArray(items)?items:[]).slice();
+  const visible=list.slice(0,12);
+  const rest=list.slice(12);
+  // Prime card subito, il resto a piccoli gruppi: niente blocco né miniature perse.
+  await Promise.all(visible.map(a=>hydrateOneArticleThumb(a, token)));
+  let i=0;
+  const pump=()=>{
+    if(token!==ARTICLE_THUMB_HYDRATE_TOKEN) return;
+    const chunk=rest.slice(i, i+8);
+    i+=8;
+    Promise.all(chunk.map(a=>hydrateOneArticleThumb(a, token))).finally(()=>{
+      if(i<rest.length) setTimeout(pump, 80);
+    });
+  };
+  if(rest.length) setTimeout(pump, 40);
 }
 function pseudoPromoBadge(a){
   return promoInfoHtml(a,{marginTop:'6px'});
@@ -9739,7 +9814,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-06-14-storico-ordini-articoli-eliminati-v96';
+const VG_BUILD='2026-07-07-anteprime-promo-scadenza-v104';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
