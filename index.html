@@ -270,7 +270,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v11_4-anteprime-promo-scadenza">
+  <meta name="vg-version" content="v12-foto-locali-indexeddb">
 </head>
 <body>
 
@@ -498,6 +498,8 @@ window.addEventListener('error',e=>{
           Import JSON<input id="importFile" type="file" accept="application/json" style="display:none"/>
         </label>
         <button class="btn" data-action="refreshDiag">Aggiorna diagnostica</button>
+        <button class="btn" data-action="regenThumbs">Rigenera anteprime</button>
+        <button class="btn" data-action="clearThumbs">Svuota anteprime</button>
         <button class="btn danger" data-action="repairArchive">Ripara archivio</button>
         <button class="btn danger" data-action="hardReset">Reset totale</button>
       </div>
@@ -996,6 +998,9 @@ const CAT_IMAGES_KEY='vg_category_images_v2';
 const LEGACY_KEYS=[];
 const PHOTO_DB='vg_photos_v2_clean';
 const PHOTO_STORE='photos';
+const THUMB_STORE='thumbs';
+const ARTICLE_THUMB_SIZE=360;
+const ARTICLE_THUMB_QUALITY=0.72;
 const PROVINCE=[ "AG","AL","AN","AO","AP","AQ","AR","AT","AV","BA","BG","BI","BL","BN","BO","BR","BS","BT","BZ","CA","CB","CE","CH","CL","CN","CO","CR","CS","CT","CZ","EN","FC","FE","FG","FI","FM","FR","GE","GO","GR","IM","IS","KR","LC","LE","LI","LO","LT","LU","MB","MC","ME","MI","MN","MO","MS","MT","NA","NO","NU","OR","PA","PC","PD","PE","PG","PI","PN","PO","PR","PT","PU","PV","PZ","RA","RC","RE","RG","RI","RM","RN","RO","SA","SI","SO","SP","SR","SS","SU","SV","TA","TE","TN","TO","TP","TR","TS","TV","UD","VA","VB","VC","VE","VI","VR","VT","VV" ];
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
 const ART_DRAFT_KEY='vg_draft_art_v2_clean';
@@ -2175,10 +2180,11 @@ function updateArticleCodeStatus(){
 
 function openPhotoDB(){
   return new Promise((res,rej)=>{
-    const req=indexedDB.open(PHOTO_DB,1);
+    const req=indexedDB.open(PHOTO_DB,2);
     req.onupgradeneeded=()=>{
       const db=req.result;
       if(!db.objectStoreNames.contains(PHOTO_STORE)) db.createObjectStore(PHOTO_STORE);
+      if(!db.objectStoreNames.contains(THUMB_STORE)) db.createObjectStore(THUMB_STORE);
     };
     req.onsuccess=()=>res(req.result);
     req.onerror=()=>rej(req.error||new Error('IndexedDB non disponibile'));
@@ -2243,6 +2249,73 @@ async function idbCount(){
     req.onerror=()=>rej(req.error||new Error('Errore conteggio foto'));
   });
 }
+async function idbStoreSet(storeName,key,val){
+  if(!key) return false;
+  const db=await openPhotoDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(storeName,'readwrite');
+    tx.objectStore(storeName).put(val,key);
+    tx.oncomplete=()=>res(true);
+    tx.onerror=()=>rej(tx.error||new Error('Errore salvataggio archivio locale'));
+    tx.onabort=()=>rej(tx.error||new Error('Salvataggio archivio locale abortito'));
+  });
+}
+async function idbStoreGet(storeName,key){
+  if(!key) return null;
+  const db=await openPhotoDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(storeName,'readonly');
+    const req=tx.objectStore(storeName).get(key);
+    req.onsuccess=()=>res(req.result||null);
+    req.onerror=()=>rej(req.error||new Error('Errore lettura archivio locale'));
+  });
+}
+async function idbStoreDelete(storeName,key){
+  if(!key) return false;
+  const db=await openPhotoDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(storeName,'readwrite');
+    tx.objectStore(storeName).delete(key);
+    tx.oncomplete=()=>res(true);
+    tx.onerror=()=>rej(tx.error||new Error('Errore eliminazione archivio locale'));
+    tx.onabort=()=>rej(tx.error||new Error('Eliminazione archivio locale abortita'));
+  });
+}
+async function idbStoreListKeys(storeName){
+  const db=await openPhotoDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(storeName,'readonly');
+    const store=tx.objectStore(storeName);
+    const req=store.getAllKeys ? store.getAllKeys() : null;
+    if(req){
+      req.onsuccess=()=>res((req.result||[]).map(String));
+      req.onerror=()=>rej(req.error||new Error('Errore lettura chiavi archivio locale'));
+      return;
+    }
+    const out=[];
+    const cur=store.openCursor();
+    cur.onsuccess=(e)=>{
+      const cursor=e.target.result;
+      if(cursor){ out.push(String(cursor.key)); cursor.continue(); }
+      else res(out);
+    };
+    cur.onerror=()=>rej(cur.error||new Error('Errore cursore archivio locale'));
+  });
+}
+async function idbStoreCount(storeName){
+  const db=await openPhotoDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(storeName,'readonly');
+    const req=tx.objectStore(storeName).count();
+    req.onsuccess=()=>res(Number(req.result||0));
+    req.onerror=()=>rej(req.error||new Error('Errore conteggio archivio locale'));
+  });
+}
+async function thumbSet(key,val){ return await idbStoreSet(THUMB_STORE,key,val); }
+async function thumbGet(key){ return await idbStoreGet(THUMB_STORE,key); }
+async function thumbDelete(key){ return await idbStoreDelete(THUMB_STORE,key); }
+async function thumbListKeys(){ return await idbStoreListKeys(THUMB_STORE); }
+async function thumbCount(){ return await idbStoreCount(THUMB_STORE); }
 const FOTO_SIGNED_URL_CACHE=new Map();
 
 function normalizeFotoStoragePath(src){
@@ -2432,6 +2505,170 @@ async function getPreferredArticlePhotoSources(a){
   cloud.forEach(push);
   return out.slice(0,MAX_ARTICLE_PHOTOS);
 }
+function articleThumbCacheKeyFromSource(src, prefix='src'){
+  const raw=String(src||'').trim();
+  if(!raw) return '';
+  const key=canonicalPhotoSourceKey(raw) || normalizeFotoStoragePath(raw) || raw.replace(/[?#].*$/,'');
+  return key ? `${prefix}:${key}` : '';
+}
+function addThumbCandidate(out, seen, candidate){
+  if(!candidate || !candidate.key || seen.has(candidate.key)) return;
+  seen.add(candidate.key);
+  out.push(candidate);
+}
+async function getArticleThumbCandidates(a){
+  const out=[];
+  const seen=new Set();
+  if(!a) return out;
+  const ids=Array.isArray(a.photoIds) ? a.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS) : [];
+  for(const id of ids){
+    addThumbCandidate(out, seen, { kind:'idb', key:`idb:${String(id)}`, source:String(id) });
+  }
+  const fotoList=Array.isArray(a.foto) ? a.foto.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS) : [];
+  for(const src of fotoList){
+    const clean=String(src||'').trim();
+    if(!clean || isTemporaryLocalPhotoRef(clean)) continue;
+    const prefix=/^data:|^blob:/i.test(clean) ? 'embedded' : 'cloud';
+    addThumbCandidate(out, seen, { kind:'source', key:articleThumbCacheKeyFromSource(clean, prefix), source:clean });
+  }
+  // Se non abbiamo riferimenti salvati nell'articolo, proviamo la tabella cloud.
+  // Evitiamo questa query quando abbiamo già ID locali o path foto, così la lista resta veloce.
+  if(!out.length){
+    try{
+      const cloud=await getArticleCloudSourcePaths(a);
+      for(const src of cloud){
+        const clean=String(src||'').trim();
+        if(!clean) continue;
+        addThumbCandidate(out, seen, { kind:'source', key:articleThumbCacheKeyFromSource(clean, 'cloud'), source:clean });
+      }
+    }catch(_e){}
+  }
+  return out.slice(0,MAX_ARTICLE_PHOTOS);
+}
+async function resolveArticleThumbCandidateUrl(candidate){
+  if(!candidate) return '';
+  if(candidate.kind==='idb'){
+    const stored=await idbGet(candidate.source);
+    if(!stored) return '';
+    if(stored instanceof Blob) return URL.createObjectURL(stored);
+    if(typeof stored==='string'){
+      const clean=stored.trim();
+      if(/^data:|^blob:/i.test(clean)) return clean;
+      return await getPublicFotoUrl(clean);
+    }
+    return '';
+  }
+  const clean=String(candidate.source||'').trim();
+  if(!clean || isTemporaryLocalPhotoRef(clean)) return '';
+  if(/^data:|^blob:/i.test(clean)) return clean;
+  return await getPublicFotoUrl(clean);
+}
+async function imageBlobToThumbDataUrl(blob, size=ARTICLE_THUMB_SIZE, quality=ARTICLE_THUMB_QUALITY){
+  if(!(blob instanceof Blob)) throw new Error('Miniatura: blob non valido');
+  const objUrl=URL.createObjectURL(blob);
+  try{
+    const img=await new Promise((res,rej)=>{
+      const im=new Image();
+      im.onload=()=>res(im);
+      im.onerror=()=>rej(new Error('Miniatura: immagine non leggibile'));
+      im.src=objUrl;
+    });
+    const w=Number(img.naturalWidth||img.width||0);
+    const h=Number(img.naturalHeight||img.height||0);
+    if(!w || !h) throw new Error('Miniatura: dimensioni non valide');
+    const canvas=document.createElement('canvas');
+    canvas.width=size; canvas.height=size;
+    const ctx=canvas.getContext('2d');
+    ctx.fillStyle='#f3f4f6';
+    ctx.fillRect(0,0,size,size);
+    let sx=0, sy=0, sw=w, sh=h;
+    if(w>h){ sw=h; sx=Math.round((w-h)/2); }
+    else if(h>w){ sh=w; sy=Math.round((h-w)/2); }
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, size, size);
+    const outBlob=await new Promise((res)=>{
+      try{ canvas.toBlob(b=>res(b), 'image/jpeg', quality); }catch(_e){ res(null); }
+    });
+    if(outBlob) return await blobToDataUrl(outBlob);
+    return canvas.toDataURL('image/jpeg', quality);
+  }finally{
+    try{ URL.revokeObjectURL(objUrl); }catch(_e){}
+  }
+}
+async function cacheArticleThumbFromCandidate(candidate, url){
+  if(!candidate?.key || !url) return '';
+  const cached=await thumbGet(candidate.key).catch(()=>null);
+  if(cached?.dataUrl) return cached.dataUrl;
+  let blob=null;
+  if(candidate.kind==='idb'){
+    const stored=await idbGet(candidate.source).catch(()=>null);
+    if(stored instanceof Blob) blob=stored;
+    else if(typeof stored==='string' && stored.trim()) blob=await blobFromPhotoSrc(stored.trim());
+  }
+  if(!blob) blob=await blobFromPhotoSrc(url);
+  const dataUrl=await imageBlobToThumbDataUrl(blob);
+  await thumbSet(candidate.key, { dataUrl, source:String(candidate.source||''), updatedAt:Date.now(), size:ARTICLE_THUMB_SIZE });
+  return dataUrl;
+}
+async function getArticleThumbForList(a){
+  const candidates=await getArticleThumbCandidates(a);
+  if(!candidates.length) return '';
+  for(const c of candidates){
+    const cached=await thumbGet(c.key).catch(()=>null);
+    if(cached?.dataUrl) return cached.dataUrl;
+  }
+  for(const c of candidates){
+    try{
+      const url=await resolveArticleThumbCandidateUrl(c);
+      if(!url) continue;
+      cacheArticleThumbFromCandidate(c, url).then(dataUrl=>{
+        if(dataUrl && a?.id){
+          const img=document.querySelector(articleThumbSelector(a.id,'data-photo-for'));
+          if(img && (!img.getAttribute('src') || img.getAttribute('src')===url)) setArticleThumbState(a.id, dataUrl);
+        }
+      }).catch(err=>console.warn('Cache miniatura fallita', a?.codice||a?.id, err));
+      return url;
+    }catch(err){
+      console.warn('Sorgente miniatura non valida', a?.codice||a?.id, err);
+    }
+  }
+  return '';
+}
+async function clearArticleThumbCache(){
+  const keys=await thumbListKeys().catch(()=>[]);
+  for(const k of keys){ try{ await thumbDelete(k); }catch(_e){} }
+  return keys.length;
+}
+async function regenerateArticleThumbCache(){
+  const db=loadDB();
+  const articoli=(db.articoli||[]).slice();
+  await clearArticleThumbCache();
+  let ok=0, fail=0;
+  toast(`Rigenero anteprime: 0/${articoli.length}`);
+  for(let i=0;i<articoli.length;i++){
+    const a=articoli[i];
+    try{
+      const candidates=await getArticleThumbCandidates(a);
+      if(!candidates.length) continue;
+      let done=false;
+      for(const c of candidates){
+        const url=await resolveArticleThumbCandidateUrl(c);
+        if(!url) continue;
+        const dataUrl=await cacheArticleThumbFromCandidate(c, url);
+        if(dataUrl){ ok++; done=true; break; }
+      }
+      if(!done) fail++;
+    }catch(err){
+      fail++;
+      console.warn('Rigenerazione anteprima fallita', a?.codice||a?.id, err);
+    }
+    if((i+1)%10===0) toast(`Rigenero anteprime: ${i+1}/${articoli.length}`);
+    await new Promise(res=>setTimeout(res,0));
+  }
+  renderDiagnostics();
+  renderArt();
+  toast(`Anteprime rigenerate: ${ok} ok${fail?`, ${fail} non riuscite`:''}`);
+}
+
 async function getArticlePics(a){
   if(!a) return [];
   const refs=await getPreferredArticlePhotoSources(a);
@@ -7262,9 +7499,9 @@ function setArticleThumbState(id, url){
 async function hydrateOneArticleThumb(a, token){
   if(!a || !a.id || token!==ARTICLE_THUMB_HYDRATE_TOKEN) return;
   try{
-    const pics=await getArticlePics(a);
+    const thumb=await getArticleThumbForList(a);
     if(token!==ARTICLE_THUMB_HYDRATE_TOKEN) return;
-    setArticleThumbState(a.id, pics && pics[0] ? pics[0] : '');
+    setArticleThumbState(a.id, thumb || '');
   }catch(err){
     console.warn('Anteprima articolo non caricata', a?.codice||a?.id, err);
     if(token===ARTICLE_THUMB_HYDRATE_TOKEN) setArticleThumbState(a.id, '');
@@ -7370,8 +7607,9 @@ async function getDiagnostics(){
     uniq.forEach(id=>articleRefs.add(id));
     if(Array.isArray(a.foto) && a.foto.length) embeddedPhotos += a.foto.length;
   }
-  let idbKeys=[]; let quota=null; let idbError='';
+  let idbKeys=[]; let thumbKeys=[]; let quota=null; let idbError='';
   try{ idbKeys=await idbListKeys(); }catch(e){ idbError=String(e?.message||e||''); }
+  try{ thumbKeys=await thumbListKeys(); }catch(e){ idbError=(idbError? idbError+' | ' : '')+String(e?.message||e||''); }
   try{ quota=await estimateStorageInfo(); }catch(_e){}
   const idbSetKeys=new Set(idbKeys.map(String));
   let missingRefs=0;
@@ -7386,6 +7624,7 @@ async function getDiagnostics(){
     articoliConFoto,
     referencedPhotos: articleRefs.size,
     photosInIDB: idbKeys.length,
+    thumbsInIDB: thumbKeys.length,
     embeddedPhotos,
     duplicatedRefs,
     missingRefs,
@@ -7410,6 +7649,7 @@ async function renderDiagnostics(){
         <div class="mutedBox"><div class="k">Articoli con foto</div><div class="v">${d.articoliConFoto}</div></div>
         <div class="mutedBox"><div class="k">Foto referenziate</div><div class="v">${d.referencedPhotos}</div></div>
         <div class="mutedBox"><div class="k">Foto in IndexedDB</div><div class="v">${d.photosInIDB}</div></div>
+        <div class="mutedBox"><div class="k">Anteprime locali</div><div class="v">${d.thumbsInIDB||0}</div></div>
       </div>
       <div class="smallGrid" style="margin-top:10px">
         <div class="mutedBox"><div class="k">Foto vecchie nel DB</div><div class="v">${d.embeddedPhotos}</div><div class="small">Da pulire</div></div>
@@ -9533,6 +9773,19 @@ document.addEventListener('click',(ev)=>{
   if(a==='exportFull') return exportDB('full');
   if(a==='exportLite') return exportDB('lite');
   if(a==='refreshDiag'){ renderDiagnostics(); toast('Diagnostica aggiornata'); return; }
+  if(a==='regenThumbs'){
+    askConfirm('Rigenero le miniature locali per tutte le foto articoli? Può richiedere qualche minuto.', ()=>regenerateArticleThumbCache().catch(err=>{toast('Rigenerazione anteprime fallita'); console.error(err);}), 'Rigenera anteprime');
+    return;
+  }
+  if(a==='clearThumbs'){
+    askConfirm('Svuoto solo la cache miniature? Le foto originali non vengono toccate.', async ()=>{
+      const n=await clearArticleThumbCache();
+      renderDiagnostics();
+      renderArt();
+      toast(`Anteprime svuotate: ${n}`);
+    }, 'Svuota anteprime');
+    return;
+  }
   if(a==='saveUiPrefs'){ saveUiPrefsData(readUiEditor()); applyUiPrefs(); toast('Interfaccia aggiornata'); return; }
   if(a==='loadUiPrefs'){ fillUiEditor(); applyUiPrefs(); toast('Editor ricaricato'); return; }
   if(a==='resetUiPrefs'){ localStorage.removeItem(UI_KEY); fillUiEditor(); applyUiPrefs(); toast('Editor ripristinato'); return; }
@@ -9814,7 +10067,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-07-07-anteprime-promo-scadenza-v104';
+const VG_BUILD='2026-07-07-foto-locali-indexeddb-v105';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -11005,7 +11258,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=storico-ordini-v96', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=foto-locali-indexeddb-v105', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
