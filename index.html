@@ -58,9 +58,9 @@ body{-webkit-tap-highlight-color:transparent}
 .artBreadcrumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .artCrumb{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:12px;font-weight:900;cursor:pointer}
 .artCrumb.active{background:#fef3c7;border-color:#f59e0b}
-.artThumbLarge{width:92%;margin:0 auto;aspect-ratio:1/1;border-radius:18px;border:1px solid var(--line);background:#f3f4f6;object-fit:cover;display:none;min-height:142px}
+.artThumbLarge{width:92%;margin:0 auto;aspect-ratio:1/1;border-radius:18px;border:1px solid var(--line);background:#f3f4f6;object-fit:cover;display:block;min-height:142px;opacity:0;visibility:hidden;transition:opacity .18s ease;will-change:opacity}
 .brandLogoMini{width:62px;height:62px;border-radius:18px;border:1px solid var(--line);object-fit:cover;display:block;background:#fff;box-shadow:0 8px 20px rgba(15,23,42,.08)}
-.artPlaceholder{width:100%;aspect-ratio:1/1;border-radius:18px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:38px;background:linear-gradient(135deg,#fff8ef 0%, #eef4ff 100%);min-height:156px;overflow:hidden;padding:0}
+.artPlaceholder{width:100%;aspect-ratio:1/1;border-radius:18px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:38px;background:linear-gradient(135deg,#fff8ef 0%, #eef4ff 100%);min-height:156px;overflow:hidden;padding:0;transform:translateZ(0)}
 .artPlaceholderImg,.artIconImg{width:100%;height:100%;object-fit:cover;display:block}
 .artPriceRow{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .artPrice{font-size:18px;font-weight:1000}
@@ -270,7 +270,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v14-anteprime-definitive">
+  <meta name="vg-version" content="v15-anteprime-rapide-no-flicker">
 </head>
 <body>
 
@@ -999,8 +999,17 @@ const LEGACY_KEYS=[];
 const PHOTO_DB='vg_photos_v2_clean';
 const PHOTO_STORE='photos';
 const THUMB_STORE='thumbs';
-const ARTICLE_THUMB_SIZE=360;
-const ARTICLE_THUMB_QUALITY=0.72;
+const ARTICLE_THUMB_SIZE=300;
+const ARTICLE_THUMB_QUALITY=0.64;
+const ARTICLE_THUMB_HYDRATE_CONCURRENCY=2;
+const ARTICLE_THUMB_OBSERVER_ROOT_MARGIN='420px 0px';
+let ARTICLE_CLOUD_PHOTO_PATH_CACHE=new Map();
+let ARTICLE_CLOUD_PHOTO_PATH_INFLIGHT=null;
+let ARTICLE_CODE_PHOTO_PATH_CACHE=new Map();
+let ARTICLE_CODE_PHOTO_PATH_INFLIGHT=new Map();
+let ARTICLE_THUMB_OBSERVER=null;
+let ARTICLE_THUMB_QUEUE=[];
+let ARTICLE_THUMB_ACTIVE=0;
 const PROVINCE=[ "AG","AL","AN","AO","AP","AQ","AR","AT","AV","BA","BG","BI","BL","BN","BO","BR","BS","BT","BZ","CA","CB","CE","CH","CL","CN","CO","CR","CS","CT","CZ","EN","FC","FE","FG","FI","FM","FR","GE","GO","GR","IM","IS","KR","LC","LE","LI","LO","LT","LU","MB","MC","ME","MI","MN","MO","MS","MT","NA","NO","NU","OR","PA","PC","PD","PE","PG","PI","PN","PO","PR","PT","PU","PV","PZ","RA","RC","RE","RG","RI","RM","RN","RO","SA","SI","SO","SP","SR","SS","SU","SV","TA","TE","TN","TO","TP","TR","TS","TV","UD","VA","VB","VC","VE","VI","VR","VT","VV" ];
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
 const ART_DRAFT_KEY='vg_draft_art_v2_clean';
@@ -2368,20 +2377,75 @@ async function getPublicFotoUrl(path){
 async function listCloudFotoPathsByCode(codice){
   const code=String(codice||'').trim();
   if(!code) return [];
-  const sb=await ensureCloud();
-  if(!sb) return [];
+  if(ARTICLE_CODE_PHOTO_PATH_CACHE.has(code)) return ARTICLE_CODE_PHOTO_PATH_CACHE.get(code).slice();
+  if(ARTICLE_CODE_PHOTO_PATH_INFLIGHT.has(code)) return (await ARTICLE_CODE_PHOTO_PATH_INFLIGHT.get(code)).slice();
+  const job=(async()=>{
+    const sb=await ensureCloud();
+    if(!sb) return [];
+    try{
+      const { data, error } = await sb.storage.from(SUPABASE_BUCKET).list(code, { limit: 20, sortBy: { column: 'name', order: 'asc' } });
+      if(error || !Array.isArray(data)) return [];
+      return data
+        .filter(f=>f && f.name && !String(f.name).endsWith('/'))
+        .map(f=> `${code}/${f.name}`)
+        .filter(Boolean)
+        .slice(0,MAX_ARTICLE_PHOTOS);
+    }catch(_e){
+      return [];
+    }
+  })();
+  ARTICLE_CODE_PHOTO_PATH_INFLIGHT.set(code, job);
   try{
-    const { data, error } = await sb.storage.from(SUPABASE_BUCKET).list(code, { limit: 20, sortBy: { column: 'name', order: 'asc' } });
-    if(error || !Array.isArray(data)) return [];
-    return data
-      .filter(f=>f && f.name && !String(f.name).endsWith('/'))
-      .map(f=> `${code}/${f.name}`)
-      .filter(Boolean)
-      .slice(0,MAX_ARTICLE_PHOTOS);
-  }catch(_e){
-    return [];
+    const rows=await job;
+    ARTICLE_CODE_PHOTO_PATH_CACHE.set(code, rows.slice());
+    return rows.slice();
+  }finally{
+    ARTICLE_CODE_PHOTO_PATH_INFLIGHT.delete(code);
   }
 }
+
+async function prefetchCloudPhotoPathsForArticles(articles){
+  const list=(Array.isArray(articles)?articles:[]).filter(a=>a && a.id);
+  const missing=list.map(a=>String(a.id)).filter(id=>id && !ARTICLE_CLOUD_PHOTO_PATH_CACHE.has(id));
+  if(!missing.length) return;
+  if(ARTICLE_CLOUD_PHOTO_PATH_INFLIGHT){
+    try{ await ARTICLE_CLOUD_PHOTO_PATH_INFLIGHT; }catch(_e){}
+    return;
+  }
+  ARTICLE_CLOUD_PHOTO_PATH_INFLIGHT=(async()=>{
+    const sb=await ensureCloud();
+    if(!sb) return;
+    const ids=[...new Set(missing)].slice(0,500);
+    ids.forEach(id=>{ if(!ARTICLE_CLOUD_PHOTO_PATH_CACHE.has(id)) ARTICLE_CLOUD_PHOTO_PATH_CACHE.set(id, []); });
+    for(let i=0;i<ids.length;i+=80){
+      const chunk=ids.slice(i,i+80);
+      try{
+        const { data, error } = await sb
+          .from('prodotti_foto')
+          .select('prodotto_id,path,ordine')
+          .in('prodotto_id', chunk)
+          .order('ordine',{ascending:true});
+        if(error || !Array.isArray(data)) continue;
+        const grouped=new Map();
+        for(const row of data){
+          const id=String(row?.prodotto_id||'');
+          const path=String(row?.path||'').trim();
+          if(!id || !path) continue;
+          if(!grouped.has(id)) grouped.set(id, []);
+          grouped.get(id).push(path);
+        }
+        for(const id of chunk){
+          ARTICLE_CLOUD_PHOTO_PATH_CACHE.set(id, (grouped.get(id)||[]).slice(0,MAX_ARTICLE_PHOTOS));
+        }
+      }catch(err){
+        console.warn('Prefetch foto articoli fallito', err);
+      }
+      await new Promise(res=>setTimeout(res,0));
+    }
+  })();
+  try{ await ARTICLE_CLOUD_PHOTO_PATH_INFLIGHT; }finally{ ARTICLE_CLOUD_PHOTO_PATH_INFLIGHT=null; }
+}
+
 
 function canonicalPhotoSourceKey(src){
   const raw=String(src||'').trim();
@@ -2454,7 +2518,7 @@ async function getArticleLocalPhotoSources(a){
 
   return out.slice(0,MAX_ARTICLE_PHOTOS);
 }
-async function getArticleCloudSourcePaths(a){
+async function getArticleCloudSourcePaths(a, opts={}){
   if(!a) return [];
   const out=[];
   const seen=new Set();
@@ -2469,14 +2533,32 @@ async function getArticleCloudSourcePaths(a){
   };
 
   try{
-    const sb=await ensureCloud();
-    if(sb && a.id){
-      const { data:rows } = await sb
-        .from('prodotti_foto')
-        .select('path,ordine')
-        .eq('prodotto_id', a.id)
-        .order('ordine',{ascending:true});
-      for(const row of (rows||[])) pushCloud(row?.path||'');
+    const id=String(a.id||'');
+    if(id && ARTICLE_CLOUD_PHOTO_PATH_CACHE.has(id)){
+      for(const path of (ARTICLE_CLOUD_PHOTO_PATH_CACHE.get(id)||[])) pushCloud(path);
+    }else{
+      if(id && ARTICLE_CLOUD_PHOTO_PATH_INFLIGHT){
+        try{ await ARTICLE_CLOUD_PHOTO_PATH_INFLIGHT; }catch(_e){}
+        if(ARTICLE_CLOUD_PHOTO_PATH_CACHE.has(id)){
+          for(const path of (ARTICLE_CLOUD_PHOTO_PATH_CACHE.get(id)||[])) pushCloud(path);
+        }
+      }
+      if(!(id && out.length)){
+        const sb=await ensureCloud();
+        if(sb && id){
+          const { data:rows } = await sb
+            .from('prodotti_foto')
+            .select('path,ordine')
+            .eq('prodotto_id', id)
+            .order('ordine',{ascending:true});
+          const paths=[];
+          for(const row of (rows||[])){
+            if(row?.path) paths.push(row.path);
+            pushCloud(row?.path||'');
+          }
+          ARTICLE_CLOUD_PHOTO_PATH_CACHE.set(id, paths.slice(0,MAX_ARTICLE_PHOTOS));
+        }
+      }
     }
   }catch(err){
     console.warn('Lettura sorgenti cloud foto fallita', err);
@@ -2486,16 +2568,18 @@ async function getArticleCloudSourcePaths(a){
     for(const src of a.foto.slice(0,MAX_ARTICLE_PHOTOS)) pushCloud(src);
   }
 
-  // Fallback storico: alcune foto sono nel bucket dentro la cartella del codice articolo
-  // ma non hanno più una riga valida in prodotti_foto. Se nel dettaglio si vedono,
-  // la lista deve cercare anche qui. Fine del teatrino dei quadrati vuoti.
-  try{
-    const code=String(a.codice||a.sku||'').trim();
-    if(code){
-      const byCode=await listCloudFotoPathsByCode(code);
-      for(const src of byCode) pushCloud(src);
-    }
-  }catch(_e){}
+  // Fallback storico: utile, ma costoso. Nelle liste lo usiamo solo quando serve davvero,
+  // altrimenti Samsung Internet si mette a lampeggiare come una discoteca triste.
+  const allowCodeFallback = opts && opts.allowCodeFallback !== false;
+  if(allowCodeFallback && out.length===0){
+    try{
+      const code=String(a.codice||a.sku||'').trim();
+      if(code){
+        const byCode=await listCloudFotoPathsByCode(code);
+        for(const src of byCode) pushCloud(src);
+      }
+    }catch(_e){}
+  }
 
   return out.slice(0,MAX_ARTICLE_PHOTOS);
 }
@@ -2547,7 +2631,7 @@ async function getArticleThumbCandidates(a){
   // Prima provavamo il cloud solo se non esisteva nessun riferimento locale: risultato,
   // la lista restava senza anteprima. Ora aggiungiamo sempre il cloud come fallback.
   try{
-    const cloud=await getArticleCloudSourcePaths(a);
+    const cloud=await getArticleCloudSourcePaths(a, {allowCodeFallback:false});
     for(const src of cloud){
       const clean=String(src||'').trim();
       if(!clean) continue;
@@ -7553,36 +7637,39 @@ function setArticleThumbState(id, url){
   const el=document.querySelector(articleThumbSelector(id,'data-photo-for'));
   const ph=document.querySelector(articleThumbSelector(id,'data-placeholder-for'));
   if(!el) return;
-  if(!url){
-    el.removeAttribute('src');
-    el.style.display='none';
+  const clean=String(url||'').trim();
+  const showPlaceholder=()=>{
+    try{ el.removeAttribute('src'); }catch(_e){}
+    el.style.opacity='0';
+    el.style.visibility='hidden';
     if(ph) ph.style.display='flex';
-    return;
-  }
+  };
+  const showImg=()=>{
+    el.style.visibility='visible';
+    el.style.opacity='1';
+    if(ph) ph.style.display='none';
+  };
+  if(!clean){ showPlaceholder(); return; }
   el.loading='lazy';
   el.decoding='async';
-  const showImg=()=>{ el.style.display='block'; if(ph) ph.style.display='none'; };
-  const showPlaceholder=()=>{ el.removeAttribute('src'); el.style.display='none'; if(ph) ph.style.display='flex'; };
   el.onload=showImg;
   el.onerror=()=>{
-    showPlaceholder();
-    // Un solo secondo tentativo: Samsung Internet a volte perde il primo colpo, perché no, non poteva essere normale.
-    const retry=url + (String(url).includes('?') ? '&' : '?') + 'vgretry=' + Date.now();
+    const canRetry=/^https?:\/\//i.test(clean);
+    if(!canRetry){ showPlaceholder(); return; }
+    const retry=clean + (clean.includes('?') ? '&' : '?') + 'vgretry=' + Date.now();
     setTimeout(()=>{
       if(!document.body.contains(el)) return;
       el.onload=showImg;
       el.onerror=showPlaceholder;
-      el.style.display='block';
-      if(ph) ph.style.display='none';
       el.src=retry;
-    }, 700);
+    }, 450);
   };
-  // Mostra subito l'immagine: se poi fallisce torna al placeholder.
-  // Aspettare solo onload su Samsung/Android può lasciare le card bianche.
-  el.style.display='block';
-  if(ph) ph.style.display='none';
-  if(el.getAttribute('src')!==url) el.src=url;
-  else if(el.complete && el.naturalWidth>0) showImg();
+  if(el.getAttribute('src')===clean && el.complete && el.naturalWidth>0){ showImg(); return; }
+  // Placeholder visibile fino al vero onload: niente schermo nero durante il caricamento.
+  el.style.opacity='0';
+  el.style.visibility='hidden';
+  if(ph) ph.style.display='flex';
+  if(el.getAttribute('src')!==clean) el.src=clean;
 }
 async function hydrateOneArticleThumb(a, token){
   if(!a || !a.id || token!==ARTICLE_THUMB_HYDRATE_TOKEN) return;
@@ -7595,24 +7682,63 @@ async function hydrateOneArticleThumb(a, token){
     if(token===ARTICLE_THUMB_HYDRATE_TOKEN) setArticleThumbState(a.id, '');
   }
 }
+function stopArticleThumbObserver(){
+  try{ if(ARTICLE_THUMB_OBSERVER) ARTICLE_THUMB_OBSERVER.disconnect(); }catch(_e){}
+  ARTICLE_THUMB_OBSERVER=null;
+  ARTICLE_THUMB_QUEUE=[];
+  ARTICLE_THUMB_ACTIVE=0;
+}
+function queueArticleThumb(a, token){
+  if(!a || !a.id || token!==ARTICLE_THUMB_HYDRATE_TOKEN) return;
+  if(ARTICLE_THUMB_QUEUE.some(x=>String(x?.id||'')===String(a.id))) return;
+  ARTICLE_THUMB_QUEUE.push(a);
+  pumpArticleThumbQueue(token);
+}
+function pumpArticleThumbQueue(token){
+  if(token!==ARTICLE_THUMB_HYDRATE_TOKEN) return;
+  while(ARTICLE_THUMB_ACTIVE<ARTICLE_THUMB_HYDRATE_CONCURRENCY && ARTICLE_THUMB_QUEUE.length){
+    const a=ARTICLE_THUMB_QUEUE.shift();
+    ARTICLE_THUMB_ACTIVE++;
+    hydrateOneArticleThumb(a, token).finally(()=>{
+      ARTICLE_THUMB_ACTIVE=Math.max(0, ARTICLE_THUMB_ACTIVE-1);
+      setTimeout(()=>pumpArticleThumbQueue(token), 20);
+    });
+  }
+}
 async function hydrateArticleThumbs(items){
   const token=++ARTICLE_THUMB_HYDRATE_TOKEN;
+  stopArticleThumbObserver();
   const list=(Array.isArray(items)?items:[]).slice();
-  const visible=list.slice(0,12);
-  const rest=list.slice(12);
-  // Prime card subito, il resto a piccoli gruppi: niente blocco né miniature perse.
-  await Promise.all(visible.map(a=>hydrateOneArticleThumb(a, token)));
-  let i=0;
-  const pump=()=>{
-    if(token!==ARTICLE_THUMB_HYDRATE_TOKEN) return;
-    const chunk=rest.slice(i, i+8);
-    i+=8;
-    Promise.all(chunk.map(a=>hydrateOneArticleThumb(a, token))).finally(()=>{
-      if(i<rest.length) setTimeout(pump, 80);
-    });
-  };
-  if(rest.length) setTimeout(pump, 40);
+  if(!list.length) return;
+
+  // Una query batch per le righe foto, invece di una query per ogni card.
+  prefetchCloudPhotoPathsForArticles(list).then(()=>{
+    if(token===ARTICLE_THUMB_HYDRATE_TOKEN) pumpArticleThumbQueue(token);
+  }).catch(err=>console.warn('Prefetch anteprime fallito', err));
+
+  const artById=new Map(list.map(a=>[String(a.id), a]));
+  const imgs=[...document.querySelectorAll('#listArt img[data-photo-for]')];
+  if('IntersectionObserver' in window){
+    ARTICLE_THUMB_OBSERVER=new IntersectionObserver(entries=>{
+      for(const entry of entries){
+        if(!entry.isIntersecting) continue;
+        const id=entry.target.getAttribute('data-photo-for');
+        const art=artById.get(String(id||''));
+        if(art){
+          ARTICLE_THUMB_OBSERVER.unobserve(entry.target);
+          queueArticleThumb(art, token);
+        }
+      }
+    }, { root:null, rootMargin:ARTICLE_THUMB_OBSERVER_ROOT_MARGIN, threshold:0.01 });
+    imgs.forEach(img=>ARTICLE_THUMB_OBSERVER.observe(img));
+  }else{
+    list.slice(0,16).forEach(a=>queueArticleThumb(a, token));
+  }
+
+  // Prime card subito, ma con concorrenza bassa: veloce senza far sfarfallare tutto il telefono.
+  list.slice(0,6).forEach(a=>queueArticleThumb(a, token));
 }
+
 function pseudoPromoBadge(a){
   return promoInfoHtml(a,{marginTop:'6px'});
 }
@@ -10155,7 +10281,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-07-07-anteprime-definitive-v108';
+const VG_BUILD='2026-07-08-anteprime-rapide-no-flicker-v109';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -11348,7 +11474,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=anteprime-definitive-v108', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=anteprime-rapide-no-flicker-v109', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
