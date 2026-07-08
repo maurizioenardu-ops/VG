@@ -263,6 +263,52 @@ video.hero{background:#000}
 .searchSuggest button+button{border-top:1px solid #eef2f7}
 .searchSuggest button:hover{background:#f8fafc}
 
+
+}
+
+
+/* VG PATCH FONT PIU GRANDE v112
+   Aumenta leggermente la leggibilità senza far esplodere le card su mobile. */
+html{font-size:16.5px}
+body{font-size:15.5px;line-height:1.28}
+.top h1{font-size:22px;line-height:1.15}
+.date{font-size:13px;line-height:1.25}
+.h2{font-size:17px;line-height:1.2}
+.small,.helper{font-size:13px;line-height:1.35}
+.k{font-size:11px;line-height:1.2}
+.v{font-size:23px;line-height:1.1}
+.tab{font-size:13.5px;line-height:1.15;padding:11px 9px}
+.navBottom button{font-size:12px;line-height:1.12}
+.btnBig{font-size:14px;line-height:1.15;min-height:46px}
+button,.btn,.pill{line-height:1.15}
+input,select,textarea{font-size:16px;line-height:1.25}
+.artMeta .t{font-size:15px;line-height:1.18;-webkit-line-clamp:2}
+.artMeta .s{font-size:12.5px;line-height:1.25;-webkit-line-clamp:2}
+.artPrice{font-size:20px;line-height:1.08}
+.artCount{font-size:13px;line-height:1.2}
+.artActions .btn{font-size:13px;line-height:1.12;min-height:44px;padding:9px 9px}
+.orderCard .title,.orderPickTitle{font-size:16.5px;line-height:1.18}
+.orderCard .meta,.orderPickMeta,.orderRowsSummary{font-size:13px;line-height:1.32}
+.modal h2,.modal .h2{font-size:18px;line-height:1.2}
+@media (max-width:520px){
+  body{font-size:15px}
+  .top h1{font-size:20px}
+  .date{font-size:13px}
+  .tab{font-size:12.5px;padding:10px 6px}
+  .navBottom button{font-size:11.5px;padding:10px 3px 12px}
+  .artMeta .t{font-size:14.5px}
+  .artMeta .s{font-size:12.2px}
+  .artPrice{font-size:19px}
+  .artActions .btn{font-size:12.5px;padding-left:7px;padding-right:7px}
+  .btnBig{font-size:13.5px}
+}
+@media (max-width:390px){
+  .tab{font-size:12px;padding-left:4px;padding-right:4px}
+  .navBottom button{font-size:11px;padding-left:2px;padding-right:2px}
+  .artMeta .t{font-size:14px}
+  .artMeta .s{font-size:12px}
+  .artActions .btn{font-size:12px}
+}
 </style>
 <script>
 window.addEventListener('error',e=>{
@@ -271,7 +317,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v16-elenco-articoli-condividi-fb">
+  <meta name="vg-version" content="v17-font-piu-grande">
 </head>
 <body>
 
@@ -10365,7 +10411,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-07-08-elenco-articoli-condividi-fb-v111';
+const VG_BUILD='2026-07-08-font-piu-grande-v112';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -11558,7 +11604,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=elenco-articoli-condividi-fb-v111', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=font-piu-grande-v112', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
