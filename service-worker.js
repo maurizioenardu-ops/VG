@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-07-08-anteprime-layout-stabile-v110';
+const VERSION = 'gestionale-2026-07-08-elenco-articoli-condividi-fb-v111';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

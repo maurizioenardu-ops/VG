@@ -271,7 +271,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v15-anteprime-rapide-no-flicker">
+  <meta name="vg-version" content="v16-elenco-articoli-condividi-fb">
 </head>
 <body>
 
@@ -3507,6 +3507,76 @@ async function shareArtAll(){
     if(isShareActivationError(err)){ toast('⚠️ File non ancora pronti. Premi di nuovo Condividi.'); return; }
     console.warn('shareArtAll fallito:',err);
     toast('⚠️ Condivisione non riuscita');
+  }
+}
+
+async function shareArticleFromList(artId){
+  const id=String(artId||'').trim();
+  if(!id){ toast('Articolo non trovato'); return; }
+  const db=loadDB();
+  const a=(db.articoli||[]).find(x=>String(x.id)===id || String(x.codice||'')===id);
+  if(!a){ toast('Articolo non trovato'); return; }
+
+  // Il pulsante in elenco deve comportarsi come il Condividi del dettaglio articolo:
+  // foto condivise tramite share di sistema, testo Facebook SENZA prezzo copiato negli appunti.
+  currentArtId=a.id;
+  const text=normalizeFacebookPostForArticle(buildPostFacebook(a), a);
+  let ctx=null;
+  try{ ctx=await prepareArticlePhotoShareContext(a); }
+  catch(err){ console.warn('Preparazione contesto foto da elenco fallita', err); }
+
+  if(!ctx){
+    if(text){
+      try{ await navigator.clipboard.writeText(text); }
+      catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
+      toast('📋 Testo FB senza prezzo copiato. Nessuna foto disponibile.');
+    }else{
+      toast('Nessuna foto disponibile');
+    }
+    return;
+  }
+
+  let cached=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
+  const complete=areCachedArticlePhotoFilesComplete(ctx);
+  if(!complete){
+    try{ await warmCurrentArticlePhotoShare(ctx, { silent:true }); }
+    catch(err){ console.warn('Warmup condivisione da elenco fallito', err); }
+    cached=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
+  }
+
+  if(text){
+    try{ await navigator.clipboard.writeText(text); }
+    catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
+  }
+
+  if(!cached.length){
+    toast(text ? '📋 Testo FB senza prezzo copiato. Sto preparando le foto: premi Condividi tra un attimo.' : 'Sto preparando le foto: premi Condividi tra un attimo.');
+    warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
+    return;
+  }
+
+  try{
+    if(canNativeShareFiles(cached)){
+      await navigator.share({files:cached});
+      recordArticlePublication('fb');
+      toast(text ? '✅ File condivisi! Testo FB senza prezzo copiato — incollalo come didascalia 📋' : '✅ Condivisione aperta!');
+      return;
+    }
+    if(typeof navigator.share==='function'){
+      await navigator.share({title:a.modello||a.codice||'Articolo'});
+      recordArticlePublication('fb');
+      toast(text ? '✅ Condivisione aperta. Testo FB senza prezzo copiato 📋' : '✅ Condivisione aperta!');
+      return;
+    }
+    toast(text ? '📋 Testo FB senza prezzo copiato. Condivisione file non supportata su questo browser.' : 'Condivisione non supportata su questo browser');
+  }catch(err){
+    if(isShareAbortError(err)) return;
+    if(isShareActivationError(err)){
+      toast('⚠️ Foto preparate. Premi di nuovo Condividi.');
+      return;
+    }
+    console.warn('Condivisione articolo da elenco fallita:', err);
+    toast(text ? '📋 Testo FB senza prezzo copiato. Condivisione foto non riuscita.' : '⚠️ Condivisione non riuscita');
   }
 }
 async function syncArticlePhotosToCloud(artId, codice, pics){
@@ -7624,7 +7694,7 @@ function renderArt(){
     const metaLine=promoOnly ? `${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}` : `${esc(a.codice||'Senza codice')} • ${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
     const notePreview=normalizeSpaceText(a.note||'');
     const noteHtml=notePreview ? `<div class="artCardNote" title="${esc(notePreview)}">${esc(notePreview)}</div>` : '';
-    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}">${noteHtml}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${unavailable}${promo}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" type="button" data-action="duplicateArt" data-id="${a.id}">Duplica</button></div></div>`;
+    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}">${noteHtml}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${unavailable}${promo}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtFromList" data-id="${a.id}">Condividi</button></div></div>`;
   }).join('');
   const emptyText=promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.';
   el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
@@ -9859,6 +9929,18 @@ function bindSearchSuggest(inputId, boxId, kind, onApply){
 
 /* ====== EVENTS ====== */
 document.addEventListener('pointerdown',(ev)=>{
+  const listShareBtn=ev.target?.closest?.('[data-action="shareArtFromList"]');
+  if(listShareBtn){
+    const id=String(listShareBtn.dataset.id||'').trim();
+    Promise.resolve().then(()=>{
+      const db=loadDB();
+      const art=(db.articoli||[]).find(x=>String(x.id)===id || String(x.codice||'')===id);
+      if(!art) return null;
+      currentArtId=art.id;
+      return prepareArticlePhotoShareContext(art);
+    }).then(ctx=>{ if(ctx) return warmCurrentArticlePhotoShare(ctx, { silent:true }); }).catch(()=>{});
+    return;
+  }
   const btn=ev.target?.closest?.('[data-action="shareArtPhotosFb"],[data-action="shareArtPhotosTg"],[data-action="shareArtPhotos"],[data-action="downloadArtPhotosTg"],[data-action="downloadArtPhotosIg"],[data-action="downloadArtPhotos"]');
   if(!btn) return;
   Promise.resolve()
@@ -10136,6 +10218,7 @@ document.addEventListener('click',(ev)=>{
     hide('mArtView', true);
     return openOrdEdit(currentOrdId||null, art.id);
   }
+  if(a==='shareArtFromList') return shareArticleFromList(el.dataset.id || null);
   if(a==='duplicateArt') return duplicateCurrentArticle(el.dataset.id || null);
   if(a==='editFromView'){ hide('mArtView', true); return openArtEdit(currentArtId); }
   if(a==='closeView') return hide('mArtView');
@@ -10282,7 +10365,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-07-08-anteprime-layout-stabile-v110';
+const VG_BUILD='2026-07-08-elenco-articoli-condividi-fb-v111';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -11475,7 +11558,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=anteprime-layout-stabile-v110', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=elenco-articoli-condividi-fb-v111', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
