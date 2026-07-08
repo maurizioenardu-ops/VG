@@ -55,6 +55,7 @@ body{-webkit-tap-highlight-color:transparent}
 .artMeta .t{line-height:1.1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .artMeta .s{margin-top:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .artCount{margin-top:auto;font-size:12px;color:var(--muted);font-weight:800}
+.artPhotoCount{display:inline-flex;align-items:center;gap:5px;width:max-content;max-width:100%;padding:5px 8px;border-radius:999px;background:#eef2ff;border:1px solid #c7d2fe;color:#1e3a8a;font-size:12px;font-weight:1000;line-height:1.1;margin-top:2px}
 .artBreadcrumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .artCrumb{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:12px;font-weight:900;cursor:pointer}
 .artCrumb.active{background:#fef3c7;border-color:#f59e0b}
@@ -181,6 +182,7 @@ video.hero{background:#000}
   .artIcon{width:54px;height:54px;font-size:48px;border-radius:16px;padding:0}
   .artMeta .t{font-size:13px}
   .artMeta .s{font-size:11px}
+  .artPhotoCount{font-size:11.5px;padding:5px 7px}
   .artPrice{font-size:16px}
   .artActions .btn,.btn.orderAdd.small{min-height:40px;font-size:12px;padding:8px 10px}
   .actions{grid-template-columns:1fr 1fr}
@@ -327,7 +329,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v17-font-piu-grande">
+  <meta name="vg-version" content="v117-elenco-pulito-foto-qualita">
 </head>
 <body>
 
@@ -7717,6 +7719,19 @@ function updateArtPromoFilterButton(promoCount){
     allBtn.setAttribute('aria-pressed', artBrowseState.level==='mixed' ? 'true' : 'false');
   }
 }
+
+function articlePhotoCountSync(a){
+  if(!a) return 0;
+  const fotoCount=Array.isArray(a.foto) ? a.foto.filter(Boolean).length : 0;
+  const localCount=Array.isArray(a.photoIds) ? a.photoIds.filter(Boolean).length : 0;
+  return Math.max(fotoCount, localCount, 0);
+}
+function articlePhotoCountText(a){
+  const n=articlePhotoCountSync(a);
+  if(n===1) return '📷 1 foto';
+  return `📷 ${n} foto`;
+}
+
 function renderArt(){
   const db=loadDB();
   const promoCount=(db.articoli||[]).filter(promoValid).length;
@@ -7744,13 +7759,14 @@ function renderArt(){
     return;
   }
   const cards=items.map(a=>{
-    const promo=pseudoPromoBadge(a);
     const unavailable=articleAvailabilityBadge(a);
     const blocked=isArticleUnavailable(a);
-    const metaLine=promoOnly ? `${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}` : `${esc(a.codice||'Senza codice')} • ${esc(displayBrandValue(a.brand))} • ${esc(displayCategoryValue(a.categoria))} • ${esc(articleQualityLabel(a)||'-')}`;
+    const photoLine=articlePhotoCountText(a);
+    const qualityLine=articleQualityLabel(a);
+    const metaLine=[qualityLine, photoLine].filter(Boolean).join(' • ');
     const notePreview=normalizeSpaceText(a.note||'');
     const noteHtml=notePreview ? `<div class="artCardNote" title="${esc(notePreview)}">${esc(notePreview)}</div>` : '';
-    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}">${noteHtml}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Categoria ${esc(displayCategoryValue(a.categoria))}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||a.codice||'-')}</div><div class="s">${metaLine}</div>${unavailable}${promo}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtFromList" data-id="${a.id}">Condividi</button></div></div>`;
+    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}">${noteHtml}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s artPhotoCount">${esc(metaLine)}</div>${unavailable}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtFromList" data-id="${a.id}">Condividi</button></div></div>`;
   }).join('');
   const emptyText=promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.';
   el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
@@ -10421,7 +10437,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-07-08-font-piu-grande-v113';
+const VG_BUILD='2026-07-08-elenco-pulito-foto-qualita-v117';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -11614,7 +11630,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=font-piu-grande-v113', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=elenco-pulito-foto-qualita-v117', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
