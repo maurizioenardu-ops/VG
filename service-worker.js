@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-07-08-font-piu-grande-v112';
+const VERSION = 'gestionale-2026-07-08-font-piu-grande-v113';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
