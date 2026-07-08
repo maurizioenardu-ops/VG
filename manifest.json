@@ -1,12 +1,12 @@
 {
-  "id": "./?v=vg-premium-icon-v114",
-  "name": "Gestionale VG",
-  "short_name": "VG",
-  "start_url": "./?v=vg-premium-icon-v114",
+  "id": "./?v=cartoon-gestionale-icon-v115",
+  "name": "Gestionale",
+  "short_name": "Gestionale",
+  "start_url": "./?v=cartoon-gestionale-icon-v115",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#020617",
-  "theme_color": "#020617",
+  "background_color": "#8b2be2",
+  "theme_color": "#8b2be2",
   "icons": [
     {
       "src": "icon-192.png",

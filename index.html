@@ -4,10 +4,10 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <title>Gestionale</title>
-<link rel="manifest" href="manifest.json?v=vg-premium-icon-v114"/>
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=vg-premium-icon-v114"/>
-<link rel="apple-touch-icon" href="icon-512.png?v=vg-premium-icon-v114"/>
-<meta name="theme-color" content="#0f172a"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<meta name="theme-color" content="#8b2be2"/>
 <style>
 :root{--navy:#0f172a;--bg:#f8fafc;--card:#fff;--line:#bcc6d4;--muted:#6b7280;--blue:#2563eb;--red:#dc2626;--cream:#fff7ed;--soft:#eef4ff;--gold:#f59e0b}
 *{box-sizing:border-box}
@@ -328,7 +328,6 @@ window.addEventListener('error',e=>{
 </script>
 <script src="supabaseClient.js"></script>
   <meta name="vg-version" content="v17-font-piu-grande">
-<!-- VG_ICON_PREMIUM_V114 -->
 </head>
 <body>
 
@@ -11615,7 +11614,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=vg-premium-icon-v114', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=font-piu-grande-v113', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
