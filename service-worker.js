@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-07-08-font-piu-grande-v113';
+const VERSION = 'gestionale-2026-07-08-vg-premium-icon-v114';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',
@@ -12,7 +12,8 @@ const STATIC_ASSETS = [
   './cat-accessori.jpg',
   './supabaseClient.js',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './icon-maskable-512.png'
 ];
 
 self.addEventListener('install', event => {
