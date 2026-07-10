@@ -1,8 +1,8 @@
 {
-  "id": "./?v=elenco-pulito-foto-v116",
+  "id": "./?v=promo-social-clean-v1",
   "name": "Gestionale",
   "short_name": "Gestionale",
-  "start_url": "./?v=elenco-pulito-foto-v116",
+  "start_url": "./?v=promo-social-clean-v1",
   "scope": "./",
   "display": "standalone",
   "background_color": "#8b2be2",

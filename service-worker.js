@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-07-08-elenco-pulito-foto-qualita-v117';
+const VERSION = 'gestionale-2026-07-10-promo-social-clean-v1';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const STATIC_ASSETS = [
   './',

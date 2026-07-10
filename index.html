@@ -4920,7 +4920,31 @@ function pickFacebookDetailLines(a){
 function promoPostIntroLines(a){
   if(!promoValid(a)) return [];
   const end=String(a?.scadenzaPromo||'').trim();
-  return end ? [`🔥 IN PROMO FINO AL ${formatPromoDayMonth(end)}`] : [];
+  if(!end) return [];
+  const monthNames=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+  const mm=/^\d{4}-(\d{2})-\d{2}$/.exec(end)?.[1]||'';
+  const month=monthNames[Math.max(0, Math.min(11, Number(mm)-1))]||'';
+  const date=formatPromoDateLabel(end);
+  return [`✨ PROMO DI ${month.toUpperCase()} · VALIDA FINO AL ${String(date||'').toUpperCase()} ✨`];
+}
+function isSocialFooterNoiseLine(line=''){
+  const raw=String(line||'').trim();
+  if(!raw) return false;
+  const key=normalizeTextKey(raw);
+  return /(?:^|\b)(?:foto|fotografie|immagini|disponibilita|disponibile|spedizione|consegna|arrivo|tempi|giorni|ordinabile|ordinazione|recensioni|feedback|infoinprivato|dettagliinprivato|scrivimiinprivato|messaggioprivato)(?:\b|$)/i.test(key)
+    || /(?:7|10|15)\s*giorni/i.test(raw);
+}
+function stripSocialFooterNoise(text){
+  return String(text||'').split(/\r?\n/).filter(line=>!isSocialFooterNoiseLine(line)).join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+function ensureCurrentPromoHeader(text, a){
+  let raw=String(text||'').trim();
+  const withoutOld=raw.split(/\r?\n/).filter(line=>{
+    const key=normalizeTextKey(line);
+    return !key || !/(?:promo|promozione|offerta|sconto|scadenz|valida?finoal|finoal|✨|🔥|⚡)/.test(key);
+  }).join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  const intro=promoPostIntroLines(a);
+  return intro.length ? formatGeneratedPostLines([...intro, withoutOld]) : withoutOld;
 }
 function postTraitFlags(a){
   const src = [
@@ -5943,13 +5967,7 @@ function buildPostFacebookBase(a, opts={}){
   }
   lines.push(`cod. ${a.codice}`);
 
-  const bucket=seed % 10;
-  let closerPool=finaliInfo;
-  if(bucket===0) closerPool=finaliRecensioni;
-  else if(bucket===1 || bucket===2) closerPool=finaliTempi;
-  const closer=pickVariantBySeed(closerPool, seed, 47) || '📩 Info in privato.';
-  lines.push(closer);
-  return formatGeneratedPostLines(lines);
+  return normalizePublicPostForArticle(formatGeneratedPostLines(lines), a);
 }
 
 function ensureFacebookPostHasCode(text, a){
@@ -6061,7 +6079,12 @@ function stripPublicMaterialWordFromPost(text){
   return raw.replace(/\n{3,}/g,'\n\n').trim();
 }
 function normalizePublicPostForArticle(text, a){
-  return dedupeQualityEmojisInPost(stripPublicMaterialWordFromPost(stripArticlePrivateNotesFromPost(stripExpiredPromoLinesFromPost(text, a)), a), a);
+  let out=stripArticlePrivateNotesFromPost(text, a);
+  out=stripExpiredPromoLinesFromPost(out, a);
+  out=stripSocialFooterNoise(out);
+  out=ensureCurrentPromoHeader(out, a);
+  out=stripPublicMaterialWordFromPost(out);
+  return dedupeQualityEmojisInPost(out, a);
 }
 function stripExpiredPromoLinesFromPost(text, a){
   let raw=String(text||'').trim();
@@ -6092,7 +6115,7 @@ function normalizeFacebookPostForArticle(text, a){
   out=ensureFacebookPostHasDescriptionBelowModel(out, a);
   out=ensureFacebookPostHasArticleMeasures(out, a);
   out=ensureFacebookPostHasCode(out, a);
-  return dedupeQualityEmojisInPost(stripPublicMaterialWordFromPost(stripArticlePrivateNotesFromPost(stripExpiredPromoLinesFromPost(out, a)), a), a);
+  return normalizePublicPostForArticle(out, a);
 }
 function getArticleFacebookCustomPost(a){
   return String(a?.postFb || a?.postFacebook || a?.post_fb || '').trim();
@@ -6126,21 +6149,15 @@ function setArticleFacebookPostAuto(text){
 
 function buildPostInstagram(a){
   if(!a?.codice) return '';
-  const closer = pickRandom([
-    'Scrivimi in privato 📩',
-    'Per info, mandami un messaggio',
-    'Contattami in privato per dettagli',
-    'Disponibilità in privato',
-    'Messaggio privato per info',
-    'Per colori e dettagli, scrivimi',
-    'Richiedi disponibilità in privato',
-    'Per info e colori disponibili, scrivimi',
-    'Scrivimi per conferma disponibilità',
-    'Info e disponibilità via messaggio privato',
-    'Se vuoi vederla meglio, scrivimi 📩',
-    'Per prenotarla, messaggio privato'
-  ]) || 'Scrivimi in privato 📩';
-  return normalizePublicPostForArticle(String(closer||'').trim(), a);
+  const model=postNameWithQuality(a,'ig') || postPrimaryName(a,'ig') || categoryLabelForPost(a);
+  const lines=[...promoPostIntroLines(a)];
+  if(model) lines.push(model);
+  const desc=String(a?.descrizione||'').trim();
+  if(desc) lines.push(desc);
+  const misura=formatPostMeasureLine(a);
+  if(misura) lines.push(misura);
+  lines.push(`cod. ${a.codice}`);
+  return normalizePublicPostForArticle(formatGeneratedPostLines(lines), a);
 }
 
 function buildPostTelegram(a, includePrice=true){
@@ -11690,7 +11707,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=filtri-compatti-contatori-v1', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=promo-social-clean-v1', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
