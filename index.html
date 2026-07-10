@@ -377,6 +377,7 @@ window.addEventListener('error',e=>{
   const x=document.getElementById('dateLine');
   if(x) x.textContent='ERRORE JS: '+(e.message||e);
 });
+
 </script>
 <script src="supabaseClient.js"></script>
   <meta name="vg-version" content="v117-filtri-compatti-contatori">
@@ -934,18 +935,29 @@ window.addEventListener('error',e=>{
       <div class="inputSupplierPromo"><div class="k">Prezzo fornitore promo USD</div><input id="a_usd_promo" inputmode="decimal" autocomplete="off"/></div>
       <div><div class="k">Costo EUR standard (auto)</div><input id="a_eur" readonly/></div>
     </div>
+    <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_std_cost_unknown" type="checkbox" style="width:auto;margin-right:8px"/>Costo normale fornitore non conosciuto</label></div>
+    <div class="grid2" style="margin-top:10px">
+      <div><div class="k">Inizio promo fornitore</div><input id="a_supplier_promo_start" type="date" autocomplete="off"/></div>
+      <div><div class="k">Fine promo fornitore</div><input id="a_supplier_promo_end" type="date" autocomplete="off"/></div>
+    </div>
+    <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_supplier_date_unknown" type="checkbox" style="width:auto;margin-right:8px"/>Scadenza fornitore non comunicata</label></div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k">Prezzo vendita standard (auto)</div><input id="a_sell" readonly/></div>
       <div><div class="k">Prezzo finale in uso</div><input id="a_final" readonly/></div>
     </div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k">Margine</div><input id="a_margin" readonly/><div id="a_margin_pct" class="miniNote"></div></div>
-      <div><div class="k">Scadenza promo</div><input id="a_promo_date" type="date" autocomplete="off"/></div>
+      <div><div class="k">Tipo promozione</div><input id="a_promo_type" readonly/></div>
     </div>
+    <div id="a_promo_summary" class="helper" style="margin-top:8px"></div>
     <div class="hr"></div>
     <div class="grid2">
-      <div><div class="k">Promo attiva</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Attiva</label></div>
+      <div><div class="k">Promo personale attiva</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Attiva</label></div>
       <div class="inputPromoPersonal"><div class="k">Prezzo promo mio personale</div><input id="a_promo_price" inputmode="decimal" autocomplete="off"/></div>
+    </div>
+    <div class="grid2" style="margin-top:10px">
+      <div><div class="k">Inizio promo personale</div><input id="a_personal_promo_start" type="date" autocomplete="off"/></div>
+      <div><div class="k">Fine promo personale</div><input id="a_promo_date" type="date" autocomplete="off"/></div>
     </div>
   </div>
 
@@ -1181,7 +1193,7 @@ const MAX_ARTICLE_PHOTOS=9;
 const PROMO_EXPIRED_GRACE_DAYS=3;
 
 function defDB(){
-  return {version:'v6.8',articoli:[],clienti:[],ordini:[],categorie:[],categoryImages:{},brands:[],agenda:[],createdAt:new Date().toISOString()};
+  return {version:'v6.9',articoli:[],clienti:[],ordini:[],categorie:[],categoryImages:{},brands:[],agenda:[],createdAt:new Date().toISOString()};
 }
 
 const APP_RESET_FLAG='vg_build_reset_20260329_clean_v1';
@@ -1247,26 +1259,31 @@ function isoDayPlus(value='', days=0){
   return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
 }
 function clearArticlePromoState(article){
+  // Compatibilità: non cancelliamo più lo storico promozioni.
   if(!article || typeof article!=='object') return article;
-  return { ...article, promoAttiva:false, costoUsdPromo:0, costoEurPromo:0, prezzoPromo:0, scadenzaPromo:'', dataInizioPromo:'' };
+  return { ...article, promoAttiva:false };
 }
-function promoShouldClear(article, today=todayStr()){
-  const expiry=String(article?.scadenzaPromo||'').trim();
-  if(!promoHasHistory(article) || !parseIsoDay(expiry)) return false;
-  const clearFrom=isoDayPlus(expiry, PROMO_EXPIRED_GRACE_DAYS+1);
-  return !!(clearFrom && today>=clearFrom);
+function promoShouldClear(_article, _today=todayStr()){
+  return false;
 }
 function articlePromoExpired(a, today=todayStr()){
-  if(!a?.promoAttiva) return false;
-  const d=String(a?.scadenzaPromo||'').trim();
-  return !!(d && d.length>=8 && d<today);
+  const d=String(a?.scadenzaPromoPersonale||a?.scadenzaPromo||'').trim();
+  return !!(a?.promoAttiva && d && d.length>=8 && d<today);
 }
 function normalizeArticlePromoState(article, today=todayStr()){
   if(!article || typeof article!=='object') return article;
-  const normalized={ ...article, dataInizioPromo:getPromoStartDate(article) };
-  if(promoShouldClear(normalized, today)) return clearArticlePromoState(normalized);
-  if(!articlePromoExpired(normalized, today)) return normalized;
-  return { ...normalized, promoAttiva:false };
+  const normalized={
+    ...article,
+    dataInizioPromo:getPromoStartDate(article),
+    costoNormaleSconosciuto:!!article?.costoNormaleSconosciuto,
+    promoFornitoreAttiva:(typeof article?.promoFornitoreAttiva==='boolean') ? article.promoFornitoreAttiva : getPromoSupplierUsd(article)>0,
+    dataInizioPromoFornitore:normalizePromoStartDate(article?.dataInizioPromoFornitore||''),
+    scadenzaPromoFornitore:normalizeSpaceText(article?.scadenzaPromoFornitore||''),
+    promoFornitoreDataSconosciuta:!!article?.promoFornitoreDataSconosciuta,
+    dataInizioPromoPersonale:normalizePromoStartDate(article?.dataInizioPromoPersonale||article?.dataInizioPromo||''),
+    scadenzaPromoPersonale:normalizeSpaceText(article?.scadenzaPromoPersonale||article?.scadenzaPromo||'')
+  };
+  return normalized;
 }
 
 function normalizeDBShape(o){
@@ -1301,6 +1318,13 @@ function normalizeDBShape(o){
     prezzoPromo:firstFiniteNumber(x?.prezzoPromo, x?.promoPrezzo, x?.promo_price, 0),
     scadenzaPromo:normalizeSpaceText(x?.scadenzaPromo||x?.promoScadenza||x?.promo_date||''),
     dataInizioPromo:normalizePromoStartDate(x?.dataInizioPromo||x?.promoDataInizio||x?.promoStartDate||''),
+    costoNormaleSconosciuto:!!x?.costoNormaleSconosciuto,
+    promoFornitoreAttiva:(typeof x?.promoFornitoreAttiva==='boolean') ? x.promoFornitoreAttiva : firstFiniteNumber(x?.costoUsdPromo,x?.costoUSDPromo,x?.prezzoFornitorePromoUsd,x?.promoCostoUsd,0)>0,
+    dataInizioPromoFornitore:normalizePromoStartDate(x?.dataInizioPromoFornitore||''),
+    scadenzaPromoFornitore:normalizeSpaceText(x?.scadenzaPromoFornitore||''),
+    promoFornitoreDataSconosciuta:!!x?.promoFornitoreDataSconosciuta,
+    dataInizioPromoPersonale:normalizePromoStartDate(x?.dataInizioPromoPersonale||x?.dataInizioPromo||''),
+    scadenzaPromoPersonale:normalizeSpaceText(x?.scadenzaPromoPersonale||x?.scadenzaPromo||''),
     nonDisponibile:(typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.disponibile===false || x?.attivo===false),
     disponibile:(typeof x?.disponibile==='boolean') ? x.disponibile : !((typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.attivo===false)),
     foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],
@@ -4170,30 +4194,40 @@ function recordArticlePublication(channel, articleId=currentArtId, refDay=todayS
   return art;
 }
 function promoHasHistory(a){
-  return !!(a && (a.promoAttiva || Number(a.prezzoPromo||0)>0 || getPromoSupplierUsd(a)>0 || getPromoStartDate(a)));
+  return !!(a && (a.promoAttiva || Number(a.prezzoPromo||0)>0 || getPromoSupplierUsd(a)>0 || getPromoStartDate(a) || a.dataInizioPromoFornitore || a.scadenzaPromoFornitore));
+}
+function supplierPromoEnd(a){ return String(a?.scadenzaPromoFornitore||'').trim(); }
+function personalPromoEnd(a){ return String(a?.scadenzaPromoPersonale||a?.scadenzaPromo||'').trim(); }
+function supplierPromoValid(a, today=todayStr()){
+  if(!(getPromoSupplierUsd(a)>0)) return false;
+  if(a?.promoFornitoreAttiva===false) return false;
+  if(a?.promoFornitoreDataSconosciuta) return true;
+  const end=supplierPromoEnd(a);
+  return !end || end>=today;
+}
+function personalPromoValid(a, today=todayStr()){
+  if(!a?.promoAttiva || !(Number(a?.prezzoPromo||0)>0)) return false;
+  const end=personalPromoEnd(a);
+  return !end || end>=today;
 }
 function promoExpiredDisplay(a, today=todayStr()){
-  const d=String(a?.scadenzaPromo||'').trim();
-  return !!(promoHasHistory(a) && d.length>=8 && d<today);
+  const se=supplierPromoEnd(a), pe=personalPromoEnd(a);
+  return !!((se && se<today && getPromoSupplierUsd(a)>0) || (pe && pe<today && Number(a?.prezzoPromo||0)>0));
 }
 function promoPeriodLabel(a){
-  const end=String(a?.scadenzaPromo||'').trim();
-  if(end) return `fino al ${formatPromoDateLabel(end)}`;
+  const pe=personalPromoEnd(a), se=supplierPromoEnd(a);
+  if(personalPromoValid(a) && pe) return `promo personale fino al ${formatPromoDateLabel(pe)}`;
+  if(supplierPromoValid(a) && se) return `promo fornitore fino al ${formatPromoDateLabel(se)}`;
+  if(supplierPromoValid(a) && a?.promoFornitoreDataSconosciuta) return 'promo fornitore: scadenza non comunicata';
   return '';
 }
 function promoInfoHtml(a,{marginTop='6px'}={}){
   const style=marginTop ? ` style="margin-top:${marginTop}"` : '';
   const note=promoPeriodLabel(a);
-  if(promoValid(a)){
-    return `<div class="pill promo"${style}><span class="dot"></span>PROMO attiva</div>${note?`<div class="promoNote">${esc(note)}</div>`:''}`;
-  }
-  if(promoExpiredDisplay(a)){
-    const when=formatPromoDateLabel(a?.scadenzaPromo||'');
-    return `<div class="pill promoExpired"${style}>PROMO scaduta</div>${when?`<div class="promoNote expired">Scaduta il ${esc(when)}</div>`:''}`;
-  }
-  if(a?.promoAttiva){
-    return `<div class="pill"${style}>PROMO impostata</div>${note?`<div class="promoNote">${esc(note)}</div>`:''}`;
-  }
+  if(personalPromoValid(a) && supplierPromoValid(a)) return `<div class="pill promo"${style}><span class="dot"></span>PROMO combinata</div>${note?`<div class="promoNote">${esc(note)}</div>`:''}`;
+  if(personalPromoValid(a)) return `<div class="pill promo"${style}><span class="dot"></span>PROMO personale</div>${note?`<div class="promoNote">${esc(note)}</div>`:''}`;
+  if(supplierPromoValid(a)) return `<div class="pill promo"${style}><span class="dot"></span>PROMO fornitore</div>${note?`<div class="promoNote">${esc(note)}</div>`:''}`;
+  if(promoExpiredDisplay(a)) return `<div class="pill promoExpired"${style}>PROMO scaduta</div>`;
   return '';
 }
 function getPromoSupplierUsd(a){
@@ -4204,34 +4238,32 @@ function promoSupplierCalc(a){
   if(!(usd>0)) return {costo:0, sell:0, marg:0};
   return calcFromUsd(usd, qualityFromCode(a?.codice||''));
 }
-function promoValid(a){
-  if(!a?.promoAttiva) return false;
-  const hasPromoValue=Number(a?.prezzoPromo||0)>0 || getPromoSupplierUsd(a)>0;
-  const d=String(a?.scadenzaPromo||'').trim(); // yyyy-mm-dd
-  if(!hasPromoValue || d.length<8) return false;
-  const today=todayStr();
-  return d>=today;
-}
+function promoValid(a){ return personalPromoValid(a) || supplierPromoValid(a); }
 function currentPrice(a){
-  if(!promoValid(a)) return Number(a?.prezzoVendita||0);
-  const personal=Number(a?.prezzoPromo||0);
-  if(personal>0) return personal;
-  const supplier=promoSupplierCalc(a).sell;
-  return supplier>0 ? supplier : Number(a?.prezzoVendita||0);
+  // La promo del fornitore cambia il costo, non abbassa automaticamente il prezzo al cliente.
+  if(personalPromoValid(a)) return Number(a?.prezzoPromo||0);
+  return Number(a?.prezzoVendita||0);
 }
 function currentCost(a){
-  if(promoValid(a) && getPromoSupplierUsd(a)>0){
+  if(supplierPromoValid(a)){
     const promoCost=promoSupplierCalc(a).costo;
     if(promoCost>0) return promoCost;
   }
   return Number(a?.costoEur||0);
 }
+function promoTypeLabel(a){
+  const supplier=supplierPromoValid(a), personal=personalPromoValid(a);
+  if(supplier && personal) return 'Combinata';
+  if(supplier) return 'Fornitore';
+  if(personal) return 'Personale';
+  if(promoExpiredDisplay(a)) return 'Scaduta';
+  return 'Nessuna';
+}
 function resolvePromoStartDate(prevArticle, nextPromo){
-  const nextActive=!!nextPromo?.promoAttiva && (Number(nextPromo?.prezzoPromo||0)>0 || getPromoSupplierUsd(nextPromo)>0) && String(nextPromo?.scadenzaPromo||'').trim().length>=8;
-  const prevStart=getPromoStartDate(prevArticle);
+  const nextActive=!!nextPromo?.promoAttiva && Number(nextPromo?.prezzoPromo||0)>0;
+  const prevStart=normalizePromoStartDate(prevArticle?.dataInizioPromoPersonale||getPromoStartDate(prevArticle));
   if(!nextActive) return prevStart || '';
-  if(prevArticle && promoValid(prevArticle) && prevStart) return prevStart;
-  return todayStr();
+  return prevStart || todayStr();
 }
 
 
@@ -8639,7 +8671,7 @@ async function openArtEdit(id){
   const set=(k,v)=>document.getElementById(k).value=(v===0?0:(v||''));
 
   if(!a){
-    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_belt_h','a_usd','a_usd_promo','a_promo_price','a_promo_date','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
+    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_belt_h','a_usd','a_usd_promo','a_promo_price','a_promo_date','a_supplier_promo_start','a_supplier_promo_end','a_personal_promo_start','a_supplier_promo_start','a_supplier_promo_end','a_personal_promo_start','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
     .forEach(fid => document.getElementById(fid).value='');
     document.getElementById('a_color_mode').value='single';
     document.getElementById('a_color_count').value='';
@@ -8648,7 +8680,7 @@ async function openArtEdit(id){
     updateArticleColorModeUI();
     syncBrandField('');
     refreshArticleCategorySelects('');
-    document.getElementById('a_promo_on').checked=false;
+    document.getElementById('a_promo_on').checked=false; document.getElementById('a_std_cost_unknown').checked=false; document.getElementById('a_supplier_date_unknown').checked=false;
     document.getElementById('a_photo').value='';
     currentArtExistingPics=[];
     renderCurrentArtPhotoPreview();
@@ -8667,7 +8699,7 @@ async function openArtEdit(id){
   set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
   set('a_mis', a?.misura); set('a_belt_h', a?.altezzaCintura||a?.hCintura||''); set('a_usd', a?.costoUsd||''); set('a_usd_promo', a?.costoUsdPromo||'');
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
-  set('a_promo_date', a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||'');
+  set('a_promo_date', a?.scadenzaPromoPersonale||a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||''); set('a_supplier_promo_start', a?.dataInizioPromoFornitore||''); set('a_supplier_promo_end', a?.scadenzaPromoFornitore||''); set('a_personal_promo_start', a?.dataInizioPromoPersonale||a?.dataInizioPromo||''); document.getElementById('a_std_cost_unknown').checked=!!a?.costoNormaleSconosciuto; document.getElementById('a_supplier_date_unknown').checked=!!a?.promoFornitoreDataSconosciuta;
   document.getElementById('a_note').value=a?.note||'';
   document.getElementById('a_post').value=a?.post||'';
   fitTextarea(document.getElementById('a_post'));
@@ -8939,7 +8971,7 @@ function renderArtAutoFields(){
     return;
   }
 
-  if(!hasUsd){
+  if(!hasUsd && !hasPromoUsd){
     document.getElementById('a_eur').value='';
     document.getElementById('a_sell').value='';
     document.getElementById('a_final').value='';
@@ -8952,7 +8984,7 @@ function renderArtAutoFields(){
       promoAttiva:document.getElementById('a_promo_on').checked,
       prezzoPromo:Number(document.getElementById('a_promo_price').value||0),
       costoUsdPromo:Number(document.getElementById('a_usd_promo')?.value||0),
-      scadenzaPromo:document.getElementById('a_promo_date').value.trim(),
+      scadenzaPromo:document.getElementById('a_promo_date').value.trim(), scadenzaPromoPersonale:document.getElementById('a_promo_date').value.trim(), dataInizioPromoPersonale:document.getElementById('a_personal_promo_start').value.trim(), dataInizioPromoFornitore:document.getElementById('a_supplier_promo_start').value.trim(), scadenzaPromoFornitore:document.getElementById('a_supplier_promo_end').value.trim(), promoFornitoreDataSconosciuta:document.getElementById('a_supplier_date_unknown').checked, promoFornitoreAttiva:Number(document.getElementById('a_usd_promo')?.value||0)>0,
       prezzoVendita:0,
       misura:document.getElementById('a_mis').value.trim(),
       altezzaCintura:document.getElementById('a_belt_h')?.value.trim()||'',
@@ -8971,9 +9003,9 @@ function renderArtAutoFields(){
     return;
   }
 
-  const usd=Number(usdRaw);
+  const usd=hasUsd ? Number(usdRaw) : 0;
   if(usdRaw===''){ document.getElementById('a_eur').value=''; document.getElementById('a_sell').value=''; document.getElementById('a_final').value=''; document.getElementById('a_margin').value=''; document.getElementById('a_margin_pct').textContent=''; return; }
-  const r=calcFromUsd(usd, qual);
+  const r=usd>0 ? calcFromUsd(usd, qual) : {costo:0,sell:0,marg:0};
   const promoUsd=hasPromoUsd ? Number(usdPromoRaw) : 0;
   const rPromo=promoUsd>0 ? calcFromUsd(promoUsd, qual) : {costo:0, sell:0, marg:0};
   document.getElementById('a_eur').value = isFinite(r.costo)?money(r.costo):'';
@@ -8981,13 +9013,24 @@ function renderArtAutoFields(){
   const promoOn=document.getElementById('a_promo_on').checked;
   const promoPrice=Number(document.getElementById('a_promo_price').value||0);
   const promoDate=document.getElementById('a_promo_date').value.trim();
-  const a={codice:code, costoUsd:usd, costoEur:r.costo, costoUsdPromo:promoUsd, costoEurPromo:rPromo.costo, prezzoVendita:r.sell, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate};
-  const finalPrice = r.sell ? round5(currentPrice(a)) : 0;
+  const a={codice:code, costoUsd:usd, costoEur:r.costo, costoUsdPromo:promoUsd, costoEurPromo:rPromo.costo, prezzoVendita:r.sell, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate, scadenzaPromoPersonale:promoDate, dataInizioPromoPersonale:document.getElementById('a_personal_promo_start').value.trim(), promoFornitoreAttiva:promoUsd>0, dataInizioPromoFornitore:document.getElementById('a_supplier_promo_start').value.trim(), scadenzaPromoFornitore:document.getElementById('a_supplier_promo_end').value.trim(), promoFornitoreDataSconosciuta:document.getElementById('a_supplier_date_unknown').checked, costoNormaleSconosciuto:document.getElementById('a_std_cost_unknown').checked};
+  if(!a.prezzoVendita && rPromo.sell) a.prezzoVendita=rPromo.sell;
+  const finalPrice = a.prezzoVendita ? round5(currentPrice(a)) : 0;
   document.getElementById('a_final').value = finalPrice ? String(finalPrice) : '';
   const costForMargin = currentCost(a) || Number(r.costo)||0;
   const margin = Math.max(0, finalPrice - costForMargin);
   document.getElementById('a_margin').value = margin ? money(margin) : '';
   document.getElementById('a_margin_pct').textContent = (finalPrice && margin) ? ('Margine ' + Math.round((margin/finalPrice)*100) + '%') : '';
+  document.getElementById('a_promo_type').value=promoTypeLabel(a);
+  const standardCost=Number(r.costo||0), effectiveCost=Number(currentCost(a)||0), standardSell=Number(r.sell||0);
+  const supplierBenefit=(standardCost>0 && effectiveCost>0) ? Math.max(0, standardCost-effectiveCost) : 0;
+  const personalDiscount=(standardSell>0 && finalPrice>0) ? Math.max(0, standardSell-finalPrice) : 0;
+  const summary=[];
+  if(supplierPromoValid(a)) summary.push('Vantaggio fornitore: '+(supplierBenefit>0?money(supplierBenefit):'costo promo in uso'));
+  if(personalPromoValid(a)) summary.push('Sconto personale: '+money(personalDiscount));
+  if(a.costoNormaleSconosciuto) summary.push('Costo normale non verificato');
+  if(a.promoFornitoreDataSconosciuta && supplierPromoValid(a)) summary.push('Scadenza fornitore non comunicata');
+  document.getElementById('a_promo_summary').textContent=summary.join(' · ');
   // auto post
   const draft={
     codice:code, brand:getArticleBrandValue(),
@@ -9104,7 +9147,7 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_usd').value=clone.costoUsd||'';
   document.getElementById('a_usd_promo').value=clone.costoUsdPromo||'';
   document.getElementById('a_promo_on').checked=!!clone.promoAttiva;
-  document.getElementById('a_promo_date').value=clone.scadenzaPromo||'';
+  document.getElementById('a_promo_date').value=clone.scadenzaPromoPersonale||clone.scadenzaPromo||''; document.getElementById('a_supplier_promo_start').value=clone.dataInizioPromoFornitore||''; document.getElementById('a_supplier_promo_end').value=clone.scadenzaPromoFornitore||''; document.getElementById('a_personal_promo_start').value=clone.dataInizioPromoPersonale||clone.dataInizioPromo||''; document.getElementById('a_std_cost_unknown').checked=!!clone.costoNormaleSconosciuto; document.getElementById('a_supplier_date_unknown').checked=!!clone.promoFornitoreDataSconosciuta;
   document.getElementById('a_promo_price').value=clone.prezzoPromo||'';
   document.getElementById('a_note').value=clone.note||'';
   document.getElementById('a_post').value=clone.post||'';
@@ -9204,10 +9247,20 @@ async function saveArt(){
       costoUsdPromo: promoUsd,
       costoEur: r.costo,
       costoEurPromo: rPromo.costo,
-      prezzoVendita: r.sell,
+      prezzoVendita: r.sell || rPromo.sell,
       promoAttiva: document.getElementById('a_promo_on').checked,
       prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
       scadenzaPromo: document.getElementById('a_promo_date').value.trim(),
+      scadenzaPromoPersonale: document.getElementById('a_promo_date').value.trim(),
+      dataInizioPromoPersonale: document.getElementById('a_personal_promo_start').value.trim() || resolvePromoStartDate(old, {
+        promoAttiva: document.getElementById('a_promo_on').checked,
+        prezzoPromo: Number(document.getElementById('a_promo_price').value||0)
+      }),
+      costoNormaleSconosciuto: !!document.getElementById('a_std_cost_unknown').checked,
+      promoFornitoreAttiva: promoUsd>0,
+      dataInizioPromoFornitore: document.getElementById('a_supplier_promo_start').value.trim(),
+      scadenzaPromoFornitore: document.getElementById('a_supplier_promo_end').value.trim(),
+      promoFornitoreDataSconosciuta: !!document.getElementById('a_supplier_date_unknown').checked,
       dataInizioPromo: resolvePromoStartDate(old, {
         promoAttiva: document.getElementById('a_promo_on').checked,
         prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
@@ -10753,7 +10806,7 @@ bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_promo_on','a_promo_price','a_promo_date','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_promo_on','a_promo_price','a_promo_date','a_supplier_promo_start','a_supplier_promo_end','a_personal_promo_start','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
   ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));
@@ -11267,7 +11320,7 @@ async function pullCloudToLocal(opts={}){
         const colorShape=deriveColorShape({ colorMode:meta.colorMode||local?.colorMode, colorType:meta.colorType||local?.colorType, colorCount:meta.colorCount||local?.colorCount, colorLabels:meta.colorLabels||local?.colorLabels });
         const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
         const cloudTs=parseTimestampLike(meta._ts, p.updated_at, p.created_at, local?._ts, Date.now());
-        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
+        return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),costoNormaleSconosciuto:!!(meta.costoNormaleSconosciuto??local?.costoNormaleSconosciuto),promoFornitoreAttiva:(typeof meta.promoFornitoreAttiva==='boolean'?meta.promoFornitoreAttiva:(typeof local?.promoFornitoreAttiva==='boolean'?local.promoFornitoreAttiva:pulledCostoUsdPromo>0)),dataInizioPromoFornitore:normalizePromoStartDate(meta.dataInizioPromoFornitore||local?.dataInizioPromoFornitore||''),scadenzaPromoFornitore:meta.scadenzaPromoFornitore||local?.scadenzaPromoFornitore||'',promoFornitoreDataSconosciuta:!!(meta.promoFornitoreDataSconosciuta??local?.promoFornitoreDataSconosciuta),dataInizioPromoPersonale:normalizePromoStartDate(meta.dataInizioPromoPersonale||local?.dataInizioPromoPersonale||meta.dataInizioPromo||local?.dataInizioPromo||''),scadenzaPromoPersonale:meta.scadenzaPromoPersonale||local?.scadenzaPromoPersonale||meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
       }),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, brand:localRow?.brand||row?.brand||'', categoria:localRow?.categoria||row?.categoria||'', qualita:localRow?.qualita||row?.qualita||'', costoEur:historicalNumber(localRow?.costoEur,row?.costoEur), articoloSnapshot:localRow?.articoloSnapshot||row?.articoloSnapshot||null, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
@@ -12014,6 +12067,20 @@ if('serviceWorker' in navigator){
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
 }
+
+// Fase 4: aggiornamento immediato dei controlli promozione
+(function bindPhase4PromoControls(){
+  const bind=()=>{
+    ['a_std_cost_unknown','a_supplier_date_unknown'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el && !el.dataset.phase4Bound){
+        el.dataset.phase4Bound='1';
+        el.addEventListener('change', renderArtAutoFields);
+      }
+    });
+  };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bind,{once:true}); else bind();
+})();
 </script>
 </body>
 </html>

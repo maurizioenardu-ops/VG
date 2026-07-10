@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-2026-07-10-commerciale-fase3-v1';
+const VERSION = 'gestionale-2026-07-10-commerciale-fase4-v1';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './',
