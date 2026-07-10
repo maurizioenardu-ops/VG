@@ -8481,15 +8481,34 @@ function renderFinanze(){
     const c=(db.clienti||[]).find(x=>String(x.id)===String(o.clienteId));
     const k=String(o.clienteId||o?.clienteSnapshot?.id||o?.clienteSnapshot?.nome||'Senza cliente');
     const name=historicalText(c?.nome,o?.clienteSnapshot?.nome,'Senza cliente');
-    customerStats[k]??={name,orders:0,rev:0,last:''}; customerStats[k].orders++; customerStats[k].rev+=Number(o.totale||0); if(String(o.data||'')>customerStats[k].last) customerStats[k].last=String(o.data||'');
+    customerStats[k]??={id:c?.id||o?.clienteId||'',name,orders:0,rev:0,last:'',orderList:[]};
+    const total=Number(o.totale||calcOrderNetTotal(o.righe,calcOrderDiscount(o))||0);
+    customerStats[k].orders++; customerStats[k].rev+=total;
+    if(String(o.data||'')>customerStats[k].last) customerStats[k].last=String(o.data||'');
+    customerStats[k].orderList.push({id:o.id||'',numero:o.numero||o.id||'Ordine',data:String(o.data||''),totale:total,stato:o.stato||''});
   });
   const topCustomers=Object.values(customerStats).sort((a,b)=>b.rev-a.rev).slice(0,8);
-  document.getElementById('finCustomers').innerHTML=topCustomers.length?topCustomers.map(v=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(v.name)}</div><div class="s">${v.orders} ordini • ultimo ${esc(v.last||'n/d')}</div></div><div class="priceHot">${money(v.rev)}</div></div>`).join(''):`<div class="small">Nessun dato.</div>`;
+  document.getElementById('finCustomers').innerHTML=topCustomers.length?topCustomers.map((v,i)=>{
+    const detailId='finCustOrders_'+i;
+    const details=v.orderList.sort((a,b)=>String(b.data).localeCompare(String(a.data))).map(o=>`<div class="row" style="grid-template-columns:1fr auto;margin-top:6px"><div><div class="t">${esc(o.numero)}</div><div class="s">${esc(o.data||'Data n/d')}${o.stato?' • '+esc(o.stato):''} • ${money(o.totale)}</div></div>${o.id?`<button class="btn smallish" type="button" onclick="openOrdView('${String(o.id).replace(/'/g,"\\'")}')">Apri ordine</button>`:''}</div>`).join('');
+    return `<div class="mutedBox" style="margin-bottom:8px"><div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(v.name)}</div><div class="s">${v.orders} ordini • ultimo ${esc(v.last||'n/d')}</div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end"><div class="priceHot">${money(v.rev)}</div><button class="btn smallish" type="button" onclick="const e=document.getElementById('${detailId}');e.style.display=e.style.display==='none'?'block':'none'">Ordini</button>${v.id?commercialSafeOpenButton('client',v.id,'Cliente'):''}</div></div><div id="${detailId}" style="display:none;margin-top:8px">${details||'<div class="small">Nessun ordine collegato.</div>'}</div></div>`;
+  }).join(''):`<div class="small">Nessun dato.</div>`;
 
   const articleStats={};
-  rows.forEach(x=>{ const k=x.code||x.model; articleStats[k]??={model:x.model,code:x.code,qty:0,rev:0}; articleStats[k].qty++; articleStats[k].rev+=x.price; });
+  rows.forEach(x=>{
+    const k=x.code||x.model;
+    const customer=(db.clienti||[]).find(c=>String(c.id)===String(x.order?.clienteId));
+    const buyer=historicalText(customer?.nome,x.order?.clienteSnapshot?.nome,'Cliente non indicato');
+    articleStats[k]??={model:x.model,code:x.code,qty:0,rev:0,sales:[]};
+    articleStats[k].qty++; articleStats[k].rev+=x.price;
+    articleStats[k].sales.push({orderId:x.order?.id||'',numero:x.order?.numero||x.order?.id||'Ordine',data:String(x.order?.data||''),buyer,price:x.price});
+  });
   const topArticles=Object.values(articleStats).sort((a,b)=>b.qty-a.qty||b.rev-a.rev).slice(0,10);
-  document.getElementById('finTopArticles').innerHTML=topArticles.length?topArticles.map(v=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(v.model)}</div><div class="s">${v.qty} venduti${v.code?' • cod. '+esc(v.code):''}</div></div><div class="priceHot">${money(v.rev)}</div></div>`).join(''):`<div class="small">Nessun dato.</div>`;
+  document.getElementById('finTopArticles').innerHTML=topArticles.length?topArticles.map((v,i)=>{
+    const detailId='finArtSales_'+i;
+    const details=v.sales.sort((a,b)=>String(b.data).localeCompare(String(a.data))).map(s=>`<div class="row" style="grid-template-columns:1fr auto;margin-top:6px"><div><div class="t">${esc(s.buyer)}</div><div class="s">${esc(s.data||'Data n/d')} • ${esc(s.numero)} • ${money(s.price)}</div></div>${s.orderId?`<button class="btn smallish" type="button" onclick="openOrdView('${String(s.orderId).replace(/'/g,"\\'")}')">Apri ordine</button>`:''}</div>`).join('');
+    return `<div class="mutedBox" style="margin-bottom:8px"><div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(v.model)}</div><div class="s">${v.qty} venduti${v.code?' • cod. '+esc(v.code):''}</div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end"><div class="priceHot">${money(v.rev)}</div><button class="btn smallish" type="button" onclick="const e=document.getElementById('${detailId}');e.style.display=e.style.display==='none'?'block':'none'">Quando e a chi</button></div></div><div id="${detailId}" style="display:none;margin-top:8px">${details||'<div class="small">Nessuna vendita collegata.</div>'}</div></div>`;
+  }).join(''):`<div class="small">Nessun dato.</div>`;
 
   const allCustomerStats={};
   (allOrders||[]).filter(o=>Array.isArray(o?.righe)&&o.righe.length).forEach(o=>{
