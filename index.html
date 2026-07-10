@@ -848,7 +848,7 @@ window.addEventListener('error',e=>{
     </div>
   </div>
   <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtAll">🔗 Condividi</button><span id="vArtFbSaveMeta" class="pubMeta" style="display:none"></span><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div></div>
-  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="copyPostTelegramNoPrice">Copia Telegram senza prezzo</button><button class="btn smallish" type="button" data-action="downloadArtPhotosTg">Scarica foto</button><span id="vArtPubMetaTg" class="pubMeta">0 · mai</span></div></div>
+  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="copyPostTelegramNoPrice">Copia Telegram senza prezzo</button><button class="btn smallish" style="background:#229ED9;border-color:#229ED9;color:#fff" type="button" data-action="shareArtTelegram">✈️ Condividi su Telegram</button><span id="vArtPubMetaTg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish" type="button" data-action="downloadArtPhotosIg">Scarica foto</button><span id="vArtPubMetaIg" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
@@ -3696,6 +3696,76 @@ async function shareArtAll(){
     if(isShareActivationError(err)){ toast('⚠️ File non ancora pronti. Premi di nuovo Condividi.'); return; }
     console.warn('shareArtAll fallito:',err);
     toast('⚠️ Condivisione non riuscita');
+  }
+}
+
+
+async function shareArtTelegram(){
+  const db=loadDB();
+  const a=(db.articoli||[]).find(x=>x.id===currentArtId); if(!a) return;
+
+  let ctx=getPreparedCurrentArticlePhotoContext();
+  if(!ctx) ctx=await getCurrentArticlePhotoContext();
+
+  if(ctx && !areCachedArticlePhotoFilesComplete(ctx)){
+    warmCurrentArticlePhotoShare(ctx,{silent:true}).catch(()=>{});
+    const readyCount=(getCachedArticlePhotoFilesForCtx(ctx)||[]).length;
+    toast(readyCount>0
+      ? `Sto preparando: ${readyCount}/${ctx.pics.length} foto pronte. Premi di nuovo Telegram tra un attimo.`
+      : `Sto preparando le foto. Premi di nuovo Telegram tra un attimo.`
+    );
+    return;
+  }
+
+  toast('⏳ Preparo foto e video per Telegram…');
+  const files=[];
+
+  const vids=Array.isArray(a.videoIds)?a.videoIds.filter(Boolean):[];
+  for(let i=0;i<vids.length;i++){
+    try{
+      const sb=await ensureCloud(); if(!sb) continue;
+      const {data,error}=await sb.storage.from(SUPABASE_BUCKET).download(vids[i]);
+      if(!error&&data){
+        const ext=(vids[i].split('.').pop()||'mp4').replace(/[^a-z0-9]/gi,'').toLowerCase()||'mp4';
+        files.push(new File([data],`video_${i+1}.${ext}`,{type:data.type||'video/mp4'}));
+      }
+    }catch(e){ console.warn('Video Telegram non preparato:',e); }
+  }
+
+  if(ctx){
+    const photoFiles=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
+    files.push(...photoFiles);
+  }
+
+  const text=(document.getElementById('vArtPost')?.value || buildPostTelegram(a) || '').trim();
+  if(text){
+    try{ await navigator.clipboard.writeText(text); }
+    catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
+  }
+
+  if(!files.length){
+    if(text) toast('📋 Testo Telegram copiato. Nessuna foto disponibile.');
+    else toast('Nessun file da condividere');
+    return;
+  }
+
+  try{
+    if(canNativeShareFiles(files)){
+      await navigator.share({files});
+      recordArticlePublication('tg');
+      toast(text?'✅ Foto condivise! Testo Telegram copiato — incollalo come didascalia 📋':'✅ Condivisione aperta!');
+    }else if(typeof navigator.share==='function'){
+      await navigator.share({title:a.modello||a.codice||'Articolo', text:text||undefined});
+      recordArticlePublication('tg');
+      toast('✅ Condivisione Telegram aperta!');
+    }else{
+      toast(text?'📋 Testo Telegram copiato. La condivisione file non è supportata.':'Condivisione non supportata su questo browser');
+    }
+  }catch(err){
+    if(isShareAbortError(err)) return;
+    if(isShareActivationError(err)){ toast('⚠️ File non ancora pronti. Premi di nuovo Telegram.'); return; }
+    console.warn('shareArtTelegram fallito:',err);
+    toast('⚠️ Condivisione Telegram non riuscita');
   }
 }
 
@@ -10472,7 +10542,7 @@ document.addEventListener('pointerdown',(ev)=>{
     }).then(ctx=>{ if(ctx) return warmCurrentArticlePhotoShare(ctx, { silent:true }); }).catch(()=>{});
     return;
   }
-  const btn=ev.target?.closest?.('[data-action="shareArtPhotosFb"],[data-action="shareArtPhotosTg"],[data-action="shareArtPhotos"],[data-action="downloadArtPhotosTg"],[data-action="downloadArtPhotosIg"],[data-action="downloadArtPhotos"]');
+  const btn=ev.target?.closest?.('[data-action="shareArtPhotosFb"],[data-action="shareArtPhotosTg"],[data-action="shareArtTelegram"],[data-action="shareArtPhotos"],[data-action="downloadArtPhotosTg"],[data-action="downloadArtPhotosIg"],[data-action="downloadArtPhotos"]');
   if(!btn) return;
   Promise.resolve()
     .then(()=>getPreparedCurrentArticlePhotoContext() || getCurrentArticlePhotoContext())
@@ -10722,7 +10792,8 @@ document.addEventListener('click',(ev)=>{
     if(!art || !art.codice){ toast('Articolo non pronto'); return; }
     return copyText(buildPostInstagram(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('ig'); });
   }
-  if(a==='shareArtPhotosFb' || a==='shareArtPhotos' || a==='shareArtPhotosTg') return shareArtAll();
+  if(a==='shareArtPhotosFb' || a==='shareArtPhotos') return shareArtAll();
+  if(a==='shareArtPhotosTg' || a==='shareArtTelegram') return shareArtTelegram();
   if(a==='downloadArtPhotosTg') return downloadCurrentArticlePhotos('tg');
   if(a==='downloadArtPhotosIg') return downloadCurrentArticlePhotos('ig');
   if(a==='downloadArtPhotos') return downloadCurrentArticlePhotos('tg');
