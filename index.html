@@ -1272,16 +1272,24 @@ function articlePromoExpired(a, today=todayStr()){
 }
 function normalizeArticlePromoState(article, today=todayStr()){
   if(!article || typeof article!=='object') return article;
+  const personalEnd=normalizeSpaceText(article?.scadenzaPromoPersonale||article?.scadenzaPromo||'');
+  const supplierEnd=normalizeSpaceText(article?.scadenzaPromoFornitore||'');
+  const supplierUnknown=!!article?.promoFornitoreDataSconosciuta;
+  const personalExpired=!!(personalEnd && personalEnd<today && Number(article?.prezzoPromo||0)>0);
+  const supplierExpired=!!(!supplierUnknown && supplierEnd && supplierEnd<today && getPromoSupplierUsd(article)>0);
   const normalized={
     ...article,
+    // Lo storico economico resta intatto, ma i flag operativi vengono spenti alla scadenza.
+    promoAttiva:personalExpired ? false : !!article?.promoAttiva,
     dataInizioPromo:getPromoStartDate(article),
     costoNormaleSconosciuto:!!article?.costoNormaleSconosciuto,
-    promoFornitoreAttiva:(typeof article?.promoFornitoreAttiva==='boolean') ? article.promoFornitoreAttiva : getPromoSupplierUsd(article)>0,
+    promoFornitoreAttiva:supplierExpired ? false : ((typeof article?.promoFornitoreAttiva==='boolean') ? article.promoFornitoreAttiva : getPromoSupplierUsd(article)>0),
     dataInizioPromoFornitore:normalizePromoStartDate(article?.dataInizioPromoFornitore||''),
-    scadenzaPromoFornitore:normalizeSpaceText(article?.scadenzaPromoFornitore||''),
-    promoFornitoreDataSconosciuta:!!article?.promoFornitoreDataSconosciuta,
+    scadenzaPromoFornitore:supplierEnd,
+    promoFornitoreDataSconosciuta:supplierUnknown,
     dataInizioPromoPersonale:normalizePromoStartDate(article?.dataInizioPromoPersonale||article?.dataInizioPromo||''),
-    scadenzaPromoPersonale:normalizeSpaceText(article?.scadenzaPromoPersonale||article?.scadenzaPromo||'')
+    scadenzaPromoPersonale:personalEnd,
+    promoScaduta:personalExpired || supplierExpired || !!article?.promoScaduta
   };
   return normalized;
 }
