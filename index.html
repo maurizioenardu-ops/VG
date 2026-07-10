@@ -529,6 +529,22 @@ window.addEventListener('error',e=>{
 
 
   <div id="sec_finanze" class="section">
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <div>
+          <div class="h2">Cruscotto commerciale</div>
+          <div class="small">Analisi calcolata senza modificare ordini o articoli.</div>
+        </div>
+        <select id="finPeriod" class="btn" style="appearance:auto;min-width:180px" onchange="renderFinanze()">
+          <option value="all">Tutto lo storico</option>
+          <option value="month">Mese corrente</option>
+          <option value="prevmonth">Mese precedente</option>
+          <option value="year">Anno corrente</option>
+        </select>
+      </div>
+    </div>
+    <div id="finDataHealth" class="card" style="margin-bottom:12px"></div>
+    <div id="finCommercialCards" class="cards" style="margin-bottom:12px"></div>
     <div class="cards">
       <div class="card"><div class="k">Fatturato ordini</div><div id="f_fatt" class="v">0</div></div>
       <div class="card"><div class="k">Incassato totale</div><div id="f_inc" class="v">0</div></div>
@@ -536,6 +552,38 @@ window.addEventListener('error',e=>{
       <div class="card"><div class="k">Guadagno totale</div><div id="f_profit" class="v">0</div></div>
       <div class="card"><div class="k">Guadagno mese</div><div id="f_profit_month" class="v">0</div></div>
       <div class="card"><div class="k">Guadagno anno</div><div id="f_profit_year" class="v">0</div></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="h2">Originale contro Standard</div>
+      <div id="finByQuality" class="list"></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="h2">Clienti e fidelizzazione</div>
+      <div id="finCustomers" class="list"></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="h2">Articoli più venduti</div>
+      <div id="finTopArticles" class="list"></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="h2">Clienti da recuperare</div>
+      <div class="small">Clienti con acquisti reali ma senza ordini recenti.</div>
+      <div id="finCustomerRecovery" class="list" style="margin-top:10px"></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="h2">Opportunità sugli articoli</div>
+      <div id="finArticleOpportunities" class="list"></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="h2">Pubblicazioni e vendite</div>
+      <div class="small">Indicazioni operative basate sullo storico dei canali, senza attribuire automaticamente la vendita a un post.</div>
+      <div id="finPublicationPerformance" class="list" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="h2">Strategia canali e sicurezza account</div>
+      <div class="small">Facebook e Instagram: revisione prudenziale dei contenuti pubblici. Telegram: canale commerciale principale con dettagli e prezzo.</div>
+      <div id="finChannelStrategy" class="list" style="margin-top:10px"></div>
     </div>
     <div class="card">
       <div class="h2">Riepilogo per stato ordine</div>
@@ -8168,81 +8216,299 @@ async function repairArchive(){
   if(!saveDB(db)) throw new Error('Riparazione completata a metà: database principale non salvato.');
   await renderDiagnostics();
 }
+function commercialOrderDate(o){
+  const d=new Date(String(o?.data||'')+'T12:00:00');
+  return isNaN(d) ? null : d;
+}
+function commercialPeriodOrders(orders, period){
+  const now=new Date();
+  return (orders||[]).filter(o=>{
+    const d=commercialOrderDate(o);
+    if(!d) return period==='all';
+    if(period==='month') return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+    if(period==='prevmonth'){
+      const prev=new Date(now.getFullYear(),now.getMonth()-1,1);
+      return d.getMonth()===prev.getMonth() && d.getFullYear()===prev.getFullYear();
+    }
+    if(period==='year') return d.getFullYear()===now.getFullYear();
+    return true;
+  });
+}
+function commercialRowData(row, db){
+  const r=hydrateOrderRowWithHistoricalArticle(row||{},db);
+  const art=findArticleForOrderRow(db,r);
+  const snap=normalizeOrderArticleSnapshot(r?.articoloSnapshot||{});
+  const code=historicalText(r?.codice,snap.codice,art?.codice);
+  const stored=normalizeQualityValue(historicalText(r?.qualita,snap.qualita,art?.qualita));
+  const inferred=normalizeQualityValue(qualityFromCode(code));
+  const quality=(stored && inferred && stored!==inferred) ? 'Incerta' : (stored||inferred||'Incerta');
+  const cost=historicalNumber(r?.costoEur,snap.costoEur,art ? currentCost(art) : 0,art?.costoEur);
+  const price=Math.max(0,Number(r?.prezzo||snap.prezzoOrdine||snap.prezzoVendita||0));
+  return {r,art,snap,code,quality,cost,price,model:historicalText(r?.modello,snap.modello,art?.modello,'Articolo senza nome')};
+}
+function commercialDaysSince(dateValue){
+  if(!dateValue) return null;
+  const d=new Date(String(dateValue).slice(0,10)+'T12:00:00');
+  if(isNaN(d)) return null;
+  return Math.max(0,Math.floor((Date.now()-d.getTime())/86400000));
+}
+function commercialPublicationInfo(article){
+  const pc=article?.pubblicazioniCanali||{};
+  const dates=[];
+  ['fb','tg','ig'].forEach(ch=>(Array.isArray(pc[ch])?pc[ch]:[]).forEach(d=>{if(d)dates.push(String(d).slice(0,10));}));
+  dates.sort();
+  return {count:dates.length,last:dates.length?dates[dates.length-1]:'',days:dates.length?commercialDaysSince(dates[dates.length-1]):null};
+}
+function commercialArticleKey(article){
+  return String(article?.id||article?.codice||'').trim();
+}
+function commercialSafeOpenButton(kind,id,label){
+  if(!id) return '';
+  const fn=kind==='client'?'openCliView':'openArtView';
+  return `<button class="btn smallish" type="button" onclick="${fn}('${String(id).replace(/'/g,"\\'")}')">${label||'Apri'}</button>`;
+}
+function getCommercialDiagnostics(db, orders){
+  const issues=[];
+  const orderIds=new Set();
+  const clientKeys=new Map();
+  (db.clienti||[]).forEach(c=>{
+    const key=(normalizeTextKey(c?.nome||'')+'|'+normalizePhone(c?.telefono||'')+'|'+normalizeEmail(c?.email||''));
+    if(key==='||') return;
+    clientKeys.set(key,(clientKeys.get(key)||0)+1);
+  });
+  const duplicateClients=[...clientKeys.values()].filter(n=>n>1).reduce((s,n)=>s+n-1,0);
+  if(duplicateClients) issues.push({level:'warn',text:`${duplicateClients} possibili clienti duplicati`});
+  let emptyOrders=0, duplicateOrders=0, totalMismatch=0, missingCosts=0, missingPrices=0, qualityConflicts=0;
+  (orders||[]).forEach(o=>{
+    const oid=String(o?.id||'').trim();
+    if(oid && orderIds.has(oid)) duplicateOrders++;
+    if(oid) orderIds.add(oid);
+    const rows=Array.isArray(o?.righe)?o.righe:[];
+    if(!rows.length) emptyOrders++;
+    const calc=calcOrderNetTotal(rows,calcOrderDiscount(o));
+    const saved=Number(o?.totale||0);
+    if(rows.length && saved>0 && Math.abs(saved-calc)>0.02) totalMismatch++;
+    rows.forEach(row=>{
+      const x=commercialRowData(row,db);
+      if(!(x.cost>0)) missingCosts++;
+      if(!(x.price>0)) missingPrices++;
+      if(x.quality==='Incerta') qualityConflicts++;
+    });
+  });
+  if(duplicateOrders) issues.push({level:'bad',text:`${duplicateOrders} ordini duplicati`});
+  if(emptyOrders) issues.push({level:'bad',text:`${emptyOrders} ordini senza righe`});
+  if(totalMismatch) issues.push({level:'warn',text:`${totalMismatch} totali ordine non coerenti con le righe`});
+  if(missingCosts) issues.push({level:'bad',text:`${missingCosts} righe escluse dal profitto per costo mancante`});
+  if(missingPrices) issues.push({level:'bad',text:`${missingPrices} righe con prezzo di vendita mancante`});
+  if(qualityConflicts) issues.push({level:'warn',text:`${qualityConflicts} righe con qualità incerta o incoerente`});
+  return {issues,emptyOrders,duplicateOrders,totalMismatch,missingCosts,missingPrices,qualityConflicts,duplicateClients};
+}
+
+function commercialNormalizeForMatch(value){
+  return normalizeTextKey(String(value||'')).replace(/[^a-z0-9]/g,'');
+}
+function commercialPublicTextForChannel(article, channel){
+  if(channel==='fb') return String(getArticleFacebookPost(article)||'').trim();
+  if(channel==='ig') return String(article?.postIg||buildPostInstagram(article)||'').trim();
+  return '';
+}
+function commercialPublicChannelAudit(article, channel){
+  const text=commercialPublicTextForChannel(article,channel);
+  const low=text.toLowerCase();
+  const norm=commercialNormalizeForMatch(text);
+  const flags=[];
+  const brand=String(article?.brand||'').trim();
+  const brandParts=brand.split(/[^A-Za-zÀ-ÿ0-9]+/).map(commercialNormalizeForMatch).filter(x=>x.length>=3);
+  if(brandParts.some(x=>norm.includes(x))) flags.push({level:'high',label:'marchio nel testo'});
+  if(/[€💶$]|\b(?:eur|euro|usd|dollari?)\b/i.test(text)) flags.push({level:'high',label:'prezzo o valuta'});
+  if(/\b(?:originale|autentic[oa]|replica|riproduzione|top\s*quality|premium|mirror|1\s*:\s*1)\b/i.test(low)) flags.push({level:'high',label:'dichiarazione delicata'});
+  if(/\b(?:pagamento|postepay|paypal|bonifico|satispay|acquista|compra|ordina|ordine)\b/i.test(low)) flags.push({level:'medium',label:'invito commerciale diretto'});
+  if(/https?:\/\/|wa\.me|t\.me|m\.me/i.test(text)) flags.push({level:'medium',label:'link diretto'});
+  if(!text) flags.push({level:'medium',label:'testo mancante'});
+  const high=flags.filter(x=>x.level==='high').length;
+  const medium=flags.filter(x=>x.level==='medium').length;
+  return {text,flags,status:high?'high':(medium?'review':'ready')};
+}
+function commercialTelegramReadiness(article){
+  const missing=[];
+  if(!String(article?.codice||'').trim()) missing.push('codice');
+  if(!(Number(currentPrice(article))>0)) missing.push('prezzo');
+  if(!String(article?.modello||'').trim()) missing.push('modello');
+  const photoCount=(Array.isArray(article?.photoIds)?article.photoIds.length:0)+(Array.isArray(article?.foto)?article.foto.length:0);
+  if(!photoCount) missing.push('foto');
+  const post=String(buildPostTelegram(article,true)||'').trim();
+  if(!post) missing.push('testo Telegram');
+  return {ready:missing.length===0,missing,post,photoCount};
+}
+function commercialChannelDates(article, channel){
+  const log=normalizeArticlePublishLog(article?.pubblicazioniCanali||article?.publishStats||article?.socialPub||{});
+  return Array.isArray(log?.[channel])?log[channel]:[];
+}
+function commercialCountRecentDates(dates,days){
+  const today=parseIsoDay(todayStr());
+  if(!today) return 0;
+  return (dates||[]).filter(v=>{const d=parseIsoDay(v); if(!d)return false; const diff=Math.floor((today-d)/86400000); return diff>=0&&diff<days;}).length;
+}
+function renderCommercialChannelStrategy(db, articles){
+  const el=document.getElementById('finChannelStrategy');
+  if(!el) return;
+  const available=(articles||[]).filter(a=>!a?.nonDisponibile && a?.disponibile!==false);
+  const publicAudits=[];
+  available.forEach(a=>['fb','ig'].forEach(ch=>publicAudits.push({a,ch,audit:commercialPublicChannelAudit(a,ch)})));
+  const high=publicAudits.filter(x=>x.audit.status==='high');
+  const review=publicAudits.filter(x=>x.audit.status==='review');
+  const ready=publicAudits.filter(x=>x.audit.status==='ready');
+  const tgQueue=available.map(a=>{
+    const readiness=commercialTelegramReadiness(a);
+    const dates=commercialChannelDates(a,'tg');
+    const last=dates.length?dates[dates.length-1]:'';
+    const days=last?commercialDaysSince(last):null;
+    return {a,readiness,last,days,priority:!last?3:(days>=30?2:(days>=14?1:0))};
+  }).filter(x=>x.priority>0).sort((a,b)=>b.priority-a.priority||(b.days||999)-(a.days||999)).slice(0,12);
+  const publicProblems=high.concat(review).sort((a,b)=>(a.audit.status==='high'?-1:1)-(b.audit.status==='high'?-1:1)).slice(0,12);
+  const channelCounts={fb:{d7:0,d30:0,total:0},ig:{d7:0,d30:0,total:0},tg:{d7:0,d30:0,total:0}};
+  available.forEach(a=>Object.keys(channelCounts).forEach(ch=>{
+    const dates=commercialChannelDates(a,ch); channelCounts[ch].total+=dates.length;
+    channelCounts[ch].d7+=commercialCountRecentDates(dates,7); channelCounts[ch].d30+=commercialCountRecentDates(dates,30);
+  }));
+  const summary=`<div class="mutedBox"><b>Impostazione consigliata:</b> Telegram per contenuti commerciali completi. Facebook e Instagram solo dopo revisione del testo e nel rispetto delle regole delle piattaforme. Nessun controllo può garantire l'assenza di sospensioni.</div>`+
+    `<div class="smallGrid" style="margin-top:10px"><div class="mutedBox"><div class="k">Revisione pubblica urgente</div><div class="v">${high.length}</div><div class="small">Testi FB/IG con elementi delicati</div></div><div class="mutedBox"><div class="k">Da controllare</div><div class="v">${review.length}</div><div class="small">Testi incompleti o commerciali</div></div><div class="mutedBox"><div class="k">Senza rilievi automatici</div><div class="v">${ready.length}</div><div class="small">Non equivale ad approvazione piattaforma</div></div></div>`;
+  const cadence=`<div class="small" style="margin-top:12px"><b>Attività recente per canale</b></div>`+Object.entries(channelCounts).map(([ch,v])=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${ch==='fb'?'Facebook':ch==='ig'?'Instagram':'Telegram'}</div><div class="s">${v.d7} negli ultimi 7 giorni • ${v.d30} negli ultimi 30 • ${v.total} totali</div></div><div class="priceHot">${ch==='tg'?'Principale':'Prudenza'}</div></div>`).join('');
+  const tg=`<div class="small" style="margin-top:12px"><b>Coda Telegram prioritaria</b></div>`+(tgQueue.length?tgQueue.map(x=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(x.a.modello||'Senza nome')}</div><div class="s">${x.last?'Ultima pubblicazione '+esc(x.last)+' • '+x.days+' giorni fa':'Mai pubblicato'}${x.readiness.ready?' • pronto':' • manca: '+esc(x.readiness.missing.join(', '))}</div></div>${commercialSafeOpenButton('article',x.a.id,'Apri')}</div>`).join(''):`<div class="small">Nessun articolo da riproporre su Telegram.</div>`);
+  const pub=`<div class="small" style="margin-top:12px"><b>Contenuti Facebook/Instagram da rivedere</b></div>`+(publicProblems.length?publicProblems.map(x=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${x.ch==='fb'?'Facebook':'Instagram'} • ${esc(x.a.modello||'Senza nome')}</div><div class="s">${esc(x.audit.flags.map(f=>f.label).join(' • '))}</div></div>${commercialSafeOpenButton('article',x.a.id,'Controlla')}</div>`).join(''):`<div class="small">Nessun rilievo automatico nei testi pubblici.</div>`);
+  el.innerHTML=summary+cadence+tg+pub;
+}
+
 function renderFinanze(){
   const db=loadDB();
-  const fatt=db.ordini.reduce((s,o)=>s+Number(o.totale||0),0);
-  const inc=db.ordini.reduce((s,o)=>s+orderIncassato(o),0);
-  const profit=db.ordini.reduce((s,o)=>s+(orderPaidStatus(o)?orderMargin(o,db):0),0);
+  const period=document.getElementById('finPeriod')?.value||'all';
+  const allOrders=db.ordini||[];
+  const orders=commercialPeriodOrders(allOrders,period);
+  const diagnostics=getCommercialDiagnostics(db,orders);
+  const validOrders=orders.filter(o=>Array.isArray(o?.righe)&&o.righe.length);
+  const rows=[];
+  validOrders.forEach(o=>(o.righe||[]).forEach(r=>rows.push({...commercialRowData(r,db),order:o})));
+  const validEconomicRows=rows.filter(x=>x.cost>0&&x.price>0);
+  const fatt=validOrders.reduce((s,o)=>s+Number(o.totale||calcOrderNetTotal(o.righe,calcOrderDiscount(o))||0),0);
+  const inc=validOrders.reduce((s,o)=>s+orderIncassato(o),0);
   const due=Math.max(0,fatt-inc);
-  const now=new Date(), curMonth=now.getMonth(), curYear=now.getFullYear();
-  const sameMonth=o=>{ const d=new Date((o.data||'')+'T12:00:00'); return !isNaN(d) && d.getMonth()===curMonth && d.getFullYear()===curYear; };
-  const sameYear=o=>{ const d=new Date((o.data||'')+'T12:00:00'); return !isNaN(d) && d.getFullYear()===curYear; };
-  const profitMonth=db.ordini.filter(sameMonth).reduce((s,o)=>s+(orderPaidStatus(o)?orderMargin(o,db):0),0);
-  const profitYear=db.ordini.filter(sameYear).reduce((s,o)=>s+(orderPaidStatus(o)?orderMargin(o,db):0),0);
-  const incMonth=db.ordini.filter(sameMonth).reduce((s,o)=>s+orderIncassato(o),0);
-  const fattMonth=db.ordini.filter(sameMonth).reduce((s,o)=>s+Number(o.totale||0),0);
+  const totalCost=validEconomicRows.reduce((s,x)=>s+x.cost,0);
+  const rowRevenue=validEconomicRows.reduce((s,x)=>s+x.price,0);
+  const discounts=validOrders.reduce((s,o)=>s+calcOrderDiscount(o),0);
+  const profit=Math.max(0,rowRevenue-discounts-totalCost);
+  const marginPct=(rowRevenue-discounts)>0 ? profit/(rowRevenue-discounts)*100 : 0;
+  const markupPct=totalCost>0 ? profit/totalCost*100 : 0;
+  const clientIds=new Set(validOrders.map(o=>String(o?.clienteId||o?.clienteSnapshot?.id||'')).filter(Boolean));
+  const ordersByClient={};
+  validOrders.forEach(o=>{ const k=String(o?.clienteId||o?.clienteSnapshot?.id||o?.clienteSnapshot?.nome||'Senza cliente'); ordersByClient[k]=(ordersByClient[k]||0)+1; });
+  const recurring=Object.values(ordersByClient).filter(n=>n>1).length;
+
   document.getElementById('f_fatt').textContent=money(fatt);
   document.getElementById('f_inc').textContent=money(inc);
   document.getElementById('f_due').textContent=money(due);
   document.getElementById('f_profit').textContent=money(profit);
+
+  const now=new Date(), curMonth=now.getMonth(), curYear=now.getFullYear();
+  const sameMonth=o=>{ const d=commercialOrderDate(o); return d&&d.getMonth()===curMonth&&d.getFullYear()===curYear; };
+  const sameYear=o=>{ const d=commercialOrderDate(o); return d&&d.getFullYear()===curYear; };
+  const calcProfitFor=list=>{
+    const rr=[]; list.filter(o=>Array.isArray(o?.righe)&&o.righe.length).forEach(o=>(o.righe||[]).forEach(r=>rr.push(commercialRowData(r,db))));
+    const good=rr.filter(x=>x.cost>0&&x.price>0);
+    return Math.max(0,good.reduce((s,x)=>s+x.price-x.cost,0)-list.reduce((s,o)=>s+calcOrderDiscount(o),0));
+  };
+  const profitMonth=calcProfitFor(allOrders.filter(sameMonth));
+  const profitYear=calcProfitFor(allOrders.filter(sameYear));
   document.getElementById('f_profit_month').textContent=money(profitMonth);
   document.getElementById('f_profit_year').textContent=money(profitYear);
 
-  const bySt={};
-  db.ordini.forEach(o=>{
-    const k=o.stato||'Sconosciuto';
-    bySt[k]??={tot:0,inc:0,n:0};
-    bySt[k].tot+=Number(o.totale||0);
-    bySt[k].inc+=orderIncassato(o);
-    bySt[k].n+=1;
-  });
-  const sRows=Object.entries(bySt).sort((a,b)=>b[1].inc-a[1].inc);
-  document.getElementById('finByStatus').innerHTML=sRows.length ? sRows.map(([k,v])=>`
-    <div class="row" style="grid-template-columns:1fr auto">
-      <div>
-        <div class="t">${esc(k)}</div>
-        <div class="s">${v.n} ordini • totale ${money(v.tot)}</div>
-      </div>
-      <div class="priceHot">${money(v.inc)}</div>
-    </div>
-  `).join('') : `<div class="small">Nessun dato.</div>`;
+  const health=document.getElementById('finDataHealth');
+  const severe=diagnostics.issues.filter(x=>x.level==='bad').length;
+  const warnings=diagnostics.issues.filter(x=>x.level==='warn').length;
+  health.innerHTML=`<div class="h2">Controllo dati commerciali</div><div class="small" style="margin-top:4px">${severe?`<b style="color:#991b1b">${severe} problemi gravi</b>`:'Nessun problema grave'} • ${warnings} avvisi</div>${diagnostics.issues.length?`<div class="list" style="margin-top:10px">${diagnostics.issues.map(i=>`<div class="mutedBox" style="color:${i.level==='bad'?'#991b1b':'#92400e'}">${esc(i.text)}</div>`).join('')}</div>`:`<div class="mutedBox" style="margin-top:10px">I dati del periodo risultano coerenti.</div>`}`;
 
-  const byCat={};
-  db.ordini.forEach(o=>(o.righe||[]).forEach(r=>{
-    const a=db.articoli.find(x=>x.id===r.articoloId);
-    const k=(a?.categoria||r.categoria||'Senza categoria').trim()||'Senza categoria';
-    byCat[k]??={rev:0,qty:0};
-    byCat[k].rev+=Number(r.prezzo||0);
-    byCat[k].qty+=1;
+  document.getElementById('finCommercialCards').innerHTML=[
+    ['Ordini validi',validOrders.length],['Articoli venduti',rows.length],['Clienti distinti',clientIds.size],['Clienti ricorrenti',recurring],
+    ['Costo complessivo',money(totalCost)],['Guadagno medio/articolo',money(validEconomicRows.length?profit/validEconomicRows.length:0)],
+    ['Margine sul venduto',marginPct.toFixed(1)+'%'],['Ricarico sul costo',markupPct.toFixed(1)+'%'],['Sconti concessi',money(discounts)],['Valore medio ordine',money(validOrders.length?fatt/validOrders.length:0)]
+  ].map(([k,v])=>`<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+
+  const quality={Originale:{qty:0,rev:0,cost:0},Standard:{qty:0,rev:0,cost:0},Incerta:{qty:0,rev:0,cost:0}};
+  rows.forEach(x=>{ const k=quality[x.quality]?x.quality:'Incerta'; quality[k].qty++; quality[k].rev+=x.price; if(x.cost>0) quality[k].cost+=x.cost; });
+  document.getElementById('finByQuality').innerHTML=Object.entries(quality).map(([k,v])=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${k}</div><div class="s">${v.qty} articoli • costo ${money(v.cost)} • guadagno ${money(Math.max(0,v.rev-v.cost))}</div></div><div class="priceHot">${money(v.rev)}</div></div>`).join('');
+
+  const customerStats={};
+  validOrders.forEach(o=>{
+    const c=(db.clienti||[]).find(x=>String(x.id)===String(o.clienteId));
+    const k=String(o.clienteId||o?.clienteSnapshot?.id||o?.clienteSnapshot?.nome||'Senza cliente');
+    const name=historicalText(c?.nome,o?.clienteSnapshot?.nome,'Senza cliente');
+    customerStats[k]??={name,orders:0,rev:0,last:''}; customerStats[k].orders++; customerStats[k].rev+=Number(o.totale||0); if(String(o.data||'')>customerStats[k].last) customerStats[k].last=String(o.data||'');
+  });
+  const topCustomers=Object.values(customerStats).sort((a,b)=>b.rev-a.rev).slice(0,8);
+  document.getElementById('finCustomers').innerHTML=topCustomers.length?topCustomers.map(v=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(v.name)}</div><div class="s">${v.orders} ordini • ultimo ${esc(v.last||'n/d')}</div></div><div class="priceHot">${money(v.rev)}</div></div>`).join(''):`<div class="small">Nessun dato.</div>`;
+
+  const articleStats={};
+  rows.forEach(x=>{ const k=x.code||x.model; articleStats[k]??={model:x.model,code:x.code,qty:0,rev:0}; articleStats[k].qty++; articleStats[k].rev+=x.price; });
+  const topArticles=Object.values(articleStats).sort((a,b)=>b.qty-a.qty||b.rev-a.rev).slice(0,10);
+  document.getElementById('finTopArticles').innerHTML=topArticles.length?topArticles.map(v=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(v.model)}</div><div class="s">${v.qty} venduti${v.code?' • cod. '+esc(v.code):''}</div></div><div class="priceHot">${money(v.rev)}</div></div>`).join(''):`<div class="small">Nessun dato.</div>`;
+
+  const allCustomerStats={};
+  (allOrders||[]).filter(o=>Array.isArray(o?.righe)&&o.righe.length).forEach(o=>{
+    const c=(db.clienti||[]).find(x=>String(x.id)===String(o.clienteId));
+    const k=String(o.clienteId||o?.clienteSnapshot?.id||o?.clienteSnapshot?.nome||'Senza cliente');
+    const name=historicalText(c?.nome,o?.clienteSnapshot?.nome,'Senza cliente');
+    const total=Number(o.totale||calcOrderNetTotal(o.righe,calcOrderDiscount(o))||0);
+    allCustomerStats[k]??={id:c?.id||'',name,orders:0,rev:0,last:'',first:''};
+    const cs=allCustomerStats[k]; cs.orders++; cs.rev+=total;
+    const date=String(o.data||''); if(date && (!cs.last||date>cs.last)) cs.last=date; if(date && (!cs.first||date<cs.first)) cs.first=date;
+  });
+  const recover=Object.values(allCustomerStats).map(v=>({...v,days:commercialDaysSince(v.last)})).filter(v=>v.id&&v.days!==null&&v.days>=45).sort((a,b)=>b.rev-a.rev||b.days-a.days).slice(0,12);
+  const recoveryEl=document.getElementById('finCustomerRecovery');
+  recoveryEl.innerHTML=recover.length?recover.map(v=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(v.name)}</div><div class="s">${v.orders} ordini • ${money(v.rev)} • inattivo da ${v.days} giorni</div></div>${commercialSafeOpenButton('client',v.id,'Scheda')}</div>`).join(''):`<div class="small">Nessun cliente inattivo con storico acquisti.</div>`;
+
+  const soldIds=new Set(), soldCodes=new Set();
+  (allOrders||[]).forEach(o=>(Array.isArray(o?.righe)?o.righe:[]).forEach(r=>{
+    const x=commercialRowData(r,db); if(x.art?.id)soldIds.add(String(x.art.id)); if(x.code)soldCodes.add(String(x.code).toLowerCase());
   }));
+  const articles=(db.articoli||[]).map(a=>{
+    const pub=commercialPublicationInfo(a); const sold=soldIds.has(String(a.id))||soldCodes.has(String(a.codice||'').toLowerCase());
+    const incomplete=!(Number(a.prezzoVendita)>0)||!((Number(a.costoEur)>0)||(Number(a.costoUsd)>0))||!String(a.modello||'').trim();
+    return {a,pub,sold,incomplete};
+  });
+  renderCommercialChannelStrategy(db, db.articoli||[]);
+  const neverSold=articles.filter(x=>!x.sold).length;
+  const publishedNeverSold=articles.filter(x=>!x.sold&&x.pub.count>=2).sort((a,b)=>b.pub.count-a.pub.count).slice(0,8);
+  const stale=articles.filter(x=>!x.a.nonDisponibile&&x.pub.days!==null&&x.pub.days>=45).sort((a,b)=>b.pub.days-a.pub.days).slice(0,8);
+  const neverPublished=articles.filter(x=>!x.a.nonDisponibile&&x.pub.count===0).slice(0,8);
+  const incompleteArts=articles.filter(x=>x.incomplete).slice(0,8);
+  const oppEl=document.getElementById('finArticleOpportunities');
+  const oppBlocks=[];
+  oppBlocks.push(`<div class="mutedBox"><b>${neverSold}</b> articoli mai venduti • <b>${publishedNeverSold.length}</b> pubblicati più volte senza vendite • <b>${incompleteArts.length}</b> con dati economici essenziali incompleti</div>`);
+  if(publishedNeverSold.length) oppBlocks.push(`<div class="small" style="margin-top:10px"><b>Pubblicati più volte, mai venduti</b></div>`+publishedNeverSold.map(x=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(x.a.modello||'Senza nome')}</div><div class="s">${x.pub.count} pubblicazioni${x.a.codice?' • cod. '+esc(x.a.codice):''}</div></div>${commercialSafeOpenButton('article',x.a.id,'Apri')}</div>`).join(''));
+  if(stale.length) oppBlocks.push(`<div class="small" style="margin-top:10px"><b>Da riproporre: nessuna pubblicazione recente</b></div>`+stale.map(x=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(x.a.modello||'Senza nome')}</div><div class="s">Ultima pubblicazione ${esc(x.pub.last)} • ${x.pub.days} giorni fa</div></div>${commercialSafeOpenButton('article',x.a.id,'Apri')}</div>`).join(''));
+  if(neverPublished.length) oppBlocks.push(`<div class="small" style="margin-top:10px"><b>Mai pubblicati</b></div>`+neverPublished.map(x=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(x.a.modello||'Senza nome')}</div><div class="s">${x.a.codice?'Cod. '+esc(x.a.codice):'Codice mancante'}</div></div>${commercialSafeOpenButton('article',x.a.id,'Apri')}</div>`).join(''));
+  oppEl.innerHTML=oppBlocks.join('');
+
+  const pubStats={fb:{label:'Facebook',posts:0,soldArticles:0},tg:{label:'Telegram',posts:0,soldArticles:0},ig:{label:'Instagram',posts:0,soldArticles:0}};
+  articles.forEach(x=>['fb','tg','ig'].forEach(ch=>{ const n=Array.isArray(x.a?.pubblicazioniCanali?.[ch])?x.a.pubblicazioniCanali[ch].length:0; pubStats[ch].posts+=n; if(n&&x.sold)pubStats[ch].soldArticles++; }));
+  const concentration=Object.values(allCustomerStats).sort((a,b)=>b.rev-a.rev);
+  const totalCustomerRev=concentration.reduce((s,x)=>s+x.rev,0); const top5Rev=concentration.slice(0,5).reduce((s,x)=>s+x.rev,0); const top5Pct=totalCustomerRev>0?top5Rev/totalCustomerRev*100:0;
+  document.getElementById('finPublicationPerformance').innerHTML=`<div class="mutedBox"><b>Concentrazione clienti:</b> i primi 5 generano ${top5Pct.toFixed(1)}% del fatturato storico.</div>`+Object.values(pubStats).map(v=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${v.label}</div><div class="s">${v.posts} pubblicazioni • ${v.soldArticles} articoli pubblicati risultano anche venduti</div></div><div class="priceHot">${v.posts?((v.soldArticles/v.posts)*100).toFixed(1):'0.0'}%</div></div>`).join('');
+
+  const bySt={};
+  validOrders.forEach(o=>{ const k=o.stato||'Sconosciuto'; bySt[k]??={tot:0,inc:0,n:0}; bySt[k].tot+=Number(o.totale||0); bySt[k].inc+=orderIncassato(o); bySt[k].n++; });
+  const sRows=Object.entries(bySt).sort((a,b)=>b[1].inc-a[1].inc);
+  document.getElementById('finByStatus').innerHTML=sRows.length?sRows.map(([k,v])=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(k)}</div><div class="s">${v.n} ordini • totale ${money(v.tot)}</div></div><div class="priceHot">${money(v.inc)}</div></div>`).join(''):`<div class="small">Nessun dato.</div>`;
+
+  const byCat={}; rows.forEach(x=>{ const k=(x.art?.categoria||x.snap?.categoria||x.r?.categoria||'Senza categoria').trim()||'Senza categoria'; byCat[k]??={rev:0,qty:0}; byCat[k].rev+=x.price; byCat[k].qty++; });
   const cRows=Object.entries(byCat).sort((a,b)=>b[1].rev-a[1].rev);
-  document.getElementById('finByCat').innerHTML=cRows.length ? cRows.map(([k,v])=>`
-    <div class="row" style="grid-template-columns:1fr auto">
-      <div>
-        <div class="t">${esc(k)}</div>
-        <div class="s">${v.qty} righe ordine</div>
-      </div>
-      <div class="priceHot">${money(v.rev)}</div>
-    </div>
-  `).join('') : `<div class="small">Nessun dato.</div>`;
+  document.getElementById('finByCat').innerHTML=cRows.length?cRows.map(([k,v])=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(k)}</div><div class="s">${v.qty} articoli</div></div><div class="priceHot">${money(v.rev)}</div></div>`).join(''):`<div class="small">Nessun dato.</div>`;
 
   const monthNames=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
-  const trend=[];
-  for(let i=5;i>=0;i--){
-    const d=new Date(curYear, curMonth-i, 1);
-    const m=d.getMonth(), y=d.getFullYear();
-    const rows=db.ordini.filter(o=>{ const od=new Date((o.data||'')+'T12:00:00'); return !isNaN(od)&&od.getMonth()===m&&od.getFullYear()===y; });
-    trend.push({label:monthNames[m], value:rows.reduce((s,o)=>s+(orderPaidStatus(o)?orderMargin(o,db):0),0)});
-  }
+  const trend=[]; for(let i=5;i>=0;i--){ const d=new Date(curYear,curMonth-i,1),m=d.getMonth(),y=d.getFullYear(); const list=allOrders.filter(o=>{const od=commercialOrderDate(o);return od&&od.getMonth()===m&&od.getFullYear()===y;}); trend.push({label:monthNames[m],value:calcProfitFor(list)}); }
   document.getElementById('finTrendChart').innerHTML=renderBarChart(trend,true);
-
-  const yearRows=[];
-  for(let m=0;m<12;m++){
-    const rows=db.ordini.filter(o=>{ const od=new Date((o.data||'')+'T12:00:00'); return !isNaN(od)&&od.getMonth()===m&&od.getFullYear()===curYear; });
-    yearRows.push({label:monthNames[m]+' inc', value:rows.reduce((s,o)=>s+orderIncassato(o),0)});
-    yearRows.push({label:monthNames[m]+' marg', value:rows.reduce((s,o)=>s+(orderPaidStatus(o)?orderMargin(o,db):0),0)});
-  }
-  document.getElementById('finYearChart').innerHTML=`<div class="smallGrid"><div class="mutedBox"><div class="k">Incassato mese corrente</div><div class="v">${money(incMonth)}</div><div class="small">Fatturato mese ${money(fattMonth)}</div></div><div class="mutedBox"><div class="k">Margine medio ordine</div><div class="v">${money(db.ordini.length ? profit/db.ordini.length : 0)}</div><div class="small">Su ${db.ordini.length} ordini</div></div></div>` + renderBarChart(yearRows,true);
+  const incMonth=allOrders.filter(sameMonth).reduce((s,o)=>s+orderIncassato(o),0);
+  const fattMonth=allOrders.filter(sameMonth).reduce((s,o)=>s+Number(o.totale||0),0);
+  document.getElementById('finYearChart').innerHTML=`<div class="smallGrid"><div class="mutedBox"><div class="k">Incassato mese corrente</div><div class="v">${money(incMonth)}</div><div class="small">Fatturato mese ${money(fattMonth)}</div></div><div class="mutedBox"><div class="k">Margine medio ordine</div><div class="v">${money(validOrders.length?profit/validOrders.length:0)}</div><div class="small">Su ${validOrders.length} ordini validi</div></div></div>`;
   renderStorageInfo();
 }
 

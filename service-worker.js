@@ -1,16 +1,9 @@
-const VERSION = 'gestionale-2026-07-10-promo-social-clean-v1';
+const VERSION = 'gestionale-2026-07-10-commerciale-fase3-v1';
 const CACHE = `gestionale-runtime-${VERSION}`;
-const STATIC_ASSETS = [
+const REQUIRED_ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './reset.html',
-  './reset-cache.html',
-  './database.json',
-  './cat-borse.jpg',
-  './cat-cinture.jpg',
-  './cat-accessori.jpg',
-  './supabaseClient.js',
   './icon-192.png',
   './icon-512.png',
   './icon-maskable-512.png'
@@ -18,7 +11,13 @@ const STATIC_ASSETS = [
 
 self.addEventListener('install', event => {
   self.skipWaiting();
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(STATIC_ASSETS)));
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    for (const asset of REQUIRED_ASSETS) {
+      try { await cache.add(asset); }
+      catch (err) { console.warn('[SW] Cache non disponibile:', asset, err); }
+    }
+  })());
 });
 
 self.addEventListener('activate', event => {
@@ -36,13 +35,14 @@ self.addEventListener('fetch', event => {
 
   if (req.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
     event.respondWith((async () => {
-      const cached = await caches.match('./index.html');
-      const refresh = fetch(req, { cache: 'no-store' }).then(async fresh => {
+      try {
+        const fresh = await fetch(req, { cache: 'no-store' });
         const cache = await caches.open(CACHE);
         cache.put('./index.html', fresh.clone());
         return fresh;
-      }).catch(() => null);
-      return cached || (await refresh) || (await caches.match('./reset-cache.html')) || Response.error();
+      } catch (_err) {
+        return (await caches.match('./index.html')) || Response.error();
+      }
     })());
     return;
   }
@@ -66,11 +66,13 @@ self.addEventListener('fetch', event => {
     if (cached) return cached;
     try {
       const fresh = await fetch(req);
-      const cache = await caches.open(CACHE);
-      cache.put(req, fresh.clone());
+      if (fresh && fresh.ok && url.origin === self.location.origin) {
+        const cache = await caches.open(CACHE);
+        cache.put(req, fresh.clone());
+      }
       return fresh;
     } catch (_err) {
-      return caches.match(req);
+      return cached || Response.error();
     }
   })());
 });
