@@ -3,11 +3,17 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Gestionale</title>
-<link rel="manifest" href="manifest.json"/>
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png"/>
-<link rel="apple-touch-icon" href="icon-192.png"/>
-<meta name="theme-color" content="#8b2be2"/>
+<title>Gestionale V&G</title>
+<meta name="description" content="Gestionale V&G per articoli, clienti, ordini, finanze, promozioni e pubblicazioni social."/>
+<meta name="application-name" content="Gestionale V&G"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Gestionale"/>
+<link rel="manifest" href="manifest.json?v=1.0.0"/>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-v1-32.png"/>
+<link rel="icon" type="image/png" sizes="192x192" href="icon-v1-192.png"/>
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v1.png"/>
+<meta name="theme-color" content="#0f172a"/>
 <style>
 :root{--navy:#0f172a;--bg:#f8fafc;--card:#fff;--line:#bcc6d4;--muted:#6b7280;--blue:#2563eb;--red:#dc2626;--cream:#fff7ed;--soft:#eef4ff;--gold:#f59e0b}
 *{box-sizing:border-box}
@@ -664,6 +670,16 @@ window.addEventListener('error',e=>{
       </div>
       <div class="small" style="margin-top:10px" id="importHint">Scegli prima se vuoi sostituire tutto il database oppure unire il JSON ai dati già presenti.</div>
     </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="h2">Installazione app</div>
+        <div class="small" id="pwaInstallStatus">Verifica installazione in corso…</div>
+        <div class="actions" style="margin-top:10px">
+          <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
+          <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
+        </div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.0</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+      </div>
     
       <div class="card" style="margin-top:12px">
         <div class="h2">Cloud</div>
@@ -10967,7 +10983,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-07-08-filtri-compatti-contatori-v117';
+const VG_BUILD='1.0.0-2026-07-10';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -12158,9 +12174,57 @@ try{
     }
   }
 }catch(_e){}
+
+let deferredPwaInstallPrompt=null;
+function isPwaStandalone(){
+  return window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone===true;
+}
+function refreshPwaInstallUi(message=''){
+  const status=document.getElementById('pwaInstallStatus');
+  const btn=document.getElementById('btnInstallPwa');
+  if(!status||!btn) return;
+  if(isPwaStandalone()){
+    status.textContent=message||'Gestionale installato come app.';
+    btn.style.display='none';
+  }else if(deferredPwaInstallPrompt){
+    status.textContent=message||'Il Gestionale è pronto per essere installato.';
+    btn.style.display='inline-flex';
+  }else{
+    status.textContent=message||'Apri questa pagina da Chrome tramite HTTPS. Se non compare il pulsante, usa il menu ⋮ → Installa app.';
+    btn.style.display='none';
+  }
+}
+window.addEventListener('beforeinstallprompt',ev=>{
+  ev.preventDefault();
+  deferredPwaInstallPrompt=ev;
+  refreshPwaInstallUi();
+});
+window.addEventListener('appinstalled',()=>{
+  deferredPwaInstallPrompt=null;
+  refreshPwaInstallUi('Installazione completata. Ora il Gestionale è disponibile tra le app.');
+});
+window.addEventListener('DOMContentLoaded',()=>{
+  refreshPwaInstallUi();
+  document.getElementById('btnInstallPwa')?.addEventListener('click',async()=>{
+    if(!deferredPwaInstallPrompt){ refreshPwaInstallUi(); return; }
+    deferredPwaInstallPrompt.prompt();
+    try{ await deferredPwaInstallPrompt.userChoice; }catch(_e){}
+    deferredPwaInstallPrompt=null;
+    refreshPwaInstallUi();
+  });
+  document.getElementById('btnUpdatePwa')?.addEventListener('click',async()=>{
+    const status=document.getElementById('pwaInstallStatus');
+    try{
+      const reg=await navigator.serviceWorker?.getRegistration();
+      if(reg){ await reg.update(); if(status) status.textContent='Controllo completato. Se esiste una nuova versione verrà caricata alla prossima apertura.'; }
+      else if(status) status.textContent='Service worker non ancora attivo. Riapri la pagina con connessione Internet.';
+    }catch(_e){ if(status) status.textContent='Controllo aggiornamenti non riuscito. Verifica la connessione.'; }
+  });
+});
+
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=promo-social-clean-v1', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.0', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
