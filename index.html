@@ -5897,11 +5897,39 @@ function facebookVarietyBlocks(a){
   };
 }
 
+function isOriginalQualityArticle(a){
+  return normalizeTextKey(articleQualityLabel(a)||a?.qualita||'')==='originale';
+}
+function originalPremiumSocialLine(a){
+  return isOriginalQualityArticle(a) ? 'QUALITÀ SUPERIORE • FINITURE PREMIUM' : '';
+}
+function ensureOriginalPremiumSocialLine(text, a){
+  let raw=String(text||'').trim();
+  const premium=originalPremiumSocialLine(a);
+  const premiumRx=/^\s*QUALIT[ÀA]\s+SUPERIORE\s*[•·\-]\s*FINITURE\s+PREMIUM\s*$/i;
+  let lines=raw ? raw.split(/\r?\n/).filter(line=>!premiumRx.test(String(line||''))) : [];
+  if(!premium) return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  let modelIndex=-1;
+  const modelKey=normalizeTextKey(postPrimaryName(a,'fb')||a?.modello||'');
+  if(modelKey){
+    modelIndex=lines.findIndex(line=>normalizeTextKey(line).includes(modelKey));
+  }
+  if(modelIndex<0){
+    modelIndex=lines.findIndex(line=>{
+      const key=normalizeTextKey(line);
+      return key && !/promo|offerta|validafino/.test(key);
+    });
+  }
+  const insertAt=modelIndex>=0 ? modelIndex+1 : 0;
+  lines.splice(insertAt,0,premium);
+  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+
 function buildPostFacebookBase(a, opts={}){
   if(!a?.codice) return '';
   const includePrice = opts?.includePrice===true;
   const priceSymbol = opts?.priceSymbol || '💶';
-  const seed=stableHashSeed([a?.codice,a?.brand,a?.modello,a?.categoria,a?.colore,a?.materiale,a?.misura,a?.altezzaCintura||a?.hCintura||'',includePrice?'price':'noprice','finali-30-no-desc-solo-originale-zip-only-v2'].join('|'));
+  const seed=stableHashSeed([a?.codice,a?.brand,a?.modello,a?.categoria,a?.colore,a?.materiale,a?.misura,a?.altezzaCintura||a?.hCintura||'',includePrice?'price':'noprice','finali-30-originale-premium-v3'].join('|'));
   const modelLine = postNameWithQuality(a,'fb') || [postPrimaryName(a,'fb'), emojiQualityForPost(a)].filter(Boolean).join(' ').trim() || categoryLabelForPost(a);
 
   const finaliInfo=[
@@ -5943,6 +5971,8 @@ function buildPostFacebookBase(a, opts={}){
 
   const lines=[...promoPostIntroLines(a)];
   if(modelLine) lines.push(smartSentenceCase(modelLine));
+  const premiumQualityLine=originalPremiumSocialLine(a);
+  if(premiumQualityLine) lines.push(premiumQualityLine);
   const descLine = String(a?.descrizione||'').trim();
   if(descLine) lines.push(descLine);
 
@@ -6112,6 +6142,7 @@ function stripExpiredPromoLinesFromPost(text, a){
 function normalizeFacebookPostForArticle(text, a){
   let out=stripArticlePrivateNotesFromPost(text, a);
   out=stripExpiredPromoLinesFromPost(out, a);
+  out=ensureOriginalPremiumSocialLine(out, a);
   out=ensureFacebookPostHasDescriptionBelowModel(out, a);
   out=ensureFacebookPostHasArticleMeasures(out, a);
   out=ensureFacebookPostHasCode(out, a);
@@ -6190,6 +6221,8 @@ function buildPostTelegram(a, includePrice=true){
     const tipoMateriale=materiale || materialeCompat || variante;
     if(scadenzaRaw) lines.push(`🔥 IN PROMO FINO AL ${formatPromoDayMonth(scadenzaRaw)}`);
     if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
+    const premiumQualityLine=originalPremiumSocialLine(a);
+    if(premiumQualityLine) lines.push(premiumQualityLine);
     pushUnique(tipoMateriale);
     pushUnique(colore);
     pushUnique(misura, v=>formatPostMisura(v, a));
@@ -6202,6 +6235,8 @@ function buildPostTelegram(a, includePrice=true){
     return normalizePublicPostForArticle(formatGeneratedPostLines(lines), a);
   }
   if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
+  const premiumQualityLine=originalPremiumSocialLine(a);
+  if(premiumQualityLine) lines.push(premiumQualityLine);
   pushUnique(variante);
   pushUnique(colore);
   pushUnique(misura, v=>formatPostMisura(v, a));
@@ -7839,7 +7874,8 @@ function renderArt(){
     const unavailable=articleAvailabilityBadge(a);
     const blocked=isArticleUnavailable(a);
     const photoLine=articlePhotoCountText(a);
-    const qualityLine=articleQualityLabel(a);
+    const qualityRaw=articleQualityLabel(a);
+    const qualityLine=isOriginalQualityArticle(a) ? 'QUALITÀ ORIGINALE' : qualityRaw;
     const metaLine=[qualityLine, photoLine].filter(Boolean).join(' • ');
     const notePreview=normalizeSpaceText(a.note||'');
     const noteHtml=notePreview ? `<div class="artCardNote" title="${esc(notePreview)}">${esc(notePreview)}</div>` : '';
