@@ -321,6 +321,56 @@ input,select,textarea{font-size:17px;line-height:1.25}
   .artPrice{font-size:21px}
   .artActions .btn{font-size:13.5px}
 }
+
+/* Toolbar articoli più compatta e contatori dinamici */
+#sec_articoli .artToolbarCard .btn{
+  min-height:44px !important;
+  padding:9px 12px !important;
+  font-size:14.5px !important;
+  border-radius:13px !important;
+}
+#sec_articoli .artToolbarCard select{
+  min-height:46px !important;
+  padding:9px 11px !important;
+  font-size:15px !important;
+  border-radius:13px !important;
+}
+#sec_articoli .artToolbarCard input#qArt{
+  min-height:46px !important;
+  padding-top:9px !important;
+  padding-bottom:9px !important;
+}
+#sec_articoli .artToolbarCard .artFilterGrid{gap:8px !important}
+#sec_articoli .artToolbarCard .artBreadcrumbs{margin-top:9px}
+.artStats{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:11px;
+  padding-top:10px;
+  border-top:1px solid var(--line);
+  font-size:14px;
+  font-weight:900;
+  color:#334155;
+}
+.artStatsItem{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:6px 10px;
+  border-radius:999px;
+  background:#f8fafc;
+  border:1px solid var(--line);
+}
+.artStatsItem strong{font-size:15px;color:#0f172a}
+.artStatsItem.noPhoto{background:#fff7ed;border-color:#fdba74;color:#9a3412}
+.artStatsItem.noPhoto strong{color:#9a3412}
+@media(max-width:390px){
+  #sec_articoli .artToolbarCard .btn{font-size:14px !important;padding:8px 10px !important;min-height:42px !important}
+  #sec_articoli .artToolbarCard select{font-size:14.5px !important;min-height:44px !important}
+  .artStats{font-size:13.5px}
+}
 </style>
 <script>
 window.addEventListener('error',e=>{
@@ -329,7 +379,7 @@ window.addEventListener('error',e=>{
 });
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v117-elenco-pulito-foto-qualita">
+  <meta name="vg-version" content="v117-filtri-compatti-contatori">
 </head>
 <body>
 
@@ -437,7 +487,7 @@ window.addEventListener('error',e=>{
   </div>
 
   <div id="sec_articoli" class="section">
-    <div class="card">
+    <div class="card artToolbarCard">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Articoli</div><button class="btn" type="button" data-action="newArt">+ Nuovo</button></div>
       <div style="margin-top:10px">
         <div class="searchWrap"><input id="qArt" placeholder="Cerca per codice, marca, modello, categoria, qualità, colore, materiale, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
@@ -453,6 +503,7 @@ window.addEventListener('error',e=>{
         <button id="btnArtPromoOnly" class="btn promoOnlyBtn" type="button" data-action="openPromoArticles">🔥 Solo promo</button>
       </div>
       <div id="artBreadcrumbs" class="artBreadcrumbs" style="display:none"></div>
+      <div id="artStats" class="artStats" aria-live="polite"></div>
     </div>
     <div style="height:10px"></div>
     <div id="listArt" class="artGrid"></div>
@@ -7731,6 +7782,14 @@ function articlePhotoCountText(a){
   if(n===1) return '📷 1 foto';
   return `📷 ${n} foto`;
 }
+function renderArtStats(items){
+  const box=document.getElementById('artStats');
+  if(!box) return;
+  const list=Array.isArray(items) ? items : [];
+  const total=list.length;
+  const withoutPhotos=list.filter(a=>articlePhotoCountSync(a)===0).length;
+  box.innerHTML=`<span class="artStatsItem">Totale articoli: <strong>${total}</strong></span>${withoutPhotos>0 ? `<span class="artStatsItem noPhoto">Senza foto: <strong>${withoutPhotos}</strong></span>` : ''}`;
+}
 
 function renderArt(){
   const db=loadDB();
@@ -7753,6 +7812,7 @@ function renderArt(){
   }).sort((a,b)=>compareArticlesForPreview(a,b));
   const el=document.getElementById('listArt');
   renderArtBreadcrumbs();
+  renderArtStats(items);
   const showOverview=artBrowseState.level==='categorie' && !promoOnly && !q && !catFilter && !brandFilter && !qualityFilter;
   if(showOverview){
     renderCategoryOverview(items,{promoOnly,brandFilter,qualityFilter});
@@ -10437,7 +10497,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='2026-07-08-elenco-pulito-foto-qualita-v117';
+const VG_BUILD='2026-07-08-filtri-compatti-contatori-v117';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -11630,7 +11690,7 @@ try{
 }catch(_e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=elenco-pulito-foto-qualita-v117', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=filtri-compatti-contatori-v1', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
