@@ -951,6 +951,7 @@ window.addEventListener('error',e=>{
       <div class="inputSupplierPromo"><div class="k">Prezzo fornitore promo USD</div><input id="a_usd_promo" inputmode="decimal" autocomplete="off"/></div>
       <div><div class="k">Costo EUR standard (auto)</div><input id="a_eur" readonly/></div>
     </div>
+    <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_supplier_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Promo fornitore attiva</label></div>
     <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_std_cost_unknown" type="checkbox" style="width:auto;margin-right:8px"/>Costo normale fornitore non conosciuto</label></div>
     <div style="margin-top:10px">
       <div class="k">Fine promo fornitore</div><input id="a_supplier_promo_end" type="date" autocomplete="off"/>
@@ -958,7 +959,7 @@ window.addEventListener('error',e=>{
     <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_supplier_date_unknown" type="checkbox" style="width:auto;margin-right:8px"/>Scadenza fornitore non comunicata</label></div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k">Prezzo vendita standard (auto)</div><input id="a_sell" readonly/></div>
-      <div><div class="k">Prezzo finale in uso (auto)</div><input id="a_final" readonly/><div class="helper">Si aggiorna con il prezzo promo personale quando attivo.</div></div>
+      <div><div class="k">Prezzo finale in uso (auto)</div><input id="a_final" readonly/><div class="helper">Usa il prezzo promo fornitore quando attivo; la promo personale ha priorità.</div></div>
     </div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k">Margine</div><input id="a_margin" readonly/><div id="a_margin_pct" class="miniNote"></div></div>
@@ -4332,8 +4333,12 @@ function promoSupplierCalc(a){
 }
 function promoValid(a){ return personalPromoValid(a) || supplierPromoValid(a); }
 function currentPrice(a){
-  // La promo del fornitore cambia il costo, non abbassa automaticamente il prezzo al cliente.
+  // Priorità: promo personale; poi prezzo automatico derivato dalla promo fornitore; infine prezzo standard.
   if(personalPromoValid(a)) return Number(a?.prezzoPromo||0);
+  if(supplierPromoValid(a)){
+    const supplierSell=Number(promoSupplierCalc(a).sell||0);
+    if(supplierSell>0) return supplierSell;
+  }
   return Number(a?.prezzoVendita||0);
 }
 function currentCost(a){
@@ -8833,7 +8838,7 @@ async function openArtEdit(id){
     updateArticleColorModeUI();
     syncBrandField('');
     refreshArticleCategorySelects('');
-    document.getElementById('a_promo_on').checked=false; document.getElementById('a_std_cost_unknown').checked=false; document.getElementById('a_supplier_date_unknown').checked=false;
+    document.getElementById('a_promo_on').checked=false; document.getElementById('a_supplier_promo_on').checked=false; document.getElementById('a_std_cost_unknown').checked=false; document.getElementById('a_supplier_date_unknown').checked=false;
     document.getElementById('a_photo').value='';
     currentArtExistingPics=[];
     renderCurrentArtPhotoPreview();
@@ -8852,7 +8857,7 @@ async function openArtEdit(id){
   set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
   set('a_mis', a?.misura); set('a_belt_h', a?.altezzaCintura||a?.hCintura||''); set('a_usd', a?.costoUsd||''); set('a_usd_promo', a?.costoUsdPromo||'');
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
-  set('a_promo_date', a?.scadenzaPromoPersonale||a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||''); set('a_supplier_promo_end', a?.scadenzaPromoFornitore||''); document.getElementById('a_std_cost_unknown').checked=!!a?.costoNormaleSconosciuto; document.getElementById('a_supplier_date_unknown').checked=!!a?.promoFornitoreDataSconosciuta;
+  set('a_promo_date', a?.scadenzaPromoPersonale||a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||''); set('a_supplier_promo_end', a?.scadenzaPromoFornitore||''); document.getElementById('a_supplier_promo_on').checked=(typeof a?.promoFornitoreAttiva==='boolean')?a.promoFornitoreAttiva:(Number(a?.costoUsdPromo||0)>0); document.getElementById('a_std_cost_unknown').checked=!!a?.costoNormaleSconosciuto; document.getElementById('a_supplier_date_unknown').checked=!!a?.promoFornitoreDataSconosciuta;
   document.getElementById('a_note').value=a?.note||'';
   document.getElementById('a_post').value=a?.post||'';
   fitTextarea(document.getElementById('a_post'));
@@ -9137,7 +9142,7 @@ function renderArtAutoFields(){
       promoAttiva:document.getElementById('a_promo_on').checked,
       prezzoPromo:Number(document.getElementById('a_promo_price').value||0),
       costoUsdPromo:Number(document.getElementById('a_usd_promo')?.value||0),
-      scadenzaPromo:document.getElementById('a_promo_date').value.trim(), scadenzaPromoPersonale:document.getElementById('a_promo_date').value.trim(), dataInizioPromoPersonale:'', dataInizioPromoFornitore:'', scadenzaPromoFornitore:document.getElementById('a_supplier_promo_end').value.trim(), promoFornitoreDataSconosciuta:document.getElementById('a_supplier_date_unknown').checked, promoFornitoreAttiva:Number(document.getElementById('a_usd_promo')?.value||0)>0,
+      scadenzaPromo:document.getElementById('a_promo_date').value.trim(), scadenzaPromoPersonale:document.getElementById('a_promo_date').value.trim(), dataInizioPromoPersonale:'', dataInizioPromoFornitore:'', scadenzaPromoFornitore:document.getElementById('a_supplier_promo_end').value.trim(), promoFornitoreDataSconosciuta:document.getElementById('a_supplier_date_unknown').checked, promoFornitoreAttiva:!!document.getElementById('a_supplier_promo_on')?.checked,
       prezzoVendita:0,
       misura:document.getElementById('a_mis').value.trim(),
       altezzaCintura:document.getElementById('a_belt_h')?.value.trim()||'',
@@ -9166,7 +9171,7 @@ function renderArtAutoFields(){
   const promoOn=document.getElementById('a_promo_on').checked;
   const promoPrice=Number(document.getElementById('a_promo_price').value||0);
   const promoDate=document.getElementById('a_promo_date').value.trim();
-  const a={codice:code, costoUsd:usd, costoEur:r.costo, costoUsdPromo:promoUsd, costoEurPromo:rPromo.costo, prezzoVendita:baseSell, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate, scadenzaPromoPersonale:promoDate, dataInizioPromoPersonale:'', promoFornitoreAttiva:promoUsd>0, dataInizioPromoFornitore:'', scadenzaPromoFornitore:document.getElementById('a_supplier_promo_end').value.trim(), promoFornitoreDataSconosciuta:document.getElementById('a_supplier_date_unknown').checked, costoNormaleSconosciuto:document.getElementById('a_std_cost_unknown').checked};
+  const a={codice:code, costoUsd:usd, costoEur:r.costo, costoUsdPromo:promoUsd, costoEurPromo:rPromo.costo, prezzoVendita:baseSell, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate, scadenzaPromoPersonale:promoDate, dataInizioPromoPersonale:'', promoFornitoreAttiva:!!document.getElementById('a_supplier_promo_on')?.checked, dataInizioPromoFornitore:'', scadenzaPromoFornitore:document.getElementById('a_supplier_promo_end').value.trim(), promoFornitoreDataSconosciuta:document.getElementById('a_supplier_date_unknown').checked, costoNormaleSconosciuto:document.getElementById('a_std_cost_unknown').checked};
     const finalPrice = a.prezzoVendita ? round5(currentPrice(a)) : 0;
   document.getElementById('a_final').value = finalPrice ? String(finalPrice) : '';
   const costForMargin = currentCost(a) || Number(r.costo)||0;
@@ -9299,7 +9304,7 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_usd').value=clone.costoUsd||'';
   document.getElementById('a_usd_promo').value=clone.costoUsdPromo||'';
   document.getElementById('a_promo_on').checked=!!clone.promoAttiva;
-  document.getElementById('a_promo_date').value=clone.scadenzaPromoPersonale||clone.scadenzaPromo||''; document.getElementById('a_supplier_promo_end').value=clone.scadenzaPromoFornitore||''; document.getElementById('a_std_cost_unknown').checked=!!clone.costoNormaleSconosciuto; document.getElementById('a_supplier_date_unknown').checked=!!clone.promoFornitoreDataSconosciuta;
+  document.getElementById('a_promo_date').value=clone.scadenzaPromoPersonale||clone.scadenzaPromo||''; document.getElementById('a_supplier_promo_end').value=clone.scadenzaPromoFornitore||''; document.getElementById('a_supplier_promo_on').checked=(typeof clone.promoFornitoreAttiva==='boolean')?clone.promoFornitoreAttiva:(Number(clone.costoUsdPromo||0)>0); document.getElementById('a_std_cost_unknown').checked=!!clone.costoNormaleSconosciuto; document.getElementById('a_supplier_date_unknown').checked=!!clone.promoFornitoreDataSconosciuta;
   document.getElementById('a_promo_price').value=clone.prezzoPromo||'';
   document.getElementById('a_note').value=clone.note||'';
   document.getElementById('a_post').value=clone.post||'';
@@ -9406,7 +9411,7 @@ async function saveArt(){
       scadenzaPromoPersonale: document.getElementById('a_promo_date').value.trim(),
       dataInizioPromoPersonale: '',
       costoNormaleSconosciuto: !!document.getElementById('a_std_cost_unknown').checked,
-      promoFornitoreAttiva: promoUsd>0,
+      promoFornitoreAttiva: !!document.getElementById('a_supplier_promo_on')?.checked,
       dataInizioPromoFornitore: '',
       scadenzaPromoFornitore: document.getElementById('a_supplier_promo_end').value.trim(),
       promoFornitoreDataSconosciuta: !!document.getElementById('a_supplier_date_unknown').checked,
@@ -10640,6 +10645,9 @@ function readArticleForm(){
     promoAttiva: !!document.getElementById('a_promo_on')?.checked,
     prezzoPromo: Number(document.getElementById('a_promo_price')?.value||0),
     costoUsdPromo: Number(document.getElementById('a_usd_promo')?.value||0),
+    promoFornitoreAttiva: !!document.getElementById('a_supplier_promo_on')?.checked,
+    scadenzaPromoFornitore: document.getElementById('a_supplier_promo_end')?.value.trim()||'',
+    promoFornitoreDataSconosciuta: !!document.getElementById('a_supplier_date_unknown')?.checked,
     scadenzaPromo: document.getElementById('a_promo_date')?.value.trim()||'',
     post: document.getElementById('a_post')?.value||'',
     postFb: document.getElementById('a_post_fb')?.value||'',
@@ -10957,7 +10965,7 @@ bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_promo_on','a_promo_price','a_promo_date','a_supplier_promo_end','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_supplier_promo_on','a_promo_on','a_promo_price','a_promo_date','a_supplier_promo_end','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
   ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));
@@ -12262,7 +12270,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.0', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.3', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
@@ -12271,7 +12279,7 @@ if('serviceWorker' in navigator){
 // Fase 4: aggiornamento immediato dei controlli promozione
 (function bindPhase4PromoControls(){
   const bind=()=>{
-    ['a_std_cost_unknown','a_supplier_date_unknown'].forEach(id=>{
+    ['a_std_cost_unknown','a_supplier_promo_on','a_supplier_date_unknown'].forEach(id=>{
       const el=document.getElementById(id);
       if(el && !el.dataset.phase4Bound){
         el.dataset.phase4Bound='1';
