@@ -952,14 +952,13 @@ window.addEventListener('error',e=>{
       <div><div class="k">Costo EUR standard (auto)</div><input id="a_eur" readonly/></div>
     </div>
     <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_std_cost_unknown" type="checkbox" style="width:auto;margin-right:8px"/>Costo normale fornitore non conosciuto</label></div>
-    <div class="grid2" style="margin-top:10px">
-      <div><div class="k">Inizio promo fornitore</div><input id="a_supplier_promo_start" type="date" autocomplete="off"/></div>
-      <div><div class="k">Fine promo fornitore</div><input id="a_supplier_promo_end" type="date" autocomplete="off"/></div>
+    <div style="margin-top:10px">
+      <div class="k">Fine promo fornitore</div><input id="a_supplier_promo_end" type="date" autocomplete="off"/>
     </div>
     <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_supplier_date_unknown" type="checkbox" style="width:auto;margin-right:8px"/>Scadenza fornitore non comunicata</label></div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k">Prezzo vendita standard (auto)</div><input id="a_sell" readonly/></div>
-      <div><div class="k">Prezzo finale in uso</div><input id="a_final" readonly/></div>
+      <div><div class="k">Prezzo finale in uso (auto)</div><input id="a_final" readonly/><div class="helper">Si aggiorna con il prezzo promo personale quando attivo.</div></div>
     </div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k">Margine</div><input id="a_margin" readonly/><div id="a_margin_pct" class="miniNote"></div></div>
@@ -971,9 +970,8 @@ window.addEventListener('error',e=>{
       <div><div class="k">Promo personale attiva</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Attiva</label></div>
       <div class="inputPromoPersonal"><div class="k">Prezzo promo mio personale</div><input id="a_promo_price" inputmode="decimal" autocomplete="off"/></div>
     </div>
-    <div class="grid2" style="margin-top:10px">
-      <div><div class="k">Inizio promo personale</div><input id="a_personal_promo_start" type="date" autocomplete="off"/></div>
-      <div><div class="k">Fine promo personale</div><input id="a_promo_date" type="date" autocomplete="off"/></div>
+    <div style="margin-top:10px">
+      <div class="k">Fine promo personale</div><input id="a_promo_date" type="date" autocomplete="off"/>
     </div>
   </div>
 
@@ -8826,7 +8824,7 @@ async function openArtEdit(id){
   const set=(k,v)=>document.getElementById(k).value=(v===0?0:(v||''));
 
   if(!a){
-    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_belt_h','a_usd','a_usd_promo','a_promo_price','a_promo_date','a_supplier_promo_start','a_supplier_promo_end','a_personal_promo_start','a_supplier_promo_start','a_supplier_promo_end','a_personal_promo_start','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
+    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_belt_h','a_usd','a_usd_promo','a_promo_price','a_promo_date','a_supplier_promo_end','a_supplier_promo_end','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
     .forEach(fid => document.getElementById(fid).value='');
     document.getElementById('a_color_mode').value='single';
     document.getElementById('a_color_count').value='';
@@ -8854,7 +8852,7 @@ async function openArtEdit(id){
   set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
   set('a_mis', a?.misura); set('a_belt_h', a?.altezzaCintura||a?.hCintura||''); set('a_usd', a?.costoUsd||''); set('a_usd_promo', a?.costoUsdPromo||'');
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
-  set('a_promo_date', a?.scadenzaPromoPersonale||a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||''); set('a_supplier_promo_start', a?.dataInizioPromoFornitore||''); set('a_supplier_promo_end', a?.scadenzaPromoFornitore||''); set('a_personal_promo_start', a?.dataInizioPromoPersonale||a?.dataInizioPromo||''); document.getElementById('a_std_cost_unknown').checked=!!a?.costoNormaleSconosciuto; document.getElementById('a_supplier_date_unknown').checked=!!a?.promoFornitoreDataSconosciuta;
+  set('a_promo_date', a?.scadenzaPromoPersonale||a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||''); set('a_supplier_promo_end', a?.scadenzaPromoFornitore||''); document.getElementById('a_std_cost_unknown').checked=!!a?.costoNormaleSconosciuto; document.getElementById('a_supplier_date_unknown').checked=!!a?.promoFornitoreDataSconosciuta;
   document.getElementById('a_note').value=a?.note||'';
   document.getElementById('a_post').value=a?.post||'';
   fitTextarea(document.getElementById('a_post'));
@@ -9139,7 +9137,7 @@ function renderArtAutoFields(){
       promoAttiva:document.getElementById('a_promo_on').checked,
       prezzoPromo:Number(document.getElementById('a_promo_price').value||0),
       costoUsdPromo:Number(document.getElementById('a_usd_promo')?.value||0),
-      scadenzaPromo:document.getElementById('a_promo_date').value.trim(), scadenzaPromoPersonale:document.getElementById('a_promo_date').value.trim(), dataInizioPromoPersonale:document.getElementById('a_personal_promo_start').value.trim(), dataInizioPromoFornitore:document.getElementById('a_supplier_promo_start').value.trim(), scadenzaPromoFornitore:document.getElementById('a_supplier_promo_end').value.trim(), promoFornitoreDataSconosciuta:document.getElementById('a_supplier_date_unknown').checked, promoFornitoreAttiva:Number(document.getElementById('a_usd_promo')?.value||0)>0,
+      scadenzaPromo:document.getElementById('a_promo_date').value.trim(), scadenzaPromoPersonale:document.getElementById('a_promo_date').value.trim(), dataInizioPromoPersonale:'', dataInizioPromoFornitore:'', scadenzaPromoFornitore:document.getElementById('a_supplier_promo_end').value.trim(), promoFornitoreDataSconosciuta:document.getElementById('a_supplier_date_unknown').checked, promoFornitoreAttiva:Number(document.getElementById('a_usd_promo')?.value||0)>0,
       prezzoVendita:0,
       misura:document.getElementById('a_mis').value.trim(),
       altezzaCintura:document.getElementById('a_belt_h')?.value.trim()||'',
@@ -9159,18 +9157,17 @@ function renderArtAutoFields(){
   }
 
   const usd=hasUsd ? Number(usdRaw) : 0;
-  if(usdRaw===''){ document.getElementById('a_eur').value=''; document.getElementById('a_sell').value=''; document.getElementById('a_final').value=''; document.getElementById('a_margin').value=''; document.getElementById('a_margin_pct').textContent=''; return; }
   const r=usd>0 ? calcFromUsd(usd, qual) : {costo:0,sell:0,marg:0};
   const promoUsd=hasPromoUsd ? Number(usdPromoRaw) : 0;
   const rPromo=promoUsd>0 ? calcFromUsd(promoUsd, qual) : {costo:0, sell:0, marg:0};
-  document.getElementById('a_eur').value = isFinite(r.costo)?money(r.costo):'';
-  document.getElementById('a_sell').value = isFinite(r.sell)?String(r.sell):'';
+  const baseSell=Number(r.sell||rPromo.sell||0);
+  document.getElementById('a_eur').value = r.costo>0 ? money(r.costo) : '';
+  document.getElementById('a_sell').value = baseSell>0 ? String(baseSell) : '';
   const promoOn=document.getElementById('a_promo_on').checked;
   const promoPrice=Number(document.getElementById('a_promo_price').value||0);
   const promoDate=document.getElementById('a_promo_date').value.trim();
-  const a={codice:code, costoUsd:usd, costoEur:r.costo, costoUsdPromo:promoUsd, costoEurPromo:rPromo.costo, prezzoVendita:r.sell, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate, scadenzaPromoPersonale:promoDate, dataInizioPromoPersonale:document.getElementById('a_personal_promo_start').value.trim(), promoFornitoreAttiva:promoUsd>0, dataInizioPromoFornitore:document.getElementById('a_supplier_promo_start').value.trim(), scadenzaPromoFornitore:document.getElementById('a_supplier_promo_end').value.trim(), promoFornitoreDataSconosciuta:document.getElementById('a_supplier_date_unknown').checked, costoNormaleSconosciuto:document.getElementById('a_std_cost_unknown').checked};
-  if(!a.prezzoVendita && rPromo.sell) a.prezzoVendita=rPromo.sell;
-  const finalPrice = a.prezzoVendita ? round5(currentPrice(a)) : 0;
+  const a={codice:code, costoUsd:usd, costoEur:r.costo, costoUsdPromo:promoUsd, costoEurPromo:rPromo.costo, prezzoVendita:baseSell, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate, scadenzaPromoPersonale:promoDate, dataInizioPromoPersonale:'', promoFornitoreAttiva:promoUsd>0, dataInizioPromoFornitore:'', scadenzaPromoFornitore:document.getElementById('a_supplier_promo_end').value.trim(), promoFornitoreDataSconosciuta:document.getElementById('a_supplier_date_unknown').checked, costoNormaleSconosciuto:document.getElementById('a_std_cost_unknown').checked};
+    const finalPrice = a.prezzoVendita ? round5(currentPrice(a)) : 0;
   document.getElementById('a_final').value = finalPrice ? String(finalPrice) : '';
   const costForMargin = currentCost(a) || Number(r.costo)||0;
   const margin = Math.max(0, finalPrice - costForMargin);
@@ -9191,7 +9188,7 @@ function renderArtAutoFields(){
     codice:code, brand:getArticleBrandValue(),
     modello:document.getElementById('a_mod').value.trim(),
     promoAttiva:promoOn, prezzoPromo:promoPrice, costoUsdPromo:promoUsd, costoEurPromo:rPromo.costo, scadenzaPromo:promoDate,
-    prezzoVendita:r.sell,
+    prezzoVendita:baseSell,
     misura:document.getElementById('a_mis').value.trim(),
     altezzaCintura:document.getElementById('a_belt_h')?.value.trim()||'',
     hCintura:document.getElementById('a_belt_h')?.value.trim()||'',
@@ -9302,7 +9299,7 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_usd').value=clone.costoUsd||'';
   document.getElementById('a_usd_promo').value=clone.costoUsdPromo||'';
   document.getElementById('a_promo_on').checked=!!clone.promoAttiva;
-  document.getElementById('a_promo_date').value=clone.scadenzaPromoPersonale||clone.scadenzaPromo||''; document.getElementById('a_supplier_promo_start').value=clone.dataInizioPromoFornitore||''; document.getElementById('a_supplier_promo_end').value=clone.scadenzaPromoFornitore||''; document.getElementById('a_personal_promo_start').value=clone.dataInizioPromoPersonale||clone.dataInizioPromo||''; document.getElementById('a_std_cost_unknown').checked=!!clone.costoNormaleSconosciuto; document.getElementById('a_supplier_date_unknown').checked=!!clone.promoFornitoreDataSconosciuta;
+  document.getElementById('a_promo_date').value=clone.scadenzaPromoPersonale||clone.scadenzaPromo||''; document.getElementById('a_supplier_promo_end').value=clone.scadenzaPromoFornitore||''; document.getElementById('a_std_cost_unknown').checked=!!clone.costoNormaleSconosciuto; document.getElementById('a_supplier_date_unknown').checked=!!clone.promoFornitoreDataSconosciuta;
   document.getElementById('a_promo_price').value=clone.prezzoPromo||'';
   document.getElementById('a_note').value=clone.note||'';
   document.getElementById('a_post').value=clone.post||'';
@@ -9407,21 +9404,13 @@ async function saveArt(){
       prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
       scadenzaPromo: document.getElementById('a_promo_date').value.trim(),
       scadenzaPromoPersonale: document.getElementById('a_promo_date').value.trim(),
-      dataInizioPromoPersonale: document.getElementById('a_personal_promo_start').value.trim() || resolvePromoStartDate(old, {
-        promoAttiva: document.getElementById('a_promo_on').checked,
-        prezzoPromo: Number(document.getElementById('a_promo_price').value||0)
-      }),
+      dataInizioPromoPersonale: '',
       costoNormaleSconosciuto: !!document.getElementById('a_std_cost_unknown').checked,
       promoFornitoreAttiva: promoUsd>0,
-      dataInizioPromoFornitore: document.getElementById('a_supplier_promo_start').value.trim(),
+      dataInizioPromoFornitore: '',
       scadenzaPromoFornitore: document.getElementById('a_supplier_promo_end').value.trim(),
       promoFornitoreDataSconosciuta: !!document.getElementById('a_supplier_date_unknown').checked,
-      dataInizioPromo: resolvePromoStartDate(old, {
-        promoAttiva: document.getElementById('a_promo_on').checked,
-        prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
-        costoUsdPromo: promoUsd,
-        scadenzaPromo: document.getElementById('a_promo_date').value.trim()
-      }),
+      dataInizioPromo: '',
       postFb: normalizeFacebookPostForArticle(
         // Se la nota è cambiata, strip anche il vecchio contenuto dalle note precedenti
         (old?.note && old.note !== document.getElementById('a_note').value)
@@ -10968,7 +10957,7 @@ bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_promo_on','a_promo_price','a_promo_date','a_supplier_promo_start','a_supplier_promo_end','a_personal_promo_start','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_promo_on','a_promo_price','a_promo_date','a_supplier_promo_end','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
   ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));
