@@ -6723,6 +6723,48 @@ const SHIP_ALERTS_KEY='vg_ship_alerts_v1';
 const SHIP_SNAPSHOT_KEY='vg_ship_snapshot_v1';
 const ORDER_DELETE_TOMBSTONES_KEY='vg_order_delete_tombstones_v1';
 const ORDER_DELETE_TOMBSTONE_TTL=30*24*60*60*1000;
+const ARTICLE_DELETE_TOMBSTONES_KEY='vg_article_delete_tombstones_v1';
+const ARTICLE_DELETE_TOMBSTONE_TTL=365*24*60*60*1000;
+function normalizeArticleDeleteKeys(art){
+  return {
+    id:normalizeSpaceText(art?.id||''),
+    code:normalizeTextKey(art?.codice||art?.sku||'')
+  };
+}
+function loadArticleDeleteTombstones(){
+  try{
+    const now=Date.now();
+    const raw=JSON.parse(localStorage.getItem(ARTICLE_DELETE_TOMBSTONES_KEY)||'[]');
+    const items=(Array.isArray(raw)?raw:[]).filter(item=>{
+      const ts=Number(item?.ts||0);
+      if(!ts || (now-ts)>ARTICLE_DELETE_TOMBSTONE_TTL) return false;
+      return !!(item?.id || item?.code);
+    });
+    if(items.length!==(Array.isArray(raw)?raw:[]).length){
+      try{ localStorage.setItem(ARTICLE_DELETE_TOMBSTONES_KEY, JSON.stringify(items)); }catch(_e){}
+    }
+    return items;
+  }catch(_e){ return []; }
+}
+function saveArticleDeleteTombstones(items){
+  try{ localStorage.setItem(ARTICLE_DELETE_TOMBSTONES_KEY, JSON.stringify((items||[]).slice(-500))); }catch(_e){}
+}
+function addArticleDeleteTombstone(art){
+  const keys=normalizeArticleDeleteKeys(art||{});
+  if(!keys.id && !keys.code) return;
+  const curr=loadArticleDeleteTombstones();
+  const map=new Map(curr.map(item=>[`${item.id||''}|${item.code||''}`, item]));
+  map.set(`${keys.id||''}|${keys.code||''}`, {...keys, ts:Date.now()});
+  saveArticleDeleteTombstones(Array.from(map.values()));
+}
+function articleMatchesDeleteTombstone(art,tombstones){
+  const keys=normalizeArticleDeleteKeys(art||{});
+  return (tombstones||[]).some(item=>{
+    if(keys.id && item.id && keys.id===item.id) return true;
+    if(keys.code && item.code && keys.code===item.code) return true;
+    return false;
+  });
+}
 function normalizeOrderDeleteKeys(order){
   return {
     id:normalizeSpaceText(order?.id||''),
@@ -9495,13 +9537,19 @@ async function saveArt(){
   }
 }
 async function deleteArt(){
-  if(!currentArtId) return hide('mArtEdit');
-  const artId=currentArtId;
-  askConfirm('Elimino questo articolo?', async ()=>{
+  const dbNow=loadDB();
+  const visibleCode=normalizeSpaceText(document.getElementById('a_codice')?.value||document.getElementById('vCod')?.textContent||'');
+  const candidate=(dbNow.articoli||[]).find(a=>String(a?.id||'')===String(currentArtId||'')) || (visibleCode ? (dbNow.articoli||[]).find(a=>normalizeTextKey(a?.codice||'')===normalizeTextKey(visibleCode)) : null);
+  if(!candidate){ toast('Articolo non trovato: riapri la scheda e riprova'); return; }
+  const artId=candidate.id;
+  askConfirm(`Elimino ${candidate.modello||candidate.codice||'questo articolo'}? Gli ordini storici resteranno intatti.`, async ()=>{
     const db=loadDB();
-    const old=db.articoli.find(a=>a.id===artId);
-    if(!old){ hide('mArtEdit'); hide('mArtView'); currentArtId=null; renderArt(); return; }
-    const storicoCount=hydrateHistoricalSnapshotsBeforeArticleRemoval(db, old);
+    const old=(db.articoli||[]).find(a=>String(a?.id||'')===String(artId||'')) || (db.articoli||[]).find(a=>normalizeTextKey(a?.codice||'')===normalizeTextKey(candidate.codice||''));
+    if(!old){ hide('mArtEdit'); hide('mArtView'); currentArtId=null; renderArt(); toast('Articolo già eliminato'); return; }
+    let storicoCount=0;
+    try{ storicoCount=hydrateHistoricalSnapshotsBeforeArticleRemoval(db, old); }
+    catch(err){ console.error('Preparazione storico articolo fallita',err); toast('Storico ordini non aggiornato, eliminazione annullata'); return; }
+    addArticleDeleteTombstone(old);
     if(!storicoCount){
       for(const pid of (old?.photoIds||[])){
         try{ await idbDelete(pid); }catch(_e){}
@@ -11405,6 +11453,7 @@ async function pullCloudToLocal(opts={}){
     });
     const localDb=loadDB();
     const deletedOrderTombstones=loadOrderDeleteTombstones();
+    const deletedArticleTombstones=loadArticleDeleteTombstones();
     const localArtById=new Map((localDb.articoli||[]).map(a=>[a.id,a]));
     const localArtByCode=new Map((localDb.articoli||[]).map(a=>[safeLower(a.codice),a]));
     const localOrdById=new Map((localDb.ordini||[]).map(o=>[o.id,o]));
@@ -11435,7 +11484,7 @@ async function pullCloudToLocal(opts={}){
         const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
         const cloudTs=parseTimestampLike(meta._ts, p.updated_at, p.created_at, local?._ts, Date.now());
         return {id:p.id,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),costoNormaleSconosciuto:!!(meta.costoNormaleSconosciuto??local?.costoNormaleSconosciuto),promoFornitoreAttiva:(typeof meta.promoFornitoreAttiva==='boolean'?meta.promoFornitoreAttiva:(typeof local?.promoFornitoreAttiva==='boolean'?local.promoFornitoreAttiva:pulledCostoUsdPromo>0)),dataInizioPromoFornitore:normalizePromoStartDate(meta.dataInizioPromoFornitore||local?.dataInizioPromoFornitore||''),scadenzaPromoFornitore:meta.scadenzaPromoFornitore||local?.scadenzaPromoFornitore||'',promoFornitoreDataSconosciuta:!!(meta.promoFornitoreDataSconosciuta??local?.promoFornitoreDataSconosciuta),dataInizioPromoPersonale:normalizePromoStartDate(meta.dataInizioPromoPersonale||local?.dataInizioPromoPersonale||meta.dataInizioPromo||local?.dataInizioPromo||''),scadenzaPromoPersonale:meta.scadenzaPromoPersonale||local?.scadenzaPromoPersonale||meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
-      }),
+      }).filter(a=>!articleMatchesDeleteTombstone(a, deletedArticleTombstones)),
       clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true})),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, brand:localRow?.brand||row?.brand||'', categoria:localRow?.categoria||row?.categoria||'', qualita:localRow?.qualita||row?.qualita||'', costoEur:historicalNumber(localRow?.costoEur,row?.costoEur), articoloSnapshot:localRow?.articoloSnapshot||row?.articoloSnapshot||null, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
     };
