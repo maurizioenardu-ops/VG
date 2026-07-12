@@ -4646,7 +4646,12 @@ function capitalizeGeneratedPostLine(text){
   return raw.replace(/(^|[.!?]\s*)([\s"'“”‘’(\[]*)([a-zà-öø-ÿ])/g, (m,punct,prefix,char)=>punct+prefix+char.toUpperCase());
 }
 function formatGeneratedPostLines(lines=[]){
+  // Ogni voce può contenere già più righe (per esempio un testo salvato).
+  // Le separiamo prima di normalizzare, altrimenti l'intestazione promo
+  // finirebbe per schiacciare descrizione, materiale, misura, prezzo e codice
+  // su un'unica riga.
   return (Array.isArray(lines)?lines:[])
+    .flatMap(value=>String(value??'').split(/\r?\n/))
     .map(capitalizeGeneratedPostLine)
     .filter(line=>String(line||'').trim())
     .join('\n')
