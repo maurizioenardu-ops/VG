@@ -6373,16 +6373,19 @@ function setArticleFacebookPostAuto(text){
 }
 
 function buildPostInstagram(a){
-  if(!a?.codice) return '';
-  const model=postNameWithQuality(a,'ig') || postPrimaryName(a,'ig') || categoryLabelForPost(a);
-  const lines=[...promoPostIntroLines(a)];
-  if(model) lines.push(model);
-  const desc=String(a?.descrizione||'').trim();
-  if(desc) lines.push(desc);
-  const misura=formatPostMeasureLine(a);
-  if(misura) lines.push(misura);
-  lines.push(`cod. ${a.codice}`);
-  return normalizePublicPostForArticle(formatGeneratedPostLines(lines), a);
+  // Instagram usa esclusivamente testi generici e prudenti.
+  // Niente marchi, modello, codice, prezzo, promo, misure o dettagli commerciali.
+  const variants=[
+    'Scrivimi in privato per informazioni 📩',
+    'Mandami un messaggio privato per tutti i dettagli 📩',
+    'Per informazioni, scrivimi in privato 📩',
+    'Contattami in privato per saperne di più 📩',
+    'Scrivimi pure in privato 📩'
+  ];
+  const key=String(a?.codice||a?.id||a?.modello||'');
+  let hash=0;
+  for(let i=0;i<key.length;i++) hash=((hash*31)+key.charCodeAt(i))>>>0;
+  return variants[hash % variants.length];
 }
 
 function buildPostTelegram(a, includePrice=true){
@@ -8496,7 +8499,7 @@ function commercialNormalizeForMatch(value){
 }
 function commercialPublicTextForChannel(article, channel){
   if(channel==='fb') return String(getArticleFacebookPost(article)||'').trim();
-  if(channel==='ig') return String(article?.postIg||buildPostInstagram(article)||'').trim();
+  if(channel==='ig') return String(buildPostInstagram(article)||'').trim();
   return '';
 }
 function commercialPublicChannelAudit(article, channel){
