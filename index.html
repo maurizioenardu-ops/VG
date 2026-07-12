@@ -5096,13 +5096,18 @@ function pickFacebookDetailLines(a){
 }
 function promoPostIntroLines(a){
   if(!promoValid(a)) return [];
-  const end=String(a?.scadenzaPromo||'').trim();
-  if(!end) return [];
-  const monthNames=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
-  const mm=/^\d{4}-(\d{2})-\d{2}$/.exec(end)?.[1]||'';
-  const month=monthNames[Math.max(0, Math.min(11, Number(mm)-1))]||'';
-  const date=formatPromoDateLabel(end);
-  return [`✨ PROMO DI ${month.toUpperCase()} · VALIDA FINO AL ${String(date||'').toUpperCase()} ✨`];
+
+  // Se sono attive entrambe, la promo personale ha la precedenza sul prezzo cliente.
+  // In assenza di una scadenza precisa mostriamo una dicitura semplice e non inventiamo date.
+  const end = personalPromoValid(a)
+    ? personalPromoEnd(a)
+    : (supplierPromoValid(a) ? supplierPromoEnd(a) : '');
+
+  if(end){
+    const date=formatPromoDayMonth(end);
+    return [`💥PROMO FINO AL ${String(date||'').toUpperCase()}💥`];
+  }
+  return ['💥IN PROMOZIONE💥'];
 }
 function isSocialFooterNoiseLine(line=''){
   const raw=String(line||'').trim();
@@ -6394,9 +6399,8 @@ function buildPostTelegram(a, includePrice=true){
     lines.push(txt);
   };
   if(promoValid(a)){
-    const scadenzaRaw=String(a.scadenzaPromo||'').trim();
     const tipoMateriale=materiale || materialeCompat || variante;
-    if(scadenzaRaw) lines.push(`🔥 IN PROMO FINO AL ${formatPromoDayMonth(scadenzaRaw)}`);
+    lines.push(...promoPostIntroLines(a));
     if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
     const premiumQualityLine=originalPremiumSocialLine(a);
     if(premiumQualityLine) lines.push(premiumQualityLine);
