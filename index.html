@@ -1290,8 +1290,10 @@ function normalizeArticlePromoState(article, today=todayStr()){
   const personalEnd=normalizeSpaceText(article?.scadenzaPromoPersonale||article?.scadenzaPromo||'');
   const supplierEnd=normalizeSpaceText(article?.scadenzaPromoFornitore||'');
   const supplierUnknown=!!article?.promoFornitoreDataSconosciuta;
-  const personalExpired=!!(personalEnd && personalEnd<today && Number(article?.prezzoPromo||0)>0);
-  const supplierExpired=!!(!supplierUnknown && supplierEnd && supplierEnd<today && getPromoSupplierUsd(article)>0);
+  const personalExpired=!!(personalEnd && promoEndExpired(personalEnd,today) && Number(article?.prezzoPromo||0)>0);
+  // Se esiste una data finale esplicita, la sua scadenza prevale sempre sulla
+  // vecchia opzione "scadenza non comunicata".
+  const supplierExpired=!!(supplierEnd && promoEndExpired(supplierEnd,today) && getPromoSupplierUsd(article)>0);
   const normalized={
     ...article,
     // Lo storico economico resta intatto, ma i flag operativi vengono spenti alla scadenza.
@@ -4291,21 +4293,31 @@ function promoHasHistory(a){
 }
 function supplierPromoEnd(a){ return String(a?.scadenzaPromoFornitore||'').trim(); }
 function personalPromoEnd(a){ return String(a?.scadenzaPromoPersonale||a?.scadenzaPromo||'').trim(); }
+function promoEndExpired(value, today=todayStr()){
+  const end=parseIsoDay(value);
+  const now=parseIsoDay(today) || parseIsoDay(todayStr());
+  if(!end || !now) return false;
+  return end.getTime() < now.getTime();
+}
 function supplierPromoValid(a, today=todayStr()){
   if(!(getPromoSupplierUsd(a)>0)) return false;
   if(a?.promoFornitoreAttiva===false) return false;
-  if(a?.promoFornitoreDataSconosciuta) return true;
   const end=supplierPromoEnd(a);
-  return !end || end>=today;
+  // Una data esplicita scaduta prevale sempre, anche se in passato era stata
+  // selezionata l'opzione "scadenza non comunicata".
+  if(end && promoEndExpired(end, today)) return false;
+  if(end) return true;
+  return !!a?.promoFornitoreDataSconosciuta;
 }
 function personalPromoValid(a, today=todayStr()){
   if(!a?.promoAttiva || !(Number(a?.prezzoPromo||0)>0)) return false;
   const end=personalPromoEnd(a);
-  return !end || end>=today;
+  if(end && promoEndExpired(end, today)) return false;
+  return true;
 }
 function promoExpiredDisplay(a, today=todayStr()){
   const se=supplierPromoEnd(a), pe=personalPromoEnd(a);
-  return !!((se && se<today && getPromoSupplierUsd(a)>0) || (pe && pe<today && Number(a?.prezzoPromo||0)>0));
+  return !!((se && promoEndExpired(se,today) && getPromoSupplierUsd(a)>0) || (pe && promoEndExpired(pe,today) && Number(a?.prezzoPromo||0)>0));
 }
 function promoPeriodLabel(a){
   const pe=personalPromoEnd(a), se=supplierPromoEnd(a);
@@ -9175,8 +9187,13 @@ function renderArtAutoFields(){
   const promoOn=document.getElementById('a_promo_on').checked;
   const promoPrice=Number(document.getElementById('a_promo_price').value||0);
   const promoDate=document.getElementById('a_promo_date').value.trim();
-  const a={codice:code, costoUsd:usd, costoEur:r.costo, costoUsdPromo:promoUsd, costoEurPromo:rPromo.costo, prezzoVendita:baseSell, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate, scadenzaPromoPersonale:promoDate, dataInizioPromoPersonale:'', promoFornitoreAttiva:!!document.getElementById('a_supplier_promo_on')?.checked, dataInizioPromoFornitore:'', scadenzaPromoFornitore:document.getElementById('a_supplier_promo_end').value.trim(), promoFornitoreDataSconosciuta:document.getElementById('a_supplier_date_unknown').checked, costoNormaleSconosciuto:document.getElementById('a_std_cost_unknown').checked};
-    const finalPrice = a.prezzoVendita ? round5(currentPrice(a)) : 0;
+  let a={codice:code, costoUsd:usd, costoEur:r.costo, costoUsdPromo:promoUsd, costoEurPromo:rPromo.costo, prezzoVendita:baseSell, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate, scadenzaPromoPersonale:promoDate, dataInizioPromoPersonale:'', promoFornitoreAttiva:!!document.getElementById('a_supplier_promo_on')?.checked, dataInizioPromoFornitore:'', scadenzaPromoFornitore:document.getElementById('a_supplier_promo_end').value.trim(), promoFornitoreDataSconosciuta:document.getElementById('a_supplier_date_unknown').checked, costoNormaleSconosciuto:document.getElementById('a_std_cost_unknown').checked};
+  a=normalizeArticlePromoState(a);
+  // Aggiorna anche i controlli visivi: una promo scaduta non deve sembrare
+  // ancora selezionata mentre il prezzo è già tornato normale.
+  if(document.getElementById('a_promo_on')) document.getElementById('a_promo_on').checked=!!a.promoAttiva;
+  if(document.getElementById('a_supplier_promo_on')) document.getElementById('a_supplier_promo_on').checked=!!a.promoFornitoreAttiva;
+  const finalPrice = a.prezzoVendita ? round5(currentPrice(a)) : 0;
   document.getElementById('a_final').value = finalPrice ? String(finalPrice) : '';
   const costForMargin = currentCost(a) || Number(r.costo)||0;
   const margin = Math.max(0, finalPrice - costForMargin);
