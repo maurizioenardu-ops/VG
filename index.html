@@ -9128,8 +9128,17 @@ function buildAutoArticleDescription(a, opts={}){
   }
   return out;
 }
+function syncPromoCheckboxesFromAmounts(){
+  const supplierAmount=Number(document.getElementById('a_usd_promo')?.value||0);
+  const personalAmount=Number(document.getElementById('a_promo_price')?.value||0);
+  const supplierCheck=document.getElementById('a_supplier_promo_on');
+  const personalCheck=document.getElementById('a_promo_on');
+  if(supplierCheck) supplierCheck.checked=Number.isFinite(supplierAmount) && supplierAmount>0;
+  if(personalCheck) personalCheck.checked=Number.isFinite(personalAmount) && personalAmount>0;
+}
 function renderArtAutoFields(){
   updateArticleColorModeUI();
+  syncPromoCheckboxesFromAmounts();
   const code=document.getElementById('a_cod').value.trim();
   const usdRaw=document.getElementById('a_usd').value.trim();
   const usdPromoRaw=document.getElementById('a_usd_promo')?.value.trim()||'';
