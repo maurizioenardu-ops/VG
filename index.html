@@ -19,9 +19,9 @@
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#111827}
 body{-webkit-tap-highlight-color:transparent}
-.top{position:sticky;top:0;background:var(--navy);color:#fff;padding:16px 14px 14px;z-index:10}
-.top h1{margin:0;font-size:20px;font-weight:900}
-.date{margin-top:4px;font-size:12px;opacity:.86}
+.top{position:sticky;top:0;background:var(--navy);color:#fff;padding:10px 14px 8px;z-index:10}
+.top h1{margin:0;font-size:18px;font-weight:900;line-height:1.1}
+.date{margin-top:2px;font-size:11px;opacity:.86}
 .app{max-width:560px;margin:0 auto;min-height:100vh;padding:12px 12px 84px}
 .tabs{display:flex;overflow-x:auto;gap:8px;margin:12px 0;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}.tabs::-webkit-scrollbar{display:none}.tab{flex:0 0 auto;min-width:72px}
 /* Social styles */
@@ -3645,6 +3645,49 @@ window.artHeroVideo=function(url){
   if(vid){ vid.src=url; vid.style.display='block'; vid.play().catch(()=>{}); }
 };
 
+
+async function shareArticleFilesSmart(files, options={}){
+  const list=normalizePreparedPhotoFiles(Array.isArray(files)?files:[]);
+  const baseName=String(options.baseName||'articolo').trim()||'articolo';
+  const title=String(options.title||baseName||'Articolo').trim()||'Articolo';
+  const channel=String(options.channel||'fb').trim()||'fb';
+  const isTelegram=channel==='tg';
+  if(!list.length) return { ok:false, mode:'none' };
+  try{
+    if(canNativeShareFiles(list)){
+      await navigator.share({files:list});
+      return { ok:true, mode:list.length===1 ? 'single':'multi' };
+    }
+  }catch(err){
+    if(isShareAbortError(err)) throw err;
+    console.warn('Share file diretto fallito, provo fallback tavola unica', err);
+  }
+
+  if(list.length>1){
+    try{
+      const sheetFile=await buildPhotoSheetFromFiles(list, `${baseName}_tutte_le_foto.jpg`);
+      if(sheetFile && canNativeShareFiles([sheetFile])){
+        await navigator.share({files:[sheetFile]});
+        return { ok:true, mode:'sheet', count:list.length };
+      }
+    }catch(err){
+      if(isShareAbortError(err)) throw err;
+      console.warn('Share tavola unica fallito', err);
+    }
+  }
+
+  try{
+    if(typeof navigator.share==='function'){
+      await navigator.share({title});
+      return { ok:true, mode:'title' };
+    }
+  }catch(err){
+    if(isShareAbortError(err)) throw err;
+    console.warn('Share titolo fallback fallito', err);
+  }
+  return { ok:false, mode:'fail' };
+}
+
 async function shareArtAll(){
   const db=loadDB();
   const a=db.articoli.find(x=>x.id===currentArtId); if(!a) return;
@@ -3697,20 +3740,23 @@ async function shareArtAll(){
   }
 
   try{
-    if(canNativeShareFiles(files)){
-      await navigator.share({files});
+    const shareResult=await shareArticleFilesSmart(files, { baseName:(a.codice||a.modello||'articolo'), title:(a.modello||a.codice||'Articolo'), channel:'fb' });
+    if(shareResult?.ok){
       recordArticlePublication('fb');
-      toast(text?'✅ File condivisi! Testo FB copiato — incollalo come didascalia 📋':'✅ Condivisione aperta!');
-    } else if(typeof navigator.share==='function'){
-      await navigator.share({title:a.modello||a.codice||'Articolo'});
-      toast('✅ Condivisione aperta!');
+      if(shareResult.mode==='sheet'){
+        toast(text?`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine. Testo FB copiato 📋`:`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine.`);
+      }else if(shareResult.mode==='title'){
+        toast(text?'📋 Testo FB copiato negli appunti. La condivisione file completa non era disponibile.':'✅ Condivisione aperta!');
+      }else{
+        toast(text?'✅ File condivisi! Testo FB copiato — incollalo come didascalia 📋':'✅ Condivisione aperta!');
+      }
     } else {
       if(text) toast('📋 Testo FB copiato negli appunti');
       else toast('Condivisione non supportata su questo browser');
     }
   }catch(err){
     if(isShareAbortError(err)) return;
-    if(isShareActivationError(err)){ toast('⚠️ File non ancora pronti. Premi di nuovo Condividi.'); return; }
+    if(isShareActivationError(err)){ toast('⚠️ Premi di nuovo Condividi: il browser ha perso il tocco durante la preparazione.'); return; }
     console.warn('shareArtAll fallito:',err);
     toast('⚠️ Condivisione non riuscita');
   }
@@ -3767,20 +3813,22 @@ async function shareArtTelegram(){
   }
 
   try{
-    if(canNativeShareFiles(files)){
-      await navigator.share({files});
+    const shareResult=await shareArticleFilesSmart(files, { baseName:(a.codice||a.modello||'articolo'), title:(a.modello||a.codice||'Articolo'), channel:'tg' });
+    if(shareResult?.ok){
       recordArticlePublication('tg');
-      toast(text?'✅ Foto condivise! Testo Telegram copiato — incollalo come didascalia 📋':'✅ Condivisione aperta!');
-    }else if(typeof navigator.share==='function'){
-      await navigator.share({title:a.modello||a.codice||'Articolo', text:text||undefined});
-      recordArticlePublication('tg');
-      toast('✅ Condivisione Telegram aperta!');
-    }else{
+      if(shareResult.mode==='sheet'){
+        toast(text?`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine. Testo Telegram copiato 📋`:`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine.`);
+      }else if(shareResult.mode==='title'){
+        toast(text?'📋 Testo Telegram copiato. La condivisione file completa non era disponibile.':'✅ Condivisione Telegram aperta!');
+      }else{
+        toast(text?'✅ Foto condivise! Testo Telegram copiato — incollalo come didascalia 📋':'✅ Condivisione aperta!');
+      }
+    } else {
       toast(text?'📋 Testo Telegram copiato. La condivisione file non è supportata.':'Condivisione non supportata su questo browser');
     }
   }catch(err){
     if(isShareAbortError(err)) return;
-    if(isShareActivationError(err)){ toast('⚠️ File non ancora pronti. Premi di nuovo Telegram.'); return; }
+    if(isShareActivationError(err)){ toast('⚠️ Premi di nuovo Telegram: il browser ha perso il tocco durante la preparazione.'); return; }
     console.warn('shareArtTelegram fallito:',err);
     toast('⚠️ Condivisione Telegram non riuscita');
   }
@@ -3832,23 +3880,23 @@ async function shareArticleFromList(artId){
   }
 
   try{
-    if(canNativeShareFiles(cached)){
-      await navigator.share({files:cached});
+    const shareResult=await shareArticleFilesSmart(cached, { baseName:(a.codice||a.modello||'articolo'), title:(a.modello||a.codice||'Articolo'), channel:'fb' });
+    if(shareResult?.ok){
       recordArticlePublication('fb');
-      toast(text ? '✅ File condivisi! Testo FB senza prezzo copiato — incollalo come didascalia 📋' : '✅ Condivisione aperta!');
-      return;
-    }
-    if(typeof navigator.share==='function'){
-      await navigator.share({title:a.modello||a.codice||'Articolo'});
-      recordArticlePublication('fb');
-      toast(text ? '✅ Condivisione aperta. Testo FB senza prezzo copiato 📋' : '✅ Condivisione aperta!');
+      if(shareResult.mode==='sheet'){
+        toast(text ? `✅ Condivisione aperta! Ho unito ${shareResult.count||cached.length} foto in un'unica immagine. Testo FB senza prezzo copiato 📋` : `✅ Condivisione aperta! Ho unito ${shareResult.count||cached.length} foto in un'unica immagine.`);
+      }else if(shareResult.mode==='title'){
+        toast(text ? '📋 Testo FB senza prezzo copiato. La condivisione file completa non era disponibile.' : '✅ Condivisione aperta!');
+      }else{
+        toast(text ? '✅ File condivisi! Testo FB senza prezzo copiato — incollalo come didascalia 📋' : '✅ Condivisione aperta!');
+      }
       return;
     }
     toast(text ? '📋 Testo FB senza prezzo copiato. Condivisione file non supportata su questo browser.' : 'Condivisione non supportata su questo browser');
   }catch(err){
     if(isShareAbortError(err)) return;
     if(isShareActivationError(err)){
-      toast('⚠️ Foto preparate. Premi di nuovo Condividi.');
+      toast('⚠️ Premi di nuovo Condividi: il browser ha perso il tocco durante la preparazione.');
       return;
     }
     console.warn('Condivisione articolo da elenco fallita:', err);
