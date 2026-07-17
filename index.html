@@ -10534,21 +10534,65 @@ async function deleteOrd(){
 }
 
 /* ====== IMPORT/EXPORT ====== */
+let __exportDbRunning=false;
 async function exportDB(mode){
-  const db=loadDB();
-  const out=JSON.parse(JSON.stringify(db));
-  for(const art of out.articoli){
-    if(mode==='lite') art.foto=[];
-    else art.foto=await getArticlePics(art);
+  if(__exportDbRunning){ toast('Esportazione già in corso…'); return; }
+  __exportDbRunning=true;
+  const full=mode==='full';
+  const hint=document.getElementById('importHint');
+  const label=full?'completo':'senza foto';
+  let photoErrors=0;
+  try{
+    const db=loadDB();
+    const out=JSON.parse(JSON.stringify(db));
+    out.articoli=Array.isArray(out.articoli)?out.articoli:[];
+    toast(`Preparo export ${label}…`);
+    if(hint) hint.textContent=`Preparazione export ${label}…`;
+
+    for(let i=0;i<out.articoli.length;i++){
+      const art=out.articoli[i];
+      if(!full){
+        art.foto=[];
+      }else{
+        try{
+          // Legge le foto dalla scheda originale, non dalla copia JSON.
+          const original=(db.articoli||[]).find(x=>String(x.id||'')===String(art.id||'')) || art;
+          art.foto=await getArticlePics(original);
+        }catch(err){
+          photoErrors++;
+          console.warn('Foto non incluse nell’export per articolo', art?.codice||art?.id, err);
+          art.foto=[];
+        }
+      }
+      if(full && (i===0 || (i+1)%10===0 || i===out.articoli.length-1)){
+        const msg=`Foto export: ${i+1}/${out.articoli.length}`;
+        if(hint) hint.textContent=msg;
+        toast(msg);
+        await new Promise(resolve=>setTimeout(resolve,0));
+      }
+    }
+
+    out.exportedAt=new Date().toISOString();
+    out.exportMode=mode;
+    out.exportWarnings=photoErrors?{fotoNonIncluse:photoErrors}:undefined;
+    const json=JSON.stringify(out,null,2);
+    const blob=new Blob([json],{type:'application/json;charset=utf-8'});
+    const filename=`gestionale_${mode}_${Date.now()}.json`;
+    triggerBlobDownload(blob, filename);
+
+    const finalMsg=photoErrors
+      ? `Export ${label} creato. ${photoErrors} articoli avevano foto non leggibili e sono stati esportati senza quelle foto.`
+      : `Export ${label} creato correttamente.`;
+    if(hint) hint.textContent=finalMsg;
+    toast(finalMsg);
+  }catch(err){
+    console.error('Esportazione database fallita',err);
+    const msg=`Export ${label} non riuscito: ${err?.message||'errore sconosciuto'}`;
+    if(hint) hint.textContent=msg;
+    toast(msg);
+  }finally{
+    __exportDbRunning=false;
   }
-  out.exportedAt=new Date().toISOString();
-  const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`gestionale_${mode}_${Date.now()}.json`;
-  a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
-  document.getElementById('importHint').textContent = `Export fatto (${mode}). Database esportato correttamente.`;
 }
 function importDB(file){
   const mode=(document.getElementById('importMode')?.value||'replace');
