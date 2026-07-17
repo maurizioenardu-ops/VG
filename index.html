@@ -370,7 +370,7 @@ input,select,textarea{font-size:17px;line-height:1.25}
   border:1px solid var(--line);
 }
 .artStatsItem strong{font-size:15px;color:#0f172a}
-.artStatsItem.noPhoto{background:#fff7ed;border-color:#fdba74;color:#9a3412}
+.artStatsItem.noPhoto{background:#fff7ed;border-color:#fdba74;color:#9a3412;cursor:pointer;appearance:none;font:inherit}
 .artStatsItem.noPhoto strong{color:#9a3412}
 @media(max-width:390px){
   #sec_articoli .artToolbarCard .btn{font-size:14px !important;padding:8px 10px !important;min-height:42px !important}
@@ -7989,6 +7989,11 @@ function renderArtBreadcrumbs(){
     box.style.display='flex';
     return;
   }
+  if(artBrowseState.level==='noPhoto'){
+    box.innerHTML=`<span class="artCrumb active">Articoli senza foto</span><button class="artCrumb" type="button" data-action="openAllArticles">Tutti gli articoli</button>`;
+    box.style.display='flex';
+    return;
+  }
   if(artBrowseState.level==='mixed'){
     box.innerHTML=`<span class="artCrumb active">Tutti gli articoli</span><button class="artCrumb" type="button" data-action="clearArtFilters">Mostra prodotti</button>`;
     box.style.display='flex';
@@ -8131,7 +8136,7 @@ function renderArtStats(items){
   const list=Array.isArray(items) ? items : [];
   const total=list.length;
   const withoutPhotos=list.filter(a=>articlePhotoCountSync(a)===0).length;
-  box.innerHTML=`<span class="artStatsItem">Totale articoli: <strong>${total}</strong></span>${withoutPhotos>0 ? `<span class="artStatsItem noPhoto">Senza foto: <strong>${withoutPhotos}</strong></span>` : ''}`;
+  box.innerHTML=`<span class="artStatsItem">Totale articoli: <strong>${total}</strong></span>${withoutPhotos>0 ? `<button type="button" class="artStatsItem noPhoto" data-action="openArticlesWithoutPhotos">Senza foto: <strong>${withoutPhotos}</strong></button>` : ''}`;
 }
 
 function renderArt(){
@@ -8144,6 +8149,7 @@ function renderArt(){
   const brandFilter=String(document.getElementById('qArtBrand')?.value||'').trim();
   const qualityFilter=String(document.getElementById('qArtQuality')?.value||'').trim();
   const promoOnly=artBrowseState.level==='promo';
+  const noPhotoOnly=artBrowseState.level==='noPhoto';
   const items=db.articoli.filter(a=>{
     const hay=articleSearchHay(a);
     const okText=!q || hay.includes(q);
@@ -8151,12 +8157,13 @@ function renderArt(){
     const okBrand=!brandFilter || displayBrandValue(a.brand)===displayBrandValue(brandFilter);
     const okQuality=!qualityFilter || articleQualityLabel(a)===qualityFilter;
     const okPromo=!promoOnly || promoValid(a);
-    return okText && okCat && okBrand && okQuality && okPromo;
+    const okNoPhoto=!noPhotoOnly || articlePhotoCountSync(a)===0;
+    return okText && okCat && okBrand && okQuality && okPromo && okNoPhoto;
   }).sort((a,b)=>compareArticlesForPreview(a,b));
   const el=document.getElementById('listArt');
   renderArtBreadcrumbs();
   renderArtStats(items);
-  const showOverview=artBrowseState.level==='categorie' && !promoOnly && !q && !catFilter && !brandFilter && !qualityFilter;
+  const showOverview=artBrowseState.level==='categorie' && !promoOnly && !noPhotoOnly && !q && !catFilter && !brandFilter && !qualityFilter;
   if(showOverview){
     renderCategoryOverview(items,{promoOnly,brandFilter,qualityFilter});
     return;
@@ -8172,7 +8179,7 @@ function renderArt(){
     const noteHtml=notePreview ? `<div class="artCardNote" title="${esc(notePreview)}">${esc(notePreview)}</div>` : '';
     return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}">${noteHtml}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s artPhotoCount">${esc(metaLine)}</div>${unavailable}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtFromList" data-id="${a.id}">Condividi</button></div></div>`;
   }).join('');
-  const emptyText=promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.';
+  const emptyText=noPhotoOnly ? 'Nessun articolo senza foto.' : (promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.');
   el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
   hydrateArticleThumbs(items);
 }
@@ -10755,6 +10762,19 @@ document.addEventListener('click',(ev)=>{
   }
   const a=el.dataset.action;
   if(a==='newArt') return openArtEdit(null);
+  if(a==='openArticlesWithoutPhotos'){
+    const qArt=document.getElementById('qArt');
+    const qArtCat=document.getElementById('qArtCat');
+    const qArtBrand=document.getElementById('qArtBrand');
+    const qArtQuality=document.getElementById('qArtQuality');
+    if(qArt) qArt.value='';
+    if(qArtCat) qArtCat.value='';
+    if(qArtBrand) qArtBrand.value='';
+    if(qArtQuality) qArtQuality.value='';
+    setArtBrowse('noPhoto');
+    go('articoli');
+    return renderArt();
+  }
   if(a==='openPromoArticles'){
     const qArt=document.getElementById('qArt');
     const qArtCat=document.getElementById('qArtCat');
@@ -10805,7 +10825,7 @@ document.addEventListener('click',(ev)=>{
     if(qArtCat) qArtCat.value='';
     if(qArtBrand) qArtBrand.value='';
     if(qArtQuality) qArtQuality.value='';
-    setArtBrowse(artBrowseState.level==='promo'?'promo':'mixed');
+    setArtBrowse(artBrowseState.level==='promo'?'promo':(artBrowseState.level==='noPhoto'?'noPhoto':'mixed'));
     return renderArt();
   }
   if(a==='selectArtCategory'){ const sel=document.getElementById('qArtCat'); if(sel) sel.value=String(el.dataset.name||''); setArtBrowse('tutti'); return renderArt(); }
