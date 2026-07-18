@@ -9220,8 +9220,10 @@ function syncPromoCheckboxesFromAmounts(){
   const personalAmount=Number(document.getElementById('a_promo_price')?.value||0);
   const supplierCheck=document.getElementById('a_supplier_promo_on');
   const personalCheck=document.getElementById('a_promo_on');
-  if(supplierCheck) supplierCheck.checked=Number.isFinite(supplierAmount) && supplierAmount>0;
-  if(personalCheck) personalCheck.checked=Number.isFinite(personalAmount) && personalAmount>0;
+  // Un importo vuoto/zero spegne sempre la promo. Un importo già presente,
+  // invece, non deve riaccendere una spunta tolta manualmente.
+  if(supplierCheck && !(Number.isFinite(supplierAmount) && supplierAmount>0)) supplierCheck.checked=false;
+  if(personalCheck && !(Number.isFinite(personalAmount) && personalAmount>0)) personalCheck.checked=false;
 }
 function renderArtAutoFields(){
   updateArticleColorModeUI();
@@ -9316,9 +9318,9 @@ function renderArtAutoFields(){
   document.getElementById('a_promo_summary').textContent=summary.join(' · ');
   // auto post
   const draft={
+    ...a,
     codice:code, brand:getArticleBrandValue(),
     modello:document.getElementById('a_mod').value.trim(),
-    promoAttiva:promoOn, prezzoPromo:promoPrice, costoUsdPromo:promoUsd, costoEurPromo:rPromo.costo, scadenzaPromo:promoDate,
     prezzoVendita:baseSell,
     misura:document.getElementById('a_mis').value.trim(),
     altezzaCintura:document.getElementById('a_belt_h')?.value.trim()||'',
@@ -11182,6 +11184,17 @@ bindSearchSuggest('qCli','qCliSuggest','cli', ()=>renderCli());
 bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
+
+document.getElementById('a_usd_promo')?.addEventListener('input', ()=>{
+  const amount=Number(document.getElementById('a_usd_promo')?.value||0);
+  const check=document.getElementById('a_supplier_promo_on');
+  if(check && Number.isFinite(amount) && amount>0) check.checked=true;
+});
+document.getElementById('a_promo_price')?.addEventListener('input', ()=>{
+  const amount=Number(document.getElementById('a_promo_price')?.value||0);
+  const check=document.getElementById('a_promo_on');
+  if(check && Number.isFinite(amount) && amount>0) check.checked=true;
+});
 
 ['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_supplier_promo_on','a_promo_on','a_promo_price','a_promo_date','a_supplier_promo_end','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
   const el=document.getElementById(id);
