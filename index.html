@@ -10580,6 +10580,15 @@ async function exportDB(mode){
       }
     }
 
+    // La Bacheca usa un archivio locale separato dal DB principale.
+    // Nell'export completo viene inclusa integralmente, compresi post,
+    // programmazione, storico pubblicazioni e riferimenti ai media.
+    if(full){
+      const social=loadSocial();
+      out.bacheca=JSON.parse(JSON.stringify(social && typeof social==='object' ? social : {posts:[]}));
+      out.bacheca.posts=Array.isArray(out.bacheca.posts)?out.bacheca.posts:[];
+    }
+
     out.exportedAt=new Date().toISOString();
     out.exportMode=mode;
     out.exportWarnings=photoErrors?{fotoNonIncluse:photoErrors}:undefined;
@@ -10608,6 +10617,9 @@ function importDB(file){
   r.onload=async()=>{
     try{
       const parsed=JSON.parse(r.result);
+      const incomingBacheca=(parsed && typeof parsed.bacheca==='object' && parsed.bacheca)
+        ? JSON.parse(JSON.stringify(parsed.bacheca))
+        : null;
       const incoming=normalizeDBShape(parsed);
       if(!incoming || !Array.isArray(incoming.articoli)||!Array.isArray(incoming.clienti)||!Array.isArray(incoming.ordini)) throw new Error('JSON non compatibile');
       for(const art of incoming.articoli){
@@ -10636,9 +10648,30 @@ function importDB(file){
       }
       updateShippingNotifications(nextDb,'json-import');
       if(!saveDB(nextDb)) throw new Error('Salvataggio locale fallito');
+
+      let bachecaImported=false;
+      if(incomingBacheca){
+        incomingBacheca.posts=Array.isArray(incomingBacheca.posts)?incomingBacheca.posts:[];
+        if(mode==='merge'){
+          const currentSocial=loadSocial();
+          const allPosts=[...(Array.isArray(currentSocial?.posts)?currentSocial.posts:[]), ...incomingBacheca.posts];
+          const byId=new Map();
+          for(const post of allPosts){
+            const key=String(post?.id||'').trim() || `legacy_${String(post?.titolo||'')}_${String(post?.data||post?.createdAt||'')}`;
+            const prev=byId.get(key);
+            if(!prev || Number(post?._ts||post?.updatedAt||0)>=Number(prev?._ts||prev?.updatedAt||0)) byId.set(key,post);
+          }
+          saveSocial({...currentSocial,...incomingBacheca,posts:Array.from(byId.values())});
+        }else{
+          saveSocial(incomingBacheca);
+        }
+        bachecaImported=true;
+      }
+
       renderAll();
-      document.getElementById('importHint').textContent = mode==='merge' ? 'Import OK. JSON unito ai dati già presenti.' : 'Import OK. Database sostituito con il JSON.';
-      toast(mode==='merge' ? 'Import unito ai dati attuali' : 'Import sostitutivo completato');
+      const baseMsg=mode==='merge' ? 'Import OK. JSON unito ai dati già presenti.' : 'Import OK. Database sostituito con il JSON.';
+      document.getElementById('importHint').textContent = bachecaImported ? `${baseMsg} Bacheca ripristinata.` : `${baseMsg} Nessuna Bacheca presente nel file.`;
+      toast(bachecaImported ? (mode==='merge' ? 'Import unito, Bacheca compresa' : 'Import completato, Bacheca compresa') : (mode==='merge' ? 'Import unito ai dati attuali' : 'Import sostitutivo completato'));
     }catch(e){
       toast('Import fallito'); console.error(e);
     }
