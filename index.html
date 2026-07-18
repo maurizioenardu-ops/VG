@@ -957,6 +957,7 @@ window.addEventListener('error',e=>{
       <div class="k">Fine promo fornitore</div><input id="a_supplier_promo_end" type="date" autocomplete="off"/>
     </div>
     <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_supplier_date_unknown" type="checkbox" style="width:auto;margin-right:8px"/>Scadenza fornitore non comunicata</label></div>
+    <div id="a_supplier_expiry_warning" class="helper" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid #f59e0b;border-radius:12px;background:#fffbeb;color:#92400e;font-weight:900">⚠️ Indica la data di scadenza oppure spunta “Scadenza fornitore non comunicata”.</div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k">Prezzo vendita standard (auto)</div><input id="a_sell" readonly/></div>
       <div><div class="k">Prezzo finale in uso (auto)</div><input id="a_final" readonly/><div class="helper">Usa il prezzo promo fornitore quando attivo; la promo personale ha priorità.</div></div>
@@ -9191,6 +9192,18 @@ function buildAutoArticleDescription(a, opts={}){
   }
   return out;
 }
+function updateSupplierPromoExpiryWarning(showToast=false){
+  const promoAmount=Number(document.getElementById('a_usd_promo')?.value||0);
+  const promoActive=!!document.getElementById('a_supplier_promo_on')?.checked && Number.isFinite(promoAmount) && promoAmount>0;
+  const hasEnd=!!String(document.getElementById('a_supplier_promo_end')?.value||'').trim();
+  const unknownChecked=!!document.getElementById('a_supplier_date_unknown')?.checked;
+  const missing=promoActive && !hasEnd && !unknownChecked;
+  const warning=document.getElementById('a_supplier_expiry_warning');
+  if(warning) warning.style.display=missing?'block':'none';
+  if(missing && showToast) toast('⚠️ Promo fornitore senza scadenza: inserisci una data oppure spunta “Scadenza non comunicata”.');
+  return missing;
+}
+
 function syncPromoCheckboxesFromAmounts(){
   const supplierAmount=Number(document.getElementById('a_usd_promo')?.value||0);
   const personalAmount=Number(document.getElementById('a_promo_price')?.value||0);
@@ -9202,6 +9215,7 @@ function syncPromoCheckboxesFromAmounts(){
 function renderArtAutoFields(){
   updateArticleColorModeUI();
   syncPromoCheckboxesFromAmounts();
+  updateSupplierPromoExpiryWarning(false);
   const code=document.getElementById('a_cod').value.trim();
   const usdRaw=document.getElementById('a_usd').value.trim();
   const usdPromoRaw=document.getElementById('a_usd_promo')?.value.trim()||'';
@@ -9435,6 +9449,7 @@ async function duplicateCurrentArticle(sourceId=null){
 
 async function saveArt(){
   try{
+    updateSupplierPromoExpiryWarning(true);
     const db=loadDB();
     const code=document.getElementById('a_cod').value.trim();
     const colorMode=document.getElementById('a_color_mode').value==='multiple' ? 'multiple' : 'single';
