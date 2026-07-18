@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Gestionale"/>
-<link rel="manifest" href="manifest.json?v=1.0.0"/>
+<link rel="manifest" href="manifest.json?v=1.0.15"/>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-v1-32.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-v1-192.png"/>
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v1.png"/>
@@ -1291,12 +1291,11 @@ function normalizeArticlePromoState(article, today=todayStr()){
   const supplierEnd=normalizeSpaceText(article?.scadenzaPromoFornitore||'');
   const supplierUnknown=!!article?.promoFornitoreDataSconosciuta;
   const personalExpired=!!(personalEnd && promoEndExpired(personalEnd,today) && Number(article?.prezzoPromo||0)>0);
-  // Se esiste una data finale esplicita, la sua scadenza prevale sempre sulla
-  // vecchia opzione "scadenza non comunicata".
+  // La scadenza esplicita prevale sempre su spunte e vecchie impostazioni.
   const supplierExpired=!!(supplierEnd && promoEndExpired(supplierEnd,today) && getPromoSupplierUsd(article)>0);
   const normalized={
     ...article,
-    // Lo storico economico resta intatto, ma i flag operativi vengono spenti alla scadenza.
+    // Prezzi e costi promozionali restano nello storico, ma non vengono più usati.
     promoAttiva:personalExpired ? false : !!article?.promoAttiva,
     dataInizioPromo:getPromoStartDate(article),
     costoNormaleSconosciuto:!!article?.costoNormaleSconosciuto,
@@ -1308,6 +1307,14 @@ function normalizeArticlePromoState(article, today=todayStr()){
     scadenzaPromoPersonale:personalEnd,
     promoScaduta:personalExpired || supplierExpired || !!article?.promoScaduta
   };
+
+  // Alla scadenza rigenera anche i testi salvati: nessuna intestazione promo e
+  // nessun vecchio prezzo scontato può restare nei post.
+  if(personalExpired || supplierExpired){
+    try{ normalized.post=buildPostTelegram(normalized, true); }catch(_e){}
+    try{ normalized.postFb=buildPostFacebookBase(normalized, {includePrice:false}); }catch(_e){}
+    try{ normalized.postIg=buildPostInstagram(normalized); }catch(_e){}
+  }
   return normalized;
 }
 
@@ -4355,7 +4362,8 @@ function supplierPromoValid(a, today=todayStr()){
   // selezionata l'opzione "scadenza non comunicata".
   if(end && promoEndExpired(end, today)) return false;
   if(end) return true;
-  return !!a?.promoFornitoreDataSconosciuta;
+  // Senza una data finale esplicita la promo resta attiva finché la spunta è attiva.
+  return true;
 }
 function personalPromoValid(a, today=todayStr()){
   if(!a?.promoAttiva || !(Number(a?.prezzoPromo||0)>0)) return false;
