@@ -1087,6 +1087,7 @@ window.addEventListener('error',e=>{
   </div>
   <div id="vOrdCumMeta" class="small" style="margin-top:8px;display:none"></div>
   <div class="actions compact bottomMini">
+    <button class="btn primary smallish" type="button" data-action="copyOrdClientAddress">Copia indirizzo cliente</button>
     <button class="btn smallish" type="button" data-action="editOrdFromView">Modifica</button>
     <button class="btn smallish" type="button" data-action="closeOrdView">Chiudi</button>
   </div>
@@ -6624,6 +6625,23 @@ function refreshClientShipping(){
   el.value=buildShippingAddress(c);
   fitTextarea(el);
 }
+function getOrderClientData(order, db){
+  if(!order) return null;
+  return (db?.clienti||[]).find(x=>String(x.id||'')===String(order.clienteId||''))
+    || order.clienteSnapshot
+    || order.clienteStorico
+    || null;
+}
+function copyCurrentOrderClientAddress(){
+  const db=loadDB();
+  const order=(db.ordini||[]).find(x=>String(x.id||'')===String(currentOrdId||''));
+  if(!order) return toast('Ordine non trovato');
+  const client=getOrderClientData(order, db);
+  if(!client) return toast('Cliente non disponibile');
+  const hasAddress=[client.indirizzo,client.cap,client.citta,client.provincia].some(v=>String(v||'').trim());
+  if(!hasAddress) return toast('Indirizzo cliente non disponibile');
+  return copyText(buildShippingAddress(client), 'Indirizzo cliente copiato');
+}
 
 /* ====== NAV ====== */
 let activeModalId=null;
@@ -11126,6 +11144,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='openSupplierLink'){ const link=String(document.getElementById('vArtSupplierLink')?.value||'').trim(); if(!link){ toast('Nessun link fornitore'); return; } const safe=/^https?:\/\//i.test(link)?link:'https://'+link; window.open(safe,'_blank'); return; }
   if(a==='copyCliShip') return copyTextFrom(document.getElementById('c_ship'));
   if(a==='copyCliShipView') return copyTextFrom(document.getElementById('vCliShip'));
+  if(a==='copyOrdClientAddress') return copyCurrentOrderClientAddress();
   if(a==='editCliFromView'){ hide('mCliView', true); return openCliEdit(currentCliId); }
   if(a==='closeCliView') return hide('mCliView');
   if(a==='editOrdFromView'){ hide('mOrdView', true); return openOrdEdit(currentOrdId); }
