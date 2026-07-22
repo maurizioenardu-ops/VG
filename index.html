@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Gestionale"/>
-<link rel="manifest" href="manifest.json?v=1.0.15"/>
+<link rel="manifest" href="manifest.json?v=1.0.26"/>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-v1-32.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-v1-192.png"/>
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v1.png"/>
@@ -93,6 +93,24 @@ body{-webkit-tap-highlight-color:transparent}
 .pill.marginGood{border-color:#86efac;background:#f0fdf4;color:#166534;box-shadow:0 6px 14px rgba(34,197,94,.12)}
 .pill.marginMid{border-color:#fde68a;background:#fffbeb;color:#92400e;box-shadow:0 6px 14px rgba(245,158,11,.14)}
 .pill.marginLow{border-color:#fecaca;background:#fff1f2;color:#b91c1c;box-shadow:0 6px 14px rgba(239,68,68,.14)}
+.statusPill{font-weight:1000;letter-spacing:.2px}
+.statusPill.statusRequested{background:#fff1f2;border-color:#fecaca;color:#b91c1c;box-shadow:0 6px 14px rgba(239,68,68,.12)}
+.statusPill.statusPaid{background:#fffbeb;border-color:#fde68a;color:#92400e;box-shadow:0 6px 14px rgba(245,158,11,.14)}
+.statusPill.statusShipped{background:#ecfccb;border-color:#bef264;color:#3f6212;box-shadow:0 6px 14px rgba(132,204,22,.12)}
+.statusPill.statusDelivered{background:#dcfce7;border-color:#86efac;color:#166534;box-shadow:0 6px 14px rgba(34,197,94,.12)}
+.statusPill.statusCancelled{background:#f1f5f9;border-color:#cbd5e1;color:#475569}
+.statusText.statusRequested{color:#b91c1c;font-weight:900}
+.statusText.statusPaid{color:#92400e;font-weight:900}
+.statusText.statusShipped{color:#3f6212;font-weight:900}
+.statusText.statusDelivered{color:#166534;font-weight:900}
+.statusText.statusCancelled{color:#475569;font-weight:900}
+.statusTotal{font-weight:1100}
+.statusTotal.statusRequested{color:#b91c1c}
+.statusTotal.statusPaid{color:#b45309}
+.statusTotal.statusShipped{color:#4d7c0f}
+.statusTotal.statusDelivered{color:#15803d}
+.statusTotal.statusCancelled{color:#475569}
+.statusIcon{display:inline-flex;align-items:center;justify-content:center;min-width:16px;margin-right:4px}
 .marginBox{display:flex;flex-direction:column;gap:6px}
 .marginMeta{font-size:12px;font-weight:900;color:#475569}
 .costMeta{font-size:12px;font-weight:800;color:#6b7280;line-height:1.35}.costMeta span{color:#9ca3af;font-weight:900}
@@ -106,10 +124,10 @@ body{-webkit-tap-highlight-color:transparent}
 .inputSupplierStd .k{color:#1d4ed8}
 .inputSupplierPromo .k{color:#b45309}
 .inputPromoPersonal .k{color:#15803d}
-.navBottom{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:8px 10px;z-index:20}
-.navBottom .inner{max-width:560px;margin:0 auto;display:flex;justify-content:space-between}
-.navBottom button{border:none;background:none;padding:10px 6px 12px;font-weight:900;color:var(--muted);font-size:11px;touch-action:manipulation}
-.navBottom button.active{color:var(--blue)}
+.navBottom{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.98);border-top:1px solid var(--line);padding:8px 10px calc(10px + env(safe-area-inset-bottom));z-index:20;backdrop-filter:blur(10px)}
+.navBottom .inner{max-width:560px;margin:0 auto;display:flex;justify-content:space-between;gap:6px}
+.navBottom button{border:1px solid #dbe3ef;background:#f8fafc;padding:10px 8px 11px;font-weight:900;color:#64748b;font-size:11px;touch-action:manipulation;border-radius:16px;box-shadow:0 4px 10px rgba(15,23,42,.05);min-width:0;flex:1 1 0;white-space:nowrap}
+.navBottom button.active{color:#1d4ed8;background:#eaf2ff;border-color:#bcd3ff;box-shadow:0 6px 14px rgba(29,78,216,.12)}
 /* modal */
 .modalwrap{position:fixed;inset:0;background:rgba(15,23,42,.4);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}
 .modal{background:#fff;width:100%;max-width:560px;border-radius:20px;border:1px solid var(--line);padding:14px;max-height:85vh;overflow:auto}
@@ -208,8 +226,8 @@ video.hero{background:#000}
 @media (max-width:390px){
   .app{max-width:100%;padding-left:8px;padding-right:8px}
   .tab{font-size:11px;padding:9px 4px}
-  .navBottom .inner{gap:2px}
-  .navBottom button{font-size:10px;padding:10px 2px 12px}
+  .navBottom .inner{gap:4px}
+  .navBottom button{font-size:10px;padding:10px 4px 11px}
   .card,.stat,.modal{border-radius:14px}
 
 .syncMini{display:none;gap:8px;flex-wrap:wrap;margin-top:8px;padding-left:0}
@@ -253,7 +271,7 @@ video.hero{background:#000}
 .orderRemoveBtn{min-width:44px;height:36px;border-radius:12px;border:1px solid #dbe3ef;background:#fff;color:#334155;font-size:15px;font-weight:900;line-height:1;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(15,23,42,.06);padding:0 12px;cursor:pointer}
 .orderRemoveBtn:hover{background:#f8fafc;border-color:#cbd5e1;color:#0f172a}
 .orderRemoveBtn:active{transform:scale(.98)}
-.orderBadge{display:inline-flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;color:#334155}
+.orderBadge{display:inline-flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;color:#334155}.orderMeasureWarning{margin-top:10px;padding:12px 14px;border:2px solid #dc2626;border-radius:14px;background:#fef2f2;color:#991b1b;font-weight:1000;line-height:1.35;box-shadow:0 0 0 3px rgba(220,38,38,.08)}.orderMeasureWarning[hidden]{display:none!important}
 .orderRowControls{display:grid;gap:8px;margin-top:10px}
 .orderInlineField label{display:block;font-size:11px;font-weight:900;color:#64748b;text-transform:uppercase;margin-bottom:4px}
 .orderInlineField select,.orderInlineField input{margin:0}
@@ -286,7 +304,7 @@ body{font-size:16.5px;line-height:1.34}
 .k{font-size:12px;line-height:1.2;letter-spacing:.02em}
 .v{font-size:25px;line-height:1.08}
 .tab{font-size:14.5px;line-height:1.13;padding:12px 10px}
-.navBottom button{font-size:13px;line-height:1.12;padding-top:11px}
+.navBottom button{font-size:12px;line-height:1.12;padding-top:10px}
 .btnBig{font-size:15px;line-height:1.16;min-height:49px}
 button,.btn,.pill{line-height:1.16}
 input,select,textarea{font-size:17px;line-height:1.25}
@@ -307,7 +325,7 @@ input,select,textarea{font-size:17px;line-height:1.25}
   .top h1{font-size:22px}
   .date{font-size:14px}
   .tab{font-size:13.5px;padding:11px 7px}
-  .navBottom button{font-size:12.5px;padding:11px 3px 12px}
+  .navBottom button{font-size:12px;padding:10px 5px 11px}
   .h2{font-size:18px}
   .small,.helper{font-size:13.5px}
   .artMeta .t{font-size:16px}
@@ -321,7 +339,7 @@ input,select,textarea{font-size:17px;line-height:1.25}
   html{font-size:16.5px}
   body{font-size:15.8px}
   .tab{font-size:13px;padding-left:5px;padding-right:5px}
-  .navBottom button{font-size:12px;padding-left:2px;padding-right:2px}
+  .navBottom button{font-size:11.5px;padding-left:4px;padding-right:4px}
   .artMeta .t{font-size:15.5px}
   .artMeta .s{font-size:13px}
   .artPrice{font-size:21px}
@@ -1049,8 +1067,8 @@ window.addEventListener('error',e=>{
   </div>
   <div style="margin-top:10px"><div class="k">Indirizzo</div><input id="c_ind" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
   <div class="grid2" style="margin-top:10px">
-    <div><div class="k">CAP / Codice postale</div><input id="c_cap" inputmode="text" autocomplete="off"/></div>
-    <div><div class="k">Città</div><input id="c_citta" list="c_citta_list" autocomplete="off" autocapitalize="off" spellcheck="false"/><datalist id="c_citta_list"></datalist><div id="c_cap_hint" class="helper">Il CAP viene proposto automaticamente in base alla città, usando un archivio comuni + CAP.</div></div>
+    <div><div class="k">CAP / Codice postale</div><input id="c_cap" list="c_cap_list" inputmode="text" autocomplete="off"/><datalist id="c_cap_list"></datalist></div>
+    <div><div class="k">Città</div><input id="c_citta" list="c_citta_list" autocomplete="off" autocapitalize="words" spellcheck="false"/><datalist id="c_citta_list"></datalist><div id="c_cap_hint" class="helper">Scegli la città per compilare il CAP, oppure inserisci il CAP per trovare città e provincia.</div></div>
   </div>
   <div class="grid2" style="margin-top:10px">
     <div id="c_prov_select_wrap"><div class="k">Provincia</div><select id="c_prov"></select></div>
@@ -1070,8 +1088,8 @@ window.addEventListener('error',e=>{
     </div>
     <div style="margin-top:10px"><div class="k">Indirizzo</div><input id="c_alt_ind" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
     <div class="grid2" style="margin-top:10px">
-      <div><div class="k">CAP / Codice postale</div><input id="c_alt_cap" autocomplete="off" inputmode="text"/></div>
-      <div><div class="k">Città</div><input id="c_alt_citta" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
+      <div><div class="k">CAP / Codice postale</div><input id="c_alt_cap" list="c_alt_cap_list" autocomplete="off" inputmode="text"/><datalist id="c_alt_cap_list"></datalist></div>
+      <div><div class="k">Città</div><input id="c_alt_citta" list="c_alt_citta_list" autocomplete="off" autocapitalize="words" spellcheck="false"/><datalist id="c_alt_citta_list"></datalist><div id="c_alt_cap_hint" class="helper">Scegli la città per compilare il CAP, oppure inserisci il CAP per trovare città e regione.</div></div>
     </div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k">Provincia / Regione</div><input id="c_alt_prov" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
@@ -1100,6 +1118,8 @@ window.addEventListener('error',e=>{
     <div><div class="k">Data</div><div id="vOrdData" class="t">-</div></div>
     <div><div class="k">Mis.</div><div id="vOrdMis" class="t">-</div></div>
   </div>
+  <div id="vOrdMeasureWarning" class="orderMeasureWarning" hidden>⚠️ MISURA DA DEFINIRE</div>
+  <div style="margin-top:10px"><div class="k">Modalità di pagamento</div><div id="vOrdPaymentMethod" class="mutedBox">-</div></div>
   <div style="margin-top:10px"><div class="k">Tracking</div><div id="vOrdTrack" class="mutedBox">-</div></div>
   <div class="actions compact bottomMini" style="margin-top:8px">
     <button class="btn smallish" type="button" data-action="track17View">Traccia spedizione</button>
@@ -1151,9 +1171,10 @@ window.addEventListener('error',e=>{
       <div><div class="k">Data</div><input id="o_data" type="date" autocomplete="off"/></div>
     </div>
     <div class="grid2" style="margin-top:10px">
+      <div><div class="k">Modalità di pagamento</div><select id="o_payment_method" autocomplete="off"><option value="">Seleziona modalità</option><option>Ricarica Postepay</option><option>Bonifico ordinario</option><option>Bonifico istantaneo</option><option>PayPal</option><option>Satispay</option></select></div>
       <div><div class="k">Sconto cliente (€)</div><input id="o_discount" inputmode="decimal" placeholder="0" autocomplete="off"/></div>
-      <div class="card" style="margin-top:0"><div class="k">Riepilogo ordine</div><div id="o_tot" class="priceHot">0</div><div id="o_tot_meta" class="small" style="margin-top:6px">Subtotale €0,00 • Sconto €0,00</div></div>
     </div>
+    <div class="card" style="margin-top:10px"><div class="k">Riepilogo ordine</div><div id="o_tot" class="priceHot">0</div><div id="o_tot_meta" class="small" style="margin-top:6px">Subtotale €0,00 • Sconto €0,00</div></div>
     <div style="margin-top:10px"><div class="k">Note</div><input id="o_note" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Aggiungi una nota utile per questo ordine"/></div>
   </div>
 
@@ -1170,7 +1191,7 @@ window.addEventListener('error',e=>{
       </div>
       <aside>
         <div id="o_pick_color_wrap" style="display:none"><div class="k">Colore</div><select id="o_pick_color"></select><div id="o_pick_color_hint" class="orderHintSoft">Scegli il colore e poi aggiungi l'articolo.</div></div>
-        <div><div class="k">Misura</div><select id="o_mis" autocomplete="off"><option value="">Non necessaria</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option></select><div id="o_mis_hint" class="helper">Usala per scarpe e cinture.</div></div>
+        <div><div class="k">Misura</div><select id="o_mis" autocomplete="off"><option value="">Non necessaria</option><option value="DA DEFINIRE">DA DEFINIRE</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option></select><div id="o_mis_hint" class="helper">Usala per scarpe e cinture.</div></div>
       </aside>
     </div>
     <div class="actions bottomMini"><button class="btn" type="button" data-action="addRow">Aggiungi</button></div>
@@ -1532,6 +1553,7 @@ function normalizeDBShape(o){
       ...x,
       numeroOrdine:ensureOrderNumber(x),
       clienteId:String(x?.clienteId||''),
+      modalitaPagamento:normalizeOrderPaymentMethod(x?.modalitaPagamento||x?.metodoPagamento||x?.paymentMethod||''),
       righe,
       foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,15):[],
       fotoManuali:Array.isArray(x?.fotoManuali)?x.fotoManuali.filter(Boolean).slice(0,15):[],
@@ -1649,17 +1671,87 @@ function normalizeLookupKey(v){
 }
 const COMUNI_CAP_DATA_URL='https://cdn.jsdelivr.net/npm/comuni-json@1.0.0/comuni.json';
 const COMUNI_CAP_CACHE_KEY='vg_comuni_cap_cache_v1';
+const POSTAL_LOOKUP_CACHE_KEY='vg_postal_lookup_cache_v1';
+const POSTAL_LOOKUP_CACHE_MAX=240;
+const POSTAL_LOOKUP_CACHE_TTL=1000*60*60*24*180;
+const ZIPPOPOTAM_BASE='https://api.zippopotam.us';
+const EUROPE_COUNTRY_CODES={
+  'Albania':'AL','Andorra':'AD','Armenia':'AM','Austria':'AT','Azerbaigian':'AZ','Belarus':'BY','Belgio':'BE',
+  'Bosnia ed Erzegovina':'BA','Bulgaria':'BG','Cipro':'CY','Città del Vaticano':'VA','Croazia':'HR','Danimarca':'DK',
+  'Estonia':'EE','Finlandia':'FI','Francia':'FR','Georgia':'GE','Germania':'DE','Grecia':'GR','Irlanda':'IE','Islanda':'IS',
+  'Italia':'IT','Kosovo':'XK','Lettonia':'LV','Liechtenstein':'LI','Lituania':'LT','Lussemburgo':'LU','Macedonia del Nord':'MK',
+  'Malta':'MT','Moldova':'MD','Monaco':'MC','Montenegro':'ME','Norvegia':'NO','Paesi Bassi':'NL','Polonia':'PL',
+  'Portogallo':'PT','Regno Unito':'GB','Repubblica Ceca':'CZ','Romania':'RO','Russia':'RU','San Marino':'SM','Serbia':'RS',
+  'Slovacchia':'SK','Slovenia':'SI','Spagna':'ES','Svezia':'SE','Svizzera':'CH','Turchia':'TR','Ucraina':'UA','Ungheria':'HU'
+};
+const ZIPPOPOTAM_SUPPORTED=new Set(['AD','AT','BE','BG','CH','CZ','DE','DK','ES','FI','FR','GB','HR','HU','IS','IT','LI','LT','LU','MC','MD','MK','NL','NO','PL','PT','RU','SE','SI','SK','SM','TR','VA']);
 let comuniCapRows=[];
 let comuniCapByCity=new Map();
+let comuniCapByPostal=new Map();
 let comuniCapReady=false;
 let comuniCapLoadPromise=null;
-function setCapHint(msg=''){
-  const hint=document.getElementById('c_cap_hint');
+let postalLookupCache={};
+let postalLookupSequence={main:0,alt:0};
+let postalLookupTimers={mainCap:null,mainCity:null,altCap:null,altCity:null};
+function countryIso2(value){ return EUROPE_COUNTRY_CODES[normalizeCountryName(value||'Italia')]||''; }
+function postalApiSupported(value){ return ZIPPOPOTAM_SUPPORTED.has(countryIso2(value)); }
+function addressLookupFields(alternative=false){
+  return alternative ? {
+    cap:document.getElementById('c_alt_cap'), city:document.getElementById('c_alt_citta'), country:document.getElementById('c_alt_paese'),
+    province:document.getElementById('c_alt_prov'), cityList:document.getElementById('c_alt_citta_list'), capList:document.getElementById('c_alt_cap_list'),
+    hint:document.getElementById('c_alt_cap_hint')
+  } : {
+    cap:document.getElementById('c_cap'), city:document.getElementById('c_citta'), country:document.getElementById('c_paese'),
+    province:normalizeCountryName(document.getElementById('c_paese')?.value||'Italia')==='Italia' ? document.getElementById('c_prov') : document.getElementById('c_prov_text'),
+    cityList:document.getElementById('c_citta_list'), capList:document.getElementById('c_cap_list'), hint:document.getElementById('c_cap_hint')
+  };
+}
+function setAddressLookupHint(alternative=false,msg=''){
+  const hint=addressLookupFields(alternative).hint;
   if(hint) hint.textContent=msg;
+}
+function setCapHint(msg=''){ setAddressLookupHint(false,msg); }
+function loadPostalLookupCache(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(POSTAL_LOOKUP_CACHE_KEY)||'{}');
+    if(raw && typeof raw==='object') postalLookupCache=raw;
+  }catch(_e){ postalLookupCache={}; }
+}
+function savePostalLookupCache(){
+  try{
+    const entries=Object.entries(postalLookupCache).sort((a,b)=>Number(b[1]?.ts||0)-Number(a[1]?.ts||0)).slice(0,POSTAL_LOOKUP_CACHE_MAX);
+    postalLookupCache=Object.fromEntries(entries);
+    localStorage.setItem(POSTAL_LOOKUP_CACHE_KEY,JSON.stringify(postalLookupCache));
+  }catch(err){ console.warn('Cache località non salvata',err); }
+}
+function postalCacheGet(key){
+  const item=postalLookupCache[key];
+  if(!item || !Array.isArray(item.results)) return null;
+  if(Date.now()-Number(item.ts||0)>POSTAL_LOOKUP_CACHE_TTL){ delete postalLookupCache[key]; return null; }
+  return item.results;
+}
+function postalCacheSet(key,results){
+  postalLookupCache[key]={ts:Date.now(),results:Array.isArray(results)?results:[]};
+  savePostalLookupCache();
+}
+function uniqueLocationResults(rows=[]){
+  const seen=new Set();
+  return (Array.isArray(rows)?rows:[]).map(row=>({
+    city:normalizeSpaceText(row?.city||row?.nome||row?.['place name']||''),
+    postalCode:normalizeSpaceText(row?.postalCode||row?.cap||row?.['post code']||''),
+    region:normalizeSpaceText(row?.region||row?.provincia||row?.state||''),
+    regionCode:normalizeSpaceText(row?.regionCode||row?.sigla||row?.['state abbreviation']||''),
+    countryCode:String(row?.countryCode||row?.['country abbreviation']||'').toUpperCase()
+  })).filter(row=>row.city||row.postalCode).filter(row=>{
+    const key=[normalizeLookupKey(row.city),row.postalCode.toUpperCase(),normalizeLookupKey(row.regionCode||row.region)].join('|');
+    if(seen.has(key)) return false;
+    seen.add(key); return true;
+  });
 }
 function buildComuniCapIndex(rows){
   comuniCapRows=Array.isArray(rows)?rows:[];
   comuniCapByCity=new Map();
+  comuniCapByPostal=new Map();
   comuniCapRows.forEach(row=>{
     const city=normalizeSpaceText(row?.nome||'');
     const key=normalizeLookupKey(city);
@@ -1673,6 +1765,10 @@ function buildComuniCapIndex(rows){
     if(!item.cap.length) return;
     if(!comuniCapByCity.has(key)) comuniCapByCity.set(key,[]);
     comuniCapByCity.get(key).push(item);
+    item.cap.forEach(cap=>{
+      if(!comuniCapByPostal.has(cap)) comuniCapByPostal.set(cap,[]);
+      comuniCapByPostal.get(cap).push(item);
+    });
   });
   comuniCapReady=true;
 }
@@ -1684,61 +1780,88 @@ async function ensureComuniCapIndex(){
       const cached=localStorage.getItem(COMUNI_CAP_CACHE_KEY);
       if(cached){
         const parsed=JSON.parse(cached);
-        if(Array.isArray(parsed) && parsed.length){
-          buildComuniCapIndex(parsed);
-          return comuniCapRows;
-        }
+        if(Array.isArray(parsed) && parsed.length){ buildComuniCapIndex(parsed); return comuniCapRows; }
       }
     }catch(err){ console.warn('Cache CAP non leggibile', err); }
-    const res=await fetch(COMUNI_CAP_DATA_URL, {cache:'force-cache'});
+    const res=await fetch(COMUNI_CAP_DATA_URL,{cache:'force-cache'});
     if(!res.ok) throw new Error('Archivio CAP non disponibile');
     const rows=await res.json();
     buildComuniCapIndex(rows);
-    try{ localStorage.setItem(COMUNI_CAP_CACHE_KEY, JSON.stringify(rows)); }catch(err){ console.warn('Cache CAP non salvata', err); }
+    try{ localStorage.setItem(COMUNI_CAP_CACHE_KEY,JSON.stringify(rows)); }catch(err){ console.warn('Cache CAP non salvata',err); }
     return comuniCapRows;
-  })().catch(err=>{
-    console.warn('Caricamento archivio CAP fallito', err);
-    comuniCapReady=false;
-    throw err;
-  }).finally(()=>{ comuniCapLoadPromise=null; });
+  })().catch(err=>{ console.warn('Caricamento archivio CAP fallito',err); comuniCapReady=false; throw err; }).finally(()=>{ comuniCapLoadPromise=null; });
   return comuniCapLoadPromise;
 }
-function getComuniCapMatches(city='', province=''){
+function getComuniCapMatches(city='',province=''){
   const cityKey=normalizeLookupKey(city);
   const provKey=normalizeTextKey(province);
-  if(!cityKey || !comuniCapReady) return [];
+  if(!cityKey||!comuniCapReady) return [];
   const items=(comuniCapByCity.get(cityKey)||[]).map(item=>({
     ...item,
-    score: (provKey && normalizeTextKey(item.sigla)===provKey) ? 4 : 1
+    score:(provKey&&(normalizeTextKey(item.sigla)===provKey||normalizeTextKey(item.provincia)===provKey))?4:1
   }));
-  return items.sort((a,b)=> b.score-a.score || a.sigla.localeCompare(b.sigla,'it',{sensitivity:'base'}) || a.nome.localeCompare(b.nome,'it',{sensitivity:'base'}));
+  return items.sort((a,b)=>b.score-a.score||a.sigla.localeCompare(b.sigla,'it',{sensitivity:'base'})||a.nome.localeCompare(b.nome,'it',{sensitivity:'base'}));
 }
-function updateCityDatalistOptions(query=''){
-  const list=document.getElementById('c_citta_list');
+function getComuniByPostal(postal=''){
+  const key=normalizeSpaceText(postal).replace(/\D/g,'').slice(0,5);
+  return comuniCapReady ? (comuniCapByPostal.get(key)||[]) : [];
+}
+function collectSavedLocationResults(country='Italia',alternative=false){
+  const db=loadDB();
+  const normalizedCountry=normalizeCountryName(country||'Italia');
+  const rows=[];
+  (db.clienti||[]).forEach(c=>{
+    const cCountry=normalizeCountryName(alternative?(c?.paeseAlternativo||c?.paese||'Italia'):(c?.paese||'Italia'));
+    if(cCountry!==normalizedCountry) return;
+    rows.push({
+      city:alternative?c?.cittaAlternativa:c?.citta,
+      postalCode:alternative?c?.capAlternativo:c?.cap,
+      region:alternative?c?.provinciaAlternativa:c?.provincia,
+      countryCode:countryIso2(cCountry)
+    });
+  });
+  Object.values(postalLookupCache).forEach(entry=>{
+    if(!entry||!Array.isArray(entry.results)) return;
+    entry.results.forEach(row=>{ if(!row.countryCode||row.countryCode===countryIso2(normalizedCountry)) rows.push(row); });
+  });
+  return uniqueLocationResults(rows);
+}
+function updateCapDatalistOptions(caps=[],alternative=false){
+  const list=addressLookupFields(alternative).capList;
   if(!list) return;
-  const q=normalizeLookupKey(query);
-  let names=[];
-  if(comuniCapReady && comuniCapRows.length){
-    const seen=new Set();
-    for(const row of comuniCapRows){
-      const name=normalizeSpaceText(row?.nome||'');
-      const key=normalizeLookupKey(name);
-      if(!name || seen.has(key)) continue;
-      if(q && !key.startsWith(q) && !key.includes(q)) continue;
-      seen.add(key);
-      names.push(name);
-      if(names.length>=40) break;
-    }
-  }
-  if(!names.length){
-    const db=loadDB();
-    names=[...new Set((db.clienti||[]).map(c=>normalizeSpaceText(c?.citta||'')).filter(Boolean))].filter(name=>{
-      const key=normalizeLookupKey(name);
-      return !q || key.startsWith(q) || key.includes(q);
-    }).slice(0,40);
-  }
-  list.innerHTML=names.map(name=>`<option value="${esc(name)}"></option>`).join('');
+  const values=[...new Set((Array.isArray(caps)?caps:[]).map(v=>normalizeSpaceText(v)).filter(Boolean))].slice(0,40);
+  list.innerHTML=values.map(value=>`<option value="${esc(value)}"></option>`).join('');
 }
+function updateCityDatalistOptions(query='',alternative=false,preferredRows=null){
+  const fields=addressLookupFields(alternative);
+  const list=fields.cityList;
+  if(!list) return;
+  const country=normalizeCountryName(fields.country?.value||'Italia');
+  const q=normalizeLookupKey(query);
+  const seen=new Set();
+  const options=[];
+  const appendOption=(row)=>{
+    const city=normalizeSpaceText(row?.city||row?.nome||'');
+    const key=normalizeLookupKey(city);
+    if(!city||seen.has(key)) return false;
+    if(q&&!key.startsWith(q)&&!key.includes(q)) return false;
+    seen.add(key);
+    const detail=[row?.regionCode||row?.sigla||row?.region||row?.provincia,row?.postalCode||''].map(v=>normalizeSpaceText(v)).filter(Boolean).join(' · ');
+    options.push(`<option value="${esc(city)}"${detail?` label="${esc(detail)}"`:''}></option>`);
+    return options.length>=50;
+  };
+  if(Array.isArray(preferredRows)&&preferredRows.length){
+    for(const row of uniqueLocationResults(preferredRows)){ if(appendOption(row)) break; }
+  }else if(country==='Italia'&&comuniCapReady&&comuniCapRows.length){
+    for(const row of comuniCapRows){
+      if(appendOption({city:row?.nome||'',regionCode:row?.sigla||'',region:row?.provincia?.nome||row?.provincia||'',postalCode:Array.isArray(row?.cap)?row.cap[0]||'':''})) break;
+    }
+  }else{
+    for(const row of collectSavedLocationResults(country,alternative)){ if(appendOption(row)) break; }
+  }
+  list.innerHTML=options.join('');
+}
+loadPostalLookupCache();
 function getArticleColorMode(article){
   return (String(article?.colorMode||article?.colorType||'').toLowerCase()==='multiple' || String(article?.colorMode||'').toLowerCase()==='numbered' || Number(article?.colorCount||0)>0) ? 'multiple' : 'single';
 }
@@ -1897,66 +2020,210 @@ async function suggestArticleColorLabelsFromImage(){
   saveArticleDraft();
   toast('Suggerimenti colore inseriti. Controllali, perché la foto può fregare anche lei.');
 }
-function getCapSuggestionsByCity(city='', province=''){
-  const db=loadDB();
+function getCapSuggestionsByCity(city='',province='',alternative=false){
+  const fields=addressLookupFields(alternative);
+  const country=normalizeCountryName(fields.country?.value||'Italia');
   const cityKey=normalizeLookupKey(city);
   const provKey=normalizeTextKey(province);
   if(!cityKey) return [];
   const caps=new Map();
-  getComuniCapMatches(city, province).forEach(item=>{
-    item.cap.forEach(cap=>{
-      const score=20 + ((provKey && normalizeTextKey(item.sigla)===provKey) ? 10 : 0);
-      caps.set(cap, Math.max(score, caps.get(cap)||0));
+  if(country==='Italia'){
+    getComuniCapMatches(city,province).forEach(item=>{
+      item.cap.forEach(cap=>{
+        const score=20+((provKey&&(normalizeTextKey(item.sigla)===provKey||normalizeTextKey(item.provincia)===provKey))?10:0);
+        caps.set(cap,Math.max(score,caps.get(cap)||0));
+      });
     });
+  }
+  collectSavedLocationResults(country,alternative).forEach(row=>{
+    if(normalizeLookupKey(row.city)!==cityKey) return;
+    const cap=normalizeSpaceText(row.postalCode||'');
+    if(!cap) return;
+    const rowProv=normalizeTextKey(row.regionCode||row.region||'');
+    const score=5+((provKey&&rowProv===provKey)?5:0);
+    caps.set(cap,Math.max(score,caps.get(cap)||0));
   });
-  (db.clienti||[]).forEach(c=>{
-    if(normalizeLookupKey(c?.citta||'')!==cityKey) return;
-    const cap=normalizeSpaceText(c?.cap||'');
-    if(!/^\d{5}$/.test(cap)) return;
-    const prov=normalizeTextKey(c?.provincia||'');
-    const score=5 + ((provKey && prov===provKey) ? 5 : 0);
-    caps.set(cap, Math.max(score, caps.get(cap)||0));
-  });
-  return Array.from(caps.entries()).sort((a,b)=> b[1]-a[1] || a[0].localeCompare(b[0])).map(([cap])=>cap);
+  return Array.from(caps.entries()).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).map(([cap])=>cap);
 }
-async function suggestCapFromCity(force=false){
-  const cityEl=document.getElementById('c_citta');
-  const capEl=document.getElementById('c_cap');
-  const provEl=document.getElementById('c_prov');
-  if(normalizeCountryName(document.getElementById('c_paese')?.value||'Italia')!=='Italia'){
-    setCapHint('Per i Paesi diversi dall’Italia inserisci manualmente codice postale, città e regione.');
-    return '';
+function getAddressProvinceValue(alternative=false){
+  if(alternative) return normalizeSpaceText(document.getElementById('c_alt_prov')?.value||'');
+  return getClientProvinceValue();
+}
+function setAddressProvinceValue(alternative=false,country='Italia',value=''){
+  const normalizedCountry=normalizeCountryName(country||'Italia');
+  const prov=normalizeSpaceText(value||'');
+  if(alternative){ const el=document.getElementById('c_alt_prov'); if(el&&prov) el.value=prov; return; }
+  if(normalizedCountry==='Italia'){
+    const el=document.getElementById('c_prov');
+    if(el&&prov&&PROVINCE.includes(prov)) el.value=prov;
+  }else{
+    const el=document.getElementById('c_prov_text');
+    if(el&&prov) el.value=prov;
   }
-  if(!cityEl || !capEl) return '';
-  const city=normalizeSpaceText(cityEl.value||'');
-  if(!city){
-    setCapHint('Inserisci la città e il CAP verrà proposto automaticamente.');
-    updateCityDatalistOptions('');
-    return '';
-  }
-  updateCityDatalistOptions(city);
+}
+function postalCacheKeyByCode(country,postal){ return `code|${countryIso2(country)}|${normalizeSpaceText(postal).toUpperCase()}`; }
+function postalCacheKeyByPlace(country,region,city){ return `place|${countryIso2(country)}|${normalizeLookupKey(region)}|${normalizeLookupKey(city)}`; }
+async function fetchJsonWithTimeout(url,timeout=7000){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),timeout);
   try{
-    await ensureComuniCapIndex();
-  }catch(err){
-    console.warn(err);
-  }
-  const matches=getComuniCapMatches(city, provEl?.value||'');
-  if(matches.length===1 && !normalizeSpaceText(provEl?.value||'')) provEl.value=matches[0].sigla||'';
-  const caps=getCapSuggestionsByCity(city, provEl?.value||'');
-  if(caps.length){
-    if(force || !String(capEl.value||'').trim()) capEl.value=caps[0];
-    if(matches.length){
-      const top=matches[0];
-      if(top.cap.length>1) setCapHint(`CAP proposto: ${caps[0]} per ${top.nome} (${top.sigla}). Comune con più CAP, puoi correggerlo se serve.`);
-      else setCapHint(`CAP proposto automaticamente: ${caps[0]} per ${top.nome}${top.sigla?` (${top.sigla})`:''}.`);
-    }else{
-      setCapHint(`CAP proposto automaticamente: ${caps[0]} dai clienti già salvati.`);
-    }
-    return caps[0];
-  }
-  setCapHint('Nessun CAP trovato per questa città. Inseriscilo manualmente.');
-  return '';
+    const res=await fetch(url,{cache:'no-store',signal:controller.signal});
+    if(res.status===404) return null;
+    if(!res.ok) throw new Error(`Servizio località non disponibile (${res.status})`);
+    return await res.json();
+  }finally{ clearTimeout(timer); }
 }
+function parseZippopotamResults(data,fallbackPostal='',fallbackCountry=''){
+  if(!data||!Array.isArray(data.places)) return [];
+  const countryCode=String(data['country abbreviation']||countryIso2(fallbackCountry)||'').toUpperCase();
+  return uniqueLocationResults(data.places.map(place=>({
+    city:place?.['place name']||place?.placeName||'',
+    postalCode:place?.['post code']||place?.postalcode||data?.['post code']||fallbackPostal||'',
+    region:place?.state||'',
+    regionCode:place?.['state abbreviation']||'',
+    countryCode
+  })));
+}
+async function lookupPostalCodeRemote(country,postal){
+  if(!postalApiSupported(country)) return [];
+  const key=postalCacheKeyByCode(country,postal);
+  const cached=postalCacheGet(key);
+  if(cached) return cached;
+  const code=countryIso2(country);
+  const data=await fetchJsonWithTimeout(`${ZIPPOPOTAM_BASE}/${encodeURIComponent(code)}/${encodeURIComponent(normalizeSpaceText(postal))}`);
+  const results=parseZippopotamResults(data,postal,country);
+  postalCacheSet(key,results);
+  return results;
+}
+async function lookupPostalByPlaceRemote(country,region,city){
+  if(!postalApiSupported(country)||!normalizeSpaceText(region)||!normalizeSpaceText(city)) return [];
+  const key=postalCacheKeyByPlace(country,region,city);
+  const cached=postalCacheGet(key);
+  if(cached) return cached;
+  const code=countryIso2(country);
+  const data=await fetchJsonWithTimeout(`${ZIPPOPOTAM_BASE}/${encodeURIComponent(code)}/${encodeURIComponent(normalizeSpaceText(region))}/${encodeURIComponent(normalizeSpaceText(city))}`);
+  const results=parseZippopotamResults(data,'',country);
+  postalCacheSet(key,results);
+  results.forEach(row=>{ if(row.postalCode) postalCacheSet(postalCacheKeyByCode(country,row.postalCode),results.filter(x=>x.postalCode===row.postalCode)); });
+  return results;
+}
+function cachedResultsForCity(country,city,alternative=false){
+  const cityKey=normalizeLookupKey(city);
+  if(!cityKey) return [];
+  return uniqueLocationResults(collectSavedLocationResults(country,alternative).filter(row=>normalizeLookupKey(row.city)===cityKey));
+}
+function scheduleAddressLookup(type='city',alternative=false,force=false){
+  const key=`${alternative?'alt':'main'}${type==='cap'?'Cap':'City'}`;
+  clearTimeout(postalLookupTimers[key]);
+  postalLookupTimers[key]=setTimeout(()=>{
+    if(type==='cap') lookupAddressFromCap(alternative,force);
+    else lookupAddressFromCity(alternative,force);
+  },force?0:450);
+}
+async function lookupAddressFromCap(alternative=false,force=false){
+  const fields=addressLookupFields(alternative);
+  const country=normalizeCountryName(fields.country?.value||'Italia');
+  const postal=normalizeSpaceText(fields.cap?.value||'');
+  const seqKey=alternative?'alt':'main';
+  const seq=++postalLookupSequence[seqKey];
+  if(!postal){
+    updateCapDatalistOptions([],alternative);
+    setAddressLookupHint(alternative,'Inserisci il CAP per trovare città e provincia/regione.');
+    return [];
+  }
+  if(country==='Italia'&&!/^\d{5}$/.test(postal.replace(/\D/g,''))){
+    if(force) setAddressLookupHint(alternative,'Il CAP italiano deve contenere 5 cifre.');
+    return [];
+  }
+  if(country!=='Italia'&&postal.length<3&&!force) return [];
+  setAddressLookupHint(alternative,'Ricerca della località in corso…');
+  let results=[];
+  try{
+    if(country==='Italia'){
+      await ensureComuniCapIndex();
+      results=uniqueLocationResults(getComuniByPostal(postal).map(item=>({city:item.nome,postalCode:postal.replace(/\D/g,'').slice(0,5),region:item.provincia,regionCode:item.sigla,countryCode:'IT'})));
+    }else if(postalApiSupported(country)){
+      results=await lookupPostalCodeRemote(country,postal);
+    }else{
+      setAddressLookupHint(alternative,'Ricerca automatica non disponibile per questo Paese: inserisci città e regione manualmente.');
+      return [];
+    }
+  }catch(err){
+    console.warn('Ricerca CAP fallita',err);
+    if(seq===postalLookupSequence[seqKey]) setAddressLookupHint(alternative,'Servizio CAP momentaneamente non raggiungibile. Puoi continuare inserendo i dati manualmente.');
+    return [];
+  }
+  if(seq!==postalLookupSequence[seqKey]) return [];
+  updateCityDatalistOptions(fields.city?.value||'',alternative,results);
+  updateCapDatalistOptions(results.map(row=>row.postalCode||postal),alternative);
+  if(!results.length){
+    setAddressLookupHint(alternative,country==='Italia'?'Nessuna località italiana trovata per questo CAP. Controlla le cifre.':'Nessuna località trovata per questo codice postale.');
+    return [];
+  }
+  const cities=[...new Set(results.map(row=>normalizeSpaceText(row.city)).filter(Boolean))];
+  const currentCity=normalizeSpaceText(fields.city?.value||'');
+  let chosen=results.find(row=>normalizeLookupKey(row.city)===normalizeLookupKey(currentCity));
+  if(!chosen&&cities.length===1) chosen=results[0];
+  if(chosen){
+    if(fields.city&&(!currentCity||force||cities.length===1)) fields.city.value=chosen.city;
+    setAddressProvinceValue(alternative,country,chosen.regionCode||chosen.region||'');
+    setAddressLookupHint(alternative,`Località trovata: ${chosen.city}${chosen.regionCode||chosen.region?` (${chosen.regionCode||chosen.region})`:''}.`+(country==='Italia'?'':' Dati postali esteri: Zippopotam.us.'));
+  }else{
+    setAddressLookupHint(alternative,`Questo CAP corrisponde a ${cities.length} località: scegli la città dall’elenco.`+(country==='Italia'?'':' Dati postali esteri: Zippopotam.us.'));
+  }
+  refreshClientShipping(); saveClientDraft();
+  return results;
+}
+async function lookupAddressFromCity(alternative=false,force=false){
+  const fields=addressLookupFields(alternative);
+  const country=normalizeCountryName(fields.country?.value||'Italia');
+  const city=normalizeSpaceText(fields.city?.value||'');
+  const province=getAddressProvinceValue(alternative);
+  const seqKey=alternative?'alt':'main';
+  const seq=++postalLookupSequence[seqKey];
+  updateCityDatalistOptions(city,alternative);
+  if(!city){
+    updateCapDatalistOptions([],alternative);
+    setAddressLookupHint(alternative,'Scegli o inserisci la città per ricevere il CAP automaticamente.');
+    return [];
+  }
+  let results=[];
+  try{
+    if(country==='Italia'){
+      await ensureComuniCapIndex();
+      const matches=getComuniCapMatches(city,province);
+      results=uniqueLocationResults(matches.flatMap(item=>item.cap.map(cap=>({city:item.nome,postalCode:cap,region:item.provincia,regionCode:item.sigla,countryCode:'IT'}))));
+    }else{
+      results=cachedResultsForCity(country,city,alternative);
+      if(!results.length&&postalApiSupported(country)&&province){
+        setAddressLookupHint(alternative,'Ricerca del codice postale in corso…');
+        results=await lookupPostalByPlaceRemote(country,province,city);
+      }
+    }
+  }catch(err){
+    console.warn('Ricerca città fallita',err);
+    if(seq===postalLookupSequence[seqKey]) setAddressLookupHint(alternative,'Servizio località momentaneamente non raggiungibile. Puoi continuare manualmente.');
+    return [];
+  }
+  if(seq!==postalLookupSequence[seqKey]) return [];
+  const caps=[...new Set(results.map(row=>normalizeSpaceText(row.postalCode)).filter(Boolean))];
+  updateCapDatalistOptions(caps,alternative);
+  if(!results.length){
+    if(country==='Italia') setAddressLookupHint(alternative,'Città non trovata nell’archivio italiano. Controlla il nome oppure inserisci il CAP manualmente.');
+    else if(!postalApiSupported(country)) setAddressLookupHint(alternative,'Ricerca automatica non disponibile per questo Paese: inserisci il codice postale manualmente.');
+    else if(!province) setAddressLookupHint(alternative,'Per cercare il CAP di una città estera indica anche Provincia / Regione, oppure inserisci direttamente il codice postale.');
+    else setAddressLookupHint(alternative,'Nessun codice postale trovato per città e regione indicate. Puoi inserirlo manualmente.');
+    return [];
+  }
+  const top=results[0];
+  if(fields.cap&&caps.length&&(force||!normalizeSpaceText(fields.cap.value||''))) fields.cap.value=caps[0];
+  if(top.regionCode||top.region) setAddressProvinceValue(alternative,country,top.regionCode||top.region);
+  if(caps.length>1) setAddressLookupHint(alternative,`${city} ha più codici postali. Ho proposto ${caps[0]}: puoi sceglierne un altro dall’elenco.`+(country==='Italia'?'':' Dati postali esteri: Zippopotam.us.'));
+  else setAddressLookupHint(alternative,`Codice postale compilato automaticamente: ${caps[0]}.`+(country==='Italia'?'':' Dati postali esteri: Zippopotam.us.'));
+  refreshClientShipping(); saveClientDraft();
+  return results;
+}
+async function suggestCapFromCity(force=false){ return lookupAddressFromCity(false,force); }
 function normalizePhone(v){
   let out=normalizeSpaceText(v).replace(/[^\d+]/g,'');
   if(out.startsWith('00')) out='+'+out.slice(2);
@@ -2499,6 +2766,7 @@ function collectOrderDraft(){
       data:document.getElementById('o_data')?.value||'',
       note:document.getElementById('o_note')?.value||'',
       mis:document.getElementById('o_mis')?.value||'',
+      modalitaPagamento:document.getElementById('o_payment_method')?.value||'',
       tracking:document.getElementById('o_tracking')?.value||'',
       discount:document.getElementById('o_discount')?.value||''
     }
@@ -2525,6 +2793,7 @@ function restoreOrderDraft(targetId='', prefillArticleId=null){
   document.getElementById('o_note').value=v.note||'';
   ensureOrderSizeOption(v.mis||'');
   document.getElementById('o_mis').value=v.mis||'';
+  document.getElementById('o_payment_method').value=normalizeOrderPaymentMethod(v.modalitaPagamento||'');
   document.getElementById('o_tracking').value=v.tracking||'';
   document.getElementById('o_discount').value=v.discount||'';
   renderOrdRows();
@@ -4232,6 +4501,8 @@ function buildOrderCloudNote(ord){
   const base=String(ord?.note||'').trim();
   if(base) parts.push(base);
   if(ord?.mis) parts.push(`[MIS:${ord.mis}]`);
+  const payment=normalizeOrderPaymentMethod(ord?.modalitaPagamento||ord?.metodoPagamento||'');
+  if(payment) parts.push(`[PAGAMENTO:${payment}]`);
   const discount=calcOrderDiscount(ord);
   if(discount>0) parts.push(`[SCONTO:${discount.toFixed(2)}]`);
   return parts.join(' ') || null;
@@ -4239,9 +4510,10 @@ function buildOrderCloudNote(ord){
 function extractOrderNoteMeta(rawNote){
   const raw=String(rawNote||'');
   const misMatch=raw.match(/\[MIS:([^\]]+)\]/i);
+  const paymentMatch=raw.match(/\[PAGAMENTO:([^\]]+)\]/i);
   const discountMatch=raw.match(/\[SCONTO:([^\]]+)\]/i);
-  const cleanNote=raw.replace(/\s*\[MIS:[^\]]+\]\s*/gi,' ').replace(/\s*\[SCONTO:[^\]]+\]\s*/gi,' ').trim();
-  return { cleanNote, mis: misMatch ? misMatch[1].trim() : '', scontoCliente: parseFlexibleAmount(discountMatch ? discountMatch[1] : 0) };
+  const cleanNote=raw.replace(/\s*\[MIS:[^\]]+\]\s*/gi,' ').replace(/\s*\[PAGAMENTO:[^\]]+\]\s*/gi,' ').replace(/\s*\[SCONTO:[^\]]+\]\s*/gi,' ').trim();
+  return { cleanNote, mis: misMatch ? misMatch[1].trim() : '', modalitaPagamento: normalizeOrderPaymentMethod(paymentMatch ? paymentMatch[1] : ''), scontoCliente: parseFlexibleAmount(discountMatch ? discountMatch[1] : 0) };
 }
 
 /* ====== DATE LINE ====== */
@@ -6822,9 +7094,20 @@ function updateClientCountryUI(){
   if(selectWrap) selectWrap.style.display=isItaly?'block':'none';
   if(textWrap) textWrap.style.display=isItaly?'none':'block';
   const city=document.getElementById('c_citta');
-  if(city){ if(isItaly) city.setAttribute('list','c_citta_list'); else city.removeAttribute('list'); }
-  if(!isItaly) setCapHint('Per i Paesi diversi dall’Italia inserisci manualmente codice postale, città e regione.');
-  else if(!normalizeSpaceText(document.getElementById('c_citta')?.value||'')) setCapHint('Il CAP viene proposto automaticamente in base alla città, usando un archivio comuni + CAP.');
+  if(city) city.setAttribute('list','c_citta_list');
+  updateCityDatalistOptions(city?.value||'',false);
+  if(isItaly) setCapHint('Scegli la città per compilare il CAP, oppure inserisci il CAP per trovare città e provincia.');
+  else if(postalApiSupported(country)) setCapHint('Inserisci il codice postale per trovare città e regione. Dalla città il codice viene cercato quando indichi anche la regione.');
+  else setCapHint('Per questo Paese città e codice postale restano compilabili manualmente.');
+}
+function updateAlternativeCountryUI(){
+  const country=normalizeCountryName(document.getElementById('c_alt_paese')?.value||'Italia');
+  const city=document.getElementById('c_alt_citta');
+  if(city) city.setAttribute('list','c_alt_citta_list');
+  updateCityDatalistOptions(city?.value||'',true);
+  if(country==='Italia') setAddressLookupHint(true,'Scegli la città per compilare il CAP, oppure inserisci il CAP per trovare città e provincia.');
+  else if(postalApiSupported(country)) setAddressLookupHint(true,'Inserisci il codice postale per trovare città e regione. Dalla città il codice viene cercato quando indichi anche la regione.');
+  else setAddressLookupHint(true,'Per questo Paese città e codice postale restano compilabili manualmente.');
 }
 function updateAlternativeAddressUI(){
   const enabled=!!document.getElementById('c_alt_on')?.checked;
@@ -8590,6 +8873,27 @@ function isOrderInProgress(order){
   const status=String(order?.stato||'').trim().toLowerCase();
   return status!=='consegnato' && status!=='annullato';
 }
+function orderStatusKey(stato){
+  const s=String(stato||'').trim().toLowerCase();
+  if(s.includes('conseg')) return 'delivered';
+  if(s.includes('sped')) return 'shipped';
+  if(s.includes('pag')) return 'paid';
+  if(s.includes('ann')) return 'cancelled';
+  return 'requested';
+}
+function orderStatusMeta(stato){
+  const key=orderStatusKey(stato);
+  if(key==='delivered') return {key,label:'Consegnato',icon:'✅',pill:'statusDelivered',total:'statusDelivered'};
+  if(key==='shipped') return {key,label:'Spedito',icon:'📦',pill:'statusShipped',total:'statusShipped'};
+  if(key==='paid') return {key,label:'Pagato',icon:'💳',pill:'statusPaid',total:'statusPaid'};
+  if(key==='cancelled') return {key,label:'Annullato',icon:'⛔',pill:'statusCancelled',total:'statusCancelled'};
+  return {key,label:'Richiesto',icon:'📝',pill:'statusRequested',total:'statusRequested'};
+}
+function orderStatusBadgeHtml(stato){
+  const meta=orderStatusMeta(stato);
+  return `<div class="pill statusPill ${meta.pill}"><span class="statusIcon">${esc(meta.icon)}</span>${esc(meta.label)}</div>`;
+}
+
 function orderArticleDescriptionLines(order, db){
   const rows=Array.isArray(order?.righe)?order.righe:[];
   const out=[];
@@ -8628,21 +8932,25 @@ function renderOrd(){
     const scontoCliente=calcOrderDiscount(o);
     const totale=(Number(o?.totale)>0 || subTotale===0) ? Number(o?.totale||0) : calcOrderNetTotal(righe, scontoCliente);
     const paid=orderPaidStatus(o);
-    const totalCls=paid?'pricePaid':'priceHot';
     const paidTotal=paid ? totale : orderIncassato({...o, totale});
     const profitVal=orderMargin(o, db);
     const articleLines=orderArticleDescriptionLines(o,db);
     const articlesHtml=articleLines.length
       ? `<div class="s" style="margin-top:6px;line-height:1.4"><b>${articleLines.length===1?'Articolo':'Articoli'}:</b><br>${articleLines.map(line=>esc(line)).join('<br>')}</div>`
       : `<div class="s" style="margin-top:6px"><b>Articolo:</b> descrizione non disponibile</div>`;
+    const measureWarningHtml=orderMeasureIsUndefined(o.mis)?`<div class="orderMeasureWarning">⚠️ MISURA DA DEFINIRE</div>`:'';
+    const paymentText=normalizeOrderPaymentMethod(o.modalitaPagamento||o.metodoPagamento||'');
+    const statusMeta=orderStatusMeta(o.stato||'-');
+    const totalCls='statusTotal '+statusMeta.total;
     return `<div class="row" data-open="ord" data-id="${o.id}" style="grid-template-columns:1fr auto">
       <div>
         <div class="t">${esc(c?c.nome:'-')} • Totale pagato <span class="${totalCls}">${money(paidTotal)}</span></div>
-        <div class="s">${esc(o.stato||'-')} • ${esc(o.data||'')}${o.mis?` • Mis. ${esc(o.mis)}`:''}${o.tracking?` • Track ${esc(o.tracking)}`:''}</div>
+        <div class="s"><span class="statusText status${statusMeta.key.charAt(0).toUpperCase()+statusMeta.key.slice(1)}"><span class="statusIcon">${esc(statusMeta.icon)}</span>${esc(statusMeta.label)}</span> • ${esc(o.data||'')}${o.mis?` • Mis. ${esc(o.mis)}`:''}${paymentText?` • ${esc(paymentText)}`:''}${o.tracking?` • Track ${esc(o.tracking)}`:''}</div>
+        ${measureWarningHtml}
         ${articlesHtml}
         <div class="s" style="margin-top:6px">Guadagno <span class="pricePaid">${money(profitVal)}</span></div>
       </div>
-      <div class="pill">${esc(o.stato||'-')}</div>
+      ${orderStatusBadgeHtml(o.stato||'-')}
     </div>`;
   }).join('') || `<div class="card"><div class="small">${orderListMode==='open'?'Nessun ordine in corso':'Nessun ordine'}</div></div>`;
 }
@@ -10126,15 +10434,22 @@ async function openOrdView(id){
   const profitEl=document.getElementById('vOrdProfit');
   const cumEl=document.getElementById('vOrdCumMeta');
   document.getElementById('vOrdCli').textContent=c?.nome||'-';
-  document.getElementById('vOrdStato').textContent=o.stato||'-';
+  const ordStatusMeta=orderStatusMeta(o.stato||'-');
+  const ordStatoEl=document.getElementById('vOrdStato');
+  ordStatoEl.textContent='';
+  ordStatoEl.innerHTML=`<span class="statusIcon">${esc(ordStatusMeta.icon)}</span>${esc(ordStatusMeta.label)}`;
+  ordStatoEl.className='pill statusPill '+ordStatusMeta.pill;
   document.getElementById('vOrdData').textContent=o.data||'-';
   document.getElementById('vOrdMis').textContent=o.mis||'-';
+  const measureWarning=document.getElementById('vOrdMeasureWarning');
+  if(measureWarning) measureWarning.hidden=!orderMeasureIsUndefined(o.mis);
+  document.getElementById('vOrdPaymentMethod').textContent=normalizeOrderPaymentMethod(o.modalitaPagamento||o.metodoPagamento||'')||'-';
   document.getElementById('vOrdTrack').textContent=o.tracking||'-';
   document.getElementById('vOrdNote').textContent=o.note||'-';
   document.getElementById('vOrdSub').textContent=money(subTotale);
   document.getElementById('vOrdDiscount').textContent=money(scontoCliente);
   totalEl.textContent=money(totalPagato);
-  totalEl.className='t '+(paid?'pricePaid':'priceHot');
+  totalEl.className='t statusTotal '+ordStatusMeta.total;
   profitEl.textContent=money(profit);
   profitEl.className='t pricePaid';
   if(cumEl){
@@ -10215,9 +10530,13 @@ function openCliEdit(id){
   document.getElementById('c_alt_paese').value=normalizeCountryName(c?.paeseAlternativo||c?.paese||'Italia');
   document.getElementById('c_note').value=c?.note||'';
   updateClientCountryUI();
+  updateAlternativeCountryUI();
   updateAlternativeAddressUI();
   restoreClientDraft(c?.id||'');
-  suggestCapFromCity(false);
+  updateClientCountryUI();
+  updateAlternativeCountryUI();
+  scheduleAddressLookup('city',false,false);
+  if(document.getElementById('c_alt_on')?.checked) scheduleAddressLookup('city',true,false);
   refreshClientShipping();
   show('mCliEdit');
 }
@@ -10352,8 +10671,16 @@ function updateArticleMeasureState(){
 /* ====== ORDINI ====== */
 let currentOrdId=null;
 let ordRows=[];
-const ORDER_SHOE_SIZES=['34','35','36','37','38','39','40','41','42','43','44','45'];
+const ORDER_SIZE_UNDEFINED='DA DEFINIRE';
+const ORDER_SHOE_SIZES=[ORDER_SIZE_UNDEFINED,'34','35','36','37','38','39','40','41','42','43','44','45'];
 const ORDER_BELT_SIZES=['70','75','80','85','90','95','100','105','110','115','120','125','130'];
+function orderMeasureIsUndefined(value){ return normalizeTextKey(value)===normalizeTextKey(ORDER_SIZE_UNDEFINED); }
+function normalizeOrderPaymentMethod(value){
+  const raw=normalizeSpaceText(value||'');
+  if(!raw) return '';
+  const methods=['Ricarica Postepay','Bonifico ordinario','Bonifico istantaneo','PayPal','Satispay'];
+  return methods.find(item=>normalizeTextKey(item)===normalizeTextKey(raw)) || raw;
+}
 function orderRowMeasureType(row, db){
   const art=(db?.articoli||[]).find(a=>a.id===row?.articoloId || (row?.codice && a.codice===row.codice));
   const cat=normalizeTextKey(art?.categoria||row?.categoria||'');
@@ -10416,9 +10743,9 @@ function updateOrderShoeSizeState(){
   rebuildOrderMeasureOptions(sel, allowed, needed, current);
   sel.required=needed;
   if(hint){
-    if(hasShoe && hasBelt) hint.textContent='Scarpe: misura 34-45. Cinture: lunghezze da 70 a 130 cm con incremento di 5 cm.';
+    if(hasShoe && hasBelt) hint.textContent='Scarpe: misura 34-45 oppure DA DEFINIRE. Cinture: lunghezze da 70 a 130 cm con incremento di 5 cm.';
     else if(hasBelt) hint.textContent='Per le cinture scegli una lunghezza da 70 a 130 cm, con incremento di 5 cm.';
-    else if(hasShoe) hint.textContent='Per le scarpe scegli una misura da 34 a 45.';
+    else if(hasShoe) hint.textContent='Per le scarpe scegli una misura da 34 a 45 oppure DA DEFINIRE.';
     else hint.textContent='Misura non necessaria se non ci sono scarpe o cinture.';
   }
   return needed;
@@ -10446,6 +10773,7 @@ async function openOrdEdit(id, prefillArticleId=null){
   document.getElementById('o_note').value=isEditing?(o?.note||''):'';
   ensureOrderSizeOption(isEditing?(o?.mis||''):'' );
   document.getElementById('o_mis').value=isEditing?(o?.mis||''):'';
+  document.getElementById('o_payment_method').value=isEditing?normalizeOrderPaymentMethod(o?.modalitaPagamento||o?.metodoPagamento||''):'';
   document.getElementById('o_tracking').value=isEditing?(o?.tracking||''):'';
   document.getElementById('o_discount').value=isEditing && calcOrderDiscount(o) ? String(calcOrderDiscount(o)).replace('.', ',') : '';
   document.getElementById('o_art').value='';
@@ -10701,9 +11029,10 @@ function renderOrdRows(){
     if(r?.colore) badges.push(`<span class="orderBadge">Colore ${esc(r.colore)}</span>`);
     if(needsMeasure) badges.push(`<span class="orderBadge">Misura ${esc(globalSize||'da scegliere')}</span>`);
     const colorUi=needsColor ? `<div class="orderInlineField"><label>Colore</label><select data-role="rowColorNum" data-i="${i}">${buildOrderColorOptions(r.colorCount, r.numeroColore||'', r.colorLabels||[])}</select></div>` : '';
+    const measureWarningUi=needsMeasure && orderMeasureIsUndefined(globalSize) ? `<div class="orderMeasureWarning">⚠️ MISURA DA DEFINIRE</div>` : '';
     const snap=normalizeOrderArticleSnapshot(r?.articoloSnapshot||{});
     const meta=[art?.brand||r?.brand||snap.brand, displayCategoryValue(art?.categoria||r?.categoria||snap.categoria||''), art?.qualita||r?.qualita||snap.qualita, r?.articoloStorico?'storico':''].filter(Boolean).map(v=>esc(v)).join(' • ');
-    return `<div class="orderCard"><div><div class="title">${esc(r.modello||art?.modello||snap.modello||'Articolo selezionato')}</div><div class="meta">${meta || 'Riga ordine'}</div><div class="orderBadges">${badges.join('')}</div><div class="orderRowControls">${colorUi}</div></div><button class="orderRemoveBtn" type="button" aria-label="Rimuovi articolo" title="Rimuovi articolo" data-action="delRow" data-i="${i}">Rimuovi</button></div>`;
+    return `<div class="orderCard"><div><div class="title">${esc(r.modello||art?.modello||snap.modello||'Articolo selezionato')}</div><div class="meta">${meta || 'Riga ordine'}</div><div class="orderBadges">${badges.join('')}</div>${measureWarningUi}<div class="orderRowControls">${colorUi}</div></div><button class="orderRemoveBtn" type="button" aria-label="Rimuovi articolo" title="Rimuovi articolo" data-action="delRow" data-i="${i}">Rimuovi</button></div>`;
   }).join('') || `<div class="orderSelectedSummary empty">Nessun articolo aggiunto.</div>`;
   const sum=document.getElementById('o_rows_summary');
   if(sum){
@@ -10715,7 +11044,7 @@ function renderOrdRows(){
     }else{
       const parts=[`<strong>Articoli:</strong> ${ordRows.length}`];
       if(shoeCount) parts.push(`<strong>Scarpe:</strong> ${shoeCount}${globalSize?` • misura ${esc(globalSize)}`:''}`);
-      if(beltCount) parts.push(`<strong>Cinture:</strong> ${beltCount}${globalSize?` • misura ${esc(globalSize)} cm`:''}`);
+      if(beltCount) parts.push(`<strong>Cinture:</strong> ${beltCount}${globalSize?` • misura ${esc(globalSize)}${orderMeasureIsUndefined(globalSize)?'':' cm'}`:''}`);
       if(colorCount) parts.push(`<strong>Colori da scegliere:</strong> ${colorCount}`);
       sum.innerHTML=parts.join(' &nbsp;•&nbsp; ');
     }
@@ -10756,10 +11085,10 @@ async function saveOrd(){
     const hasShoe=orderNeedsShoeSize(ordRows, db);
     const hasBelt=orderNeedsBeltSize(ordRows, db);
     const msg=hasShoe && hasBelt
-      ? 'Per scarpe e cinture devi scegliere una misura valida'
+      ? 'Per scarpe e cinture devi scegliere una misura valida oppure DA DEFINIRE'
       : hasBelt
         ? 'Per le cinture devi scegliere una lunghezza da 70 a 130 cm, ogni 5 cm'
-        : 'Per le scarpe devi scegliere una misura da 34 a 45';
+        : 'Per le scarpe devi scegliere una misura da 34 a 45 oppure DA DEFINIRE';
     toast(msg);
     misuraSel?.focus();
     return;
@@ -10807,6 +11136,7 @@ async function saveOrd(){
     data: document.getElementById('o_data').value.trim()||todayStr(),
     note: document.getElementById('o_note').value.trim(),
     mis: misuraValue,
+    modalitaPagamento: normalizeOrderPaymentMethod(document.getElementById('o_payment_method').value),
     tracking: document.getElementById('o_tracking').value.trim(),
     clienteSnapshot: makeOrderClientSnapshot((db.clienti||[]).find(c=>String(c.id)===String(cli))),
     righe: ordRows.map(r=>{
@@ -11510,7 +11840,32 @@ document.getElementById('qArtCat')?.addEventListener('change', renderArt);
 document.getElementById('qArtBrand')?.addEventListener('change', renderArt);
 document.getElementById('qArtQuality')?.addEventListener('change', renderArt);
 bindSearchSuggest('qCli','qCliSuggest','cli', ()=>renderCli());
-['c_nome','c_tel','c_ind','c_cap','c_citta','c_prov','c_prov_text','c_paese','c_note','c_alt_nome','c_alt_cognome','c_alt_ind','c_alt_cap','c_alt_citta','c_alt_prov','c_alt_paese'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', ()=>{ if(id==='c_citta' && normalizeCountryName(document.getElementById('c_paese')?.value||'Italia')==='Italia'){ updateCityDatalistOptions(el.value||''); suggestCapFromCity(false); } if(id==='c_prov') suggestCapFromCity(false); if(id==='c_paese') updateClientCountryUI(); refreshClientShipping(); saveClientDraft(); }); if(el) el.addEventListener('change', ()=>{ if(id==='c_citta' && normalizeCountryName(document.getElementById('c_paese')?.value||'Italia')==='Italia'){ updateCityDatalistOptions(el.value||''); suggestCapFromCity(true); } if(id==='c_prov') suggestCapFromCity(true); if(id==='c_paese') updateClientCountryUI(); refreshClientShipping(); saveClientDraft(); }); });
+['c_nome','c_tel','c_ind','c_cap','c_citta','c_prov','c_prov_text','c_paese','c_note','c_alt_nome','c_alt_cognome','c_alt_ind','c_alt_cap','c_alt_citta','c_alt_prov','c_alt_paese'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(!el) return;
+  const handle=(force=false)=>{
+    if(id==='c_paese'){
+      updateClientCountryUI();
+      if(normalizeSpaceText(document.getElementById('c_cap')?.value||'')) scheduleAddressLookup('cap',false,force);
+      else if(normalizeSpaceText(document.getElementById('c_citta')?.value||'')) scheduleAddressLookup('city',false,force);
+    }
+    if(id==='c_alt_paese'){
+      updateAlternativeCountryUI();
+      if(normalizeSpaceText(document.getElementById('c_alt_cap')?.value||'')) scheduleAddressLookup('cap',true,force);
+      else if(normalizeSpaceText(document.getElementById('c_alt_citta')?.value||'')) scheduleAddressLookup('city',true,force);
+    }
+    if(id==='c_cap') scheduleAddressLookup('cap',false,force);
+    if(id==='c_citta'){ updateCityDatalistOptions(el.value||'',false); scheduleAddressLookup('city',false,force); }
+    if(id==='c_prov'||id==='c_prov_text') scheduleAddressLookup('city',false,force);
+    if(id==='c_alt_cap') scheduleAddressLookup('cap',true,force);
+    if(id==='c_alt_citta'){ updateCityDatalistOptions(el.value||'',true); scheduleAddressLookup('city',true,force); }
+    if(id==='c_alt_prov') scheduleAddressLookup('city',true,force);
+    refreshClientShipping(); saveClientDraft();
+  };
+  el.addEventListener('input',()=>handle(false));
+  el.addEventListener('change',()=>handle(true));
+  if(['c_cap','c_citta','c_alt_cap','c_alt_citta'].includes(id)) el.addEventListener('blur',()=>handle(true));
+});
 document.getElementById('c_alt_on')?.addEventListener('change', ()=>{ updateAlternativeAddressUI(); refreshClientShipping(); saveClientDraft(); });
 bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
@@ -11547,7 +11902,7 @@ bindSearchSuggest('o_art_q','oArtSuggest','orderArt', value=>{
 });
 document.getElementById('o_art').addEventListener('change', ()=>{ renderSelectedOrderArticlesSummary(); updateOrderPriceFromSelection(); saveOrderDraft(); });
 document.getElementById('o_discount').addEventListener('input', ()=>{ updateOrderTotalsPreview(); saveOrderDraft(); });
-['o_cli','o_stato','o_data','o_note','o_tracking'].forEach(id=>{ const el=document.getElementById(id); if(el) ['input','change'].forEach(evt=>el.addEventListener(evt, saveOrderDraft)); });
+['o_cli','o_stato','o_data','o_note','o_payment_method','o_tracking'].forEach(id=>{ const el=document.getElementById(id); if(el) ['input','change'].forEach(evt=>el.addEventListener(evt, saveOrderDraft)); });
 document.getElementById('o_mis')?.addEventListener('change', ()=>{ renderOrdRows(); saveOrderDraft(); });
 document.getElementById('o_cli')?.addEventListener('change', ()=>{ const db=loadDB(); const cli=(db.clienti||[]).find(c=>String(c.id)===String(document.getElementById('o_cli').value||'')); if(cli) document.getElementById('o_cli_q').value=cli.nome||''; renderOrderClientSummary(); saveOrderDraft(); });
 
@@ -11583,20 +11938,24 @@ const altCountrySel=document.getElementById('c_alt_paese');
 if(countrySel){ countrySel.innerHTML=countryOptions('Italia'); countrySel.value='Italia'; }
 if(altCountrySel){ altCountrySel.innerHTML=countryOptions('Italia'); altCountrySel.value='Italia'; }
 updateClientCountryUI();
+updateAlternativeCountryUI();
 updateAlternativeAddressUI();
-updateCityDatalistOptions('');
+updateCityDatalistOptions('',false);
+updateCityDatalistOptions('',true);
 ensureComuniCapIndex().then(()=>{
-  updateCityDatalistOptions(document.getElementById('c_citta')?.value||'');
+  updateCityDatalistOptions(document.getElementById('c_citta')?.value||'',false);
+  updateCityDatalistOptions(document.getElementById('c_alt_citta')?.value||'',true);
   const cityVal=normalizeSpaceText(document.getElementById('c_citta')?.value||'');
-  if(cityVal) suggestCapFromCity(false);
-}).catch(()=>{ setCapHint('Archivio CAP non raggiungibile: puoi inserire CAP e città manualmente.'); });
+  const capVal=normalizeSpaceText(document.getElementById('c_cap')?.value||'');
+  if(capVal) scheduleAddressLookup('cap',false,false); else if(cityVal) scheduleAddressLookup('city',false,false);
+}).catch(()=>{ setCapHint('Archivio CAP italiano non raggiungibile: puoi inserire CAP e città manualmente.'); });
 
 /* ====== CLOUD / SUPABASE ====== */
 let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.24-2026-07-22';
+const VG_BUILD='1.0.26-2026-07-23';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -11922,7 +12281,7 @@ async function upsertCloudOrder(ord, db){
     data_ordine: ord.data || todayStr(),
     stato: (ord.stato||'Richiesto').toLowerCase().includes('conseg') ? 'consegnato' : ((ord.stato||'').toLowerCase().includes('sped') ? 'spedito' : ((ord.stato||'').toLowerCase().includes('ann') ? 'annullato' : 'in_lavorazione')),
     totale: Number(ord.totale || 0),
-    pagato: true,
+    pagato: /pag|sped|conseg/.test(String(ord.stato||'').toLowerCase()),
     note: buildOrderCloudNote(ord),
     tracking_code: ord.tracking || null,
     tracking_url: ord.tracking ? `https://17track.net/en/track?nums=${encodeURIComponent(ord.tracking)}` : null
@@ -12093,7 +12452,7 @@ async function pullCloudToLocal(opts={}){
           _ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true
         };
       }),
-      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, brand:localRow?.brand||row?.brand||'', categoria:localRow?.categoria||row?.categoria||'', qualita:localRow?.qualita||row?.qualita||'', costoEur:historicalNumber(localRow?.costoEur,row?.costoEur), articoloSnapshot:localRow?.articoloSnapshot||row?.articoloSnapshot||null, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
+      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, brand:localRow?.brand||row?.brand||'', categoria:localRow?.categoria||row?.categoria||'', qualita:localRow?.qualita||row?.qualita||'', costoEur:historicalNumber(localRow?.costoEur,row?.costoEur), articoloSnapshot:localRow?.articoloSnapshot||row?.articoloSnapshot||null, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); const statoCloud=(o.stato==='consegnato'?'Consegnato':(o.stato==='spedito'?'Spedito':(o.stato==='annullato'?'Annullato':((o.pagato===true || o.pagato===1 || o.pagato==='true')?'Pagato':'Richiesto')))); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:statoCloud,data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',modalitaPagamento:noteMeta.modalitaPagamento||local?.modalitaPagamento||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
     };
     const mergedCategories=[...new Set([
       ...(Array.isArray(localDb?.categorie)?localDb.categorie:[]),
