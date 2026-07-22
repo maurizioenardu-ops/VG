@@ -167,12 +167,12 @@ video.hero{background:#000}
 
 #mArtView .modal,#mArtEdit .modal{max-width:760px}
 
-#vArtPost,#vArtPostFb,#vArtPostIg,#a_post,#a_post_fb,#a_post_ig,#c_ship{overflow:hidden;resize:none;scrollbar-width:none;-ms-overflow-style:none}
+#vArtPost,#vArtPostFb,#vArtPostIg,#a_post,#a_post_fb,#a_post_ig,#c_ship,#c_alt_ship,#vCliShip,#vCliAltShip{overflow:hidden;resize:none;scrollbar-width:none;-ms-overflow-style:none}
 #vArtPost,#vArtPostFb,#vArtPostIg,#a_post,#a_post_fb,#a_post_ig{min-height:190px;line-height:1.45}
 .viewBottomSpace{margin-top:22px;padding-bottom:10px}
 .linkRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .linkRow input{flex:1 1 240px}
-#vArtPost::-webkit-scrollbar,#vArtPostFb::-webkit-scrollbar,#vArtPostIg::-webkit-scrollbar,#a_post::-webkit-scrollbar,#a_post_fb::-webkit-scrollbar,#a_post_ig::-webkit-scrollbar,#c_ship::-webkit-scrollbar{display:none}
+#vArtPost::-webkit-scrollbar,#vArtPostFb::-webkit-scrollbar,#vArtPostIg::-webkit-scrollbar,#a_post::-webkit-scrollbar,#a_post_fb::-webkit-scrollbar,#a_post_ig::-webkit-scrollbar,#c_ship::-webkit-scrollbar,#c_alt_ship::-webkit-scrollbar,#vCliShip::-webkit-scrollbar,#vCliAltShip::-webkit-scrollbar{display:none}
 @media (max-width:700px){
   #mArtView .modal,#mArtEdit .modal{width:100vw;max-width:none;height:100vh;max-height:none;border-radius:0;padding:14px 14px 96px}
   #mArtView.modalwrap,#mArtEdit.modalwrap{padding:0}
@@ -1019,8 +1019,16 @@ window.addEventListener('error',e=>{
     <div><div class="k">CAP</div><div id="vCliCap" class="t">-</div></div>
     <div><div class="k">Città</div><div id="vCliCity" class="t">-</div></div>
   </div>
-  <div style="margin-top:10px"><div class="k">Provincia</div><div id="vCliProv" class="t">-</div></div>
-  <div style="margin-top:10px"><div class="k">Indirizzo spedizione</div><textarea id="vCliShip" readonly placeholder="Shipping Address"></textarea></div>
+  <div class="grid2" style="margin-top:10px">
+    <div><div class="k">Provincia / Regione</div><div id="vCliProv" class="t">-</div></div>
+    <div><div class="k">Paese</div><div id="vCliCountry" class="t">Italia</div></div>
+  </div>
+  <div style="margin-top:10px"><div class="k">Indirizzo principale per spedizione</div><textarea id="vCliShip" readonly placeholder="Shipping Address"></textarea></div>
+  <div id="vCliAltWrap" class="mutedBox" style="display:none;margin-top:10px">
+    <div class="k">Indirizzo alternativo</div>
+    <textarea id="vCliAltShip" readonly placeholder="Alternative Shipping Address" style="margin-top:6px"></textarea>
+    <div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyCliAltShipView">Copia indirizzo alternativo</button></div>
+  </div>
   <div style="margin-top:10px"><div class="k">Acquisti effettuati</div><div id="vCliOrders" class="list"></div></div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">Guadagno totale</div><div id="vCliProfitTotal" class="t pricePaid">-</div></div>
@@ -1041,12 +1049,33 @@ window.addEventListener('error',e=>{
   </div>
   <div style="margin-top:10px"><div class="k">Indirizzo</div><input id="c_ind" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
   <div class="grid2" style="margin-top:10px">
-    <div><div class="k">CAP</div><input id="c_cap" inputmode="numeric" autocomplete="off"/></div>
+    <div><div class="k">CAP / Codice postale</div><input id="c_cap" inputmode="text" autocomplete="off"/></div>
     <div><div class="k">Città</div><input id="c_citta" list="c_citta_list" autocomplete="off" autocapitalize="off" spellcheck="false"/><datalist id="c_citta_list"></datalist><div id="c_cap_hint" class="helper">Il CAP viene proposto automaticamente in base alla città, usando un archivio comuni + CAP.</div></div>
   </div>
-  <div style="margin-top:10px"><div class="k">Provincia</div><select id="c_prov"></select></div>
+  <div class="grid2" style="margin-top:10px">
+    <div id="c_prov_select_wrap"><div class="k">Provincia</div><select id="c_prov"></select></div>
+    <div id="c_prov_text_wrap" style="display:none"><div class="k">Provincia / Regione</div><input id="c_prov_text" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Es. Catalogna, Baviera..."/></div>
+    <div><div class="k">Paese</div><select id="c_paese"></select></div>
+  </div>
   <div style="margin-top:10px"><div class="k">Note</div><textarea id="c_note"></textarea></div>
-  <div style="margin-top:10px"><div class="k">Indirizzo spedizione</div><textarea id="c_ship" readonly placeholder="Shipping Address"></textarea></div>
+  <div style="margin-top:10px"><div class="k">Indirizzo principale per spedizione</div><textarea id="c_ship" readonly placeholder="Shipping Address"></textarea></div>
+  <div style="margin-top:10px">
+    <label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="c_alt_on" type="checkbox" style="width:auto;margin-right:8px"/>Indirizzo alternativo</label>
+  </div>
+  <div id="c_alt_wrap" class="mutedBox" style="display:none;margin-top:10px">
+    <div class="h3" style="margin-top:0">Indirizzo alternativo</div>
+    <div><div class="k">Indirizzo</div><input id="c_alt_ind" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+    <div class="grid2" style="margin-top:10px">
+      <div><div class="k">CAP / Codice postale</div><input id="c_alt_cap" autocomplete="off" inputmode="text"/></div>
+      <div><div class="k">Città</div><input id="c_alt_citta" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
+    </div>
+    <div class="grid2" style="margin-top:10px">
+      <div><div class="k">Provincia / Regione</div><input id="c_alt_prov" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
+      <div><div class="k">Paese</div><select id="c_alt_paese"></select></div>
+    </div>
+    <div style="margin-top:10px"><div class="k">Anteprima indirizzo alternativo</div><textarea id="c_alt_ship" readonly placeholder="Alternative Shipping Address"></textarea></div>
+    <div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyCliAltShip">Copia indirizzo alternativo</button></div>
+  </div>
   <div class="actions compact bottomMini">
     <button class="btn primary smallish" type="button" data-action="copyCliShip">Copia indirizzo</button>
     <button class="btn primary smallish" type="button" data-action="saveCli">Salva</button>
@@ -1208,6 +1237,39 @@ let ARTICLE_THUMB_OBSERVER=null;
 let ARTICLE_THUMB_QUEUE=[];
 let ARTICLE_THUMB_ACTIVE=0;
 const PROVINCE=[ "AG","AL","AN","AO","AP","AQ","AR","AT","AV","BA","BG","BI","BL","BN","BO","BR","BS","BT","BZ","CA","CB","CE","CH","CL","CN","CO","CR","CS","CT","CZ","EN","FC","FE","FG","FI","FM","FR","GE","GO","GR","IM","IS","KR","LC","LE","LI","LO","LT","LU","MB","MC","ME","MI","MN","MO","MS","MT","NA","NO","NU","OR","PA","PC","PD","PE","PG","PI","PN","PO","PR","PT","PU","PV","PZ","RA","RC","RE","RG","RI","RM","RN","RO","SA","SI","SO","SP","SR","SS","SU","SV","TA","TE","TN","TO","TP","TR","TS","TV","UD","VA","VB","VC","VE","VI","VR","VT","VV" ];
+const EUROPE_COUNTRIES=[
+  {name:'Albania',prefix:'+355'},{name:'Andorra',prefix:'+376'},{name:'Armenia',prefix:'+374'},
+  {name:'Austria',prefix:'+43'},{name:'Azerbaigian',prefix:'+994'},{name:'Belarus',prefix:'+375'},
+  {name:'Belgio',prefix:'+32'},{name:'Bosnia ed Erzegovina',prefix:'+387'},{name:'Bulgaria',prefix:'+359'},
+  {name:'Cipro',prefix:'+357'},{name:'Città del Vaticano',prefix:'+39'},{name:'Croazia',prefix:'+385'},
+  {name:'Danimarca',prefix:'+45'},{name:'Estonia',prefix:'+372'},{name:'Finlandia',prefix:'+358'},
+  {name:'Francia',prefix:'+33'},{name:'Georgia',prefix:'+995'},{name:'Germania',prefix:'+49'},
+  {name:'Grecia',prefix:'+30'},{name:'Irlanda',prefix:'+353'},{name:'Islanda',prefix:'+354'},
+  {name:'Italia',prefix:'+39'},{name:'Kosovo',prefix:'+383'},{name:'Lettonia',prefix:'+371'},
+  {name:'Liechtenstein',prefix:'+423'},{name:'Lituania',prefix:'+370'},{name:'Lussemburgo',prefix:'+352'},
+  {name:'Macedonia del Nord',prefix:'+389'},{name:'Malta',prefix:'+356'},{name:'Moldova',prefix:'+373'},
+  {name:'Monaco',prefix:'+377'},{name:'Montenegro',prefix:'+382'},{name:'Norvegia',prefix:'+47'},
+  {name:'Paesi Bassi',prefix:'+31'},{name:'Polonia',prefix:'+48'},{name:'Portogallo',prefix:'+351'},
+  {name:'Regno Unito',prefix:'+44'},{name:'Repubblica Ceca',prefix:'+420'},{name:'Romania',prefix:'+40'},
+  {name:'Russia',prefix:'+7'},{name:'San Marino',prefix:'+378'},{name:'Serbia',prefix:'+381'},
+  {name:'Slovacchia',prefix:'+421'},{name:'Slovenia',prefix:'+386'},{name:'Spagna',prefix:'+34'},
+  {name:'Svezia',prefix:'+46'},{name:'Svizzera',prefix:'+41'},{name:'Turchia',prefix:'+90'},
+  {name:'Ucraina',prefix:'+380'},{name:'Ungheria',prefix:'+36'}
+].sort((a,b)=>a.name.localeCompare(b.name,'it',{sensitivity:'base'}));
+function normalizeCountryName(value){
+  const raw=normalizeSpaceText(value||'');
+  if(!raw) return 'Italia';
+  const found=EUROPE_COUNTRIES.find(x=>normalizeTextKey(x.name)===normalizeTextKey(raw));
+  return found?.name||raw;
+}
+function countryDialPrefix(value){
+  const name=normalizeCountryName(value);
+  return EUROPE_COUNTRIES.find(x=>x.name===name)?.prefix||'';
+}
+function countryOptions(selected='Italia'){
+  const current=normalizeCountryName(selected||'Italia');
+  return EUROPE_COUNTRIES.map(x=>`<option value="${esc(x.name)}"${x.name===current?' selected':''}>${esc(x.name)}</option>`).join('');
+}
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
 const ART_DRAFT_KEY='vg_draft_art_v2_clean';
 const CLI_DRAFT_KEY='vg_draft_cli_v2_clean';
@@ -1387,6 +1449,13 @@ function normalizeDBShape(o){
     cap:normalizeSpaceText(x?.cap||''),
     citta:normalizeSpaceText(x?.citta||x?.city||''),
     provincia:normalizeSpaceText(x?.provincia||x?.province||''),
+    paese:normalizeCountryName(x?.paese||x?.country||'Italia'),
+    indirizzoAlternativoAttivo:!!(x?.indirizzoAlternativoAttivo||x?.altAddressEnabled),
+    indirizzoAlternativo:normalizeSpaceText(x?.indirizzoAlternativo||x?.altAddress||''),
+    capAlternativo:normalizeSpaceText(x?.capAlternativo||x?.altPostalCode||''),
+    cittaAlternativa:normalizeSpaceText(x?.cittaAlternativa||x?.altCity||''),
+    provinciaAlternativa:normalizeSpaceText(x?.provinciaAlternativa||x?.altProvince||''),
+    paeseAlternativo:normalizeCountryName(x?.paeseAlternativo||x?.altCountry||x?.paese||x?.country||'Italia'),
     note:typeof x?.note==='string'?x.note:(x?.note||'')
   }));
   try{ const agendaRaw=localStorage.getItem(AGENDA_KEY); const agendaExtra=JSON.parse(agendaRaw||'[]'); if(Array.isArray(agendaExtra) && agendaExtra.length){ db.agenda=[...(Array.isArray(db.agenda)?db.agenda:[]), ...agendaExtra]; } }catch(_e){}
@@ -1811,6 +1880,10 @@ async function suggestCapFromCity(force=false){
   const cityEl=document.getElementById('c_citta');
   const capEl=document.getElementById('c_cap');
   const provEl=document.getElementById('c_prov');
+  if(normalizeCountryName(document.getElementById('c_paese')?.value||'Italia')!=='Italia'){
+    setCapHint('Per i Paesi diversi dall’Italia inserisci manualmente codice postale, città e regione.');
+    return '';
+  }
   if(!cityEl || !capEl) return '';
   const city=normalizeSpaceText(cityEl.value||'');
   if(!city){
@@ -1926,7 +1999,14 @@ function mergeClientRecords(prev,item){
     indirizzo:normalizeSpaceText(item?.indirizzo||item?.address||''),
     cap:normalizeSpaceText(item?.cap||''),
     citta:normalizeSpaceText(item?.citta||item?.city||''),
-    provincia:normalizeSpaceText(item?.provincia||item?.province||'')
+    provincia:normalizeSpaceText(item?.provincia||item?.province||''),
+    paese:normalizeCountryName(item?.paese||item?.country||'Italia'),
+    indirizzoAlternativoAttivo:!!(item?.indirizzoAlternativoAttivo||item?.altAddressEnabled),
+    indirizzoAlternativo:normalizeSpaceText(item?.indirizzoAlternativo||item?.altAddress||''),
+    capAlternativo:normalizeSpaceText(item?.capAlternativo||item?.altPostalCode||''),
+    cittaAlternativa:normalizeSpaceText(item?.cittaAlternativa||item?.altCity||''),
+    provinciaAlternativa:normalizeSpaceText(item?.provinciaAlternativa||item?.altProvince||''),
+    paeseAlternativo:normalizeCountryName(item?.paeseAlternativo||item?.altCountry||item?.paese||item?.country||'Italia')
   };
   const nextWins=recordRichnessScore(item) >= recordRichnessScore(prev);
   const merged=nextWins ? {...prev, ...item} : {...item, ...prev};
@@ -1939,6 +2019,13 @@ function mergeClientRecords(prev,item){
   merged.cap=normalizeSpaceText(merged?.cap||'');
   merged.citta=normalizeSpaceText(merged?.citta||merged?.city||'');
   merged.provincia=normalizeSpaceText(merged?.provincia||merged?.province||'');
+  merged.paese=normalizeCountryName(merged?.paese||merged?.country||'Italia');
+  merged.indirizzoAlternativoAttivo=!!(merged?.indirizzoAlternativoAttivo||merged?.altAddressEnabled);
+  merged.indirizzoAlternativo=normalizeSpaceText(merged?.indirizzoAlternativo||merged?.altAddress||'');
+  merged.capAlternativo=normalizeSpaceText(merged?.capAlternativo||merged?.altPostalCode||'');
+  merged.cittaAlternativa=normalizeSpaceText(merged?.cittaAlternativa||merged?.altCity||'');
+  merged.provinciaAlternativa=normalizeSpaceText(merged?.provinciaAlternativa||merged?.altProvince||'');
+  merged.paeseAlternativo=normalizeCountryName(merged?.paeseAlternativo||merged?.altCountry||merged?.paese||'Italia');
   return merged;
 }
 function dedupeSemanticList(list, keyFn, mergeFn){
@@ -2310,7 +2397,14 @@ function collectClientDraft(){
       indirizzo:document.getElementById('c_ind')?.value||'',
       cap:document.getElementById('c_cap')?.value||'',
       citta:document.getElementById('c_citta')?.value||'',
-      prov:document.getElementById('c_prov')?.value||'',
+      prov:getClientProvinceValue(),
+      paese:document.getElementById('c_paese')?.value||'Italia',
+      altOn:!!document.getElementById('c_alt_on')?.checked,
+      altInd:document.getElementById('c_alt_ind')?.value||'',
+      altCap:document.getElementById('c_alt_cap')?.value||'',
+      altCitta:document.getElementById('c_alt_citta')?.value||'',
+      altProv:document.getElementById('c_alt_prov')?.value||'',
+      altPaese:document.getElementById('c_alt_paese')?.value||'Italia',
       note:document.getElementById('c_note')?.value||''
     }
   };
@@ -2329,8 +2423,17 @@ function restoreClientDraft(targetId=''){
   document.getElementById('c_ind').value=v.indirizzo||'';
   document.getElementById('c_cap').value=v.cap||'';
   document.getElementById('c_citta').value=v.citta||'';
-  document.getElementById('c_prov').value=v.prov||'';
+  document.getElementById('c_paese').value=normalizeCountryName(v.paese||'Italia');
+  setClientProvinceValue(v.prov||'', v.paese||'Italia');
+  document.getElementById('c_alt_on').checked=!!v.altOn;
+  document.getElementById('c_alt_ind').value=v.altInd||'';
+  document.getElementById('c_alt_cap').value=v.altCap||'';
+  document.getElementById('c_alt_citta').value=v.altCitta||'';
+  document.getElementById('c_alt_prov').value=v.altProv||'';
+  document.getElementById('c_alt_paese').value=normalizeCountryName(v.altPaese||v.paese||'Italia');
   document.getElementById('c_note').value=v.note||'';
+  updateClientCountryUI();
+  updateAlternativeAddressUI();
   refreshClientShipping();
   return true;
 }
@@ -4568,6 +4671,13 @@ function makeOrderClientSnapshot(client, prev={}){
     cap: historicalText(source?.cap, prev?.cap),
     citta: historicalText(source?.citta, prev?.citta),
     provincia: historicalText(source?.provincia, prev?.provincia),
+    paese: normalizeCountryName(historicalText(source?.paese, prev?.paese, 'Italia')),
+    indirizzoAlternativoAttivo:!!(source?.indirizzoAlternativoAttivo??prev?.indirizzoAlternativoAttivo),
+    indirizzoAlternativo:historicalText(source?.indirizzoAlternativo, prev?.indirizzoAlternativo),
+    capAlternativo:historicalText(source?.capAlternativo, prev?.capAlternativo),
+    cittaAlternativa:historicalText(source?.cittaAlternativa, prev?.cittaAlternativa),
+    provinciaAlternativa:historicalText(source?.provinciaAlternativa, prev?.provinciaAlternativa),
+    paeseAlternativo:normalizeCountryName(historicalText(source?.paeseAlternativo, prev?.paeseAlternativo, source?.paese, prev?.paese, 'Italia')),
     note: typeof source?.note==='string' ? source.note : (typeof prev?.note==='string' ? prev.note : '')
   };
 }
@@ -6591,39 +6701,101 @@ function parseLegacyCloudDescription(text){
   return { descrizione, note:(noteMatch?.[1]||'').trim(), post:(postMatch?.[1]||'').trim() };
 }
 
-function withIntlPrefix(tel){
+function withIntlPrefix(tel, paese='Italia'){
   const raw=String(tel||'').trim();
   if(!raw) return '';
   if(raw.startsWith('+')) return raw;
   if(raw.startsWith('00')) return '+'+raw.slice(2).replace(/\s+/g,'');
   const digits=raw.replace(/\D+/g,'');
   if(!digits) return raw;
+  const country=normalizeCountryName(paese||'Italia');
+  // Manteniamo l'automatismo storico solo per l'Italia. Per gli altri Paesi
+  // il prefisso va inserito esplicitamente, così non alteriamo numeri con regole nazionali diverse.
+  if(country!=='Italia') return raw;
   if(digits.startsWith('39')) return '+'+digits;
   return '+39 '+digits;
 }
-function buildShippingAddress(c){
-  const name=(c?.nome||'').trim();
-  const addr=(c?.indirizzo||'').trim();
-  const cap=(c?.cap||'').trim();
-  const city=(c?.citta||'').trim();
-  const prov=(c?.provincia||'').trim();
-  const phone=withIntlPrefix(c?.telefono||'');
+function hasAlternativeAddress(c){
+  return !!c?.indirizzoAlternativoAttivo && [c?.indirizzoAlternativo,c?.capAlternativo,c?.cittaAlternativa,c?.provinciaAlternativa].some(v=>normalizeSpaceText(v||''));
+}
+function clientAddressData(c, alternative=false){
+  if(alternative){
+    return {
+      nome:c?.nome||'', telefono:c?.telefono||'',
+      indirizzo:c?.indirizzoAlternativo||'', cap:c?.capAlternativo||'',
+      citta:c?.cittaAlternativa||'', provincia:c?.provinciaAlternativa||'',
+      paese:normalizeCountryName(c?.paeseAlternativo||c?.paese||'Italia')
+    };
+  }
+  return {
+    nome:c?.nome||'', telefono:c?.telefono||'',
+    indirizzo:c?.indirizzo||'', cap:c?.cap||'', citta:c?.citta||'',
+    provincia:c?.provincia||'', paese:normalizeCountryName(c?.paese||'Italia')
+  };
+}
+function buildShippingAddress(c, alternative=false){
+  const data=clientAddressData(c, alternative);
+  const name=normalizeSpaceText(data.nome||'');
+  const addr=normalizeSpaceText(data.indirizzo||'');
+  const cap=normalizeSpaceText(data.cap||'');
+  const city=normalizeSpaceText(data.citta||'');
+  const prov=normalizeSpaceText(data.provincia||'');
+  const country=normalizeCountryName(data.paese||'Italia');
+  const phone=withIntlPrefix(data.telefono||'', country);
   const cityLine=[cap,city,prov].filter(Boolean).join(' ');
-  return ['Shipping Address',name,addr,cityLine,'Italy',phone].filter(Boolean).join('\n');
+  return ['Shipping Address',name,addr,cityLine,country,phone].filter(Boolean).join('\n');
+}
+function getClientProvinceValue(){
+  const country=normalizeCountryName(document.getElementById('c_paese')?.value||'Italia');
+  return country==='Italia'
+    ? normalizeSpaceText(document.getElementById('c_prov')?.value||'')
+    : normalizeSpaceText(document.getElementById('c_prov_text')?.value||'');
+}
+function setClientProvinceValue(value='', country='Italia'){
+  const normalizedCountry=normalizeCountryName(country||'Italia');
+  const prov=normalizeSpaceText(value||'');
+  const select=document.getElementById('c_prov');
+  const text=document.getElementById('c_prov_text');
+  if(select) select.value=(normalizedCountry==='Italia' && PROVINCE.includes(prov)) ? prov : '';
+  if(text) text.value=(normalizedCountry!=='Italia' || !PROVINCE.includes(prov)) ? prov : '';
+}
+function updateClientCountryUI(){
+  const country=normalizeCountryName(document.getElementById('c_paese')?.value||'Italia');
+  const isItaly=country==='Italia';
+  const selectWrap=document.getElementById('c_prov_select_wrap');
+  const textWrap=document.getElementById('c_prov_text_wrap');
+  if(selectWrap) selectWrap.style.display=isItaly?'block':'none';
+  if(textWrap) textWrap.style.display=isItaly?'none':'block';
+  const city=document.getElementById('c_citta');
+  if(city){ if(isItaly) city.setAttribute('list','c_citta_list'); else city.removeAttribute('list'); }
+  if(!isItaly) setCapHint('Per i Paesi diversi dall’Italia inserisci manualmente codice postale, città e regione.');
+  else if(!normalizeSpaceText(document.getElementById('c_citta')?.value||'')) setCapHint('Il CAP viene proposto automaticamente in base alla città, usando un archivio comuni + CAP.');
+}
+function updateAlternativeAddressUI(){
+  const enabled=!!document.getElementById('c_alt_on')?.checked;
+  const wrap=document.getElementById('c_alt_wrap');
+  if(wrap) wrap.style.display=enabled?'block':'none';
 }
 function refreshClientShipping(){
   const el=document.getElementById('c_ship');
-  if(!el) return;
+  const altEl=document.getElementById('c_alt_ship');
   const c={
     nome:document.getElementById('c_nome')?.value||'',
     telefono:document.getElementById('c_tel')?.value||'',
     indirizzo:document.getElementById('c_ind')?.value||'',
     cap:document.getElementById('c_cap')?.value||'',
     citta:document.getElementById('c_citta')?.value||'',
-    provincia:document.getElementById('c_prov')?.value||''
+    provincia:getClientProvinceValue(),
+    paese:document.getElementById('c_paese')?.value||'Italia',
+    indirizzoAlternativoAttivo:!!document.getElementById('c_alt_on')?.checked,
+    indirizzoAlternativo:document.getElementById('c_alt_ind')?.value||'',
+    capAlternativo:document.getElementById('c_alt_cap')?.value||'',
+    cittaAlternativa:document.getElementById('c_alt_citta')?.value||'',
+    provinciaAlternativa:document.getElementById('c_alt_prov')?.value||'',
+    paeseAlternativo:document.getElementById('c_alt_paese')?.value||'Italia'
   };
-  el.value=buildShippingAddress(c);
-  fitTextarea(el);
+  if(el){ el.value=buildShippingAddress(c); fitTextarea(el); }
+  if(altEl){ altEl.value=buildShippingAddress(c,true); fitTextarea(altEl); }
 }
 function getOrderClientData(order, db){
   if(!order) return null;
@@ -8341,7 +8513,7 @@ function renderCli(){
   const db=loadDB();
   const q=document.getElementById('qCli').value.trim().toLowerCase();
   const items=db.clienti.filter(c=>{
-    const hay=((c.nome||'')+' '+(c.telefono||'')+' '+(c.citta||'')+' '+(c.provincia||'')).toLowerCase();
+    const hay=((c.nome||'')+' '+(c.telefono||'')+' '+(c.citta||'')+' '+(c.provincia||'')+' '+(c.paese||'')+' '+(c.cittaAlternativa||'')+' '+(c.indirizzoAlternativo||'')).toLowerCase();
     return !q || hay.includes(q);
   }).sort((a,b)=>String(b._ts||0).localeCompare(String(a._ts||0)));
   const el=document.getElementById('listCli');
@@ -8349,9 +8521,9 @@ function renderCli(){
     <div class="row" data-open="cli" data-id="${c.id}" style="grid-template-columns:1fr auto">
       <div>
         <div class="t">${esc(c.nome||'-')}</div>
-        <div class="s">${esc(c.telefono||'')} • ${esc(c.citta||'')} (${esc(c.provincia||'')})</div>
+        <div class="s">${esc(c.telefono||'')} • ${esc(c.citta||'')} ${c.provincia?`(${esc(c.provincia)})`:''} • ${esc(normalizeCountryName(c.paese||'Italia'))}</div>
       </div>
-      <div class="pill">${esc(c.provincia||'-')}</div>
+      <div class="pill">${esc(normalizeCountryName(c.paese||'Italia'))}</div>
     </div>
   `).join('') || `<div class="card"><div class="small">Nessun cliente</div></div>`;
 }
@@ -9749,7 +9921,7 @@ async function deleteArt(){
     hide('mArtEdit');
     hide('mArtView');
     renderAll();
-initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship']);
+initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship','c_alt_ship','vCliAltShip']);
 updateArticleColorModeUI();
     if(old && cloudEnabled()){
       try{
@@ -9770,11 +9942,12 @@ function openCliView(id){
   if(!c) return;
   currentCliId=id;
   document.getElementById('vCliNome').textContent=c.nome||'-';
-  document.getElementById('vCliTel').textContent=withIntlPrefix(c.telefono||'')||'-';
+  document.getElementById('vCliTel').textContent=withIntlPrefix(c.telefono||'',c.paese||'Italia')||'-';
   document.getElementById('vCliInd').textContent=c.indirizzo||'-';
   document.getElementById('vCliCap').textContent=c.cap||'-';
   document.getElementById('vCliCity').textContent=c.citta||'-';
   document.getElementById('vCliProv').textContent=c.provincia||'-';
+  document.getElementById('vCliCountry').textContent=normalizeCountryName(c.paese||'Italia');
   const cliNoteWrap=document.getElementById('vCliNoteWrap');
   const cliNoteEl=document.getElementById('vCliNote');
   const cliNote=normalizeSpaceText(c.note||'');
@@ -9785,6 +9958,11 @@ function openCliView(id){
   const ship=document.getElementById('vCliShip');
   ship.value=buildShippingAddress(c);
   fitTextarea(ship);
+  const altWrap=document.getElementById('vCliAltWrap');
+  const altShip=document.getElementById('vCliAltShip');
+  const hasAlt=hasAlternativeAddress(c);
+  if(altWrap) altWrap.style.display=hasAlt?'block':'none';
+  if(altShip){ altShip.value=hasAlt?buildShippingAddress(c,true):''; fitTextarea(altShip); }
   const clientOrders=(db.ordini||[]).filter(o=>o.clienteId===id).sort((a,b)=>String(b.data||b._ts||'').localeCompare(String(a.data||a._ts||'')));
   const ordersEl=document.getElementById('vCliOrders');
   if(ordersEl){
@@ -9968,8 +10146,17 @@ function openCliEdit(id){
   document.getElementById('c_ind').value=c?.indirizzo||'';
   document.getElementById('c_cap').value=c?.cap||'';
   document.getElementById('c_citta').value=c?.citta||'';
-  document.getElementById('c_prov').value=c?.provincia||'';
+  document.getElementById('c_paese').value=normalizeCountryName(c?.paese||'Italia');
+  setClientProvinceValue(c?.provincia||'', c?.paese||'Italia');
+  document.getElementById('c_alt_on').checked=!!c?.indirizzoAlternativoAttivo;
+  document.getElementById('c_alt_ind').value=c?.indirizzoAlternativo||'';
+  document.getElementById('c_alt_cap').value=c?.capAlternativo||'';
+  document.getElementById('c_alt_citta').value=c?.cittaAlternativa||'';
+  document.getElementById('c_alt_prov').value=c?.provinciaAlternativa||'';
+  document.getElementById('c_alt_paese').value=normalizeCountryName(c?.paeseAlternativo||c?.paese||'Italia');
   document.getElementById('c_note').value=c?.note||'';
+  updateClientCountryUI();
+  updateAlternativeAddressUI();
   restoreClientDraft(c?.id||'');
   suggestCapFromCity(false);
   refreshClientShipping();
@@ -9991,7 +10178,14 @@ async function saveCli(){
     indirizzo: document.getElementById('c_ind').value.trim(),
     cap: document.getElementById('c_cap').value.trim(),
     citta: document.getElementById('c_citta').value.trim(),
-    provincia: document.getElementById('c_prov').value,
+    provincia: getClientProvinceValue(),
+    paese: normalizeCountryName(document.getElementById('c_paese').value||'Italia'),
+    indirizzoAlternativoAttivo:!!document.getElementById('c_alt_on').checked,
+    indirizzoAlternativo:document.getElementById('c_alt_ind').value.trim(),
+    capAlternativo:document.getElementById('c_alt_cap').value.trim(),
+    cittaAlternativa:document.getElementById('c_alt_citta').value.trim(),
+    provinciaAlternativa:document.getElementById('c_alt_prov').value.trim(),
+    paeseAlternativo:normalizeCountryName(document.getElementById('c_alt_paese').value||document.getElementById('c_paese').value||'Italia'),
     note: document.getElementById('c_note').value,
     _ts: Date.now()
   };
@@ -10007,9 +10201,16 @@ async function saveCli(){
     telefono: normalizePhone(candidate.telefono),
     email: normalizeEmail(candidate.email),
     indirizzo: normalizeSpaceText(candidate.indirizzo),
-    cap: normalizeSpaceText(candidate.cap).replace(/\D/g,'').slice(0,5),
+    cap: candidate.paese==='Italia' ? normalizeSpaceText(candidate.cap).replace(/\D/g,'').slice(0,5) : normalizeSpaceText(candidate.cap),
     citta: normalizeSpaceText(candidate.citta),
-    provincia: normalizeSpaceText(candidate.provincia)
+    provincia: normalizeSpaceText(candidate.provincia),
+    paese:normalizeCountryName(candidate.paese||'Italia'),
+    indirizzoAlternativoAttivo:!!candidate.indirizzoAlternativoAttivo,
+    indirizzoAlternativo:normalizeSpaceText(candidate.indirizzoAlternativo),
+    capAlternativo:normalizeSpaceText(candidate.capAlternativo),
+    cittaAlternativa:normalizeSpaceText(candidate.cittaAlternativa),
+    provinciaAlternativa:normalizeSpaceText(candidate.provinciaAlternativa),
+    paeseAlternativo:normalizeCountryName(candidate.paeseAlternativo||candidate.paese||'Italia')
   };
   const i=db.clienti.findIndex(x=>x.id===obj.id);
   if(i>=0) db.clienti[i]=obj; else db.clienti.unshift(obj);
@@ -11143,7 +11344,9 @@ document.addEventListener('click',(ev)=>{
   if(a==='downloadArtPhotos') return downloadCurrentArticlePhotos('tg');
   if(a==='openSupplierLink'){ const link=String(document.getElementById('vArtSupplierLink')?.value||'').trim(); if(!link){ toast('Nessun link fornitore'); return; } const safe=/^https?:\/\//i.test(link)?link:'https://'+link; window.open(safe,'_blank'); return; }
   if(a==='copyCliShip') return copyTextFrom(document.getElementById('c_ship'));
+  if(a==='copyCliAltShip') return copyTextFrom(document.getElementById('c_alt_ship'));
   if(a==='copyCliShipView') return copyTextFrom(document.getElementById('vCliShip'));
+  if(a==='copyCliAltShipView') return copyTextFrom(document.getElementById('vCliAltShip'));
   if(a==='copyOrdClientAddress') return copyCurrentOrderClientAddress();
   if(a==='editCliFromView'){ hide('mCliView', true); return openCliEdit(currentCliId); }
   if(a==='closeCliView') return hide('mCliView');
@@ -11244,7 +11447,8 @@ document.getElementById('qArtCat')?.addEventListener('change', renderArt);
 document.getElementById('qArtBrand')?.addEventListener('change', renderArt);
 document.getElementById('qArtQuality')?.addEventListener('change', renderArt);
 bindSearchSuggest('qCli','qCliSuggest','cli', ()=>renderCli());
-['c_nome','c_tel','c_ind','c_cap','c_citta','c_prov','c_note'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', ()=>{ if(id==='c_citta'){ updateCityDatalistOptions(el.value||''); suggestCapFromCity(false); } if(id==='c_prov') suggestCapFromCity(false); refreshClientShipping(); saveClientDraft(); }); if(el) el.addEventListener('change', ()=>{ if(id==='c_citta'){ updateCityDatalistOptions(el.value||''); suggestCapFromCity(true); } if(id==='c_prov') suggestCapFromCity(true); refreshClientShipping(); saveClientDraft(); }); });
+['c_nome','c_tel','c_ind','c_cap','c_citta','c_prov','c_prov_text','c_paese','c_note','c_alt_ind','c_alt_cap','c_alt_citta','c_alt_prov','c_alt_paese'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', ()=>{ if(id==='c_citta' && normalizeCountryName(document.getElementById('c_paese')?.value||'Italia')==='Italia'){ updateCityDatalistOptions(el.value||''); suggestCapFromCity(false); } if(id==='c_prov') suggestCapFromCity(false); if(id==='c_paese') updateClientCountryUI(); refreshClientShipping(); saveClientDraft(); }); if(el) el.addEventListener('change', ()=>{ if(id==='c_citta' && normalizeCountryName(document.getElementById('c_paese')?.value||'Italia')==='Italia'){ updateCityDatalistOptions(el.value||''); suggestCapFromCity(true); } if(id==='c_prov') suggestCapFromCity(true); if(id==='c_paese') updateClientCountryUI(); refreshClientShipping(); saveClientDraft(); }); });
+document.getElementById('c_alt_on')?.addEventListener('change', ()=>{ updateAlternativeAddressUI(); refreshClientShipping(); saveClientDraft(); });
 bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
@@ -11308,9 +11512,15 @@ window.addEventListener('pagehide', flushVisibleDrafts);
 window.addEventListener('beforeunload', flushVisibleDrafts);
 window.addEventListener('focus', ()=>autoCloudPullNow('focus'));
 
-// Province select
+// Paesi europei e province italiane
 const provSel=document.getElementById('c_prov');
 provSel.innerHTML='<option value="">Seleziona</option>'+PROVINCE.map(p=>`<option value="${p}">${p}</option>`).join('');
+const countrySel=document.getElementById('c_paese');
+const altCountrySel=document.getElementById('c_alt_paese');
+if(countrySel){ countrySel.innerHTML=countryOptions('Italia'); countrySel.value='Italia'; }
+if(altCountrySel){ altCountrySel.innerHTML=countryOptions('Italia'); altCountrySel.value='Italia'; }
+updateClientCountryUI();
+updateAlternativeAddressUI();
 updateCityDatalistOptions('');
 ensureComuniCapIndex().then(()=>{
   updateCityDatalistOptions(document.getElementById('c_citta')?.value||'');
@@ -11554,6 +11764,30 @@ async function deleteCloudArticle(art){
     }
   }catch(err){ throw err; }
 }
+function buildCloudClientMeta(cli){
+  return {
+    indirizzoAlternativoAttivo:!!cli?.indirizzoAlternativoAttivo,
+    indirizzoAlternativo:normalizeSpaceText(cli?.indirizzoAlternativo||''),
+    capAlternativo:normalizeSpaceText(cli?.capAlternativo||''),
+    cittaAlternativa:normalizeSpaceText(cli?.cittaAlternativa||''),
+    provinciaAlternativa:normalizeSpaceText(cli?.provinciaAlternativa||''),
+    paeseAlternativo:normalizeCountryName(cli?.paeseAlternativo||cli?.paese||'Italia')
+  };
+}
+function packCloudClientNote(cli){
+  const plain=String(cli?.note||'').trim();
+  let meta='';
+  try{ meta=`\n\n[VGCLIMETA]${JSON.stringify(buildCloudClientMeta(cli))}[/VGCLIMETA]`; }catch(_e){}
+  return (plain+meta).trim()||null;
+}
+function unpackCloudClientNote(text){
+  const raw=String(text||'');
+  const match=raw.match(/\[VGCLIMETA\]([\s\S]*?)\[\/VGCLIMETA\]/i);
+  let meta={};
+  if(match?.[1]){ try{ meta=JSON.parse(match[1]); }catch(_e){} }
+  const plain=raw.replace(/\s*\[VGCLIMETA\][\s\S]*?\[\/VGCLIMETA\]\s*/gi,' ').replace(/\s{3,}/g,'\n\n').trim();
+  return {plain,meta:(meta&&typeof meta==='object')?meta:{}};
+}
 async function upsertCloudClient(cli){
   const sb=await ensureCloud();
   if(!sb||!cloudSession) return cli;
@@ -11567,8 +11801,8 @@ async function upsertCloudClient(cli){
     citta: cli.citta || null,
     cap: cli.cap || null,
     provincia: cli.provincia || null,
-    paese: 'Italia',
-    note: cli.note || null
+    paese: normalizeCountryName(cli.paese||'Italia'),
+    note: packCloudClientNote(cli)
   };
   let data=null, error=null;
   let matchedId=isUuid(cli.id) ? cli.id : null;
@@ -11778,7 +12012,21 @@ async function pullCloudToLocal(opts={}){
         const createdAt=meta.createdAt||local?.createdAt||local?.dataInserimento||p.created_at||'';
         return {id:p.id,createdAt,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),costoNormaleSconosciuto:!!(meta.costoNormaleSconosciuto??local?.costoNormaleSconosciuto),promoFornitoreAttiva:(typeof meta.promoFornitoreAttiva==='boolean'?meta.promoFornitoreAttiva:(typeof local?.promoFornitoreAttiva==='boolean'?local.promoFornitoreAttiva:pulledCostoUsdPromo>0)),dataInizioPromoFornitore:normalizePromoStartDate(meta.dataInizioPromoFornitore||local?.dataInizioPromoFornitore||''),scadenzaPromoFornitore:meta.scadenzaPromoFornitore||local?.scadenzaPromoFornitore||'',promoFornitoreDataSconosciuta:!!(meta.promoFornitoreDataSconosciuta??local?.promoFornitoreDataSconosciuta),dataInizioPromoPersonale:normalizePromoStartDate(meta.dataInizioPromoPersonale||local?.dataInizioPromoPersonale||meta.dataInizioPromo||local?.dataInizioPromo||''),scadenzaPromoPersonale:meta.scadenzaPromoPersonale||local?.scadenzaPromoPersonale||meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
       }).filter(a=>!articleMatchesDeleteTombstone(a, deletedArticleTombstones)),
-      clienti:(cli||[]).map(c=>({id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',note:c.note||'',_ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true})),
+      clienti:(cli||[]).map(c=>{
+        const packed=unpackCloudClientNote(c.note||'');
+        const meta=packed.meta||{};
+        return {
+          id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',
+          telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),
+          indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',
+          paese:normalizeCountryName(c.paese||'Italia'),note:packed.plain||'',
+          indirizzoAlternativoAttivo:!!meta.indirizzoAlternativoAttivo,
+          indirizzoAlternativo:meta.indirizzoAlternativo||'',capAlternativo:meta.capAlternativo||'',
+          cittaAlternativa:meta.cittaAlternativa||'',provinciaAlternativa:meta.provinciaAlternativa||'',
+          paeseAlternativo:normalizeCountryName(meta.paeseAlternativo||c.paese||'Italia'),
+          _ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true
+        };
+      }),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, brand:localRow?.brand||row?.brand||'', categoria:localRow?.categoria||row?.categoria||'', qualita:localRow?.qualita||row?.qualita||'', costoEur:historicalNumber(localRow?.costoEur,row?.costoEur), articoloSnapshot:localRow?.articoloSnapshot||row?.articoloSnapshot||null, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:o.stato==='in_lavorazione'?'Richiesto':(o.stato==='spedito'?'Spedito':(o.stato==='consegnato'?'Consegnato':'Annullato')),data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
     };
     const mergedCategories=[...new Set([
@@ -12471,7 +12719,7 @@ async function bootApp(){
   renderSocial();
   renderSocialSuggestions();
   initSocialMediaInput();
-  initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship']);
+  initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship','c_alt_ship','vCliAltShip']);
   updateArticleColorModeUI();
   document.getElementById('a_color_suggest_btn')?.addEventListener('click', async ()=>{ try{ await suggestArticleColorLabelsFromImage(); }catch(err){ console.warn('Suggerimento colori fallito', err); toast('Non sono riuscita a leggere bene la foto'); } });
   document.getElementById('a_color_labels_clear_btn')?.addEventListener('click', ()=>{ const el=document.getElementById('a_color_labels'); if(el){ el.value=''; saveArticleDraft(); toast('Abbinamenti colore puliti'); } });
