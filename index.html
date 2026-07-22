@@ -1064,7 +1064,11 @@ window.addEventListener('error',e=>{
   </div>
   <div id="c_alt_wrap" class="mutedBox" style="display:none;margin-top:10px">
     <div class="h3" style="margin-top:0">Indirizzo alternativo</div>
-    <div><div class="k">Indirizzo</div><input id="c_alt_ind" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+    <div class="grid2">
+      <div><div class="k">Nome destinatario</div><input id="c_alt_nome" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
+      <div><div class="k">Cognome destinatario</div><input id="c_alt_cognome" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
+    </div>
+    <div style="margin-top:10px"><div class="k">Indirizzo</div><input id="c_alt_ind" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k">CAP / Codice postale</div><input id="c_alt_cap" autocomplete="off" inputmode="text"/></div>
       <div><div class="k">Città</div><input id="c_alt_citta" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
@@ -1238,29 +1242,66 @@ let ARTICLE_THUMB_QUEUE=[];
 let ARTICLE_THUMB_ACTIVE=0;
 const PROVINCE=[ "AG","AL","AN","AO","AP","AQ","AR","AT","AV","BA","BG","BI","BL","BN","BO","BR","BS","BT","BZ","CA","CB","CE","CH","CL","CN","CO","CR","CS","CT","CZ","EN","FC","FE","FG","FI","FM","FR","GE","GO","GR","IM","IS","KR","LC","LE","LI","LO","LT","LU","MB","MC","ME","MI","MN","MO","MS","MT","NA","NO","NU","OR","PA","PC","PD","PE","PG","PI","PN","PO","PR","PT","PU","PV","PZ","RA","RC","RE","RG","RI","RM","RN","RO","SA","SI","SO","SP","SR","SS","SU","SV","TA","TE","TN","TO","TP","TR","TS","TV","UD","VA","VB","VC","VE","VI","VR","VT","VV" ];
 const EUROPE_COUNTRIES=[
-  {name:'Albania',prefix:'+355'},{name:'Andorra',prefix:'+376'},{name:'Armenia',prefix:'+374'},
-  {name:'Austria',prefix:'+43'},{name:'Azerbaigian',prefix:'+994'},{name:'Belarus',prefix:'+375'},
-  {name:'Belgio',prefix:'+32'},{name:'Bosnia ed Erzegovina',prefix:'+387'},{name:'Bulgaria',prefix:'+359'},
-  {name:'Cipro',prefix:'+357'},{name:'Città del Vaticano',prefix:'+39'},{name:'Croazia',prefix:'+385'},
-  {name:'Danimarca',prefix:'+45'},{name:'Estonia',prefix:'+372'},{name:'Finlandia',prefix:'+358'},
-  {name:'Francia',prefix:'+33'},{name:'Georgia',prefix:'+995'},{name:'Germania',prefix:'+49'},
-  {name:'Grecia',prefix:'+30'},{name:'Irlanda',prefix:'+353'},{name:'Islanda',prefix:'+354'},
-  {name:'Italia',prefix:'+39'},{name:'Kosovo',prefix:'+383'},{name:'Lettonia',prefix:'+371'},
-  {name:'Liechtenstein',prefix:'+423'},{name:'Lituania',prefix:'+370'},{name:'Lussemburgo',prefix:'+352'},
-  {name:'Macedonia del Nord',prefix:'+389'},{name:'Malta',prefix:'+356'},{name:'Moldova',prefix:'+373'},
-  {name:'Monaco',prefix:'+377'},{name:'Montenegro',prefix:'+382'},{name:'Norvegia',prefix:'+47'},
-  {name:'Paesi Bassi',prefix:'+31'},{name:'Polonia',prefix:'+48'},{name:'Portogallo',prefix:'+351'},
-  {name:'Regno Unito',prefix:'+44'},{name:'Repubblica Ceca',prefix:'+420'},{name:'Romania',prefix:'+40'},
-  {name:'Russia',prefix:'+7'},{name:'San Marino',prefix:'+378'},{name:'Serbia',prefix:'+381'},
-  {name:'Slovacchia',prefix:'+421'},{name:'Slovenia',prefix:'+386'},{name:'Spagna',prefix:'+34'},
-  {name:'Svezia',prefix:'+46'},{name:'Svizzera',prefix:'+41'},{name:'Turchia',prefix:'+90'},
-  {name:'Ucraina',prefix:'+380'},{name:'Ungheria',prefix:'+36'}
+  {name:'Albania',native:'Shqipëria',prefix:'+355'},
+  {name:'Andorra',native:'Andorra',prefix:'+376'},
+  {name:'Armenia',native:'Հայաստան',prefix:'+374'},
+  {name:'Austria',native:'Österreich',prefix:'+43'},
+  {name:'Azerbaigian',native:'Azərbaycan',prefix:'+994'},
+  {name:'Belarus',native:'Беларусь',prefix:'+375'},
+  {name:'Belgio',native:'België / Belgique / Belgien',prefix:'+32'},
+  {name:'Bosnia ed Erzegovina',native:'Bosna i Hercegovina',prefix:'+387'},
+  {name:'Bulgaria',native:'България',prefix:'+359'},
+  {name:'Cipro',native:'Κύπρος / Kıbrıs',prefix:'+357'},
+  {name:'Città del Vaticano',native:'Stato della Città del Vaticano',prefix:'+39'},
+  {name:'Croazia',native:'Hrvatska',prefix:'+385'},
+  {name:'Danimarca',native:'Danmark',prefix:'+45'},
+  {name:'Estonia',native:'Eesti',prefix:'+372'},
+  {name:'Finlandia',native:'Suomi',prefix:'+358'},
+  {name:'Francia',native:'France',prefix:'+33'},
+  {name:'Georgia',native:'საქართველო',prefix:'+995'},
+  {name:'Germania',native:'Deutschland',prefix:'+49'},
+  {name:'Grecia',native:'Ελλάδα',prefix:'+30'},
+  {name:'Irlanda',native:'Éire / Ireland',prefix:'+353'},
+  {name:'Islanda',native:'Ísland',prefix:'+354'},
+  {name:'Italia',native:'Italia',prefix:'+39'},
+  {name:'Kosovo',native:'Kosova / Косово',prefix:'+383'},
+  {name:'Lettonia',native:'Latvija',prefix:'+371'},
+  {name:'Liechtenstein',native:'Liechtenstein',prefix:'+423'},
+  {name:'Lituania',native:'Lietuva',prefix:'+370'},
+  {name:'Lussemburgo',native:'Lëtzebuerg',prefix:'+352'},
+  {name:'Macedonia del Nord',native:'Северна Македонија',prefix:'+389'},
+  {name:'Malta',native:'Malta',prefix:'+356'},
+  {name:'Moldova',native:'Republica Moldova',prefix:'+373'},
+  {name:'Monaco',native:'Monaco',prefix:'+377'},
+  {name:'Montenegro',native:'Crna Gora',prefix:'+382'},
+  {name:'Norvegia',native:'Norge',prefix:'+47'},
+  {name:'Paesi Bassi',native:'Nederland',prefix:'+31'},
+  {name:'Polonia',native:'Polska',prefix:'+48'},
+  {name:'Portogallo',native:'Portugal',prefix:'+351'},
+  {name:'Regno Unito',native:'United Kingdom',prefix:'+44'},
+  {name:'Repubblica Ceca',native:'Česko',prefix:'+420'},
+  {name:'Romania',native:'România',prefix:'+40'},
+  {name:'Russia',native:'Россия',prefix:'+7'},
+  {name:'San Marino',native:'San Marino',prefix:'+378'},
+  {name:'Serbia',native:'Србија',prefix:'+381'},
+  {name:'Slovacchia',native:'Slovensko',prefix:'+421'},
+  {name:'Slovenia',native:'Slovenija',prefix:'+386'},
+  {name:'Spagna',native:'España',prefix:'+34'},
+  {name:'Svezia',native:'Sverige',prefix:'+46'},
+  {name:'Svizzera',native:'Schweiz / Suisse / Svizzera / Svizra',prefix:'+41'},
+  {name:'Turchia',native:'Türkiye',prefix:'+90'},
+  {name:'Ucraina',native:'Україна',prefix:'+380'},
+  {name:'Ungheria',native:'Magyarország',prefix:'+36'}
 ].sort((a,b)=>a.name.localeCompare(b.name,'it',{sensitivity:'base'}));
 function normalizeCountryName(value){
   const raw=normalizeSpaceText(value||'');
   if(!raw) return 'Italia';
-  const found=EUROPE_COUNTRIES.find(x=>normalizeTextKey(x.name)===normalizeTextKey(raw));
+  const found=EUROPE_COUNTRIES.find(x=>normalizeTextKey(x.name)===normalizeTextKey(raw) || normalizeTextKey(x.native)===normalizeTextKey(raw));
   return found?.name||raw;
+}
+function countryOriginalName(value){
+  const name=normalizeCountryName(value||'Italia');
+  return EUROPE_COUNTRIES.find(x=>x.name===name)?.native||name;
 }
 function countryDialPrefix(value){
   const name=normalizeCountryName(value);
@@ -1451,6 +1492,8 @@ function normalizeDBShape(o){
     provincia:normalizeSpaceText(x?.provincia||x?.province||''),
     paese:normalizeCountryName(x?.paese||x?.country||'Italia'),
     indirizzoAlternativoAttivo:!!(x?.indirizzoAlternativoAttivo||x?.altAddressEnabled),
+    nomeAlternativo:normalizeSpaceText(x?.nomeAlternativo||x?.altFirstName||''),
+    cognomeAlternativo:normalizeSpaceText(x?.cognomeAlternativo||x?.altLastName||''),
     indirizzoAlternativo:normalizeSpaceText(x?.indirizzoAlternativo||x?.altAddress||''),
     capAlternativo:normalizeSpaceText(x?.capAlternativo||x?.altPostalCode||''),
     cittaAlternativa:normalizeSpaceText(x?.cittaAlternativa||x?.altCity||''),
@@ -2002,6 +2045,8 @@ function mergeClientRecords(prev,item){
     provincia:normalizeSpaceText(item?.provincia||item?.province||''),
     paese:normalizeCountryName(item?.paese||item?.country||'Italia'),
     indirizzoAlternativoAttivo:!!(item?.indirizzoAlternativoAttivo||item?.altAddressEnabled),
+    nomeAlternativo:normalizeSpaceText(item?.nomeAlternativo||item?.altFirstName||''),
+    cognomeAlternativo:normalizeSpaceText(item?.cognomeAlternativo||item?.altLastName||''),
     indirizzoAlternativo:normalizeSpaceText(item?.indirizzoAlternativo||item?.altAddress||''),
     capAlternativo:normalizeSpaceText(item?.capAlternativo||item?.altPostalCode||''),
     cittaAlternativa:normalizeSpaceText(item?.cittaAlternativa||item?.altCity||''),
@@ -2021,6 +2066,8 @@ function mergeClientRecords(prev,item){
   merged.provincia=normalizeSpaceText(merged?.provincia||merged?.province||'');
   merged.paese=normalizeCountryName(merged?.paese||merged?.country||'Italia');
   merged.indirizzoAlternativoAttivo=!!(merged?.indirizzoAlternativoAttivo||merged?.altAddressEnabled);
+  merged.nomeAlternativo=normalizeSpaceText(merged?.nomeAlternativo||item?.nomeAlternativo||prev?.nomeAlternativo||merged?.altFirstName||item?.altFirstName||prev?.altFirstName||'');
+  merged.cognomeAlternativo=normalizeSpaceText(merged?.cognomeAlternativo||item?.cognomeAlternativo||prev?.cognomeAlternativo||merged?.altLastName||item?.altLastName||prev?.altLastName||'');
   merged.indirizzoAlternativo=normalizeSpaceText(merged?.indirizzoAlternativo||merged?.altAddress||'');
   merged.capAlternativo=normalizeSpaceText(merged?.capAlternativo||merged?.altPostalCode||'');
   merged.cittaAlternativa=normalizeSpaceText(merged?.cittaAlternativa||merged?.altCity||'');
@@ -2400,6 +2447,8 @@ function collectClientDraft(){
       prov:getClientProvinceValue(),
       paese:document.getElementById('c_paese')?.value||'Italia',
       altOn:!!document.getElementById('c_alt_on')?.checked,
+      altNome:document.getElementById('c_alt_nome')?.value||'',
+      altCognome:document.getElementById('c_alt_cognome')?.value||'',
       altInd:document.getElementById('c_alt_ind')?.value||'',
       altCap:document.getElementById('c_alt_cap')?.value||'',
       altCitta:document.getElementById('c_alt_citta')?.value||'',
@@ -2426,6 +2475,8 @@ function restoreClientDraft(targetId=''){
   document.getElementById('c_paese').value=normalizeCountryName(v.paese||'Italia');
   setClientProvinceValue(v.prov||'', v.paese||'Italia');
   document.getElementById('c_alt_on').checked=!!v.altOn;
+  document.getElementById('c_alt_nome').value=v.altNome||'';
+  document.getElementById('c_alt_cognome').value=v.altCognome||'';
   document.getElementById('c_alt_ind').value=v.altInd||'';
   document.getElementById('c_alt_cap').value=v.altCap||'';
   document.getElementById('c_alt_citta').value=v.altCitta||'';
@@ -4673,6 +4724,8 @@ function makeOrderClientSnapshot(client, prev={}){
     provincia: historicalText(source?.provincia, prev?.provincia),
     paese: normalizeCountryName(historicalText(source?.paese, prev?.paese, 'Italia')),
     indirizzoAlternativoAttivo:!!(source?.indirizzoAlternativoAttivo??prev?.indirizzoAlternativoAttivo),
+    nomeAlternativo:historicalText(source?.nomeAlternativo, prev?.nomeAlternativo),
+    cognomeAlternativo:historicalText(source?.cognomeAlternativo, prev?.cognomeAlternativo),
     indirizzoAlternativo:historicalText(source?.indirizzoAlternativo, prev?.indirizzoAlternativo),
     capAlternativo:historicalText(source?.capAlternativo, prev?.capAlternativo),
     cittaAlternativa:historicalText(source?.cittaAlternativa, prev?.cittaAlternativa),
@@ -6720,8 +6773,9 @@ function hasAlternativeAddress(c){
 }
 function clientAddressData(c, alternative=false){
   if(alternative){
+    const recipient=[c?.nomeAlternativo,c?.cognomeAlternativo].map(v=>normalizeSpaceText(v||'')).filter(Boolean).join(' ');
     return {
-      nome:c?.nome||'', telefono:c?.telefono||'',
+      nome:recipient||c?.nome||'', telefono:c?.telefono||'',
       indirizzo:c?.indirizzoAlternativo||'', cap:c?.capAlternativo||'',
       citta:c?.cittaAlternativa||'', provincia:c?.provinciaAlternativa||'',
       paese:normalizeCountryName(c?.paeseAlternativo||c?.paese||'Italia')
@@ -6740,8 +6794,9 @@ function buildShippingAddress(c, alternative=false){
   const cap=normalizeSpaceText(data.cap||'');
   const city=normalizeSpaceText(data.citta||'');
   const prov=normalizeSpaceText(data.provincia||'');
-  const country=normalizeCountryName(data.paese||'Italia');
-  const phone=withIntlPrefix(data.telefono||'', country);
+  const countryIt=normalizeCountryName(data.paese||'Italia');
+  const country=alternative ? countryOriginalName(countryIt) : countryIt;
+  const phone=withIntlPrefix(data.telefono||'', countryIt);
   const cityLine=[cap,city,prov].filter(Boolean).join(' ');
   return ['Shipping Address',name,addr,cityLine,country,phone].filter(Boolean).join('\n');
 }
@@ -6788,6 +6843,8 @@ function refreshClientShipping(){
     provincia:getClientProvinceValue(),
     paese:document.getElementById('c_paese')?.value||'Italia',
     indirizzoAlternativoAttivo:!!document.getElementById('c_alt_on')?.checked,
+    nomeAlternativo:document.getElementById('c_alt_nome')?.value||'',
+    cognomeAlternativo:document.getElementById('c_alt_cognome')?.value||'',
     indirizzoAlternativo:document.getElementById('c_alt_ind')?.value||'',
     capAlternativo:document.getElementById('c_alt_cap')?.value||'',
     cittaAlternativa:document.getElementById('c_alt_citta')?.value||'',
@@ -8513,7 +8570,7 @@ function renderCli(){
   const db=loadDB();
   const q=document.getElementById('qCli').value.trim().toLowerCase();
   const items=db.clienti.filter(c=>{
-    const hay=((c.nome||'')+' '+(c.telefono||'')+' '+(c.citta||'')+' '+(c.provincia||'')+' '+(c.paese||'')+' '+(c.cittaAlternativa||'')+' '+(c.indirizzoAlternativo||'')).toLowerCase();
+    const hay=((c.nome||'')+' '+(c.telefono||'')+' '+(c.citta||'')+' '+(c.provincia||'')+' '+(c.paese||'')+' '+(c.nomeAlternativo||'')+' '+(c.cognomeAlternativo||'')+' '+(c.cittaAlternativa||'')+' '+(c.indirizzoAlternativo||'')).toLowerCase();
     return !q || hay.includes(q);
   }).sort((a,b)=>String(b._ts||0).localeCompare(String(a._ts||0)));
   const el=document.getElementById('listCli');
@@ -10149,6 +10206,8 @@ function openCliEdit(id){
   document.getElementById('c_paese').value=normalizeCountryName(c?.paese||'Italia');
   setClientProvinceValue(c?.provincia||'', c?.paese||'Italia');
   document.getElementById('c_alt_on').checked=!!c?.indirizzoAlternativoAttivo;
+  document.getElementById('c_alt_nome').value=c?.nomeAlternativo||'';
+  document.getElementById('c_alt_cognome').value=c?.cognomeAlternativo||'';
   document.getElementById('c_alt_ind').value=c?.indirizzoAlternativo||'';
   document.getElementById('c_alt_cap').value=c?.capAlternativo||'';
   document.getElementById('c_alt_citta').value=c?.cittaAlternativa||'';
@@ -10181,6 +10240,8 @@ async function saveCli(){
     provincia: getClientProvinceValue(),
     paese: normalizeCountryName(document.getElementById('c_paese').value||'Italia'),
     indirizzoAlternativoAttivo:!!document.getElementById('c_alt_on').checked,
+    nomeAlternativo:document.getElementById('c_alt_nome').value.trim(),
+    cognomeAlternativo:document.getElementById('c_alt_cognome').value.trim(),
     indirizzoAlternativo:document.getElementById('c_alt_ind').value.trim(),
     capAlternativo:document.getElementById('c_alt_cap').value.trim(),
     cittaAlternativa:document.getElementById('c_alt_citta').value.trim(),
@@ -10206,6 +10267,8 @@ async function saveCli(){
     provincia: normalizeSpaceText(candidate.provincia),
     paese:normalizeCountryName(candidate.paese||'Italia'),
     indirizzoAlternativoAttivo:!!candidate.indirizzoAlternativoAttivo,
+    nomeAlternativo:normalizeSpaceText(candidate.nomeAlternativo),
+    cognomeAlternativo:normalizeSpaceText(candidate.cognomeAlternativo),
     indirizzoAlternativo:normalizeSpaceText(candidate.indirizzoAlternativo),
     capAlternativo:normalizeSpaceText(candidate.capAlternativo),
     cittaAlternativa:normalizeSpaceText(candidate.cittaAlternativa),
@@ -11447,7 +11510,7 @@ document.getElementById('qArtCat')?.addEventListener('change', renderArt);
 document.getElementById('qArtBrand')?.addEventListener('change', renderArt);
 document.getElementById('qArtQuality')?.addEventListener('change', renderArt);
 bindSearchSuggest('qCli','qCliSuggest','cli', ()=>renderCli());
-['c_nome','c_tel','c_ind','c_cap','c_citta','c_prov','c_prov_text','c_paese','c_note','c_alt_ind','c_alt_cap','c_alt_citta','c_alt_prov','c_alt_paese'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', ()=>{ if(id==='c_citta' && normalizeCountryName(document.getElementById('c_paese')?.value||'Italia')==='Italia'){ updateCityDatalistOptions(el.value||''); suggestCapFromCity(false); } if(id==='c_prov') suggestCapFromCity(false); if(id==='c_paese') updateClientCountryUI(); refreshClientShipping(); saveClientDraft(); }); if(el) el.addEventListener('change', ()=>{ if(id==='c_citta' && normalizeCountryName(document.getElementById('c_paese')?.value||'Italia')==='Italia'){ updateCityDatalistOptions(el.value||''); suggestCapFromCity(true); } if(id==='c_prov') suggestCapFromCity(true); if(id==='c_paese') updateClientCountryUI(); refreshClientShipping(); saveClientDraft(); }); });
+['c_nome','c_tel','c_ind','c_cap','c_citta','c_prov','c_prov_text','c_paese','c_note','c_alt_nome','c_alt_cognome','c_alt_ind','c_alt_cap','c_alt_citta','c_alt_prov','c_alt_paese'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', ()=>{ if(id==='c_citta' && normalizeCountryName(document.getElementById('c_paese')?.value||'Italia')==='Italia'){ updateCityDatalistOptions(el.value||''); suggestCapFromCity(false); } if(id==='c_prov') suggestCapFromCity(false); if(id==='c_paese') updateClientCountryUI(); refreshClientShipping(); saveClientDraft(); }); if(el) el.addEventListener('change', ()=>{ if(id==='c_citta' && normalizeCountryName(document.getElementById('c_paese')?.value||'Italia')==='Italia'){ updateCityDatalistOptions(el.value||''); suggestCapFromCity(true); } if(id==='c_prov') suggestCapFromCity(true); if(id==='c_paese') updateClientCountryUI(); refreshClientShipping(); saveClientDraft(); }); });
 document.getElementById('c_alt_on')?.addEventListener('change', ()=>{ updateAlternativeAddressUI(); refreshClientShipping(); saveClientDraft(); });
 bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
@@ -11533,7 +11596,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.0-2026-07-10';
+const VG_BUILD='1.0.24-2026-07-22';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -11767,6 +11830,8 @@ async function deleteCloudArticle(art){
 function buildCloudClientMeta(cli){
   return {
     indirizzoAlternativoAttivo:!!cli?.indirizzoAlternativoAttivo,
+    nomeAlternativo:normalizeSpaceText(cli?.nomeAlternativo||''),
+    cognomeAlternativo:normalizeSpaceText(cli?.cognomeAlternativo||''),
     indirizzoAlternativo:normalizeSpaceText(cli?.indirizzoAlternativo||''),
     capAlternativo:normalizeSpaceText(cli?.capAlternativo||''),
     cittaAlternativa:normalizeSpaceText(cli?.cittaAlternativa||''),
@@ -12021,6 +12086,7 @@ async function pullCloudToLocal(opts={}){
           indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',
           paese:normalizeCountryName(c.paese||'Italia'),note:packed.plain||'',
           indirizzoAlternativoAttivo:!!meta.indirizzoAlternativoAttivo,
+          nomeAlternativo:meta.nomeAlternativo||'',cognomeAlternativo:meta.cognomeAlternativo||'',
           indirizzoAlternativo:meta.indirizzoAlternativo||'',capAlternativo:meta.capAlternativo||'',
           cittaAlternativa:meta.cittaAlternativa||'',provinciaAlternativa:meta.provinciaAlternativa||'',
           paeseAlternativo:normalizeCountryName(meta.paeseAlternativo||c.paese||'Italia'),
