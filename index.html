@@ -4144,13 +4144,33 @@ async function shareArticleFilesSmart(files, options={}){
   const baseName=String(options.baseName||'articolo').trim()||'articolo';
   const title=String(options.title||baseName||'Articolo').trim()||'Articolo';
   const text=String(options.text||'').trim();
+  const channel=String(options.channel||'').trim().toLowerCase();
+  const isFacebook=channel==='fb' || channel==='facebook';
   if(typeof navigator.share!=='function') return {ok:false,mode:'unsupported'};
 
-  // Facebook e alcune app Android ignorano spesso il campo text quando ci sono file.
-  // Copia quindi il testo in modo sincrono PRIMA di aprire il pannello, senza perdere il gesto utente.
+  // Mantiene sempre una copia di sicurezza: alcune versioni di Facebook ricevono
+  // correttamente le immagini ma ignorano silenziosamente il campo testo.
   const textCopied=!!text && copyShareTextSync(text);
 
-  // Prima scelta: pannello nativo con testo e file nello stesso gesto.
+  // Facebook tende a conservare meglio la didascalia quando riceve una sola immagine.
+  // Se ci sono più fotografie, crea quindi prima una tavola unica e passa foto + testo
+  // nello stesso payload. Telegram e gli altri canali mantengono invece i file separati.
+  if(isFacebook && list.length>1 && list.every(file=>String(file?.type||'').startsWith('image/'))){
+    try{
+      const sheetFile=await buildPhotoSheetFromFiles(list,`${baseName}_tutte_le_foto.jpg`);
+      if(sheetFile){
+        const payload={title,files:[sheetFile]};
+        if(text) payload.text=text;
+        await navigator.share(payload);
+        return {ok:true,mode:'sheet',count:list.length,textShared:!!text,textCopied,facebookOptimized:true};
+      }
+    }catch(err){
+      if(isShareAbortError(err)) throw err;
+      console.warn('Share Facebook ottimizzato foto+testo fallito, provo file originali',err);
+    }
+  }
+
+  // Pannello nativo con testo e file nello stesso gesto.
   if(list.length){
     try{
       const payload={title,files:list};
@@ -4166,12 +4186,13 @@ async function shareArticleFilesSmart(files, options={}){
   // Alcuni Android rifiutano più file: li unisco in una sola immagine.
   if(list.length>1){
     try{
-      const sheetFile=await buildPhotoSheetFromFiles(list,`${baseName}_tutte_le_foto.jpg`);
+      const imageFiles=list.filter(file=>String(file?.type||'').startsWith('image/'));
+      const sheetFile=imageFiles.length ? await buildPhotoSheetFromFiles(imageFiles,`${baseName}_tutte_le_foto.jpg`) : null;
       if(sheetFile){
         const payload={title,files:[sheetFile]};
         if(text) payload.text=text;
         await navigator.share(payload);
-        return {ok:true,mode:'sheet',count:list.length,textShared:!!text,textCopied};
+        return {ok:true,mode:'sheet',count:imageFiles.length,textShared:!!text,textCopied};
       }
     }catch(err){
       if(isShareAbortError(err)) throw err;
@@ -4250,7 +4271,7 @@ async function shareArtAll(){
     if(shareResult?.ok){
       recordArticlePublication('fb');
       if(shareResult.mode==='sheet'){
-        toast(text?`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine. Testo copiato negli appunti 📋`:`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine.`);
+        toast(text?`✅ Facebook aperto con foto e testo. Ho unito ${shareResult.count||files.length} foto in un'unica immagine; il testo resta anche copiato 📋`:`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine.`);
       }else if(shareResult.mode==='title'){
         toast(text?'📋 Testo FB copiato negli appunti. La condivisione file completa non era disponibile.':'✅ Condivisione aperta!');
       }else{
@@ -4324,7 +4345,7 @@ async function shareArtTelegram(){
     if(shareResult?.ok){
       recordArticlePublication('tg');
       if(shareResult.mode==='sheet'){
-        toast(text?`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine. Testo copiato negli appunti 📋`:`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine.`);
+        toast(text?`✅ Facebook aperto con foto e testo. Ho unito ${shareResult.count||files.length} foto in un'unica immagine; il testo resta anche copiato 📋`:`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine.`);
       }else if(shareResult.mode==='title'){
         toast(text?'📋 Testo Telegram copiato. La condivisione file completa non era disponibile.':'✅ Condivisione Telegram aperta!');
       }else{
@@ -4341,17 +4362,18 @@ async function shareArtTelegram(){
   }
 }
 
-async function shareArticleFromList(artId){
+async function shareArticleFromListByChannel(artId, channel='fb'){
   const id=String(artId||'').trim();
   if(!id){ toast('Articolo non trovato'); return; }
   const db=loadDB();
   const a=(db.articoli||[]).find(x=>String(x.id)===id || String(x.codice||'')===id);
   if(!a){ toast('Articolo non trovato'); return; }
 
-  // Il pulsante in elenco deve comportarsi come il Condividi del dettaglio articolo:
-  // foto condivise tramite share di sistema, testo Facebook SENZA prezzo copiato negli appunti.
   currentArtId=a.id;
-  const text=normalizeFacebookPostForArticle(buildPostFacebook(a), a);
+  const isTelegram=String(channel||'fb').toLowerCase()==='tg';
+  const text=isTelegram
+    ? String(buildPostTelegram(a) || '').trim()
+    : normalizeFacebookPostForArticle(buildPostFacebook(a), a);
   let ctx=null;
   try{ ctx=await prepareArticlePhotoShareContext(a); }
   catch(err){ console.warn('Preparazione contesto foto da elenco fallita', err); }
@@ -4360,7 +4382,7 @@ async function shareArticleFromList(artId){
     if(text){
       try{ await navigator.clipboard.writeText(text); }
       catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
-      toast('📋 Testo FB senza prezzo copiato. Nessuna foto disponibile.');
+      toast(isTelegram ? '📋 Testo Telegram copiato. Nessuna foto disponibile.' : '📋 Testo FB senza prezzo copiato. Nessuna foto disponibile.');
     }else{
       toast('Nessuna foto disponibile');
     }
@@ -4375,37 +4397,62 @@ async function shareArticleFromList(artId){
     cached=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
   }
 
-
   if(!cached.length){
-    toast(text ? '📋 Testo FB senza prezzo copiato. Sto preparando le foto: premi Condividi tra un attimo.' : 'Sto preparando le foto: premi Condividi tra un attimo.');
+    toast(text
+      ? (isTelegram ? '📋 Testo Telegram copiato. Sto preparando le foto: premi Telegram tra un attimo.' : '📋 Testo FB senza prezzo copiato. Sto preparando le foto: premi Facebook tra un attimo.')
+      : (isTelegram ? 'Sto preparando le foto: premi Telegram tra un attimo.' : 'Sto preparando le foto: premi Facebook tra un attimo.'));
+    if(text){
+      try{ await navigator.clipboard.writeText(text); }
+      catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
+    }
     warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
     return;
   }
 
   try{
-    const shareResult=await shareArticleFilesSmart(cached,{baseName:(a.codice||a.modello||'articolo'),title:(a.modello||a.codice||'Articolo'),channel:'fb',text});
+    const shareResult=await shareArticleFilesSmart(cached,{baseName:(a.codice||a.modello||'articolo'),title:(a.modello||a.codice||'Articolo'),channel:isTelegram?'tg':'fb',text});
     if(shareResult?.ok){
-      recordArticlePublication('fb');
+      recordArticlePublication(isTelegram?'tg':'fb');
       if(shareResult.mode==='sheet'){
-        toast(text ? `✅ Condivisione aperta! Ho unito ${shareResult.count||cached.length} foto in un'unica immagine. Testo FB senza prezzo copiato 📋` : `✅ Condivisione aperta! Ho unito ${shareResult.count||cached.length} foto in un'unica immagine.`);
+        toast(text
+          ? (isTelegram ? `✅ Telegram aperto! Ho unito ${shareResult.count||cached.length} foto in un'unica immagine con testo pronto.` : `✅ Facebook aperto con foto e testo. Ho unito ${shareResult.count||cached.length} foto in un'unica immagine; il testo resta anche copiato 📋`)
+          : `✅ Condivisione aperta! Ho unito ${shareResult.count||cached.length} foto in un'unica immagine.`);
       }else if(shareResult.mode==='title'){
-        toast(text ? '📋 Testo FB senza prezzo copiato. La condivisione file completa non era disponibile.' : '✅ Condivisione aperta!');
+        toast(text
+          ? (isTelegram ? '✅ Telegram aperto. Se il testo non appare, è già copiato 📋' : '📋 Testo FB copiato. La condivisione file completa non era disponibile.')
+          : '✅ Condivisione aperta!');
       }else{
-        toast(text ? '✅ Condivisione aperta. Testo FB copiato negli appunti 📋' : '✅ Condivisione aperta!');
+        toast(text
+          ? (isTelegram ? '✅ Telegram aperto con foto e testo.' : '✅ Facebook aperto. Testo FB copiato negli appunti 📋')
+          : '✅ Condivisione aperta!');
       }
       return;
     }
-    toast(text ? '📋 Testo FB senza prezzo copiato. Condivisione file non supportata su questo browser.' : 'Condivisione non supportata su questo browser');
+    if(text){
+      try{ await navigator.clipboard.writeText(text); }
+      catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
+    }
+    toast(text
+      ? (isTelegram ? '📋 Testo Telegram copiato. Condivisione file non supportata su questo browser.' : '📋 Testo FB copiato. Condivisione file non supportata su questo browser.')
+      : 'Condivisione non supportata su questo browser');
   }catch(err){
     if(isShareAbortError(err)) return;
     if(isShareActivationError(err)){
-      toast('⚠️ Premi di nuovo Condividi: il browser ha perso il tocco durante la preparazione.');
+      toast(isTelegram ? '⚠️ Premi di nuovo Telegram: il browser ha perso il tocco durante la preparazione.' : '⚠️ Premi di nuovo Facebook: il browser ha perso il tocco durante la preparazione.');
       return;
     }
     console.warn('Condivisione articolo da elenco fallita:', err);
-    toast(text ? '📋 Testo FB senza prezzo copiato. Condivisione foto non riuscita.' : '⚠️ Condivisione non riuscita');
+    if(text){
+      try{ await navigator.clipboard.writeText(text); }
+      catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
+    }
+    toast(text
+      ? (isTelegram ? '📋 Testo Telegram copiato. Condivisione foto non riuscita.' : '📋 Testo FB copiato. Condivisione foto non riuscita.')
+      : '⚠️ Condivisione non riuscita');
   }
 }
+async function shareArticleFromList(artId){ return shareArticleFromListByChannel(artId,'fb'); }
+async function shareArticleTelegramFromList(artId){ return shareArticleFromListByChannel(artId,'tg'); }
 async function syncArticlePhotosToCloud(artId, codice, pics){
   const sb=await ensureCloud();
   if(!sb||!cloudSession||!artId) return [];
@@ -8793,7 +8840,7 @@ function renderArt(){
     const metaLine=[qualityLine, photoLine].filter(Boolean).join(' • ');
     const notePreview=normalizeSpaceText(a.note||'');
     const noteHtml=notePreview ? `<div class="artCardNote" title="${esc(notePreview)}">${esc(notePreview)}</div>` : '';
-    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}">${noteHtml}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s artPhotoCount">${esc(metaLine)}</div>${unavailable}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions"><button class="btn orderAdd small ${blocked ? 'is-disabled' : ''}" type="button" data-action="addArtToOrder" data-id="${a.id}" ${blocked ? 'disabled' : ''}>${blocked ? 'Non disponibile' : 'Aggiungi a ordine'}</button><button class="btn smallish" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtFromList" data-id="${a.id}">Condividi</button></div></div>`;
+    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}">${noteHtml}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s artPhotoCount">${esc(metaLine)}</div>${unavailable}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions"><button class="btn smallish" style="background:#229ED9;border-color:#229ED9;color:#fff" type="button" data-action="shareArtTelegramFromList" data-id="${a.id}">Telegram</button><button class="btn smallish" style="background:#1877F2;border-color:#1877F2;color:#fff" type="button" data-action="shareArtFacebookFromList" data-id="${a.id}">Facebook</button></div></div>`;
   }).join('');
   const emptyText=noPhotoOnly ? 'Nessun articolo senza foto.' : (promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.');
   el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
@@ -11532,7 +11579,7 @@ function bindSearchSuggest(inputId, boxId, kind, onApply){
 
 /* ====== EVENTS ====== */
 document.addEventListener('pointerdown',(ev)=>{
-  const listShareBtn=ev.target?.closest?.('[data-action="shareArtFromList"]');
+  const listShareBtn=ev.target?.closest?.('[data-action="shareArtFromList"],[data-action="shareArtFacebookFromList"],[data-action="shareArtTelegramFromList"]');
   if(listShareBtn){
     const id=String(listShareBtn.dataset.id||'').trim();
     Promise.resolve().then(()=>{
@@ -11843,7 +11890,8 @@ document.addEventListener('click',(ev)=>{
     hide('mArtView', true);
     return openOrdEdit(currentOrdId||null, art.id);
   }
-  if(a==='shareArtFromList') return shareArticleFromList(el.dataset.id || null);
+  if(a==='shareArtFromList' || a==='shareArtFacebookFromList') return shareArticleFromListByChannel(el.dataset.id || null, 'fb');
+  if(a==='shareArtTelegramFromList') return shareArticleFromListByChannel(el.dataset.id || null, 'tg');
   if(a==='duplicateArt') return duplicateCurrentArticle(el.dataset.id || null);
   if(a==='editFromView'){ hide('mArtView', true); return openArtEdit(currentArtId); }
   if(a==='closeView') return hide('mArtView');

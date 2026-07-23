@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.33-2026-07-23';
+const VERSION = 'gestionale-vg-1.0.35-2026-07-23';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',
