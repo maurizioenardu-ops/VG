@@ -95,17 +95,23 @@ body{-webkit-tap-highlight-color:transparent}
 .pill.marginLow{border-color:#fecaca;background:#fff1f2;color:#b91c1c;box-shadow:0 6px 14px rgba(239,68,68,.14)}
 .statusPill{font-weight:1000;letter-spacing:.2px}
 .statusPill.statusRequested{background:#fff1f2;border-color:#fecaca;color:#b91c1c;box-shadow:0 6px 14px rgba(239,68,68,.12)}
+.statusPill.statusWaiting{background:#fff7ed;border-color:#fed7aa;color:#c2410c;box-shadow:0 6px 14px rgba(249,115,22,.12)}
+.statusPill.statusProcessing{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8;box-shadow:0 6px 14px rgba(59,130,246,.12)}
 .statusPill.statusPaid{background:#fffbeb;border-color:#fde68a;color:#92400e;box-shadow:0 6px 14px rgba(245,158,11,.14)}
 .statusPill.statusShipped{background:#ecfccb;border-color:#bef264;color:#3f6212;box-shadow:0 6px 14px rgba(132,204,22,.12)}
 .statusPill.statusDelivered{background:#dcfce7;border-color:#86efac;color:#166534;box-shadow:0 6px 14px rgba(34,197,94,.12)}
 .statusPill.statusCancelled{background:#f1f5f9;border-color:#cbd5e1;color:#475569}
 .statusText.statusRequested{color:#b91c1c;font-weight:900}
+.statusText.statusWaiting{color:#c2410c;font-weight:900}
+.statusText.statusProcessing{color:#1d4ed8;font-weight:900}
 .statusText.statusPaid{color:#92400e;font-weight:900}
 .statusText.statusShipped{color:#3f6212;font-weight:900}
 .statusText.statusDelivered{color:#166534;font-weight:900}
 .statusText.statusCancelled{color:#475569;font-weight:900}
 .statusTotal{font-weight:1100}
 .statusTotal.statusRequested{color:#b91c1c}
+.statusTotal.statusWaiting{color:#c2410c}
+.statusTotal.statusProcessing{color:#1d4ed8}
 .statusTotal.statusPaid{color:#b45309}
 .statusTotal.statusShipped{color:#4d7c0f}
 .statusTotal.statusDelivered{color:#15803d}
@@ -1135,7 +1141,7 @@ window.addEventListener('error',e=>{
     <div><div class="k">Sconto cliente</div><div id="vOrdDiscount" class="t">-</div></div>
   </div>
   <div class="grid2" style="margin-top:10px">
-    <div><div class="k">Totale pagato</div><div id="vOrdTot" class="t priceHot">-</div></div>
+    <div><div id="vOrdTotLabel" class="k">Totale pagato</div><div id="vOrdTot" class="t priceHot">-</div></div>
     <div><div class="k">Guadagno</div><div id="vOrdProfit" class="t pricePaid">-</div></div>
   </div>
   <div id="vOrdCumMeta" class="small" style="margin-top:8px;display:none"></div>
@@ -4558,7 +4564,7 @@ function buildOrderCloudNote(ord){
   if(ord?.mis) parts.push(`[MIS:${ord.mis}]`);
   const payment=normalizeOrderPaymentMethod(ord?.modalitaPagamento||ord?.metodoPagamento||'');
   if(payment) parts.push(`[PAGAMENTO:${payment}]`);
-  const stato=String(ord?.stato||'Richiesto').trim();
+  const stato=normalizeOrderStatus(ord?.stato||'Richiesto');
   if(stato) parts.push(`[STATO:${stato}]`);
   const discount=calcOrderDiscount(ord);
   if(discount>0) parts.push(`[SCONTO:${discount.toFixed(2)}]`);
@@ -4930,7 +4936,7 @@ function resolvePromoStartDate(prevArticle, nextPromo){
 
 function orderPaidStatus(o){
   const stato=String(o?.stato||'').trim().toLowerCase();
-  const autoPaidStatuses=new Set(['pagato','in lavorazione','spedito','consegnato']);
+  const autoPaidStatuses=new Set(['pagato','spedito','consegnato']);
   return autoPaidStatuses.has(stato);
 }
 
@@ -8931,12 +8937,24 @@ function isOrderInProgress(order){
   const status=String(order?.stato||'').trim().toLowerCase();
   return status!=='consegnato' && status!=='annullato';
 }
-function orderStatusKey(stato){
+function normalizeOrderStatus(stato){
   const s=String(stato||'').trim().toLowerCase();
-  if(s.includes('conseg')) return 'delivered';
-  if(s.includes('sped')) return 'shipped';
-  if(s.includes('pag')) return 'paid';
-  if(s.includes('ann')) return 'cancelled';
+  if(s.includes('conseg')) return 'Consegnato';
+  if(s.includes('sped')) return 'Spedito';
+  if(s.includes('ann')) return 'Annullato';
+  if(s.includes('pagato')) return 'Pagato';
+  if(s.includes('lavoraz')) return 'In lavorazione';
+  if(s.includes('attesa') || s.includes('pagamento')) return 'In attesa di pagamento';
+  return 'Richiesto';
+}
+function orderStatusKey(stato){
+  const canonical=normalizeOrderStatus(stato);
+  if(canonical==='Consegnato') return 'delivered';
+  if(canonical==='Spedito') return 'shipped';
+  if(canonical==='Pagato') return 'paid';
+  if(canonical==='In lavorazione') return 'processing';
+  if(canonical==='In attesa di pagamento') return 'waiting';
+  if(canonical==='Annullato') return 'cancelled';
   return 'requested';
 }
 function orderStatusMeta(stato){
@@ -8944,6 +8962,8 @@ function orderStatusMeta(stato){
   if(key==='delivered') return {key,label:'Consegnato',icon:'✅',pill:'statusDelivered',total:'statusDelivered'};
   if(key==='shipped') return {key,label:'Spedito',icon:'📦',pill:'statusShipped',total:'statusShipped'};
   if(key==='paid') return {key,label:'Pagato',icon:'💳',pill:'statusPaid',total:'statusPaid'};
+  if(key==='processing') return {key,label:'In lavorazione',icon:'⚙️',pill:'statusProcessing',total:'statusProcessing'};
+  if(key==='waiting') return {key,label:'In attesa di pagamento',icon:'⏳',pill:'statusWaiting',total:'statusWaiting'};
   if(key==='cancelled') return {key,label:'Annullato',icon:'⛔',pill:'statusCancelled',total:'statusCancelled'};
   return {key,label:'Richiesto',icon:'📝',pill:'statusRequested',total:'statusRequested'};
 }
@@ -9000,9 +9020,10 @@ function renderOrd(){
     const paymentText=normalizeOrderPaymentMethod(o.modalitaPagamento||o.metodoPagamento||'');
     const statusMeta=orderStatusMeta(o.stato||'-');
     const totalCls='statusTotal '+statusMeta.total;
+    const totalLabel=orderPaidStatus(o)?'Totale pagato':'Da pagare';
     return `<div class="row" data-open="ord" data-id="${o.id}" style="grid-template-columns:1fr auto">
       <div>
-        <div class="t">${esc(c?c.nome:'-')} • Totale pagato <span class="${totalCls}">${money(paidTotal)}</span></div>
+        <div class="t">${esc(c?c.nome:'-')} • ${esc(totalLabel)} <span class="${totalCls}">${money(paidTotal)}</span></div>
         <div class="s"><span class="statusText status${statusMeta.key.charAt(0).toUpperCase()+statusMeta.key.slice(1)}"><span class="statusIcon">${esc(statusMeta.icon)}</span>${esc(statusMeta.label)}</span> • ${esc(o.data||'')}${o.mis?` • Mis. ${esc(o.mis)}`:''}${paymentText?` • ${esc(paymentText)}`:''}${o.tracking?` • Track ${esc(o.tracking)}`:''}</div>
         ${measureWarningHtml}
         ${articlesHtml}
@@ -10506,6 +10527,8 @@ async function openOrdView(id){
   document.getElementById('vOrdNote').textContent=o.note||'-';
   document.getElementById('vOrdSub').textContent=money(subTotale);
   document.getElementById('vOrdDiscount').textContent=money(scontoCliente);
+  const totalLabelEl=document.getElementById('vOrdTotLabel');
+  if(totalLabelEl) totalLabelEl.textContent=paid?'Totale pagato':'Da pagare';
   totalEl.textContent=money(totalPagato);
   totalEl.className='t statusTotal '+ordStatusMeta.total;
   profitEl.textContent=money(profit);
@@ -11190,7 +11213,7 @@ async function saveOrd(){
     id: newOrderId,
     numeroOrdine: ensureOrderNumber({ id:newOrderId, numeroOrdine: old?.numeroOrdine }),
     clienteId: cli,
-    stato: document.getElementById('o_stato').value,
+    stato: normalizeOrderStatus(document.getElementById('o_stato').value),
     data: document.getElementById('o_data').value.trim()||todayStr(),
     note: document.getElementById('o_note').value.trim(),
     mis: misuraValue,
@@ -12338,9 +12361,9 @@ async function upsertCloudOrder(ord, db){
     numero_ordine: ord.numeroOrdine || (isUuid(ord.id)?('VGAPP-'+ord.id.slice(0,8)):String(ord.id||'VGAPP-'+uid().slice(0,6)).slice(0,50)),
     cliente_id: clienteId,
     data_ordine: ord.data || todayStr(),
-    stato: (ord.stato||'Richiesto').toLowerCase().includes('conseg') ? 'consegnato' : ((ord.stato||'').toLowerCase().includes('sped') ? 'spedito' : ((ord.stato||'').toLowerCase().includes('ann') ? 'annullato' : 'in_lavorazione')),
+    stato: normalizeOrderStatus(ord.stato)==='Consegnato' ? 'consegnato' : (normalizeOrderStatus(ord.stato)==='Spedito' ? 'spedito' : (normalizeOrderStatus(ord.stato)==='Annullato' ? 'annullato' : 'in_lavorazione')),
     totale: Number(ord.totale || 0),
-    pagato: /pag|sped|conseg/.test(String(ord.stato||'').toLowerCase()),
+    pagato: ['Pagato','Spedito','Consegnato'].includes(normalizeOrderStatus(ord.stato)),
     note: buildOrderCloudNote(ord),
     tracking_code: ord.tracking || null,
     tracking_url: ord.tracking ? `https://17track.net/en/track?nums=${encodeURIComponent(ord.tracking)}` : null
@@ -12511,7 +12534,7 @@ async function pullCloudToLocal(opts={}){
           _ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true
         };
       }),
-      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, brand:localRow?.brand||row?.brand||'', categoria:localRow?.categoria||row?.categoria||'', qualita:localRow?.qualita||row?.qualita||'', costoEur:historicalNumber(localRow?.costoEur,row?.costoEur), articoloSnapshot:localRow?.articoloSnapshot||row?.articoloSnapshot||null, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); const statoMeta=String(noteMeta.stato||'').trim(); const localStatus=String(local?.stato||'').trim(); const cloudDerived=(o.stato==='consegnato'?'Consegnato':(o.stato==='spedito'?'Spedito':(o.stato==='annullato'?'Annullato':((o.pagato===true || o.pagato===1 || o.pagato==='true')?'Pagato':'Richiesto')))); const localRank={Richiesto:1,'In attesa di pagamento':1,'In lavorazione':2,Pagato:3,Spedito:4,Consegnato:5,Annullato:6}; const cloudGeneric=o.stato==='in_lavorazione' && !statoMeta; const statoCloud=statoMeta || ((cloudGeneric && (localRank[localStatus]||0)>(localRank[cloudDerived]||0)) ? localStatus : cloudDerived); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:statoCloud,data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',modalitaPagamento:noteMeta.modalitaPagamento||local?.modalitaPagamento||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
+      ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, brand:localRow?.brand||row?.brand||'', categoria:localRow?.categoria||row?.categoria||'', qualita:localRow?.qualita||row?.qualita||'', costoEur:historicalNumber(localRow?.costoEur,row?.costoEur), articoloSnapshot:localRow?.articoloSnapshot||row?.articoloSnapshot||null, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); const statoMeta=normalizeOrderStatus(noteMeta.stato||''); const localStatus=local?.stato?normalizeOrderStatus(local.stato):''; const cloudDerived=(o.stato==='consegnato'?'Consegnato':(o.stato==='spedito'?'Spedito':(o.stato==='annullato'?'Annullato':((o.pagato===true || o.pagato===1 || o.pagato==='true')?'Pagato':'Richiesto')))); const statoCloud=noteMeta.stato ? statoMeta : (localStatus || cloudDerived); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:statoCloud,data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',modalitaPagamento:noteMeta.modalitaPagamento||local?.modalitaPagamento||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
     };
     const mergedCategories=[...new Set([
       ...(Array.isArray(localDb?.categorie)?localDb.categorie:[]),
