@@ -4144,19 +4144,13 @@ async function shareArticleFilesSmart(files, options={}){
   const baseName=String(options.baseName||'articolo').trim()||'articolo';
   const title=String(options.title||baseName||'Articolo').trim()||'Articolo';
   const text=String(options.text||'').trim();
-  const channel=String(options.channel||'').trim().toLowerCase();
-  const isFacebook=channel==='fb' || channel==='facebook';
   if(typeof navigator.share!=='function') return {ok:false,mode:'unsupported'};
 
-  // Mantiene sempre una copia di sicurezza: alcune versioni di Facebook ricevono
-  // correttamente le immagini ma ignorano silenziosamente il campo testo.
+  // Facebook e alcune app Android ignorano spesso il campo text quando ci sono file.
+  // Copia quindi il testo in modo sincrono PRIMA di aprire il pannello, senza perdere il gesto utente.
   const textCopied=!!text && copyShareTextSync(text);
 
-  // Facebook riceve sempre le fotografie originali come file separati.
-  // Il testo viene comunque passato nello stesso payload; se l'app Facebook lo ignora,
-  // resta disponibile negli appunti come copia di sicurezza.
-
-  // Pannello nativo con testo e file nello stesso gesto.
+  // Prima scelta: pannello nativo con testo e file nello stesso gesto.
   if(list.length){
     try{
       const payload={title,files:list};
@@ -4170,15 +4164,14 @@ async function shareArticleFilesSmart(files, options={}){
   }
 
   // Alcuni Android rifiutano più file: li unisco in una sola immagine.
-  if(list.length>1 && !isFacebook){
+  if(list.length>1){
     try{
-      const imageFiles=list.filter(file=>String(file?.type||'').startsWith('image/'));
-      const sheetFile=imageFiles.length ? await buildPhotoSheetFromFiles(imageFiles,`${baseName}_tutte_le_foto.jpg`) : null;
+      const sheetFile=await buildPhotoSheetFromFiles(list,`${baseName}_tutte_le_foto.jpg`);
       if(sheetFile){
         const payload={title,files:[sheetFile]};
         if(text) payload.text=text;
         await navigator.share(payload);
-        return {ok:true,mode:'sheet',count:imageFiles.length,textShared:!!text,textCopied};
+        return {ok:true,mode:'sheet',count:list.length,textShared:!!text,textCopied};
       }
     }catch(err){
       if(isShareAbortError(err)) throw err;
