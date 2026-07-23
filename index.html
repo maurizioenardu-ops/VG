@@ -4088,6 +4088,33 @@ window.artHeroVideo=function(url){
 };
 
 
+
+function copyShareTextSync(text){
+  const t=String(text||'').trim();
+  if(!t) return false;
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=t;
+    ta.setAttribute('readonly','readonly');
+    ta.setAttribute('aria-hidden','true');
+    ta.style.position='fixed';
+    ta.style.top='0';
+    ta.style.left='-9999px';
+    ta.style.opacity='0';
+    ta.style.pointerEvents='none';
+    document.body.appendChild(ta);
+    ta.focus({preventScroll:true});
+    ta.select();
+    ta.setSelectionRange(0,ta.value.length);
+    const ok=!!document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  }catch(err){
+    console.warn('Copia sincrona testo condivisione fallita',err);
+    return false;
+  }
+}
+
 async function shareArticleFilesSmart(files, options={}){
   const list=normalizePreparedPhotoFiles(Array.isArray(files)?files:[]);
   const baseName=String(options.baseName||'articolo').trim()||'articolo';
@@ -4095,13 +4122,17 @@ async function shareArticleFilesSmart(files, options={}){
   const text=String(options.text||'').trim();
   if(typeof navigator.share!=='function') return {ok:false,mode:'unsupported'};
 
+  // Facebook e alcune app Android ignorano spesso il campo text quando ci sono file.
+  // Copia quindi il testo in modo sincrono PRIMA di aprire il pannello, senza perdere il gesto utente.
+  const textCopied=!!text && copyShareTextSync(text);
+
   // Prima scelta: pannello nativo con testo e file nello stesso gesto.
   if(list.length){
     try{
       const payload={title,files:list};
       if(text) payload.text=text;
       await navigator.share(payload);
-      return {ok:true,mode:list.length===1?'single':'multi',textShared:!!text};
+      return {ok:true,mode:list.length===1?'single':'multi',textShared:!!text,textCopied};
     }catch(err){
       if(isShareAbortError(err)) throw err;
       console.warn('Share diretto testo+file fallito, provo fallback',err);
@@ -4116,7 +4147,7 @@ async function shareArticleFilesSmart(files, options={}){
         const payload={title,files:[sheetFile]};
         if(text) payload.text=text;
         await navigator.share(payload);
-        return {ok:true,mode:'sheet',count:list.length,textShared:!!text};
+        return {ok:true,mode:'sheet',count:list.length,textShared:!!text,textCopied};
       }
     }catch(err){
       if(isShareAbortError(err)) throw err;
@@ -4128,7 +4159,7 @@ async function shareArticleFilesSmart(files, options={}){
   if(text){
     try{
       await navigator.share({title,text});
-      return {ok:true,mode:'text',textShared:true};
+      return {ok:true,mode:'text',textShared:true,textCopied};
     }catch(err){
       if(isShareAbortError(err)) throw err;
       console.warn('Share solo testo fallito',err);
@@ -4137,12 +4168,12 @@ async function shareArticleFilesSmart(files, options={}){
 
   try{
     await navigator.share({title});
-    return {ok:true,mode:'title',textShared:false};
+    return {ok:true,mode:'title',textShared:false,textCopied};
   }catch(err){
     if(isShareAbortError(err)) throw err;
     console.warn('Share titolo fallback fallito',err);
   }
-  return {ok:false,mode:'fail'};
+  return {ok:false,mode:'fail',textCopied};
 }
 
 async function shareArtAll(){
@@ -4195,11 +4226,11 @@ async function shareArtAll(){
     if(shareResult?.ok){
       recordArticlePublication('fb');
       if(shareResult.mode==='sheet'){
-        toast(text?`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine. Testo incluso nella condivisione`:`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine.`);
+        toast(text?`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine. Testo copiato negli appunti 📋`:`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine.`);
       }else if(shareResult.mode==='title'){
         toast(text?'📋 Testo FB copiato negli appunti. La condivisione file completa non era disponibile.':'✅ Condivisione aperta!');
       }else{
-        toast(text?'✅ Condivisione aperta con foto e testo':'✅ Condivisione aperta!');
+        toast(text?'✅ Condivisione aperta. Testo copiato negli appunti 📋':'✅ Condivisione aperta!');
       }
     } else {
       if(text){ try{ await navigator.clipboard.writeText(text); }catch(_e){ try{ fallbackCopyText(text); }catch(__e){} } toast('Condivisione non disponibile: testo copiato negli appunti'); }
@@ -4269,11 +4300,11 @@ async function shareArtTelegram(){
     if(shareResult?.ok){
       recordArticlePublication('tg');
       if(shareResult.mode==='sheet'){
-        toast(text?`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine. Testo incluso nella condivisione`:`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine.`);
+        toast(text?`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine. Testo copiato negli appunti 📋`:`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine.`);
       }else if(shareResult.mode==='title'){
         toast(text?'📋 Testo Telegram copiato. La condivisione file completa non era disponibile.':'✅ Condivisione Telegram aperta!');
       }else{
-        toast(text?'✅ Condivisione aperta con foto e testo':'✅ Condivisione aperta!');
+        toast(text?'✅ Condivisione aperta. Testo copiato negli appunti 📋':'✅ Condivisione aperta!');
       }
     } else {
       toast(text?'📋 Testo Telegram copiato. La condivisione file non è supportata.':'Condivisione non supportata su questo browser');
@@ -4336,7 +4367,7 @@ async function shareArticleFromList(artId){
       }else if(shareResult.mode==='title'){
         toast(text ? '📋 Testo FB senza prezzo copiato. La condivisione file completa non era disponibile.' : '✅ Condivisione aperta!');
       }else{
-        toast(text ? '✅ Condivisione aperta con foto e testo' : '✅ Condivisione aperta!');
+        toast(text ? '✅ Condivisione aperta. Testo FB copiato negli appunti 📋' : '✅ Condivisione aperta!');
       }
       return;
     }
