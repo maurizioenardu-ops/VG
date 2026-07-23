@@ -4152,23 +4152,9 @@ async function shareArticleFilesSmart(files, options={}){
   // correttamente le immagini ma ignorano silenziosamente il campo testo.
   const textCopied=!!text && copyShareTextSync(text);
 
-  // Facebook tende a conservare meglio la didascalia quando riceve una sola immagine.
-  // Se ci sono più fotografie, crea quindi prima una tavola unica e passa foto + testo
-  // nello stesso payload. Telegram e gli altri canali mantengono invece i file separati.
-  if(isFacebook && list.length>1 && list.every(file=>String(file?.type||'').startsWith('image/'))){
-    try{
-      const sheetFile=await buildPhotoSheetFromFiles(list,`${baseName}_tutte_le_foto.jpg`);
-      if(sheetFile){
-        const payload={title,files:[sheetFile]};
-        if(text) payload.text=text;
-        await navigator.share(payload);
-        return {ok:true,mode:'sheet',count:list.length,textShared:!!text,textCopied,facebookOptimized:true};
-      }
-    }catch(err){
-      if(isShareAbortError(err)) throw err;
-      console.warn('Share Facebook ottimizzato foto+testo fallito, provo file originali',err);
-    }
-  }
+  // Facebook riceve sempre le fotografie originali come file separati.
+  // Il testo viene comunque passato nello stesso payload; se l'app Facebook lo ignora,
+  // resta disponibile negli appunti come copia di sicurezza.
 
   // Pannello nativo con testo e file nello stesso gesto.
   if(list.length){
@@ -4184,7 +4170,7 @@ async function shareArticleFilesSmart(files, options={}){
   }
 
   // Alcuni Android rifiutano più file: li unisco in una sola immagine.
-  if(list.length>1){
+  if(list.length>1 && !isFacebook){
     try{
       const imageFiles=list.filter(file=>String(file?.type||'').startsWith('image/'));
       const sheetFile=imageFiles.length ? await buildPhotoSheetFromFiles(imageFiles,`${baseName}_tutte_le_foto.jpg`) : null;
@@ -4271,7 +4257,7 @@ async function shareArtAll(){
     if(shareResult?.ok){
       recordArticlePublication('fb');
       if(shareResult.mode==='sheet'){
-        toast(text?`✅ Facebook aperto con foto e testo. Ho unito ${shareResult.count||files.length} foto in un'unica immagine; il testo resta anche copiato 📋`:`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine.`);
+        toast(text?'✅ Facebook aperto con foto separate. Il testo è stato inviato e resta anche copiato negli appunti 📋':'✅ Facebook aperto con foto separate.');
       }else if(shareResult.mode==='title'){
         toast(text?'📋 Testo FB copiato negli appunti. La condivisione file completa non era disponibile.':'✅ Condivisione aperta!');
       }else{
@@ -4345,7 +4331,7 @@ async function shareArtTelegram(){
     if(shareResult?.ok){
       recordArticlePublication('tg');
       if(shareResult.mode==='sheet'){
-        toast(text?`✅ Facebook aperto con foto e testo. Ho unito ${shareResult.count||files.length} foto in un'unica immagine; il testo resta anche copiato 📋`:`✅ Condivisione aperta! Ho unito ${shareResult.count||files.length} foto in un'unica immagine.`);
+        toast(text?'✅ Facebook aperto con foto separate. Il testo è stato inviato e resta anche copiato negli appunti 📋':'✅ Facebook aperto con foto separate.');
       }else if(shareResult.mode==='title'){
         toast(text?'📋 Testo Telegram copiato. La condivisione file completa non era disponibile.':'✅ Condivisione Telegram aperta!');
       }else{
@@ -4423,7 +4409,7 @@ async function shareArticleFromListByChannel(artId, channel='fb'){
           : '✅ Condivisione aperta!');
       }else{
         toast(text
-          ? (isTelegram ? '✅ Telegram aperto con foto e testo.' : '✅ Facebook aperto. Testo FB copiato negli appunti 📋')
+          ? (isTelegram ? '✅ Telegram aperto con foto e testo.' : '✅ Facebook aperto con foto separate. Testo FB copiato negli appunti 📋')
           : '✅ Condivisione aperta!');
       }
       return;
