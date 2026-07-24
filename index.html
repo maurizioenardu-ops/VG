@@ -350,6 +350,26 @@ input,select,textarea{font-size:17px;line-height:1.25}
   .artMeta .s{font-size:13px}
   .artPrice{font-size:21px}
   .artActions .btn{font-size:13.5px}
+/* Pulsanti più bassi nella griglia articoli */
+#sec_articoli .artCard .artActions{gap:6px}
+#sec_articoli .artCard .artActions .btn{
+  min-height:36px !important;
+  padding:6px 8px !important;
+  font-size:12.4px !important;
+  line-height:1.05 !important;
+  border-radius:12px !important;
+  white-space:normal;
+  word-break:keep-all;
+  text-wrap:balance;
+}
+@media (max-width:420px){
+  #sec_articoli .artCard .artActions .btn{
+    min-height:34px !important;
+    padding:5px 7px !important;
+    font-size:12px !important;
+  }
+}
+
 }
 
 /* Toolbar articoli più compatta e contatori dinamici */
