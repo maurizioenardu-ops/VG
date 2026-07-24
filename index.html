@@ -421,6 +421,25 @@ input,select,textarea{font-size:17px;line-height:1.25}
   #sec_articoli .artToolbarCard select{font-size:14.5px !important;min-height:44px !important}
   .artStats{font-size:13.5px}
 }
+
+.articleShareCompact{
+  height:58px !important;
+  min-height:58px !important;
+  max-height:58px !important;
+  padding:5px 6px !important;
+  font-size:12.5px !important;
+  line-height:1.05 !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:2px !important;
+  overflow:hidden !important;
+}
+.articleShareCompact span{display:block !important;white-space:nowrap !important;line-height:1.05 !important}
+@media (max-width:420px){
+  .articleShareCompact{height:54px !important;min-height:54px !important;max-height:54px !important;font-size:12px !important;padding:4px 5px !important}
+}
 </style>
 <script>
 window.addEventListener('error',e=>{
@@ -8839,7 +8858,7 @@ function renderArt(){
     const metaLine=[qualityLine, photoLine].filter(Boolean).join(' • ');
     const notePreview=normalizeSpaceText(a.note||'');
     const noteHtml=notePreview ? `<div class="artCardNote" title="${esc(notePreview)}">${esc(notePreview)}</div>` : '';
-    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}">${noteHtml}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s artPhotoCount">${esc(metaLine)}</div>${unavailable}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions"><button class="btn smallish" style="background:#fff;border-color:#cbd5e1;color:#0f172a" type="button" data-action="shareArtTelegramFromList" data-id="${a.id}">Condividi su Telegram</button><button class="btn smallish" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtFacebookFromList" data-id="${a.id}">Condividi su FB</button></div></div>`;
+    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}">${noteHtml}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s artPhotoCount">${esc(metaLine)}</div>${unavailable}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions"><button class="btn smallish articleShareCompact" style="background:#fff;border-color:#cbd5e1;color:#0f172a" type="button" data-action="shareArtTelegramFromList" data-id="${a.id}"><span>Condividi su</span><span>Telegram</span></button><button class="btn smallish articleShareCompact" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtFacebookFromList" data-id="${a.id}"><span>Condividi su</span><span>FB</span></button></div></div>`;
   }).join('');
   const emptyText=noPhotoOnly ? 'Nessun articolo senza foto.' : (promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.');
   el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
