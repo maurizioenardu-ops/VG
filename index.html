@@ -11163,28 +11163,82 @@ async function exportDB(mode){
     __exportDbRunning=false;
   }
 }
+function unwrapImportedDatabase(parsed){
+  if(!parsed || typeof parsed!=='object') return parsed;
+  const candidates=[parsed,parsed.db,parsed.database,parsed.data,parsed.gestionale,parsed.backup];
+  for(const c of candidates){
+    if(c && typeof c==='object' && (Array.isArray(c.articoli)||Array.isArray(c.clienti)||Array.isArray(c.ordini))) return c;
+  }
+  return parsed;
+}
+function compactImportedOrderMedia(db){
+  const clean=normalizeDBShape(db||defDB());
+  clean.ordini=(clean.ordini||[]).map(o=>({
+    ...o,
+    // Le foto principali restano negli articoli. Evitiamo copie duplicate dentro ogni ordine,
+    // che su Android possono saturare localStorage durante un ripristino completo.
+    fotoArticoli:[],
+    righe:(Array.isArray(o.righe)?o.righe:[]).map(r=>({
+      ...r,
+      articoloSnapshot:r?.articoloSnapshot ? {
+        ...r.articoloSnapshot,
+        foto:[],photoIds:[],videoIds:[]
+      } : r?.articoloSnapshot
+    }))
+  }));
+  return clean;
+}
+function humanImportError(err){
+  const msg=String(err?.message||err||'Errore sconosciuto');
+  if(/quota|storage|space/i.test(msg)) return 'Spazio locale insufficiente. I dati sono stati alleggeriti, ma il browser non concede ancora spazio.';
+  if(/JSON|Unexpected token|position/i.test(msg)) return 'Il file non è un JSON leggibile oppure è stato scaricato in modo incompleto.';
+  if(/compatibile/i.test(msg)) return 'Il file non contiene le sezioni articoli, clienti e ordini riconoscibili.';
+  if(/IndexedDB|transaction|database/i.test(msg)) return 'Errore nel salvataggio separato delle fotografie.';
+  return msg;
+}
 function importDB(file){
   const mode=(document.getElementById('importMode')?.value||'replace');
+  const hint=document.getElementById('importHint');
+  if(hint) hint.textContent='Importazione in corso… Non chiudere la PWA.';
   const r=new FileReader();
+  r.onerror=()=>{
+    const msg='Impossibile leggere il file selezionato.';
+    if(hint) hint.textContent=msg;
+    toast(msg);
+  };
   r.onload=async()=>{
+    let photoImported=0, photoSkipped=0;
     try{
-      const parsed=JSON.parse(r.result);
-      const incomingBacheca=(parsed && typeof parsed.bacheca==='object' && parsed.bacheca)
-        ? JSON.parse(JSON.stringify(parsed.bacheca))
-        : null;
-      const incoming=normalizeDBShape(parsed);
+      const raw=String(r.result||'').replace(/^\uFEFF/,'').trim();
+      if(!raw) throw new Error('Il file selezionato è vuoto');
+      const parsedRoot=JSON.parse(raw);
+      const parsed=unwrapImportedDatabase(parsedRoot);
+      const incomingBacheca=(parsedRoot && typeof parsedRoot.bacheca==='object' && parsedRoot.bacheca)
+        ? JSON.parse(JSON.stringify(parsedRoot.bacheca))
+        : ((parsed && typeof parsed.bacheca==='object' && parsed.bacheca) ? JSON.parse(JSON.stringify(parsed.bacheca)) : null);
+      let incoming=normalizeDBShape(parsed);
       if(!incoming || !Array.isArray(incoming.articoli)||!Array.isArray(incoming.clienti)||!Array.isArray(incoming.ordini)) throw new Error('JSON non compatibile');
+      if(!(incoming.articoli.length||incoming.clienti.length||incoming.ordini.length)) throw new Error('JSON compatibile ma privo di dati');
+
       for(const art of incoming.articoli){
-        art.photoIds=Array.isArray(art.photoIds)?art.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[];
-        if(Array.isArray(art.foto) && art.foto.length){
-          for(const src of art.foto.slice(0,MAX_ARTICLE_PHOTOS)){
+        const sources=Array.isArray(art.foto)?art.foto.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[];
+        // I vecchi photoIds appartengono all’altro dispositivo e non sono utilizzabili qui.
+        art.photoIds=[];
+        for(const src of sources){
+          try{
             const pid='ph_'+uid();
             await idbSet(pid,src);
             art.photoIds.push(pid);
+            photoImported++;
+          }catch(photoErr){
+            photoSkipped++;
+            console.warn('Foto non importata',art?.codice||art?.id,photoErr);
           }
         }
         art.foto=[];
       }
+      incoming=compactImportedOrderMedia(incoming);
+
       let nextDb=incoming;
       if(mode==='merge'){
         const curr=loadDB();
@@ -11197,9 +11251,10 @@ function importDB(file){
           categorie: [...new Set([...(curr.categorie||[]), ...(incoming.categorie||[])])],
           brands: [...new Set([...(curr.brands||[]), ...(incoming.brands||[])])]
         });
+        nextDb=compactImportedOrderMedia(nextDb);
       }
       updateShippingNotifications(nextDb,'json-import');
-      if(!saveDB(nextDb)) throw new Error('Salvataggio locale fallito');
+      if(!saveDB(nextDb)) throw new Error('Salvataggio locale fallito: quota storage');
 
       let bachecaImported=false;
       if(incomingBacheca){
@@ -11214,18 +11269,21 @@ function importDB(file){
             if(!prev || Number(post?._ts||post?.updatedAt||0)>=Number(prev?._ts||prev?.updatedAt||0)) byId.set(key,post);
           }
           saveSocial({...currentSocial,...incomingBacheca,posts:Array.from(byId.values())});
-        }else{
-          saveSocial(incomingBacheca);
-        }
+        }else saveSocial(incomingBacheca);
         bachecaImported=true;
       }
 
       renderAll();
-      const baseMsg=mode==='merge' ? 'Import OK. JSON unito ai dati già presenti.' : 'Import OK. Database sostituito con il JSON.';
-      document.getElementById('importHint').textContent = bachecaImported ? `${baseMsg} Bacheca ripristinata.` : `${baseMsg} Nessuna Bacheca presente nel file.`;
-      toast(bachecaImported ? (mode==='merge' ? 'Import unito, Bacheca compresa' : 'Import completato, Bacheca compresa') : (mode==='merge' ? 'Import unito ai dati attuali' : 'Import sostitutivo completato'));
+      const counts=`${nextDb.articoli.length} articoli, ${nextDb.clienti.length} clienti, ${nextDb.ordini.length} ordini`;
+      const photoMsg=photoSkipped ? ` Foto recuperate: ${photoImported}; non recuperate: ${photoSkipped}.` : ` Foto recuperate: ${photoImported}.`;
+      const baseMsg=mode==='merge' ? `Import completato e unito: ${counts}.` : `Import completato: ${counts}.`;
+      if(hint) hint.textContent=baseMsg+photoMsg+(bachecaImported?' Bacheca ripristinata.':'');
+      toast('Dati ripristinati correttamente');
     }catch(e){
-      toast('Import fallito'); console.error(e);
+      console.error('Importazione database fallita',e);
+      const detail=humanImportError(e);
+      if(hint) hint.textContent='Import fallito: '+detail;
+      toast('Import fallito: '+detail);
     }
   };
   r.readAsText(file);
