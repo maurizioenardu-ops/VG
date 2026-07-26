@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Gestionale"/>
-<link rel="manifest" href="manifest.json?v=1.0.26"/>
+<link rel="manifest" href="manifest.json?v=1.0.45"/>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-v1-32.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-v1-192.png"/>
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v1.png"/>
@@ -451,6 +451,29 @@ input,select,textarea{font-size:17px;line-height:1.25}
 @media (max-width:420px){
   .articleShareCompact{height:54px !important;min-height:54px !important;max-height:54px !important;font-size:12px !important;padding:4px 5px !important}
 }
+
+/* Archivio articoli: discreto, sempre in fondo */
+.articleArchiveFolder{grid-column:1/-1;margin-top:18px;border:1px dashed #cbd5e1;border-radius:16px;background:rgba(248,250,252,.82);opacity:.78;overflow:hidden}
+.articleArchiveFolder[open]{opacity:1;background:#fff}
+.articleArchiveFolder summary{list-style:none;cursor:pointer;padding:10px 12px;font-size:12px;font-weight:1000;color:#64748b;display:flex;align-items:center;justify-content:space-between;gap:10px;user-select:none}
+.articleArchiveFolder summary::-webkit-details-marker{display:none}
+.articleArchiveFolder summary::after{content:'⌄';font-size:16px;color:#94a3b8;transition:transform .16s ease}
+.articleArchiveFolder[open] summary::after{transform:rotate(180deg)}
+.articleArchiveBody{border-top:1px dashed #dbe3ef;padding:10px;display:flex;flex-direction:column;gap:8px}
+.articleArchiveRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 10px;border:1px solid #e2e8f0;border-radius:13px;background:#fff}
+.articleArchiveTitle{font-size:12px;font-weight:1000;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.articleArchiveMeta{font-size:10px;color:#64748b;font-weight:800;margin-top:2px;line-height:1.3}
+.articleArchiveActions{display:flex;gap:6px;align-items:center}
+.articleArchiveActions .btn{min-height:32px!important;padding:6px 8px!important;font-size:10.5px!important;border-radius:10px!important}
+.archiveStatePill{display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;border:1px solid #cbd5e1;background:#f8fafc;color:#475569;font-size:9.5px;font-weight:1000;text-transform:uppercase;letter-spacing:.03em}
+.archiveStatePill.sospeso{background:#fffbeb;border-color:#fde68a;color:#92400e}
+.archiveStatePill.non_disponibile{background:#fff1f2;border-color:#fecaca;color:#b91c1c}
+.archiveStatePill.eliminato{background:#f1f5f9;border-color:#cbd5e1;color:#334155}
+.archiveStatePill.altro{background:#eef2ff;border-color:#c7d2fe;color:#3730a3}
+.archiveEditBox{margin-top:10px;padding:11px;border:1px dashed #cbd5e1;border-radius:14px;background:#f8fafc}
+.archiveEditBox .helper{font-size:11px;line-height:1.35;color:#64748b;margin-top:6px}
+@media(max-width:420px){.articleArchiveRow{grid-template-columns:1fr}.articleArchiveActions{justify-content:flex-end}}
+
 </style>
 <script>
 window.addEventListener('error',e=>{
@@ -460,7 +483,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v119-no-top-menu">
+  <meta name="vg-version" content="v120-archivio-articoli">
 </head>
 <body>
 
@@ -753,7 +776,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.0</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.45</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -928,6 +951,7 @@ window.addEventListener('error',e=>{
   </div>
   <div style="margin-top:10px"><div class="k">Fornitore</div><div id="vArtForn" class="t">-</div></div>
   <div style="margin-top:10px"><div class="k">Data inserimento</div><div id="vArtCreatedAt" class="t">-</div></div>
+  <div id="vArtArchiveBox" class="mutedBox" style="display:none;margin-top:10px"></div>
   <div style="margin-top:10px"><div class="k" id="vArtColorsLabel">Colori disponibili</div><div id="vArtColors" class="t">-</div></div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">Prezzo vendita</div><div id="vArtPrezzo" class="t">-</div></div>
@@ -972,7 +996,14 @@ window.addEventListener('error',e=>{
       <div><div class="k">Categoria</div><select id="a_cat"><option value="">Seleziona categoria</option></select></div>
     </div>
     <div style="margin-top:10px"><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Descrizione articolo da inserire nel post Facebook sotto il nome modello..."></textarea></div>
-    <div style="margin-top:10px"><div class="k">Disponibilità</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_unavailable" type="checkbox" style="width:auto;margin-right:8px"/>Segna come NON DISPONIBILE</label><div class="helper" style="margin-top:6px">L'articolo resta visibile in lista, ma viene segnato come non disponibile e non si può aggiungere agli ordini.</div></div>
+    <div style="margin-top:10px"><div class="k">Disponibilità</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_unavailable" type="checkbox" style="width:auto;margin-right:8px"/>Segna come NON DISPONIBILE</label><div class="helper" style="margin-top:6px">Se selezionato, l'articolo viene spostato automaticamente nella cartella Archivio in fondo all'elenco.</div></div>
+    <div class="archiveEditBox">
+      <div class="grid2">
+        <div><div class="k">Cartella archivio</div><select id="a_archive_state"><option value="">Attivo — mostra nell'elenco</option><option value="sospeso">Sospeso</option><option value="non_disponibile">Non disponibile</option><option value="eliminato">Eliminato — conservato in archivio</option><option value="altro">Altro</option></select></div>
+        <div><div class="k">Nota archivio</div><input id="a_archive_note" placeholder="Es. esaurito dal fornitore, da ripubblicare..." autocomplete="off" autocapitalize="sentences" spellcheck="false"/></div>
+      </div>
+      <div class="helper">Gli articoli archiviati non vengono cancellati: foto, costi, ordini storici e dati JSON restano intatti. Puoi ripristinarli in qualsiasi momento.</div>
+    </div>
     <div style="margin-top:10px"><div class="k">Fornitore</div><select id="a_forn"></select><div id="a_forn_hint" class="date" style="margin-top:6px">Scelta automatica dal codice articolo.</div></div>
   </div>
 
@@ -1559,6 +1590,10 @@ function normalizeDBShape(o){
     promoFornitoreDataSconosciuta:!!x?.promoFornitoreDataSconosciuta,
     dataInizioPromoPersonale:normalizePromoStartDate(x?.dataInizioPromoPersonale||x?.dataInizioPromo||''),
     scadenzaPromoPersonale:normalizeSpaceText(x?.scadenzaPromoPersonale||x?.scadenzaPromo||''),
+    archivioStato:normalizeArticleArchiveStateValue(x?.archivioStato||x?.statoArchivio||x?.archiveState||(((typeof x?.nonDisponibile==='boolean' && x.nonDisponibile) || x?.disponibile===false || x?.attivo===false)?'non_disponibile':'')),
+    archiviato:!!(x?.archiviato||x?.inArchivio||x?.archiveState||x?.archivioStato||x?.statoArchivio||((typeof x?.nonDisponibile==='boolean' && x.nonDisponibile) || x?.disponibile===false || x?.attivo===false)),
+    archivioNota:normalizeSpaceText(x?.archivioNota||x?.notaArchivio||x?.archiveNote||''),
+    archivioData:normalizeSpaceText(x?.archivioData||x?.dataArchivio||x?.archivedAt||''),
     nonDisponibile:(typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.disponibile===false || x?.attivo===false),
     disponibile:(typeof x?.disponibile==='boolean') ? x.disponibile : !((typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.attivo===false)),
     foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],
@@ -2474,6 +2509,17 @@ function mergeArticleRecords(prev,item){
   const fallbackStatusSource=itemTs>=prevTs ? prev : item;
   merged.stato=normalizeSpaceText(latestStatusSource?.stato||fallbackStatusSource?.stato||'Richiesto') || 'Richiesto';
   merged._ts=Math.max(prevTs,itemTs,Date.now()>0?0:0);
+  const latestArticleSource=itemTs>=prevTs ? item : prev;
+  const latestHasArchiveFields=Object.prototype.hasOwnProperty.call(latestArticleSource||{},'archivioStato') || Object.prototype.hasOwnProperty.call(latestArticleSource||{},'archiviato');
+  if(latestHasArchiveFields){
+    const latestArchiveState=normalizeArticleArchiveStateValue(latestArticleSource?.archivioStato||latestArticleSource?.statoArchivio||latestArticleSource?.archiveState||'');
+    merged.archivioStato=latestArchiveState;
+    merged.archiviato=!!(latestArchiveState || latestArticleSource?.archiviato===true);
+    merged.archivioNota=merged.archiviato ? normalizeSpaceText(latestArticleSource?.archivioNota||'') : '';
+    merged.archivioData=merged.archiviato ? normalizeSpaceText(latestArticleSource?.archivioData||'') : '';
+    merged.nonDisponibile=merged.archiviato ? true : !!latestArticleSource?.nonDisponibile;
+    merged.disponibile=!merged.nonDisponibile;
+  }
   merged.id=choosePreferredId(prev?.id, item?.id) || merged.id;
   merged.codice=normalizeSpaceText(merged?.codice||merged?.sku||'');
   merged.brand=normalizeSpaceText(merged?.brand||item?.brand||item?.marca||prev?.brand||prev?.marca||'');
@@ -2738,6 +2784,8 @@ function collectArticleDraft(){
       colorCount:document.getElementById('a_color_count')?.value||'',
       colorLabels:document.getElementById('a_color_labels')?.value||'',
       nonDisponibile:!!document.getElementById('a_unavailable')?.checked,
+      archivioStato:document.getElementById('a_archive_state')?.value||'',
+      archivioNota:document.getElementById('a_archive_note')?.value||'',
       misura:document.getElementById('a_mis')?.value||'',
       altezzaCintura:document.getElementById('a_belt_h')?.value||'',
       hCintura:document.getElementById('a_belt_h')?.value||'',
@@ -2781,6 +2829,9 @@ function restoreArticleDraft(targetId=''){
   document.getElementById('a_color_count').value=v.colorCount||'';
   document.getElementById('a_color_labels').value=Array.isArray(v.colorLabels) ? formatColorLabelsInput(v.colorLabels, v.colorCount||0) : (v.colorLabels||'');
   document.getElementById('a_unavailable').checked=!!v.nonDisponibile;
+  document.getElementById('a_archive_state').value=normalizeArticleArchiveStateValue(v.archivioStato||'');
+  document.getElementById('a_archive_note').value=v.archivioNota||'';
+  updateArticleArchiveUi();
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=v.misura||'';
   document.getElementById('a_belt_h').value=v.altezzaCintura||v.hCintura||'';
@@ -7341,6 +7392,10 @@ function buildCloudArticleMeta(art){
     prezzoPromo: Number(art?.prezzoPromo||0),
     scadenzaPromo: art?.scadenzaPromo||'',
     dataInizioPromo: getPromoStartDate(art),
+    archivioStato: articleArchiveState(art),
+    archiviato: isArticleArchived(art),
+    archivioNota: art?.archivioNota||'',
+    archivioData: art?.archivioData||'',
     nonDisponibile: !!art?.nonDisponibile,
     disponibile: art?.disponibile===false ? false : !art?.nonDisponibile,
     post: art?.post||'',
@@ -8924,11 +8979,56 @@ function normalizeQualityValue(v){
 function articleQualityLabel(a){
   return normalizeQualityValue(a?.qualita||a?.qualità||qualityFromCode(a?.codice)||'');
 }
+function normalizeArticleArchiveStateValue(value){
+  const key=normalizeSpaceText(value||'').toLowerCase().replace(/[\s-]+/g,'_');
+  if(['sospeso','sospesa','suspend','suspended'].includes(key)) return 'sospeso';
+  if(['non_disponibile','nondisponibile','esaurito','unavailable'].includes(key)) return 'non_disponibile';
+  if(['eliminato','eliminata','deleted','cancellato'].includes(key)) return 'eliminato';
+  if(['altro','other'].includes(key)) return 'altro';
+  return '';
+}
+function articleArchiveState(a){
+  if(!a) return '';
+  const explicit=normalizeArticleArchiveStateValue(a.archivioStato||a.statoArchivio||a.archiveState||'');
+  if(explicit) return explicit;
+  if(a.archiviato===true || a.inArchivio===true) return 'altro';
+  if(a.nonDisponibile===true || a.disponibile===false || a.attivo===false) return 'non_disponibile';
+  return '';
+}
+function isArticleArchived(a){ return !!articleArchiveState(a); }
+function articleArchiveLabel(value){
+  const state=normalizeArticleArchiveStateValue(value);
+  if(state==='sospeso') return 'Sospeso';
+  if(state==='non_disponibile') return 'Non disponibile';
+  if(state==='eliminato') return 'Eliminato';
+  if(state==='altro') return 'Altro';
+  return 'Attivo';
+}
+function articleArchiveIcon(value){
+  const state=normalizeArticleArchiveStateValue(value);
+  if(state==='sospeso') return '⏸️';
+  if(state==='non_disponibile') return '🚫';
+  if(state==='eliminato') return '🗑️';
+  if(state==='altro') return '📦';
+  return '✅';
+}
+function updateArticleArchiveUi(){
+  const stateEl=document.getElementById('a_archive_state');
+  const unavailableEl=document.getElementById('a_unavailable');
+  const noteEl=document.getElementById('a_archive_note');
+  if(!stateEl||!unavailableEl) return;
+  const state=normalizeArticleArchiveStateValue(stateEl.value||'');
+  stateEl.value=state;
+  if(state){ unavailableEl.checked=true; }
+  if(noteEl) noteEl.disabled=!state;
+}
 function isArticleUnavailable(a){
-  return !!(a && (a.nonDisponibile===true || a.disponibile===false || a.attivo===false));
+  return !!(a && (isArticleArchived(a) || a.nonDisponibile===true || a.disponibile===false || a.attivo===false));
 }
 function articleAvailabilityBadge(a){
   if(!isArticleUnavailable(a)) return '';
+  const state=articleArchiveState(a);
+  if(state) return `<div class="archiveStatePill ${state}" style="margin-top:6px">${esc(articleArchiveIcon(state)+' '+articleArchiveLabel(state))}</div>`;
   return '<div class="pill unavailable" style="margin-top:6px">NON DISPONIBILE</div>';
 }
 function articleMarginInfo(a){
@@ -9059,9 +9159,26 @@ function renderArtStats(items){
   box.innerHTML=`<span class="artStatsItem">Totale articoli: <strong>${total}</strong></span>${withoutPhotos>0 ? `<button type="button" class="artStatsItem noPhoto" data-action="openArticlesWithoutPhotos">Senza foto: <strong>${withoutPhotos}</strong></button>` : ''}`;
 }
 
+function articleArchiveFolderHtml(items,totalCount){
+  const list=Array.isArray(items)?items:[];
+  const total=Math.max(0,Number(totalCount||0));
+  if(!total) return '';
+  const rows=list.map(a=>{
+    const state=articleArchiveState(a)||'altro';
+    const note=normalizeSpaceText(a.archivioNota||'');
+    const meta=[articleArchiveLabel(state),a.codice?`Cod. ${a.codice}`:'',note].filter(Boolean).join(' • ');
+    return `<div class="articleArchiveRow"><div><div class="articleArchiveTitle">${esc(articleArchiveIcon(state)+' '+(a.modello||a.codice||'Articolo'))}</div><div class="articleArchiveMeta">${esc(meta)}</div></div><div class="articleArchiveActions"><button class="btn smallish" type="button" data-open="art" data-id="${esc(a.id)}">Apri</button><button class="btn smallish" style="background:#eaf2ff;border-color:#bcd3ff;color:#1d4ed8" type="button" data-action="restoreArchivedArticle" data-id="${esc(a.id)}">Ripristina</button></div></div>`;
+  }).join('');
+  const body=rows || '<div class="small">Nessun articolo archiviato corrisponde ai filtri attuali.</div>';
+  return `<details class="articleArchiveFolder"><summary><span>📁 Archivio articoli</span><span>${total}</span></summary><div class="articleArchiveBody">${body}</div></details>`;
+}
+
 function renderArt(){
   const db=loadDB();
-  const promoCount=(db.articoli||[]).filter(promoValid).length;
+  const allArticles=Array.isArray(db.articoli)?db.articoli:[];
+  const activeAll=allArticles.filter(a=>!isArticleArchived(a));
+  const archivedAll=allArticles.filter(isArticleArchived);
+  const promoCount=activeAll.filter(promoValid).length;
   updateArtPromoFilterButton(promoCount);
   refreshArticlePreviewFilters();
   const q=document.getElementById('qArt').value.trim().toLowerCase();
@@ -9070,7 +9187,7 @@ function renderArt(){
   const qualityFilter=String(document.getElementById('qArtQuality')?.value||'').trim();
   const promoOnly=artBrowseState.level==='promo';
   const noPhotoOnly=artBrowseState.level==='noPhoto';
-  const items=db.articoli.filter(a=>{
+  const matchesFilters=a=>{
     const hay=articleSearchHay(a);
     const okText=!q || hay.includes(q);
     const okCat=!catFilter || displayCategoryValue(a.categoria)===displayCategoryValue(catFilter);
@@ -9079,13 +9196,17 @@ function renderArt(){
     const okPromo=!promoOnly || promoValid(a);
     const okNoPhoto=!noPhotoOnly || articlePhotoCountSync(a)===0;
     return okText && okCat && okBrand && okQuality && okPromo && okNoPhoto;
-  }).sort((a,b)=>compareArticlesForPreview(a,b));
+  };
+  const items=activeAll.filter(matchesFilters).sort((a,b)=>compareArticlesForPreview(a,b));
+  const archivedItems=archivedAll.filter(matchesFilters).sort((a,b)=>String(b.archivioData||b._ts||'').localeCompare(String(a.archivioData||a._ts||'')));
+  const archiveHtml=articleArchiveFolderHtml(archivedItems,archivedAll.length);
   const el=document.getElementById('listArt');
   renderArtBreadcrumbs();
   renderArtStats(items);
   const showOverview=artBrowseState.level==='categorie' && !promoOnly && !noPhotoOnly && !q && !catFilter && !brandFilter && !qualityFilter;
   if(showOverview){
     renderCategoryOverview(items,{promoOnly,brandFilter,qualityFilter});
+    el.insertAdjacentHTML('beforeend',archiveHtml);
     return;
   }
   const cards=items.map(a=>{
@@ -9100,7 +9221,7 @@ function renderArt(){
     return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}">${noteHtml}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s artPhotoCount">${esc(metaLine)}</div>${unavailable}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions"><button class="btn smallish articleShareCompact" style="background:#fff;border-color:#cbd5e1;color:#0f172a" type="button" data-action="shareArtTelegramFromList" data-id="${a.id}"><span>Condividi su</span><span>Telegram</span></button><button class="btn smallish articleShareCompact" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtFacebookFromList" data-id="${a.id}"><span>Condividi su</span><span>FB</span></button></div></div>`;
   }).join('');
   const emptyText=noPhotoOnly ? 'Nessun articolo senza foto.' : (promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.');
-  el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
+  el.innerHTML=(cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`) + archiveHtml;
   hydrateArticleThumbs(items);
 }
 let ARTICLE_THUMB_HYDRATE_TOKEN=0;
@@ -9844,6 +9965,12 @@ async function openArtView(id){
   if(createdAtEl) createdAtEl.textContent=articleCreatedAtValue(a)||'Data non disponibile';
   const availabilityEl=document.getElementById('vArtAvailability');
   if(availabilityEl) availabilityEl.innerHTML=isArticleUnavailable(a) ? '<span class="pill unavailable">NON DISPONIBILE</span>' : 'Disponibile';
+  const archiveBox=document.getElementById('vArtArchiveBox');
+  if(archiveBox){
+    const archiveState=articleArchiveState(a);
+    archiveBox.style.display=archiveState?'block':'none';
+    archiveBox.innerHTML=archiveState?`<div class="k">Archivio articoli</div><div class="t" style="margin-top:4px">${esc(articleArchiveIcon(archiveState)+' '+articleArchiveLabel(archiveState))}</div>${a.archivioNota?`<div class="s" style="margin-top:4px">${esc(a.archivioNota)}</div>`:''}`:'';
+  }
   const addFromViewBtn=document.querySelector('[data-action="addArtToOrderFromView"]');
   if(addFromViewBtn){
     const blocked=isArticleUnavailable(a);
@@ -9852,6 +9979,12 @@ async function openArtView(id){
     addFromViewBtn.textContent=blocked ? 'Non disponibile' : 'Aggiungi a ordine';
     addFromViewBtn.title=blocked ? 'Articolo non disponibile per nuovi ordini' : 'Aggiungi a ordine';
   }
+  const archivedForView=isArticleArchived(a);
+  document.querySelectorAll('#mArtView [data-action="shareArtAll"],#mArtView [data-action="shareArtTelegram"],#mArtView [data-action="shareArtPhotos"],#mArtView [data-action="shareArtPhotosFb"],#mArtView [data-action="shareArtPhotosTg"]').forEach(btn=>{
+    btn.disabled=archivedForView;
+    btn.classList.toggle('is-disabled',archivedForView);
+    btn.title=archivedForView?'Articolo archiviato: ripristinalo prima di condividerlo':'';
+  });
   const colorMode=getArticleColorMode(a);
   const colorCount=getArticleColorCount(a);
   const colorLabels=getArticleColorLabels(a);
@@ -9917,6 +10050,9 @@ async function openArtEdit(id){
     document.getElementById('a_color_count').value='';
     document.getElementById('a_color_labels').value='';
     document.getElementById('a_unavailable').checked=false;
+    document.getElementById('a_archive_state').value='';
+    document.getElementById('a_archive_note').value='';
+    updateArticleArchiveUi();
     updateArticleColorModeUI();
     syncBrandField('');
     refreshArticleCategorySelects('');
@@ -9936,7 +10072,7 @@ async function openArtEdit(id){
   set('a_cod', a?.codice); syncBrandField(a?.brand); set('a_mod', a?.modello);
   refreshArticleCategorySelects(a?.categoria||'');
   set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
-  set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
+  set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); set('a_archive_state', articleArchiveState(a)); set('a_archive_note', a?.archivioNota||''); updateArticleArchiveUi(); updateArticleColorModeUI();
   set('a_mis', a?.misura); set('a_belt_h', a?.altezzaCintura||a?.hCintura||''); set('a_usd', a?.costoUsd||''); set('a_usd_promo', a?.costoUsdPromo||'');
   currentArticleCostEstimate=storedArticleCostEstimate(a);
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
@@ -10436,7 +10572,10 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_color_mode').value=getArticleColorMode(clone);
   document.getElementById('a_color_count').value=getArticleColorCount(clone)||'';
   document.getElementById('a_color_labels').value=formatColorLabelsInput(getArticleColorLabels(clone), getArticleColorCount(clone));
-  document.getElementById('a_unavailable').checked=isArticleUnavailable(clone);
+  document.getElementById('a_unavailable').checked=false;
+  document.getElementById('a_archive_state').value='';
+  document.getElementById('a_archive_note').value='';
+  updateArticleArchiveUi();
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=clone.misura||'';
   document.getElementById('a_belt_h').value=clone.altezzaCintura||clone.hCintura||'';
@@ -10515,6 +10654,13 @@ async function saveArt(){
     const r=usd>0 ? calcFromUsd(usd, qual) : (acceptedEstimate ? calcSellFromEurCost(acceptedEstimate.estimatedCost,qual) : {costo:0,sell:0,marg:0});
     const rPromo=promoUsd>0 ? calcFromUsd(promoUsd, qual) : {costo:0, sell:0, marg:0};
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
+    const unavailableChecked=!!document.getElementById('a_unavailable')?.checked;
+    let archiveState=normalizeArticleArchiveStateValue(document.getElementById('a_archive_state')?.value||'');
+    if(!archiveState && unavailableChecked) archiveState='non_disponibile';
+    const archiveActive=!!archiveState;
+    const archiveNote=archiveActive ? normalizeSpaceText(document.getElementById('a_archive_note')?.value||'') : '';
+    const previousArchiveState=articleArchiveState(old||{});
+    const archiveDate=archiveActive ? ((previousArchiveState===archiveState && old?.archivioData) ? old.archivioData : new Date().toISOString()) : '';
     const preservedPublishLog=currentArtId ? normalizeArticlePublishLog(old?.pubblicazioniCanali||old?.publishStats||old?.socialPub||{}) : {fb:[],tg:[],ig:[]};
     const keptFoto=currentArtPhotosCleared ? [] : (Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : []);
     const keptPhotoIds=currentArtPhotosCleared ? [] : (Array.isArray(old?.photoIds) ? old.photoIds.filter(Boolean).slice() : []);
@@ -10532,8 +10678,12 @@ async function saveArt(){
       taglia: '',
       variante: document.getElementById('a_variante').value.trim(),
       colore: colorMode==='single' ? document.getElementById('a_colore').value.trim() : '',
-      nonDisponibile: !!document.getElementById('a_unavailable').checked,
-      disponibile: !document.getElementById('a_unavailable').checked,
+      archivioStato: archiveState,
+      archiviato: archiveActive,
+      archivioNota: archiveNote,
+      archivioData: archiveDate,
+      nonDisponibile: archiveActive || unavailableChecked,
+      disponibile: !(archiveActive || unavailableChecked),
       colorMode,
       colorType: colorMode,
       colorCount: colorMode==='multiple' ? colorCount : 0,
@@ -10690,738 +10840,38 @@ async function deleteArt(){
   const visibleCode=normalizeSpaceText(document.getElementById('a_codice')?.value||document.getElementById('vCod')?.textContent||'');
   const candidate=(dbNow.articoli||[]).find(a=>String(a?.id||'')===String(currentArtId||'')) || (visibleCode ? (dbNow.articoli||[]).find(a=>normalizeTextKey(a?.codice||'')===normalizeTextKey(visibleCode)) : null);
   if(!candidate){ toast('Articolo non trovato: riapri la scheda e riprova'); return; }
-  const artId=candidate.id;
-  askConfirm(`Elimino ${candidate.modello||candidate.codice||'questo articolo'}? Gli ordini storici resteranno intatti.`, async ()=>{
+  askConfirm(`Sposto ${candidate.modello||candidate.codice||'questo articolo'} nell'Archivio come Eliminato? Nessun dato verrà cancellato.`, async ()=>{
     const db=loadDB();
-    const old=(db.articoli||[]).find(a=>String(a?.id||'')===String(artId||'')) || (db.articoli||[]).find(a=>normalizeTextKey(a?.codice||'')===normalizeTextKey(candidate.codice||''));
-    if(!old){ hide('mArtEdit'); hide('mArtView'); currentArtId=null; renderArt(); toast('Articolo già eliminato'); return; }
-    let storicoCount=0;
-    try{ storicoCount=hydrateHistoricalSnapshotsBeforeArticleRemoval(db, old); }
-    catch(err){ console.error('Preparazione storico articolo fallita',err); toast('Storico ordini non aggiornato, eliminazione annullata'); return; }
-    addArticleDeleteTombstone(old);
-    if(!storicoCount){
-      for(const pid of (old?.photoIds||[])){
-        try{ await idbDelete(pid); }catch(_e){}
-      }
-      try{ await deleteArticlePhotosFromSupabase(old?.foto||[]); }catch(_e){}
-      if(Array.isArray(old?.videoIds)&&old.videoIds.length){ try{ await deleteArtVideosFromSupabase(old.videoIds); }catch(_e){} }
-    }
-    db.articoli=db.articoli.filter(a=>a.id!==artId);
-    currentArtId=null;
+    const idx=(db.articoli||[]).findIndex(a=>String(a?.id||'')===String(candidate.id||''));
+    if(idx<0){ toast('Articolo non trovato'); return; }
+    const updated={...db.articoli[idx],archivioStato:'eliminato',archiviato:true,archivioNota:db.articoli[idx]?.archivioNota||'',archivioData:new Date().toISOString(),nonDisponibile:true,disponibile:false,_ts:Date.now()};
+    db.articoli[idx]=updated;
     if(!saveDB(db)) return;
+    currentArtId=null;
     clearArticleDraft();
-    hide('mArtEdit');
-    hide('mArtView');
+    hide('mArtEdit'); hide('mArtView');
     renderAll();
-initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship','c_alt_ship','vCliAltShip']);
-updateArticleColorModeUI();
-    if(old && cloudEnabled()){
-      try{
-        await cloudDeleteOne('art', {...old, _keepStoricoMedia:!!storicoCount});
-        toast(storicoCount ? 'Articolo eliminato, ordini e guadagni storici mantenuti' : 'Articolo eliminato');
-      }catch(err){
-        console.error('Eliminazione cloud articolo fallita', err);
-        toast(storicoCount ? 'Storico ordini mantenuto. Cloud non aggiornato' : 'Articolo eliminato, ma cloud non aggiornato');
-      }
-    }else{
-      toast(storicoCount ? 'Articolo eliminato, ordini e guadagni storici mantenuti' : 'Articolo eliminato');
+    if(cloudEnabled()){
+      try{ const saved=await cloudSaveOne('art',updated,db); db.articoli[idx]={...updated,...saved,archivioStato:'eliminato',archiviato:true,nonDisponibile:true,disponibile:false,_ts:Date.now()}; saveDBLocal(db); }
+      catch(err){ console.error('Archiviazione cloud articolo fallita',err); toast('Articolo archiviato localmente, cloud non aggiornato'); return; }
     }
-  },'Elimina articolo');
+    toast('Articolo spostato nell’Archivio come Eliminato');
+  },'Archivia articolo','Sposta in archivio','danger');
 }
-
-function openCliView(id){
-  const db=loadDB(); const c=db.clienti.find(x=>x.id===id);
-  if(!c) return;
-  currentCliId=id;
-  document.getElementById('vCliNome').textContent=c.nome||'-';
-  document.getElementById('vCliTel').textContent=withIntlPrefix(c.telefono||'',c.paese||'Italia')||'-';
-  document.getElementById('vCliInd').textContent=c.indirizzo||'-';
-  document.getElementById('vCliCap').textContent=c.cap||'-';
-  document.getElementById('vCliCity').textContent=c.citta||'-';
-  document.getElementById('vCliProv').textContent=c.provincia||'-';
-  document.getElementById('vCliCountry').textContent=normalizeCountryName(c.paese||'Italia');
-  const cliNoteWrap=document.getElementById('vCliNoteWrap');
-  const cliNoteEl=document.getElementById('vCliNote');
-  const cliNote=normalizeSpaceText(c.note||'');
-  if(cliNoteWrap && cliNoteEl){
-    cliNoteEl.textContent=cliNote||'-';
-    cliNoteWrap.style.display=cliNote?'block':'none';
-  }
-  const ship=document.getElementById('vCliShip');
-  ship.value=buildShippingAddress(c);
-  fitTextarea(ship);
-  const altWrap=document.getElementById('vCliAltWrap');
-  const altShip=document.getElementById('vCliAltShip');
-  const hasAlt=hasAlternativeAddress(c);
-  if(altWrap) altWrap.style.display=hasAlt?'block':'none';
-  if(altShip){ altShip.value=hasAlt?buildShippingAddress(c,true):''; fitTextarea(altShip); }
-  const clientOrders=(db.ordini||[]).filter(o=>o.clienteId===id).sort((a,b)=>String(b.data||b._ts||'').localeCompare(String(a.data||a._ts||'')));
-  const ordersEl=document.getElementById('vCliOrders');
-  if(ordersEl){
-    ordersEl.innerHTML=clientOrders.map(o=>{
-      const righe=Array.isArray(o.righe)?o.righe:[];
-      const desc=righe.map(r=>[r?.codice,r?.modello].filter(Boolean).join(' • ')).filter(Boolean).join(' · ') || 'Ordine';
-      const subTotale=calcOrderSubtotal(righe);
-      const scontoCliente=calcOrderDiscount(o);
-      const totale=(Number(o?.totale)>0 || subTotale===0) ? Number(o?.totale||0) : calcOrderNetTotal(righe, scontoCliente);
-      const pagato=orderPaidStatus(o) ? totale : orderIncassato({...o, totale});
-      return `<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(o.data||'-')}</div><div class="s">${esc(desc)}</div></div><div class="pill">${money(pagato)}</div></div>`;
-    }).join('') || `<div class="card"><div class="small">Nessun acquisto</div></div>`;
-  }
-  const currentYear=new Date().getFullYear();
-  const sameYear=o=>{ const d=new Date(String(o?.data||'')+'T12:00:00'); return !isNaN(d) && d.getFullYear()===currentYear; };
-  const profitTotal=clientOrders.reduce((sum,o)=>sum+(orderPaidStatus(o)?orderMargin(o,db):0),0);
-  const profitYear=clientOrders.filter(sameYear).reduce((sum,o)=>sum+(orderPaidStatus(o)?orderMargin(o,db):0),0);
-  const profitTotalEl=document.getElementById('vCliProfitTotal');
-  const profitYearEl=document.getElementById('vCliProfitYear');
-  if(profitTotalEl) profitTotalEl.textContent=money(profitTotal);
-  if(profitYearEl) profitYearEl.textContent=money(profitYear);
-  show('mCliView');
-}
-
-let currentOrdExistingManualPhotos=[];
-
-function mergeUniquePics(){
-  const out=[];
-  Array.from(arguments).flat().forEach(src=>{
-    if(src && !out.includes(src)) out.push(src);
-  });
-  return out.slice(0,15);
-}
-function pickOrderRowPhoto(art, row, artPics){
-  const pics=Array.isArray(artPics)?artPics.filter(Boolean):[];
-  if(!pics.length) return '';
-  const colorIndex=Math.max(0, (parseInt(row?.numeroColore||'0',10) || 1) - 1);
-  if(!!row?.richiedeNumeroColore && pics[colorIndex]) return pics[colorIndex];
-  return pics[0] || '';
-}
-async function getOrderArticleSnapshotPhotos(rows, db){
-  const pics=[];
-  for(const r of (rows||[])) {
-    const art=findArticleForOrderRow(db||loadDB(), r);
-    try{
-      let artPics=[];
-      if(art){
-        artPics=await getArticlePics(art);
-      }else{
-        const snap=normalizeOrderArticleSnapshot(r?.articoloSnapshot||{});
-        const stored=await getStoredPhotoSources(snap.photoIds||[]).catch(()=>[]);
-        const refs=[];
-        for(const src of (snap.foto||[])){
-          const clean=String(src||'').trim();
-          if(!clean) continue;
-          if(/^data:|^blob:|^https?:/i.test(clean)) refs.push(clean);
-          else{
-            const url=await getPublicFotoUrl(clean);
-            if(url) refs.push(url);
-          }
-        }
-        artPics=mergeUniquePics(refs, stored);
-      }
-      const picked=pickOrderRowPhoto(art, r, artPics);
-      if(picked && !pics.includes(picked)) pics.push(picked);
-      if(pics.length>=12) return pics;
-    }catch(err){ console.warn('Lettura foto articolo per ordine fallita', err); }
-  }
-  return pics.slice(0,15);
-}
-async function refreshOrdPhotoPreviewFromState(){
-  const input=document.getElementById('o_photo');
-  const box=document.getElementById('o_photo_prev');
-  if(!box) return;
+async function restoreArchivedArticle(articleId){
+  const id=String(articleId||'').trim();
   const db=loadDB();
-  const articlePics=await getOrderArticleSnapshotPhotos(ordRows, db);
-  const maxNew=Math.max(0, 1 - currentOrdExistingManualPhotos.length);
-  const files=Array.from(input?.files||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
-  if(input && files.length>maxNew){
-    toast(`Puoi aggiungere ancora ${maxNew} foto manuale`);
-    const dt=new DataTransfer();
-    files.slice(0,maxNew).forEach(f=>dt.items.add(f));
-    input.files=dt.files;
-  }
-  const selected=Array.from(input?.files||[]);
-  const blobUrls=await filesToObjectUrls(selected, maxNew);
-  const pics=mergeUniquePics(articlePics, currentOrdExistingManualPhotos, blobUrls);
-  box.innerHTML=pics.map(src=>`<img src="${src}"/>`).join('') || `<div class="small">Nessuna foto ordine</div>`;
-  setTimeout(()=>revokeObjectUrls(blobUrls), 1200);
-}
-
-async function openOrdView(id){
-  const db=loadDB(); const o=db.ordini.find(x=>x.id===id);
-  if(!o) return;
-  currentOrdId=id;
-  const c=db.clienti.find(x=>x.id===o.clienteId) || o.clienteSnapshot || o.clienteStorico || null;
-  const subTotale=calcOrderSubtotal(o.righe||[]);
-  const scontoCliente=calcOrderDiscount(o);
-  const totale=(Number(o?.totale)>0 || subTotale===0) ? Number(o?.totale||0) : calcOrderNetTotal(o.righe||[], scontoCliente);
-  const paid=orderPaidStatus(o);
-  const totalPagato=paid ? totale : orderIncassato({...o, totale});
-  const profit=orderMargin(o, db);
-  const totalEl=document.getElementById('vOrdTot');
-  const profitEl=document.getElementById('vOrdProfit');
-  const cumEl=document.getElementById('vOrdCumMeta');
-  document.getElementById('vOrdCli').textContent=c?.nome||'-';
-  const ordStatusMeta=orderStatusMeta(o.stato||'-');
-  const ordStatoEl=document.getElementById('vOrdStato');
-  ordStatoEl.textContent='';
-  ordStatoEl.innerHTML=`<span class="statusIcon">${esc(ordStatusMeta.icon)}</span>${esc(ordStatusMeta.label)}`;
-  ordStatoEl.className='pill statusPill '+ordStatusMeta.pill;
-  document.getElementById('vOrdData').textContent=o.data||'-';
-  document.getElementById('vOrdMis').textContent=o.mis||'-';
-  const measureWarning=document.getElementById('vOrdMeasureWarning');
-  if(measureWarning) measureWarning.hidden=!orderMeasureIsUndefined(o.mis);
-  document.getElementById('vOrdPaymentMethod').textContent=normalizeOrderPaymentMethod(o.modalitaPagamento||o.metodoPagamento||'')||'-';
-  document.getElementById('vOrdTrack').textContent=o.tracking||'-';
-  document.getElementById('vOrdNote').textContent=o.note||'-';
-  document.getElementById('vOrdSub').textContent=money(subTotale);
-  document.getElementById('vOrdDiscount').textContent=money(scontoCliente);
-  const totalLabelEl=document.getElementById('vOrdTotLabel');
-  if(totalLabelEl) totalLabelEl.textContent=paid?'Totale pagato':'Da pagare';
-  totalEl.textContent=money(totalPagato);
-  totalEl.className='t statusTotal '+ordStatusMeta.total;
-  profitEl.textContent=profit==null?'Non disponibile':money(profit);
-  profitEl.className=profit==null?'t estimatedCostText':'t pricePaid';
-  if(cumEl){
-    cumEl.style.display='none';
-    cumEl.textContent='';
-  }
-  const righeOrd=Array.isArray(o.righe)?o.righe:[];
-  const rows=document.getElementById('vOrdRows');
-  rows.innerHTML=righeOrd.map((r,i)=>{
-    const art=(db.articoli||[]).find(a=>a.id===r?.articoloId || (r?.codice && a.codice===r.codice));
-    const labels=Array.isArray(r?.colorLabels) && r.colorLabels.length ? r.colorLabels : getArticleColorLabels(art);
-    const needsColor=!!r?.richiedeNumeroColore && Number(r?.colorCount||labels.length||0)>0;
-    const colorText=r?.colore ? `Colore ${esc(r.colore)}` : (r?.numeroColore ? `Colore ${esc(r.numeroColore)}` : '');
-    const metaParts=[`Prezzo ${money(r.prezzo||0)}`];
-    if(colorText) metaParts.push(colorText);
-    const colorUi=needsColor
-      ? `<div style="margin-top:8px"><div class="k">Colore</div><select data-role="viewRowColorNum" data-i="${i}">${buildOrderColorOptions(r.colorCount||labels.length||0, r.numeroColore||'', labels||[])}</select></div>`
-      : (r?.colore ? `<div class="s" style="margin-top:6px">Colore: ${esc(r.colore)}</div>` : '');
-    return `<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(r.codice||'')} • ${esc(r.modello||'')}</div><div class="s">${metaParts.join(' • ')}</div>${colorUi}</div><div class="pill">Riga</div></div>`;
-  }).join('') || `<div class="small">Nessuna riga</div>`;
-  rows.querySelectorAll('[data-role="viewRowColorNum"]').forEach(sel=>{
-    sel.addEventListener('change', async ()=>{
-      const idx=Number(sel.dataset.i);
-      const dbNow=loadDB();
-      const ord=dbNow.ordini.find(x=>x.id===currentOrdId);
-      if(!ord || !Array.isArray(ord.righe) || !ord.righe[idx]) return;
-      const row={...(ord.righe[idx]||{})};
-      const art=(dbNow.articoli||[]).find(a=>a.id===row?.articoloId || (row?.codice && a.codice===row.codice));
-      const labels=Array.isArray(row?.colorLabels) && row.colorLabels.length ? row.colorLabels : getArticleColorLabels(art);
-      const colorCount=Math.max(0, parseInt(row?.colorCount||labels.length||0,10) || 0);
-      const val=String(sel.value||'').trim();
-      row.richiedeNumeroColore=colorCount>0;
-      row.colorCount=colorCount;
-      row.colorLabels=labels.slice();
-      row.colorData=makeStableColorData({colorMode:colorCount>1?'multiple':'single', colorCount, colorLabels:labels});
-      row.numeroColore=val;
-      row.colore=(parseInt(val,10)>0 && labels[parseInt(val,10)-1]) ? labels[parseInt(val,10)-1] : '';
-      ord.righe[idx]=row;
-      ord.fotoArticoli=await getOrderArticleSnapshotPhotos(ord.righe, dbNow);
-      if(!saveDB(dbNow)) return;
-      if(cloudEnabled()){
-        try{
-          await cloudSaveOne('ord', ord, dbNow);
-        }catch(err){
-          console.error('Sync cloud colore ordine fallita', err);
-        }
-      }
-      toast('Colore ordine aggiornato');
-      await openOrdView(ord.id);
-    });
-  });
-  const ordPics=await getOrderPics(o, db);
-  document.getElementById('vOrdPhotos').innerHTML=ordPics.map(src=>`<img src="${src}" onclick="window.open('${src}','_blank','noopener')"/>`).join('');
-  document.getElementById('vOrdPhotosEmpty').style.display=ordPics.length?'none':'block';
-  show('mOrdView');
-}
-
-/* ====== CLIENTI ====== */
-let currentCliId=null;
-function openCliEdit(id){
-  const db=loadDB(); const c=id?db.clienti.find(x=>x.id===id):null;
-  currentCliId=id||null;
-  document.getElementById('cliEditTitle').textContent=c?'Modifica cliente':'Nuovo cliente';
-  document.getElementById('c_nome').value=c?.nome||'';
-  document.getElementById('c_tel').value=c?.telefono||'';
-  document.getElementById('c_ind').value=c?.indirizzo||'';
-  document.getElementById('c_cap').value=c?.cap||'';
-  document.getElementById('c_citta').value=c?.citta||'';
-  document.getElementById('c_paese').value=normalizeCountryName(c?.paese||'Italia');
-  setClientProvinceValue(c?.provincia||'', c?.paese||'Italia');
-  document.getElementById('c_alt_on').checked=!!c?.indirizzoAlternativoAttivo;
-  document.getElementById('c_alt_nome').value=c?.nomeAlternativo||'';
-  document.getElementById('c_alt_cognome').value=c?.cognomeAlternativo||'';
-  document.getElementById('c_alt_ind').value=c?.indirizzoAlternativo||'';
-  document.getElementById('c_alt_cap').value=c?.capAlternativo||'';
-  document.getElementById('c_alt_citta').value=c?.cittaAlternativa||'';
-  document.getElementById('c_alt_prov').value=c?.provinciaAlternativa||'';
-  document.getElementById('c_alt_paese').value=normalizeCountryName(c?.paeseAlternativo||c?.paese||'Italia');
-  document.getElementById('c_note').value=c?.note||'';
-  updateClientCountryUI();
-  updateAlternativeCountryUI();
-  updateAlternativeAddressUI();
-  restoreClientDraft(c?.id||'');
-  updateClientCountryUI();
-  updateAlternativeCountryUI();
-  scheduleAddressLookup('city',false,false);
-  if(document.getElementById('c_alt_on')?.checked) scheduleAddressLookup('city',true,false);
-  refreshClientShipping();
-  show('mCliEdit');
-}
-async function saveCli(){
-  const db=loadDB();
-  const nome=document.getElementById('c_nome').value.trim();
-  if(!nome){ toast('Nome obbligatorio'); return; }
-
-  const old=currentCliId?db.clienti.find(c=>c.id===currentCliId):null;
-  const candidate={
-    ...old,
-    id: currentCliId||uid(),
-    nome,
-    cognome: old?.cognome||'',
-    email: old?.email||'',
-    telefono: document.getElementById('c_tel').value.trim(),
-    indirizzo: document.getElementById('c_ind').value.trim(),
-    cap: document.getElementById('c_cap').value.trim(),
-    citta: document.getElementById('c_citta').value.trim(),
-    provincia: getClientProvinceValue(),
-    paese: normalizeCountryName(document.getElementById('c_paese').value||'Italia'),
-    indirizzoAlternativoAttivo:!!document.getElementById('c_alt_on').checked,
-    nomeAlternativo:document.getElementById('c_alt_nome').value.trim(),
-    cognomeAlternativo:document.getElementById('c_alt_cognome').value.trim(),
-    indirizzoAlternativo:document.getElementById('c_alt_ind').value.trim(),
-    capAlternativo:document.getElementById('c_alt_cap').value.trim(),
-    cittaAlternativa:document.getElementById('c_alt_citta').value.trim(),
-    provinciaAlternativa:document.getElementById('c_alt_prov').value.trim(),
-    paeseAlternativo:normalizeCountryName(document.getElementById('c_alt_paese').value||document.getElementById('c_paese').value||'Italia'),
-    note: document.getElementById('c_note').value,
-    _ts: Date.now()
-  };
-  const candidateKey=normalizeClientDedupKey(candidate) || normalizeTextKey(candidate.nome);
-  const exists = db.clienti.find(c => c.id !== currentCliId && (normalizeClientDedupKey(c) || normalizeTextKey(c?.nome)) === candidateKey);
-  if(exists){
-    toast('Cliente già esistente');
-    return;
-  }
-  const obj={
-    ...candidate,
-    nome: normalizeClientDisplayName(candidate),
-    telefono: normalizePhone(candidate.telefono),
-    email: normalizeEmail(candidate.email),
-    indirizzo: normalizeSpaceText(candidate.indirizzo),
-    cap: candidate.paese==='Italia' ? normalizeSpaceText(candidate.cap).replace(/\D/g,'').slice(0,5) : normalizeSpaceText(candidate.cap),
-    citta: normalizeSpaceText(candidate.citta),
-    provincia: normalizeSpaceText(candidate.provincia),
-    paese:normalizeCountryName(candidate.paese||'Italia'),
-    indirizzoAlternativoAttivo:!!candidate.indirizzoAlternativoAttivo,
-    nomeAlternativo:normalizeSpaceText(candidate.nomeAlternativo),
-    cognomeAlternativo:normalizeSpaceText(candidate.cognomeAlternativo),
-    indirizzoAlternativo:normalizeSpaceText(candidate.indirizzoAlternativo),
-    capAlternativo:normalizeSpaceText(candidate.capAlternativo),
-    cittaAlternativa:normalizeSpaceText(candidate.cittaAlternativa),
-    provinciaAlternativa:normalizeSpaceText(candidate.provinciaAlternativa),
-    paeseAlternativo:normalizeCountryName(candidate.paeseAlternativo||candidate.paese||'Italia')
-  };
-  const i=db.clienti.findIndex(x=>x.id===obj.id);
-  if(i>=0) db.clienti[i]=obj; else db.clienti.unshift(obj);
+  const idx=(db.articoli||[]).findIndex(a=>String(a?.id||'')===id);
+  if(idx<0){ toast('Articolo archiviato non trovato'); return; }
+  const restored={...db.articoli[idx],archivioStato:'',archiviato:false,archivioNota:'',archivioData:'',nonDisponibile:false,disponibile:true,_ts:Date.now()};
+  db.articoli[idx]=restored;
   if(!saveDB(db)) return;
-  clearClientDraft();
-  hide('mCliEdit');
-  toast('Cliente salvato');
+  renderArt();
   if(cloudEnabled()){
-    try{
-      const saved=await cloudSaveOne('cli', obj, db);
-      const savedKey=normalizeClientDedupKey(saved) || normalizeClientDedupKey(obj) || normalizeTextKey(saved?.nome||obj?.nome);
-      const idx=db.clienti.findIndex(x=>x.id===obj.id || x.id===saved?.id || (normalizeClientDedupKey(x) || normalizeTextKey(x?.nome))===savedKey);
-      if(idx>=0) db.clienti[idx]={...db.clienti[idx], ...saved, nome:normalizeClientDisplayName({...db.clienti[idx], ...saved}), _ts: Date.now()};
-      saveDBLocal(db);
-    }catch(cloudErr){
-      console.error('Sync cloud cliente fallita', cloudErr);
-      toast('Cliente salvato, ma cloud non aggiornato');
-    }
+    try{ const saved=await cloudSaveOne('art',restored,db); db.articoli[idx]={...restored,...saved,archivioStato:'',archiviato:false,nonDisponibile:false,disponibile:true,_ts:Date.now()}; saveDBLocal(db); }
+    catch(err){ console.error('Ripristino cloud articolo fallito',err); toast('Articolo ripristinato localmente, cloud non aggiornato'); return; }
   }
-}
-async function deleteCli(){
-  if(!currentCliId) return hide('mCliEdit');
-  
-  const db=loadDB();
-  const old=db.clienti.find(c=>c.id===currentCliId);
-  db.clienti=db.clienti.filter(c=>c.id!==currentCliId);
-  if(!saveDB(db)) return;
-  if(old && cloudEnabled()) await cloudDeleteOne('cli', old);
-  clearClientDraft();
-  hide('mCliEdit');
-  toast(cloudEnabled() ? 'Cliente eliminato anche dal cloud' : 'Cliente eliminato');
-}
-
-
-function articleCategoryIsShoe(rawCat=''){
-  const cat=normalizeTextKey(rawCat||'');
-  return ['scarpa','scarpe','sneaker','sneakers','shoe','shoes'].some(token=>cat===token || cat.includes(token));
-}
-function articleCategoryIsBelt(rawCat=''){
-  const cat=normalizeTextKey(rawCat||'');
-  return ['cintura','cinture','belt','belts'].some(token=>cat===token || cat.includes(token));
-}
-function articleCategoryNeedsMeasure(rawCat=''){
-  return articleCategoryIsShoe(rawCat) || articleCategoryIsBelt(rawCat);
-}
-function updateArticleMeasureState(){
-  const catSel=document.getElementById('a_cat');
-  const mis=document.getElementById('a_mis');
-  const label=document.getElementById('a_mis_label');
-  const hint=document.getElementById('a_mis_hint');
-  const hWrap=document.getElementById('a_belt_h_wrap');
-  const hInput=document.getElementById('a_belt_h');
-  const hHint=document.getElementById('a_belt_h_hint');
-  if(!mis) return false;
-  const cat=catSel?.value||'';
-  const isBelt=articleCategoryIsBelt(cat);
-  const isShoe=articleCategoryIsShoe(cat);
-  const needed=isBelt || isShoe;
-  if(label) label.textContent=isBelt ? 'Lungh.' : 'Mis.';
-  mis.required=needed;
-  mis.placeholder=isBelt ? 'Es. 110 cm' : (isShoe ? 'Es. 38' : 'Es. 25 x 18 x 8 cm');
-  if(hint){
-    if(isBelt) hint.textContent='Lunghezza cintura. Valori consigliati: 70, 75, 80… fino a 130 cm.';
-    else if(isShoe) hint.textContent='Per le scarpe scegli una misura da 34 a 45.';
-    else hint.textContent='Per borse e portafogli indica le misure se disponibili.';
-  }
-  if(hWrap) hWrap.style.display=isBelt ? '' : 'none';
-  if(hInput){
-    hInput.required=isBelt;
-    if(!isBelt) hInput.value='';
-  }
-  if(hHint) hHint.textContent='Altezza cintura. Esempio: 3,5 cm.';
-  return needed;
-}
-
-/* ====== ORDINI ====== */
-let currentOrdId=null;
-let ordRows=[];
-const ORDER_SIZE_UNDEFINED='DA DEFINIRE';
-const ORDER_SHOE_SIZES=[ORDER_SIZE_UNDEFINED,'34','35','36','37','38','39','40','41','42','43','44','45'];
-const ORDER_BELT_SIZES=['70','75','80','85','90','95','100','105','110','115','120','125','130'];
-function orderMeasureIsUndefined(value){ return normalizeTextKey(value)===normalizeTextKey(ORDER_SIZE_UNDEFINED); }
-function normalizeOrderPaymentMethod(value){
-  const raw=normalizeSpaceText(value||'');
-  if(!raw) return '';
-  const methods=['Ricarica Postepay','Bonifico ordinario','Bonifico istantaneo','PayPal','Satispay'];
-  return methods.find(item=>normalizeTextKey(item)===normalizeTextKey(raw)) || raw;
-}
-function orderRowMeasureType(row, db){
-  const art=(db?.articoli||[]).find(a=>a.id===row?.articoloId || (row?.codice && a.codice===row.codice));
-  const cat=normalizeTextKey(art?.categoria||row?.categoria||'');
-  if(['scarpa','scarpe','shoe','shoes'].some(token=>cat===token || cat.includes(token))) return 'shoe';
-  if(['cintura','cinture','belt','belts'].some(token=>cat===token || cat.includes(token))) return 'belt';
-  return '';
-}
-function orderRowNeedsShoeSize(row, db){
-  return orderRowMeasureType(row, db)==='shoe';
-}
-function orderRowNeedsBeltSize(row, db){
-  return orderRowMeasureType(row, db)==='belt';
-}
-function orderRowNeedsMeasure(row, db){
-  return !!orderRowMeasureType(row, db);
-}
-function orderNeedsShoeSize(rows, db){
-  return (Array.isArray(rows)?rows:[]).some(row=>orderRowNeedsShoeSize(row, db||loadDB()));
-}
-function orderNeedsBeltSize(rows, db){
-  return (Array.isArray(rows)?rows:[]).some(row=>orderRowNeedsBeltSize(row, db||loadDB()));
-}
-function orderNeedsMeasure(rows, db){
-  return (Array.isArray(rows)?rows:[]).some(row=>orderRowNeedsMeasure(row, db||loadDB()));
-}
-function orderMeasureAllowedSizes(rows, db){
-  const data=db||loadDB();
-  const hasShoe=orderNeedsShoeSize(rows, data);
-  const hasBelt=orderNeedsBeltSize(rows, data);
-  if(hasShoe && hasBelt) return Array.from(new Set([...ORDER_SHOE_SIZES, ...ORDER_BELT_SIZES]));
-  if(hasBelt) return ORDER_BELT_SIZES.slice();
-  if(hasShoe) return ORDER_SHOE_SIZES.slice();
-  return ORDER_SHOE_SIZES.slice();
-}
-function rebuildOrderMeasureOptions(sel, sizes, needed, current=''){
-  if(!sel) return;
-  const clean=String(current||'').trim();
-  const firstLabel=needed ? 'Seleziona misura' : 'Non necessaria';
-  sel.innerHTML=`<option value="">${firstLabel}</option>` + (sizes||[]).map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
-  if(clean && (sizes||[]).includes(clean)) sel.value=clean;
-  else sel.value='';
-}
-function ensureOrderSizeOption(value){
-  const sel=document.getElementById('o_mis');
-  if(!sel) return;
-  const clean=String(value||'').trim();
-  const sizes=Array.from(new Set([...ORDER_SHOE_SIZES, ...ORDER_BELT_SIZES, clean].filter(Boolean)));
-  rebuildOrderMeasureOptions(sel, sizes, false, clean);
-}
-function updateOrderShoeSizeState(){
-  const sel=document.getElementById('o_mis');
-  const hint=document.getElementById('o_mis_hint');
-  if(!sel) return false;
-  const db=loadDB();
-  const needed=orderNeedsMeasure(ordRows, db);
-  const hasShoe=orderNeedsShoeSize(ordRows, db);
-  const hasBelt=orderNeedsBeltSize(ordRows, db);
-  const current=String(sel.value||'').trim();
-  const allowed=orderMeasureAllowedSizes(ordRows, db);
-  rebuildOrderMeasureOptions(sel, allowed, needed, current);
-  sel.required=needed;
-  if(hint){
-    if(hasShoe && hasBelt) hint.textContent='Scarpe: misura 34-45 oppure DA DEFINIRE. Cinture: lunghezze da 70 a 130 cm con incremento di 5 cm.';
-    else if(hasBelt) hint.textContent='Per le cinture scegli una lunghezza da 70 a 130 cm, con incremento di 5 cm.';
-    else if(hasShoe) hint.textContent='Per le scarpe scegli una misura da 34 a 45 oppure DA DEFINIRE.';
-    else hint.textContent='Misura non necessaria se non ci sono scarpe o cinture.';
-  }
-  return needed;
-}
-async function openOrdEdit(id, prefillArticleId=null){
-  const db=loadDB();
-  const o=id?db.ordini.find(x=>x.id===id):null;
-  const isEditing=!!o;
-  currentOrdId=isEditing ? id : null;
-  document.getElementById('ordEditTitle').textContent=isEditing?'Modifica ordine':'Nuovo ordine';
-  document.getElementById('o_cli_q').value='';
-  document.getElementById('o_art_q').value='';
-  const pickColorEl=document.getElementById('o_pick_color');
-  if(pickColorEl){
-    pickColorEl.innerHTML='<option value="">Seleziona colore</option>';
-    pickColorEl.value='';
-  }
-  fillClientSelect(db);
-  fillArtSelect(db);
-  document.getElementById('o_cli').value=isEditing?(o?.clienteId||''):'';
-  const orderCli=isEditing ? (db.clienti||[]).find(c=>String(c.id)===String(o?.clienteId||'')) : null;
-  document.getElementById('o_cli_q').value=orderCli?.nome||'';
-  document.getElementById('o_stato').value=isEditing?(o?.stato||'Richiesto'):'Richiesto';
-  document.getElementById('o_data').value=isEditing?(o?.data||todayStr()):todayStr();
-  document.getElementById('o_note').value=isEditing?(o?.note||''):'';
-  ensureOrderSizeOption(isEditing?(o?.mis||''):'' );
-  document.getElementById('o_mis').value=isEditing?(o?.mis||''):'';
-  document.getElementById('o_payment_method').value=isEditing?normalizeOrderPaymentMethod(o?.modalitaPagamento||o?.metodoPagamento||''):'';
-  document.getElementById('o_tracking').value=isEditing?(o?.tracking||''):'';
-  document.getElementById('o_discount').value=isEditing && calcOrderDiscount(o) ? String(calcOrderDiscount(o)).replace('.', ',') : '';
-  document.getElementById('o_art').value='';
-  document.getElementById('o_art_pick').value='';
-  document.getElementById('o_photo').value='';
-  currentOrdExistingManualPhotos=isEditing ? await getOrderManualPics(o) : [];
-  ordRows=isEditing ? (o?.righe||[]).slice() : [];
-  if(isEditing){
-    restoreOrderDraft(o?.id||'', null);
-  }else{
-    clearOrderDraft();
-  }
-  if(prefillArticleId){
-    const a=db.articoli.find(x=>String(x.id)===String(prefillArticleId));
-    if(a && !ordRows.some(r=>String(r.articoloId)===String(prefillArticleId))){
-      const labels=getArticleColorLabels(a);
-      const defaultColor=(getArticleColorMode(a)==='single') ? normalizeSpaceText(a?.colore||labels[0]||'') : '';
-      ordRows.push(hydrateOrderRowWithHistoricalArticle({
-        articoloId:a.id,
-        codice:a?.codice||'',
-        modello:a?.modello||'',
-        brand:a?.brand||'',
-        categoria:a?.categoria||'',
-        qualita:articleQualityLabel(a),
-        prezzo:Number(currentPrice(a)||0),
-        costoEur:Number(currentCost(a)||0),
-        richiedeNumeroColore:getArticleColorMode(a)==='multiple',
-        colorCount:getArticleColorCount(a),
-        colorLabels:labels,
-        numeroColore:'',
-        colore:defaultColor
-      }, db));
-    }
-  }
-  renderOrdRows();
-  renderOrderClientSummary();
-  renderSelectedOrderArticlesSummary();
-  updateOrderPriceFromSelection();
-  updateOrderTotalsPreview();
-  updateOrderShoeSizeState();
-  await refreshOrdPhotoPreviewFromState();
-  show('mOrdEdit');
-}
-function todayStr(){
-  const d=new Date();
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-}
-function findClientAutoMatch(items, raw=''){
-  const q=normalizeTextKey(raw);
-  if(!q) return items.length===1 ? items[0] : null;
-  const exact=items.find(c=>[
-    c?.nome,
-    c?.telefono,
-    c?.citta,
-    `${c?.nome||''} ${c?.telefono||''} ${c?.citta||''}`
-  ].some(v=>normalizeTextKey(v)===q));
-  if(exact) return exact;
-  if(items.length===1) return items[0];
-  const starts=items.filter(c=>searchStartsWith(c?.nome||'', raw) || searchStartsWith(c?.telefono||'', raw) || searchStartsWith(c?.citta||'', raw));
-  return starts.length===1 ? starts[0] : null;
-}
-function renderOrderClientSummary(){
-  const box=document.getElementById('o_cli_summary');
-  const sel=document.getElementById('o_cli');
-  const db=loadDB();
-  if(!box || !sel) return;
-  const cli=(db.clienti||[]).find(c=>String(c.id)===String(sel.value||''));
-  if(!cli){
-    box.className='orderClientSummary empty';
-    box.textContent='Seleziona un cliente per vedere subito nome, telefono e città.';
-    return;
-  }
-  const meta=[cli.telefono, [cli.citta, cli.provincia].filter(Boolean).join(' • '), cli.indirizzo].filter(Boolean);
-  box.className='orderClientSummary';
-  box.innerHTML=`<div class="title">${esc(cli.nome||'Cliente selezionato')}</div><div class="meta">${meta.length?esc(meta.join(' • ')):'Nessun dettaglio aggiuntivo'}</div>`;
-}
-function renderSelectedOrderArticlesSummary(){
-  const box=document.getElementById('o_art_selected_summary');
-  const pick=document.getElementById('o_art_pick');
-  const db=loadDB();
-  if(!box || !pick) return;
-  const id=String(pick.value||'').trim();
-  const a=(db.articoli||[]).find(x=>String(x.id)===id);
-  if(!a){
-    box.className='orderSelectedSummary empty';
-    box.textContent='Cerca un articolo e poi aggiungilo.';
-    renderSelectedOrderColorPicker(null);
-    return;
-  }
-  const model=((a.modello||a.brand||'').trim() || 'Articolo');
-  const code=(a.codice||'').trim();
-  const meta=[a.brand, displayCategoryValue(a.categoria), a.qualita, '€ '+money(currentPrice(a)||0)].filter(Boolean).join(' • ');
-  box.className='orderSelectedSummary';
-  box.innerHTML=`<div class="title"><span>Da aggiungere</span></div><div class="orderChoiceList"><span class="orderChoiceChip">${esc(model)}${code?`<span class="orderChoiceMeta">Cod. ${esc(code)}${meta?` • ${esc(meta)}`:''}</span>`:''}</span></div>`;
-  renderSelectedOrderColorPicker(a);
-}
-function renderSelectedOrderColorPicker(article){
-  const wrap=document.getElementById('o_pick_color_wrap');
-  const sel=document.getElementById('o_pick_color');
-  const hint=document.getElementById('o_pick_color_hint');
-  if(!wrap || !sel) return;
-  if(!article){
-    wrap.style.display='none';
-    sel.innerHTML='';
-    sel.value='';
-    return;
-  }
-  const labels=getArticleColorLabels(article);
-  const singleColor=normalizeSpaceText(article?.colore||labels[0]||'');
-  if(getArticleColorMode(article)==='multiple' && Number(getArticleColorCount(article)||0)>0){
-    wrap.style.display='block';
-    sel.innerHTML=buildOrderColorOptions(getArticleColorCount(article), sel.value||'', labels);
-    if(hint) hint.textContent="Scegli il colore e poi aggiungi l'articolo.";
-    return;
-  }
-  if(singleColor){
-    wrap.style.display='block';
-    sel.innerHTML=`<option value="${esc(singleColor)}">${esc(singleColor)}</option>`;
-    sel.value=singleColor;
-    if(hint) hint.textContent='Colore già impostato per questo articolo.';
-    return;
-  }
-  wrap.style.display='none';
-  sel.innerHTML='';
-  sel.value='';
-}
-function fillClientSelect(db, filter='', autoPick=false){
-  const sel=document.getElementById('o_cli');
-  const searchInput=document.getElementById('o_cli_q');
-  if(!sel) return [];
-  const prev=String(sel.value||'').trim();
-  const q=String(filter||'').trim().toLowerCase();
-  const items=(db.clienti||[]).filter(c=>{
-    const hay=`${c.nome||''} ${c.telefono||''} ${c.citta||''}`.toLowerCase();
-    return !q || hay.includes(q);
-  });
-  sel.innerHTML='<option value="">Seleziona</option>'+items.map(c=>`<option value="${c.id}">${esc(c.nome)} • ${esc(c.provincia||'')}</option>`).join('');
-  let picked=items.find(c=>String(c.id)===prev) || null;
-  if(autoPick) picked=findClientAutoMatch(items, filter);
-  if(picked){
-    sel.value=String(picked.id);
-    if(searchInput) searchInput.value=picked.nome||'';
-  }else if(prev && Array.from(sel.options).some(o=>o.value===prev)){
-    sel.value=prev;
-  }
-  renderOrderClientSummary();
-  return items;
-}
-function fillArtSelect(db, filter=''){
-  const sel=document.getElementById('o_art_pick');
-  const hidden=document.getElementById('o_art');
-  const q=String(filter||'').toLowerCase();
-  const prev=String(sel?.value||'').trim();
-  const items=(db.articoli||[]).filter(a=>{
-    const hay=articleSearchHay(a);
-    return !q || hay.includes(q);
-  });
-  if(sel){
-    sel.innerHTML='<option value="">Seleziona articolo</option>'+items.map(a=>{
-      const model=(a.modello||a.brand||'Articolo').trim();
-      const code=(a.codice||'').trim();
-      const cat=displayCategoryValue(a.categoria);
-      const price='€ '+money(currentPrice(a)||0);
-      const blocked=isArticleUnavailable(a);
-      const label=[model, code, cat, price, blocked ? 'NON DISPONIBILE' : ''].filter(Boolean).join(' • ');
-      return `<option value="${a.id}" ${blocked ? 'disabled' : ''}>${esc(label)}</option>`;
-    }).join('');
-    if(prev && Array.from(sel.options).some(o=>o.value===prev && !o.disabled)) sel.value=prev;
-  }
-  if(hidden) hidden.innerHTML='';
-  renderSelectedOrderArticlesSummary();
-}
-function selectedOrderArticleIds(){
-  const pick=document.getElementById('o_art_pick');
-  return pick && pick.value ? [pick.value] : [];
-}
-function updateOrderPriceFromSelection(){
-  const db=loadDB();
-  const ids=selectedOrderArticleIds();
-  return;
-}
-function addRow(){
-  const db=loadDB();
-  const ids=selectedOrderArticleIds();
-  if(!ids.length){ toast('Seleziona almeno un articolo'); return; }
-  ids.forEach((artId)=>{
-    const a=db.articoli.find(x=>String(x.id)===String(artId));
-    if(!a) return;
-    if(isArticleUnavailable(a)){
-      toast('Articolo segnato come non disponibile');
-      return;
-    }
-    if(ordRows.some(r=>String(r.articoloId)===String(artId))){
-      toast("Articolo già presente nell'ordine");
-      return;
-    }
-    const prezzo=Number(currentPrice(a)||0);
-    const labels=getArticleColorLabels(a);
-    const pickColor=String(document.getElementById('o_pick_color')?.value||'').trim();
-    const isMultiple=getArticleColorMode(a)==='multiple' && Number(getArticleColorCount(a)||0)>0;
-    const colorLabel=isMultiple ? ((parseInt(pickColor,10)>0 && labels[parseInt(pickColor,10)-1]) ? labels[parseInt(pickColor,10)-1] : '') : normalizeSpaceText(pickColor || a?.colore || labels[0] || '');
-    ordRows.push(hydrateOrderRowWithHistoricalArticle({articoloId:artId,codice:a?.codice||'',modello:a?.modello||'',brand:a?.brand||'',categoria:a?.categoria||'',qualita:articleQualityLabel(a),prezzo,costoEur:Number(currentCost(a)||0),richiedeNumeroColore:isMultiple,colorCount:getArticleColorCount(a),colorLabels:labels,colorData:makeStableColorData({colorMode:isMultiple?'multiple':'single', colorCount:getArticleColorCount(a), colorLabels:labels}),numeroColore:isMultiple ? pickColor : '',colore:colorLabel}, db));
-  });
-  const pick=document.getElementById('o_art_pick');
-  const colorPick=document.getElementById('o_pick_color');
-  if(pick) pick.value='';
-  if(colorPick){ colorPick.innerHTML=''; colorPick.value=''; }
-  document.getElementById('o_art_q').value='';
-  fillArtSelect(db);
-  renderSelectedOrderArticlesSummary();
-  renderOrdRows();
-  updateOrderShoeSizeState();
-  saveOrderDraft();
-}
-function getTrackingValue(){
-  const editVal=String(document.getElementById('o_tracking')?.value||'').trim();
-  if(editVal) return editVal;
-  const viewVal=String(document.getElementById('vOrdTrack')?.textContent||'').trim();
-  return viewVal==='-' ? '' : viewVal;
+  toast('Articolo ripristinato nell’elenco principale');
 }
 function openTrack17(){
   const code=getTrackingValue();
@@ -12251,6 +11701,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='clearArtPhotos'){ currentArtExistingPics=[]; currentArtPhotosCleared=true; document.getElementById('a_photo').value=''; renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Foto attuali rimosse'); return; }
   if(a==='saveArt') return saveArt();
   if(a==='deleteArt') return deleteArt();
+  if(a==='restoreArchivedArticle') return restoreArchivedArticle(el.dataset.id||'');
   if(a==='saveCli') return saveCli();
   if(a==='closeCli'){ saveClientDraft(); return hide('mCliEdit'); }
   if(a==='deleteCli') return deleteCli();
@@ -12380,6 +11831,9 @@ document.getElementById('a_sell')?.addEventListener('input', ()=>{
   if(id==='a_color_mode') el.addEventListener('change', ()=>{ updateArticleColorModeUI(); saveArticleDraft(); });
   if(id==='a_color_count' || id==='a_color_labels' || id==='a_colore' || id==='a_belt_h') el.addEventListener('change', saveArticleDraft);
 });
+document.getElementById('a_archive_state')?.addEventListener('change', ()=>{ updateArticleArchiveUi(); saveArticleDraft(); });
+document.getElementById('a_archive_note')?.addEventListener('input', saveArticleDraft);
+document.getElementById('a_unavailable')?.addEventListener('change', ()=>{ const state=document.getElementById('a_archive_state'); if(state){ state.value=document.getElementById('a_unavailable').checked?'non_disponibile':''; } updateArticleArchiveUi(); saveArticleDraft(); });
 document.getElementById('a_cat')?.addEventListener('change', ()=>{ updateArticleMeasureState(); renderArtAutoFields(); saveArticleDraft(); });
 
 bindSearchSuggest('o_cli_q','oCliSuggest','orderCli', value=>fillClientSelect(loadDB(), value, true));
@@ -12445,7 +11899,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.42-2026-07-26';
+const VG_BUILD='1.0.45-2026-07-26';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -12924,7 +12378,7 @@ async function pullCloudToLocal(opts={}){
         const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
         const cloudTs=parseTimestampLike(meta._ts, p.updated_at, p.created_at, local?._ts, Date.now());
         const createdAt=meta.createdAt||local?.createdAt||local?.dataInserimento||p.created_at||'';
-        return {id:p.id,createdAt,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,costoStimatoAttivo:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoIpotetico:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoEurStimato:firstFiniteNumber(meta.costoEurStimato,local?.costoEurStimato,0),prezzoVenditaStimato:firstFiniteNumber(meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),prezzoVenditaStimatoOriginale:firstFiniteNumber(meta.prezzoVenditaStimatoOriginale,local?.prezzoVenditaStimatoOriginale,meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),costoStimaCampioni:Math.max(0,parseInt(meta.costoStimaCampioni||local?.costoStimaCampioni||0,10)||0),costoStimaAffidabilita:meta.costoStimaAffidabilita||local?.costoStimaAffidabilita||'',costoStimaMetodo:meta.costoStimaMetodo||local?.costoStimaMetodo||'',costoStimaData:meta.costoStimaData||local?.costoStimaData||'',costoStimaMin:firstFiniteNumber(meta.costoStimaMin,local?.costoStimaMin,0),costoStimaMax:firstFiniteNumber(meta.costoStimaMax,local?.costoStimaMax,0),costoStimaSogliaMinima:firstFiniteNumber(meta.costoStimaSogliaMinima,local?.costoStimaSogliaMinima,0),costoStimaSignature:meta.costoStimaSignature||local?.costoStimaSignature||'',prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),costoNormaleSconosciuto:!!(meta.costoNormaleSconosciuto??local?.costoNormaleSconosciuto),promoFornitoreAttiva:(typeof meta.promoFornitoreAttiva==='boolean'?meta.promoFornitoreAttiva:(typeof local?.promoFornitoreAttiva==='boolean'?local.promoFornitoreAttiva:pulledCostoUsdPromo>0)),dataInizioPromoFornitore:normalizePromoStartDate(meta.dataInizioPromoFornitore||local?.dataInizioPromoFornitore||''),scadenzaPromoFornitore:meta.scadenzaPromoFornitore||local?.scadenzaPromoFornitore||'',promoFornitoreDataSconosciuta:!!(meta.promoFornitoreDataSconosciuta??local?.promoFornitoreDataSconosciuta),dataInizioPromoPersonale:normalizePromoStartDate(meta.dataInizioPromoPersonale||local?.dataInizioPromoPersonale||meta.dataInizioPromo||local?.dataInizioPromo||''),scadenzaPromoPersonale:meta.scadenzaPromoPersonale||local?.scadenzaPromoPersonale||meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
+        return {id:p.id,createdAt,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,costoStimatoAttivo:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoIpotetico:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoEurStimato:firstFiniteNumber(meta.costoEurStimato,local?.costoEurStimato,0),prezzoVenditaStimato:firstFiniteNumber(meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),prezzoVenditaStimatoOriginale:firstFiniteNumber(meta.prezzoVenditaStimatoOriginale,local?.prezzoVenditaStimatoOriginale,meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),costoStimaCampioni:Math.max(0,parseInt(meta.costoStimaCampioni||local?.costoStimaCampioni||0,10)||0),costoStimaAffidabilita:meta.costoStimaAffidabilita||local?.costoStimaAffidabilita||'',costoStimaMetodo:meta.costoStimaMetodo||local?.costoStimaMetodo||'',costoStimaData:meta.costoStimaData||local?.costoStimaData||'',costoStimaMin:firstFiniteNumber(meta.costoStimaMin,local?.costoStimaMin,0),costoStimaMax:firstFiniteNumber(meta.costoStimaMax,local?.costoStimaMax,0),costoStimaSogliaMinima:firstFiniteNumber(meta.costoStimaSogliaMinima,local?.costoStimaSogliaMinima,0),costoStimaSignature:meta.costoStimaSignature||local?.costoStimaSignature||'',prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),costoNormaleSconosciuto:!!(meta.costoNormaleSconosciuto??local?.costoNormaleSconosciuto),promoFornitoreAttiva:(typeof meta.promoFornitoreAttiva==='boolean'?meta.promoFornitoreAttiva:(typeof local?.promoFornitoreAttiva==='boolean'?local.promoFornitoreAttiva:pulledCostoUsdPromo>0)),dataInizioPromoFornitore:normalizePromoStartDate(meta.dataInizioPromoFornitore||local?.dataInizioPromoFornitore||''),scadenzaPromoFornitore:meta.scadenzaPromoFornitore||local?.scadenzaPromoFornitore||'',promoFornitoreDataSconosciuta:!!(meta.promoFornitoreDataSconosciuta??local?.promoFornitoreDataSconosciuta),dataInizioPromoPersonale:normalizePromoStartDate(meta.dataInizioPromoPersonale||local?.dataInizioPromoPersonale||meta.dataInizioPromo||local?.dataInizioPromo||''),scadenzaPromoPersonale:meta.scadenzaPromoPersonale||local?.scadenzaPromoPersonale||meta.scadenzaPromo||local?.scadenzaPromo||'',archivioStato:normalizeArticleArchiveStateValue(meta.archivioStato||local?.archivioStato||(pulledUnavailable?'non_disponibile':'')),archiviato:!!(meta.archiviato||local?.archiviato||meta.archivioStato||local?.archivioStato||pulledUnavailable),archivioNota:meta.archivioNota||local?.archivioNota||'',archivioData:meta.archivioData||local?.archivioData||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
       }).filter(a=>!articleMatchesDeleteTombstone(a, deletedArticleTombstones)),
       clienti:(cli||[]).map(c=>{
         const packed=unpackCloudClientNote(c.note||'');
