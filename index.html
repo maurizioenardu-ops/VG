@@ -799,6 +799,7 @@ window.addEventListener('error',e=>{
           <button id="btnCloudLogin" class="btn" type="button">Login cloud</button>
           <button id="btnCloudPull" class="btn" type="button" data-action="cloudPull">Carica cloud</button>
           <button id="btnCloudPush" class="btn" type="button" data-action="cloudPush">Invia cloud</button>
+          <button class="btn" type="button" data-action="unlockCloudAfterRecovery">Riattiva sincronizzazione cloud</button>
           <button id="btnCloudLogout" class="btn danger" type="button">Esci</button>
         </div>
       </div>
@@ -11267,7 +11268,19 @@ function importDB(file){
         nextDb=compactImportedOrderMedia(nextDb);
       }
       updateShippingNotifications(nextDb,'json-import');
+      // Modalità recupero: impedisce a un pull Cloud automatico di sovrascrivere subito il backup appena importato.
+      try{
+        localStorage.setItem(RECOVERY_LOCAL_LOCK_KEY,'1');
+        localStorage.setItem('vg_access_mode','local');
+        localStorage.setItem(KEY+'_backup_import_'+Date.now(),JSON.stringify(nextDb));
+      }catch(_e){}
+      if(autoCloudPullTimer){ clearInterval(autoCloudPullTimer); autoCloudPullTimer=null; }
       if(!saveDB(nextDb)) throw new Error('Salvataggio locale fallito: quota storage');
+      const verifyDb=loadDB();
+      const expectedCount=(nextDb.articoli||[]).length+(nextDb.clienti||[]).length+(nextDb.ordini||[]).length;
+      const verifiedCount=(verifyDb.articoli||[]).length+(verifyDb.clienti||[]).length+(verifyDb.ordini||[]).length;
+      if(expectedCount>0 && verifiedCount===0) throw new Error('I dati sono stati letti ma non risultano salvati nel database locale');
+      nextDb=verifyDb;
 
       let bachecaImported=false;
       if(incomingBacheca){
@@ -11288,6 +11301,7 @@ function importDB(file){
 
       renderAll();
       const counts=`${nextDb.articoli.length} articoli, ${nextDb.clienti.length} clienti, ${nextDb.ordini.length} ordini`;
+      try{ hideAuthGate(); renderPageState('home'); renderActivePage('home'); }catch(_e){}
       const photoMsg=photoSkipped ? ` Foto recuperate: ${photoImported}; non recuperate: ${photoSkipped}.` : ` Foto recuperate: ${photoImported}.`;
       const baseMsg=mode==='merge' ? `Import completato e unito: ${counts}.` : `Import completato: ${counts}.`;
       if(hint) hint.textContent=baseMsg+photoMsg+(bachecaImported?' Bacheca ripristinata.':'');
@@ -11797,6 +11811,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='closeMonthSales') return hide('mMonthSales');
   if(a==='recoverLocalData') return recoverLocalData();
   if(a==='showRecoveryCounts') return showRecoveryCounts();
+  if(a==='unlockCloudAfterRecovery'){ try{ localStorage.removeItem(RECOVERY_LOCAL_LOCK_KEY); refreshAutoCloudPull(); toast('Sincronizzazione cloud riattivata'); }catch(_e){ toast('Impossibile riattivare il cloud'); } return; }
   if(a==='cloudPull'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pullCloudToLocal().catch(err=>{toast(err?.message||'Carica cloud fallita'); console.error(err);}); }
   if(a==='cloudPush'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pushLocalToCloud().catch(err=>{toast(err?.message||'Invia cloud fallita'); console.error(err);}); }
   if(a==='doCloudLogin') return cloudLogin();
@@ -12092,13 +12107,15 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.49-2026-07-26';
+const VG_BUILD='1.0.53-2026-07-26';
 const AUTO_CLOUD_PULL_MS=180000;
+const RECOVERY_LOCAL_LOCK_KEY='vg_recovery_local_lock_v1';
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
 let autoCloudPullLastAt=0;
 function refreshAutoCloudPull(){
   if(autoCloudPullTimer){ clearInterval(autoCloudPullTimer); autoCloudPullTimer=null; }
+  try{ if(localStorage.getItem(RECOVERY_LOCAL_LOCK_KEY)==='1') return; }catch(_e){}
   if(!cloudEnabled()) return;
   autoCloudPullTimer=setInterval(()=>{ autoCloudPullNow('timer'); }, AUTO_CLOUD_PULL_MS);
 }
@@ -12171,7 +12188,11 @@ function cloudUi(){
   setDisabled(bPush,cloudBusy||!logged);
   setDisabled(bOut,cloudBusy||!logged);
 }
-function cloudEnabled(){ return !!(window.VG_SUPABASE_READY && cloudSession); }
+function cloudEnabled(){
+  let recoveryLocked=false;
+  try{ recoveryLocked=localStorage.getItem(RECOVERY_LOCAL_LOCK_KEY)==='1'; }catch(_e){}
+  return !recoveryLocked && !!(window.VG_SUPABASE_READY && cloudSession);
+}
 async function cloudSaveOne(type, payload, dbRef){
   if(!cloudEnabled()) return payload;
   cloudBusy=true; cloudUi();
