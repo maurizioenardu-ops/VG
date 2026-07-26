@@ -188,6 +188,7 @@ video.hero{background:#000}
 #authGate .authErr{font-size:13px;font-weight:900;color:#ef4444;text-align:center;display:none;margin-top:-6px}
 #authGate .authBtn{width:100%;min-height:48px;font-size:16px;font-weight:900;background:var(--accent,#2563eb);color:#fff;border:none;border-radius:14px;cursor:pointer;margin-top:4px}
 #authGate .authBtn:active{opacity:.85}
+#authGate .authLocalBtn{background:#fff;color:#0f172a;border:1px solid #cbd5e1;box-shadow:0 5px 12px rgba(15,23,42,.08)}
 .thumbs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .thumbs img{width:70px;height:70px;border-radius:12px;object-fit:cover;border:1px solid var(--line);cursor:pointer}
 .orderPhotoGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}.orderPhotoGrid img{width:100%;aspect-ratio:1/1;border-radius:14px;object-fit:cover;border:1px solid var(--line);background:#f3f4f6}.helperRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
@@ -483,7 +484,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v121-cloud-ripristinato">
+  <meta name="vg-version" content="v122-accesso-locale-sicuro">
 </head>
 <body>
 
@@ -492,7 +493,7 @@ window.addEventListener('error',e=>{
   <div class="authBox">
     <div class="authLogo">🔐</div>
     <div class="authTitle" id="authAppTitle">Gestionale</div>
-    <div class="authSub">Accedi per continuare</div>
+    <div class="authSub">Accedi al Cloud oppure continua con i dati locali</div>
     <div>
       <div class="k">Email</div>
       <input id="authEmail" type="email" placeholder="tua@email.com" autocomplete="username" autocapitalize="off" spellcheck="false" style="margin-top:6px"/>
@@ -502,7 +503,9 @@ window.addEventListener('error',e=>{
       <input id="authPassword" type="password" placeholder="••••••••" autocomplete="current-password" style="margin-top:6px"/>
     </div>
     <div id="authErr" class="authErr">Email o password non corretti</div>
-    <button class="authBtn" id="authLoginBtn" type="button">Accedi</button>
+    <button class="authBtn" id="authLoginBtn" type="button">Accedi al Cloud</button>
+    <button class="authBtn authLocalBtn" id="authLocalBtn" type="button">Entra con i dati locali</button>
+    <div class="authSub" style="margin-top:0">La modalità locale non cancella nulla. Il Cloud potrà essere collegato dalle Impostazioni.</div>
   </div>
 </div>
 
@@ -776,7 +779,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.47</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.48</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -11931,7 +11934,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.46-2026-07-26';
+const VG_BUILD='1.0.48-2026-07-26';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -12545,9 +12548,10 @@ async function cloudLogout(){
     const sb=await ensureCloud(); if(!sb) return;
     await sb.auth.signOut();
     cloudSession=null;
+    try{ localStorage.setItem('vg_access_mode','local'); }catch(_e){}
     cloudUi();
-    showAuthGate();
-    toast('Disconnesso. Arrivederci! 👋');
+    hideAuthGate();
+    toast('Cloud disconnesso. Il gestionale resta disponibile in locale.');
   }catch(err){ toast('Logout fallito'); console.error(err); }
 }
 
@@ -13088,12 +13092,24 @@ function hideAuthGate(){
   const gate=document.getElementById('authGate');
   if(gate) gate.style.display='none';
 }
+function enterLocalMode(showMessage=true){
+  try{ localStorage.setItem('vg_access_mode','local'); }catch(_e){}
+  hideAuthGate();
+  cloudUi();
+  try{ renderActivePage(currentHistoryPage()); }catch(_e){}
+  if(showMessage) toast('Gestionale aperto in modalità locale');
+}
 function initAuthGate(){
   const btn=document.getElementById('authLoginBtn');
   const emailEl=document.getElementById('authEmail');
   const passEl=document.getElementById('authPassword');
   const errEl=document.getElementById('authErr');
+  const localBtn=document.getElementById('authLocalBtn');
   if(!btn) return;
+  if(localBtn && !localBtn.dataset.bound){
+    localBtn.dataset.bound='1';
+    localBtn.addEventListener('click',()=>enterLocalMode(true));
+  }
   const doLogin=async()=>{
     const email=(emailEl?.value||'').trim();
     const pass=passEl?.value||'';
@@ -13102,7 +13118,7 @@ function initAuthGate(){
     if(errEl) errEl.style.display='none';
     try{
       const sb=await ensureCloud();
-      if(!sb){ throw new Error('Supabase non disponibile'); }
+      if(!sb){ throw new Error('Cloud non configurato'); }
       const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
       if(error) throw error;
       cloudSession=data.session||null;
@@ -13113,7 +13129,13 @@ function initAuthGate(){
       try{ await autoCloudPullNow('login'); }catch(_e){}
       toast('Benvenuto! 👋');
     }catch(err){
-      if(errEl){ errEl.textContent='Email o password non corretti'; errEl.style.display='block'; }
+      if(errEl){
+        const msg=String(err?.message||'');
+        errEl.textContent=/Cloud non configurato|Supabase non disponibile/i.test(msg)
+          ? 'Cloud non configurato: entra con i dati locali e collegalo dalle Impostazioni'
+          : 'Email o password non corretti';
+        errEl.style.display='block';
+      }
       console.warn('Auth gate login fallito:',err);
     }finally{
       btn.textContent='Accedi'; btn.disabled=false;
@@ -13156,14 +13178,20 @@ async function bootApp(){
     }
   }catch(_e){}
 
-  if(!cloudSession){
-    // Non loggato → mostra gate
-    showAuthGate();
-  } else {
-    // Già loggato → carica dati
+  if(cloudSession){
+    // Sessione cloud valida: entra e sincronizza normalmente.
+    try{ localStorage.setItem('vg_access_mode','cloud'); }catch(_e){}
     hideAuthGate();
     try{ renderActivePage(currentHistoryPage()); }catch(_e){}
     try{ refreshAutoCloudPull(); }catch(_e){}
+  } else if(!window.VG_SUPABASE_READY || window.VG_SUPABASE_CONFIG_MISSING){
+    // Il Cloud non è configurato: non deve mai bloccare i dati locali.
+    enterLocalMode(false);
+    setTimeout(()=>toast('Modalità locale attiva: configura il Cloud dalle Impostazioni'),500);
+  } else {
+    // Cloud disponibile ma nessuna sessione: lascia scegliere tra login e modalità locale.
+    const remembered=(()=>{ try{return localStorage.getItem('vg_access_mode')==='local';}catch(_e){return false;} })();
+    if(remembered) enterLocalMode(false); else showAuthGate();
   }
 }
 bootApp();
@@ -13227,7 +13255,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.3', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.48', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
