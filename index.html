@@ -835,7 +835,18 @@ window.addEventListener('error',e=>{
         <div class="small" style="margin-top:8px" id="brandHint">Puoi aggiungere, rinominare o eliminare i brand. Gli articoli restano salvati.</div>
       </div>
 
-<div class="card" style="margin-top:12px">
+<div class="card" style="margin-top:12px;border:2px solid #f59e0b;background:#fffaf0">
+      <div class="h2">🛟 Recupero dati</div>
+      <div class="small">Questa versione non cancella alcun archivio. Cerca copie locali precedenti e le unisce senza sovrascrivere i record esistenti.</div>
+      <div id="recoveryStatus" class="mutedBox" style="margin-top:10px">In attesa di controllo.</div>
+      <div class="actions" style="margin-top:10px">
+        <button class="btn primary" type="button" data-action="recoverLocalData">Cerca e recupera dati locali</button>
+        <button class="btn" type="button" data-action="showRecoveryCounts">Controlla archivio attuale</button>
+      </div>
+      <div class="small" style="margin-top:8px"><b>Importante:</b> non usare “Invia cloud” finché articoli, clienti e ordini non sono ricomparsi.</div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
       <div class="h2">Diagnostica archivio</div>
       <div id="diagBox" class="small">Lettura archivio in corso…</div>
     </div>
@@ -1341,7 +1352,7 @@ window.addEventListener('error',e=>{
 /* ====== DB ====== */
 const KEY='vg_db_full_v7_clean';
 const CAT_IMAGES_KEY='vg_category_images_v2';
-const LEGACY_KEYS=[];
+const LEGACY_KEYS=['vg_db_full_v6','vg_db_full_v5','vg_v7_web','vanity_glamour_v9_db','vg_db_full_v7_clean_backup_latest','vg_db_full_v7','vg_db_full_v6_clean','vg_db_full_v5_clean'];
 const PHOTO_DB='vg_photos_v2_clean';
 const PHOTO_STORE='photos';
 const THUMB_STORE='thumbs';
@@ -1452,41 +1463,9 @@ const APP_RESET_OLD_KEYS=[
 const ARTICLE_PUBLISH_RESET_FLAG='vg_publish_reset_20260419_v1';
 const ARTICLE_PUBLISH_RESET_CLOUD_PENDING='vg_publish_reset_20260419_v1_cloud_pending';
 async function runOneTimeFreshReset(){
-  try{
-    if(localStorage.getItem(APP_RESET_FLAG)==='1') return;
-    const keys=[];
-    try{
-      for(let i=0;i<localStorage.length;i++){
-        const k=localStorage.key(i);
-        if(k) keys.push(k);
-      }
-    }catch(_e){}
-    const shouldRemove=(k)=>{
-      const key=String(k||'');
-      if(!key) return false;
-      if(APP_RESET_OLD_KEYS.includes(key)) return true;
-      if(/^vg_db_full_/i.test(key)) return true;
-      if(/^vg_draft_(art|cli|ord)_/i.test(key)) return true;
-      if(/^vg_dashboard_agenda_/i.test(key)) return true;
-      if(/^vanity_glamour_/i.test(key)) return true;
-      if(/^sb-qfjwtawsqfwmsmrrgqfi-auth-token$/i.test(key)) return true;
-      return false;
-    };
-    keys.filter(shouldRemove).forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
-    try{
-      if(typeof indexedDB!=='undefined'){
-        await Promise.all(['vg_photos_v1'].map(name=>new Promise(resolve=>{
-          try{
-            const req=indexedDB.deleteDatabase(name);
-            req.onsuccess=req.onerror=req.onblocked=()=>resolve(true);
-          }catch(_e){ resolve(true); }
-        })));
-      }
-    }catch(_e){}
-    localStorage.setItem(APP_RESET_FLAG,'1');
-  }catch(err){
-    console.warn('Reset iniziale build fallito', err);
-  }
+  // Versione di recupero: non cancella mai archivi, bozze, sessioni o foto.
+  try{ localStorage.setItem(APP_RESET_FLAG,'1'); }catch(_e){}
+  return true;
 }
 
 function parseIsoDay(value=''){
@@ -2685,8 +2664,7 @@ function loadDB(){
     const rawMain=localStorage.getItem(KEY);
     if(rawMain!==mergedRaw) localStorage.setItem(KEY, mergedRaw);
 
-    // Dopo la migrazione, le chiavi legacy non devono più rimettere in vita record cancellati.
-    legacyKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
+    // Recupero: le chiavi legacy restano intatte come copia di sicurezza.
     return merged;
   }catch(e){ return defDB(); }
 }
@@ -2697,8 +2675,7 @@ function saveDB(db){
     localStorage.setItem(KEY, raw);
     try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
     try{ localStorage.setItem(AGENDA_KEY, JSON.stringify(Array.isArray(cleanDb.agenda)?cleanDb.agenda:[])); }catch(_e){}
-    const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
-    legacyKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
+    // Recupero: non eliminare gli archivi precedenti dopo il salvataggio.
   }catch(err){
     const msg=String(err?.message||err||'');
     if(/quota|storage/i.test(msg)) toast('Salvataggio fallito: archivio locale pieno o sporco');
@@ -11747,6 +11724,8 @@ document.addEventListener('click',(ev)=>{
   if(a==='track17') return openTrack17();
   if(a==='openParcel') return openTrackParcel();
   if(a==='closeMonthSales') return hide('mMonthSales');
+  if(a==='recoverLocalData') return recoverLocalData();
+  if(a==='showRecoveryCounts') return showRecoveryCounts();
   if(a==='cloudPull'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pullCloudToLocal().catch(err=>{toast(err?.message||'Carica cloud fallita'); console.error(err);}); }
   if(a==='cloudPush'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pushLocalToCloud().catch(err=>{toast(err?.message||'Invia cloud fallita'); console.error(err);}); }
   if(a==='doCloudLogin') return cloudLogin();
@@ -11929,12 +11908,120 @@ ensureComuniCapIndex().then(()=>{
   if(capVal) scheduleAddressLookup('cap',false,false); else if(cityVal) scheduleAddressLookup('city',false,false);
 }).catch(()=>{ setCapHint('Archivio CAP italiano non raggiungibile: puoi inserire CAP e città manualmente.'); });
 
+
+/* ====== RECUPERO DATI LOCALE ====== */
+function dbRecordCounts(db){
+  const d=normalizeDBShape(db||defDB());
+  return {articoli:(d.articoli||[]).length,clienti:(d.clienti||[]).length,ordini:(d.ordini||[]).length};
+}
+function recoveryCountText(db){
+  const c=dbRecordCounts(db);
+  return `${c.articoli} articoli · ${c.clienti} clienti · ${c.ordini} ordini`;
+}
+function recoveryDbScore(db){
+  const c=dbRecordCounts(db);
+  return c.articoli+c.clienti+c.ordini;
+}
+function extractDbCandidatesFromValue(value,key=''){
+  const out=[];
+  const seen=new Set();
+  const visit=(node,label,depth=0)=>{
+    if(depth>3 || !node || typeof node!=='object' || seen.has(node)) return;
+    seen.add(node);
+    const hasCore=Array.isArray(node.articoli)||Array.isArray(node.clienti)||Array.isArray(node.ordini);
+    if(hasCore){
+      try{
+        const db=normalizeDBShape(node);
+        if(recoveryDbScore(db)>0) out.push({key:label,db});
+      }catch(_e){}
+    }
+    ['db','database','data','backup','payload','state'].forEach(k=>{
+      if(node[k] && typeof node[k]==='object') visit(node[k],label+':'+k,depth+1);
+    });
+  };
+  try{
+    const parsed=typeof value==='string'?JSON.parse(value):value;
+    visit(parsed,key,0);
+  }catch(_e){}
+  return out;
+}
+function discoverLocalDbCandidates(){
+  const found=[];
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(!key) continue;
+      const raw=localStorage.getItem(key);
+      if(!raw || raw.length<20) continue;
+      found.push(...extractDbCandidatesFromValue(raw,key));
+    }
+  }catch(_e){}
+  return found;
+}
+function mergeRecoveryDatabases(databases=[]){
+  const base=normalizeDBShape(loadDB());
+  const merged={
+    version:base.version||'v6.1',createdAt:base.createdAt||new Date().toISOString(),
+    articoli:[...(base.articoli||[])],clienti:[...(base.clienti||[])],ordini:[...(base.ordini||[])],
+    categorie:[...(base.categorie||[])],brands:[...(base.brands||[])],agenda:[...(base.agenda||[])]
+  };
+  databases.forEach(db=>{
+    const d=normalizeDBShape(db||defDB());
+    merged.articoli.push(...(d.articoli||[]));
+    merged.clienti.push(...(d.clienti||[]));
+    merged.ordini.push(...(d.ordini||[]));
+    merged.categorie.push(...(d.categorie||[]));
+    merged.brands.push(...(d.brands||[]));
+    merged.agenda.push(...(d.agenda||[]));
+  });
+  return normalizeDBShape(merged);
+}
+function setRecoveryStatus(message,kind=''){
+  const el=document.getElementById('recoveryStatus');
+  if(!el) return;
+  el.textContent=message;
+  el.style.borderColor=kind==='ok'?'#86efac':kind==='warn'?'#f59e0b':'#cbd5e1';
+  el.style.background=kind==='ok'?'#f0fdf4':kind==='warn'?'#fff7ed':'#f8fafc';
+  el.style.color=kind==='ok'?'#166534':kind==='warn'?'#9a3412':'#334155';
+}
+function showRecoveryCounts(){
+  const db=loadDB();
+  const score=recoveryDbScore(db);
+  setRecoveryStatus(`Archivio attuale: ${recoveryCountText(db)}.`,score>0?'ok':'warn');
+  return db;
+}
+function recoverLocalData(){
+  const candidates=discoverLocalDbCandidates();
+  const useful=candidates.filter(x=>recoveryDbScore(x.db)>0);
+  if(!useful.length){
+    showRecoveryCounts();
+    setRecoveryStatus('Nessuna copia locale aggiuntiva trovata. Usa il backup JSON oppure “Carica cloud”; non premere “Invia cloud”.','warn');
+    toast('Nessun archivio locale aggiuntivo trovato');
+    return false;
+  }
+  const before=loadDB();
+  const recovered=mergeRecoveryDatabases(useful.map(x=>x.db));
+  try{
+    const stamp=Date.now();
+    localStorage.setItem('vg_recovery_snapshot_'+stamp,JSON.stringify(recovered));
+    localStorage.setItem(KEY,JSON.stringify(recovered));
+    localStorage.setItem(KEY+'_backup_latest',JSON.stringify(recovered));
+  }catch(err){
+    console.error(err); toast('Recupero non salvato'); return false;
+  }
+  renderAll(); renderDiagnostics();
+  const added=Math.max(0,recoveryDbScore(recovered)-recoveryDbScore(before));
+  setRecoveryStatus(`Recupero completato: ${recoveryCountText(recovered)}. Record aggiuntivi recuperati: ${added}.`,'ok');
+  toast('Recupero locale completato');
+  return true;
+}
+
 /* ====== CLOUD / SUPABASE ====== */
 let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.48-2026-07-26';
+const VG_BUILD='1.0.49-2026-07-26';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -12481,10 +12568,23 @@ async function pushLocalToCloud(){
   cloudBusy=true; cloudUi();
   try{
     const db=loadDB();
-    if(!db.articoli.length && !db.clienti.length && !db.ordini.length){
-      toast('Niente da inviare al cloud');
+    const localTotal=(db.articoli||[]).length+(db.clienti||[]).length+(db.ordini||[]).length;
+    if(!localTotal){
+      toast('Invio bloccato: archivio locale vuoto');
       return;
     }
+    try{
+      const tables=['articoli','clienti','ordini'];
+      let cloudTotal=0;
+      for(const table of tables){
+        const {count,error}=await sb.from(table).select('id',{count:'exact',head:true});
+        if(!error) cloudTotal+=Number(count||0);
+      }
+      if(cloudTotal>0 && localTotal<Math.max(5,Math.floor(cloudTotal*.5))){
+        toast('Invio cloud bloccato: archivio locale troppo piccolo. Prima usa Carica cloud.');
+        return;
+      }
+    }catch(err){ console.warn('Controllo sicurezza cloud non disponibile',err); }
     const artIdMap=new Map();
     const cliIdMap=new Map();
     for(let i=0;i<db.articoli.length;i++){
@@ -13149,7 +13249,8 @@ function initAuthGate(){
 /* init */
 async function bootApp(){
   await runOneTimeFreshReset();
-  await runOneTimeArticlePublishReset();
+  // Recupero: non modificare statistiche o record durante l’avvio.
+  try{ showRecoveryCounts(); }catch(_e){}
   renderAll();
   renderSocial();
   renderSocialSuggestions();
