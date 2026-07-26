@@ -120,6 +120,17 @@ body{-webkit-tap-highlight-color:transparent}
 .marginBox{display:flex;flex-direction:column;gap:6px}
 .marginMeta{font-size:12px;font-weight:900;color:#475569}
 .costMeta{font-size:12px;font-weight:800;color:#6b7280;line-height:1.35}.costMeta span{color:#9ca3af;font-weight:900}
+.costEstimateBox{margin-top:10px;padding:12px;border:1px solid #f59e0b;border-radius:14px;background:#fffbeb;color:#78350f}
+.costEstimateBox.active{background:#fff7ed;border-color:#f97316;box-shadow:0 6px 16px rgba(249,115,22,.10)}
+.costEstimateHead{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.costEstimateTitle{font-weight:1100;color:#9a3412;letter-spacing:.2px}
+.costEstimateBadge{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:#fed7aa;color:#9a3412;font-size:11px;font-weight:1000}
+.costEstimateText{font-size:12px;line-height:1.45;font-weight:800;margin-top:7px;color:#78350f}
+.costEstimateActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+.costEstimateActions .btn{min-height:36px;padding:7px 10px;font-size:12px;border-radius:11px}
+.costEstimateWarn{font-size:11px;font-weight:900;margin-top:7px;color:#9a3412}
+.estimatedCostText{color:#b45309;font-weight:1000}
+
 .dot{width:10px;height:10px;border-radius:999px;background:#16a34a;display:inline-block}
 .promoNote{margin-top:6px;font-size:11px;line-height:1.3;font-weight:900;color:#475569}
 .promoNote.expired{color:#b91c1c}
@@ -1026,6 +1037,12 @@ window.addEventListener('error',e=>{
     </div>
     <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_supplier_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Promo fornitore attiva</label></div>
     <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_std_cost_unknown" type="checkbox" style="width:auto;margin-right:8px"/>Costo normale fornitore non conosciuto</label></div>
+    <div id="a_cost_estimate_box" class="costEstimateBox" style="display:none">
+      <div class="costEstimateHead"><div class="costEstimateTitle">⚠️ STIMA DA STORICO</div><div id="a_cost_estimate_badge" class="costEstimateBadge">Costo ipotetico</div></div>
+      <div id="a_cost_estimate_text" class="costEstimateText"></div>
+      <div id="a_cost_estimate_actions" class="costEstimateActions"></div>
+      <div class="costEstimateWarn">La stima non sostituisce il costo reale. Finché manca il costo fornitore, i guadagni restano non verificati.</div>
+    </div>
     <div style="margin-top:10px">
       <div class="k">Fine promo fornitore</div><input id="a_supplier_promo_end" type="date" autocomplete="off"/>
     </div>
@@ -1532,6 +1549,18 @@ function normalizeDBShape(o){
     scadenzaPromo:normalizeSpaceText(x?.scadenzaPromo||x?.promoScadenza||x?.promo_date||''),
     dataInizioPromo:normalizePromoStartDate(x?.dataInizioPromo||x?.promoDataInizio||x?.promoStartDate||''),
     costoNormaleSconosciuto:!!x?.costoNormaleSconosciuto,
+    costoStimatoAttivo:!!(x?.costoStimatoAttivo||x?.costoIpotetico),
+    costoIpotetico:!!(x?.costoStimatoAttivo||x?.costoIpotetico),
+    costoEurStimato:firstFiniteNumber(x?.costoEurStimato,x?.costoStimatoEur,x?.costoIpoteticoEur,0),
+    prezzoVenditaStimato:firstFiniteNumber(x?.prezzoVenditaStimato,x?.prezzoStimato,0),
+    costoStimaCampioni:Math.max(0,parseInt(x?.costoStimaCampioni||x?.campioniStimaCosto||0,10)||0),
+    costoStimaAffidabilita:normalizeSpaceText(x?.costoStimaAffidabilita||x?.affidabilitaStimaCosto||''),
+    costoStimaMetodo:normalizeSpaceText(x?.costoStimaMetodo||''),
+    costoStimaData:normalizeSpaceText(x?.costoStimaData||''),
+    costoStimaMin:firstFiniteNumber(x?.costoStimaMin,0),
+    costoStimaMax:firstFiniteNumber(x?.costoStimaMax,0),
+    costoStimaSogliaMinima:firstFiniteNumber(x?.costoStimaSogliaMinima,0),
+    costoStimaSignature:normalizeSpaceText(x?.costoStimaSignature||''),
     promoFornitoreAttiva:(typeof x?.promoFornitoreAttiva==='boolean') ? x.promoFornitoreAttiva : firstFiniteNumber(x?.costoUsdPromo,x?.costoUSDPromo,x?.prezzoFornitorePromoUsd,x?.promoCostoUsd,0)>0,
     dataInizioPromoFornitore:normalizePromoStartDate(x?.dataInizioPromoFornitore||''),
     scadenzaPromoFornitore:normalizeSpaceText(x?.scadenzaPromoFornitore||''),
@@ -2462,6 +2491,18 @@ function mergeArticleRecords(prev,item){
   merged.costoEur=firstFiniteNumber(merged?.costoEur, merged?.costoEUR, item?.costoEur, item?.costoEUR, item?.prezzo_acquisto, item?.costo, item?.costo_eur, prev?.costoEur, prev?.costoEUR, prev?.prezzo_acquisto, prev?.costo, prev?.costo_eur, 0);
   merged.costoEurPromo=firstFiniteNumber(merged?.costoEurPromo, merged?.costoEURPromo, item?.costoEurPromo, item?.costoEURPromo, item?.promoCostoEur, prev?.costoEurPromo, prev?.costoEURPromo, prev?.promoCostoEur, 0);
   merged.prezzoVendita=firstFiniteNumber(merged?.prezzoVendita, merged?.prezzo_vendita, item?.prezzoVendita, item?.prezzo_vendita, item?.prezzo, item?.prezzo_vendita_iva, prev?.prezzoVendita, prev?.prezzo_vendita, prev?.prezzo, prev?.prezzo_vendita_iva, 0);
+  merged.costoStimatoAttivo=!!(merged?.costoStimatoAttivo||merged?.costoIpotetico);
+  merged.costoIpotetico=merged.costoStimatoAttivo;
+  merged.costoEurStimato=firstFiniteNumber(merged?.costoEurStimato,item?.costoEurStimato,prev?.costoEurStimato,0);
+  merged.prezzoVenditaStimato=firstFiniteNumber(merged?.prezzoVenditaStimato,item?.prezzoVenditaStimato,prev?.prezzoVenditaStimato,0);
+  merged.costoStimaCampioni=Math.max(0,parseInt(merged?.costoStimaCampioni||item?.costoStimaCampioni||prev?.costoStimaCampioni||0,10)||0);
+  merged.costoStimaAffidabilita=normalizeSpaceText(merged?.costoStimaAffidabilita||item?.costoStimaAffidabilita||prev?.costoStimaAffidabilita||'');
+  merged.costoStimaMetodo=normalizeSpaceText(merged?.costoStimaMetodo||item?.costoStimaMetodo||prev?.costoStimaMetodo||'');
+  merged.costoStimaData=normalizeSpaceText(merged?.costoStimaData||item?.costoStimaData||prev?.costoStimaData||'');
+  merged.costoStimaMin=firstFiniteNumber(merged?.costoStimaMin,item?.costoStimaMin,prev?.costoStimaMin,0);
+  merged.costoStimaMax=firstFiniteNumber(merged?.costoStimaMax,item?.costoStimaMax,prev?.costoStimaMax,0);
+  merged.costoStimaSogliaMinima=firstFiniteNumber(merged?.costoStimaSogliaMinima,item?.costoStimaSogliaMinima,prev?.costoStimaSogliaMinima,0);
+  merged.costoStimaSignature=normalizeSpaceText(merged?.costoStimaSignature||item?.costoStimaSignature||prev?.costoStimaSignature||'');
   merged.promoAttiva=(typeof merged?.promoAttiva==='boolean') ? merged.promoAttiva : ((typeof item?.promoAttiva==='boolean') ? item.promoAttiva : ((typeof prev?.promoAttiva==='boolean') ? prev.promoAttiva : false));
   merged.prezzoPromo=firstFiniteNumber(merged?.prezzoPromo, merged?.promoPrezzo, item?.prezzoPromo, item?.promoPrezzo, prev?.prezzoPromo, prev?.promoPrezzo, 0);
   merged.scadenzaPromo=normalizeSpaceText(merged?.scadenzaPromo||merged?.promoScadenza||item?.scadenzaPromo||item?.promoScadenza||prev?.scadenzaPromo||prev?.promoScadenza||'');
@@ -2710,6 +2751,8 @@ function collectArticleDraft(){
       hCintura:document.getElementById('a_belt_h')?.value||'',
       costoUsd:document.getElementById('a_usd')?.value||'',
       costoUsdPromo:document.getElementById('a_usd_promo')?.value||'',
+      costoNormaleSconosciuto:!!document.getElementById('a_std_cost_unknown')?.checked,
+      costoEstimate:currentArticleCostEstimate ? {...currentArticleCostEstimate} : null,
       promoAttiva:!!document.getElementById('a_promo_on')?.checked,
       prezzoPromo:document.getElementById('a_promo_price')?.value||'',
       scadenzaPromo:document.getElementById('a_promo_date')?.value||'',
@@ -2751,6 +2794,8 @@ function restoreArticleDraft(targetId=''){
   document.getElementById('a_belt_h').value=v.altezzaCintura||v.hCintura||'';
   document.getElementById('a_usd').value=v.costoUsd||'';
   document.getElementById('a_usd_promo').value=v.costoUsdPromo||'';
+  document.getElementById('a_std_cost_unknown').checked=!!v.costoNormaleSconosciuto;
+  currentArticleCostEstimate=(v.costoEstimate && typeof v.costoEstimate==='object') ? {...v.costoEstimate} : null;
   document.getElementById('a_promo_on').checked=!!v.promoAttiva;
   document.getElementById('a_promo_price').value=v.prezzoPromo||'';
   document.getElementById('a_promo_date').value=v.scadenzaPromo||'';
@@ -4754,6 +4799,173 @@ function calcFromUsd(usd, qual){
     return {costo, sell, marg};
   }
 }
+function calcSellFromEurCost(cost, qual){
+  const costo=Math.max(0,Number(cost||0));
+  if(!(costo>0)) return {costo:0,sell:0,marg:0};
+  if(String(qual||'').toUpperCase()==='ORIGINALE'){
+    let marg=costo*0.35;
+    if(marg<68) marg=68;
+    if(marg>85) marg=85;
+    return {costo,sell:round5(costo+marg),marg};
+  }
+  let marg=costo*0.50;
+  if(marg<45) marg=45;
+  if(marg>55) marg=55;
+  return {costo,sell:round5(costo+marg),marg};
+}
+function sortedQuantile(values,q){
+  const arr=(values||[]).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+  if(!arr.length) return 0;
+  if(arr.length===1) return arr[0];
+  const pos=(arr.length-1)*Math.max(0,Math.min(1,Number(q)||0));
+  const lo=Math.floor(pos), hi=Math.ceil(pos), frac=pos-lo;
+  return arr[lo]+(arr[hi]-arr[lo])*frac;
+}
+function estimateTokenSet(value){
+  return new Set(normalizeSpaceText(value||'').toLowerCase().split(/[^a-zàèéìòóù0-9]+/i).filter(x=>x.length>=4));
+}
+function estimateTokenOverlap(a,b){
+  const aa=estimateTokenSet(a), bb=estimateTokenSet(b);
+  if(!aa.size || !bb.size) return 0;
+  let n=0; aa.forEach(x=>{if(bb.has(x))n++;});
+  return n/Math.max(aa.size,bb.size);
+}
+function realHistoricalArticleCost(article){
+  if(!article || article?.costoStimatoAttivo || article?.costoIpotetico) return 0;
+  const usd=Number(article?.costoUsd||0);
+  if(Number.isFinite(usd) && usd>0){
+    const calc=calcFromUsd(usd,qualityFromCode(article?.codice||''));
+    if(Number(calc?.costo)>0) return Number(calc.costo);
+  }
+  const eur=Number(article?.costoEur||0);
+  return Number.isFinite(eur)&&eur>0 ? eur : 0;
+}
+function articleCostEstimateSignature(input={}){
+  return [
+    normalizeTextKey(input?.categoria||''),
+    normalizeTextKey(qualityFromCode(input?.codice||'')||input?.qualita||''),
+    normalizeTextKey(input?.fornitore||''),
+    normalizeTextKey(input?.brand||''),
+    normalizeTextKey(input?.materiale||''),
+    normalizeTextKey(input?.modello||'')
+  ].join('|');
+}
+function estimateArticleCostFromHistory(input={},db=loadDB(),excludeId=''){
+  const category=normalizeTextKey(input?.categoria||'');
+  const quality=normalizeTextKey(qualityFromCode(input?.codice||'')||input?.qualita||'');
+  if(!category || !quality) return {ok:false,reason:'Indica prima categoria e codice: servono per confrontare articoli davvero simili.'};
+  const supplier=normalizeTextKey(input?.fornitore||'');
+  const brand=normalizeTextKey(input?.brand||'');
+  const list=[];
+  for(const art of (db?.articoli||[])){
+    if(String(art?.id||'')===String(excludeId||'')) continue;
+    if(normalizeTextKey(art?.categoria||'')!==category) continue;
+    if(normalizeTextKey(articleQualityLabel(art)||qualityFromCode(art?.codice||''))!==quality) continue;
+    const cost=realHistoricalArticleCost(art);
+    if(!(cost>0)) continue;
+    let score=100;
+    if(supplier && normalizeTextKey(art?.fornitore||'')===supplier) score+=30;
+    if(brand && normalizeTextKey(art?.brand||'')===brand) score+=12;
+    score+=Math.round(estimateTokenOverlap(input?.materiale,art?.materiale||art?.taglia)*14);
+    score+=Math.round(estimateTokenOverlap(input?.modello,art?.modello)*10);
+    list.push({art,cost,score,sameSupplier:!!supplier&&normalizeTextKey(art?.fornitore||'')===supplier});
+  }
+  if(list.length<3) return {ok:false,reason:`Servono almeno 3 articoli con costo reale nella stessa categoria e qualità. Trovati: ${list.length}.`,sampleCount:list.length};
+  list.sort((a,b)=>b.score-a.score || Number(b.art?._ts||0)-Number(a.art?._ts||0));
+  let chosen=list.slice(0,12);
+  let costs=chosen.map(x=>x.cost).sort((a,b)=>a-b);
+  if(costs.length>=5){
+    const q1=sortedQuantile(costs,.25), q3=sortedQuantile(costs,.75), iqr=q3-q1;
+    const low=Math.max(0,q1-(iqr*1.5)), high=q3+(iqr*1.5);
+    const filtered=chosen.filter(x=>x.cost>=low&&x.cost<=high);
+    if(filtered.length>=3){ chosen=filtered; costs=chosen.map(x=>x.cost).sort((a,b)=>a-b); }
+  }
+  const median=sortedQuantile(costs,.5);
+  const p75=sortedQuantile(costs,.75);
+  const min=Math.min(...costs), max=Math.max(...costs);
+  const prudent=Math.round(Math.max(median*1.05,p75)*100)/100;
+  const qual=String(qualityFromCode(input?.codice||'')||'STANDARD').toUpperCase();
+  const pricing=calcSellFromEurCost(prudent,qual);
+  const minimum=Math.ceil((prudent*1.08)/5)*5;
+  const suggested=Math.max(Number(pricing.sell||0),minimum);
+  const spread=median>0 ? (max-min)/median : 1;
+  const sameSupplierCount=chosen.filter(x=>x.sameSupplier).length;
+  let confidence='Bassa';
+  if(chosen.length>=6 && spread<=0.22 && (!supplier || sameSupplierCount>=3)) confidence='Alta';
+  else if(chosen.length>=4 && spread<=0.38) confidence='Media';
+  return {
+    ok:true,active:false,estimatedCost:prudent,suggestedPrice:suggested,minimumPrice:minimum,
+    sampleCount:chosen.length,confidence,minCost:Math.round(min*100)/100,maxCost:Math.round(max*100)/100,
+    method:'Mediana prudente + fascia alta dello storico comparabile',signature:articleCostEstimateSignature(input),
+    calculatedAt:new Date().toISOString(),sameSupplierCount
+  };
+}
+function articleCostEstimateInputFromForm(){
+  return {
+    codice:document.getElementById('a_cod')?.value||'',
+    categoria:document.getElementById('a_cat')?.value||'',
+    fornitore:document.getElementById('a_forn')?.value||'',
+    brand:getArticleBrandValue(),
+    materiale:document.getElementById('a_taglia')?.value||'',
+    modello:document.getElementById('a_mod')?.value||''
+  };
+}
+function storedArticleCostEstimate(article){
+  const cost=Number(article?.costoEurStimato||article?.costoStimatoEur||0);
+  const price=Number(article?.prezzoVenditaStimato||article?.prezzoVendita||0);
+  if(!(cost>0)) return null;
+  return {
+    ok:true,active:!!(article?.costoStimatoAttivo||article?.costoIpotetico),estimatedCost:cost,
+    suggestedPrice:price,minimumPrice:Number(article?.costoStimaSogliaMinima||0),
+    sampleCount:Number(article?.costoStimaCampioni||0),confidence:article?.costoStimaAffidabilita||'Bassa',
+    minCost:Number(article?.costoStimaMin||0),maxCost:Number(article?.costoStimaMax||0),
+    method:article?.costoStimaMetodo||'Storico comparabile',signature:article?.costoStimaSignature||'',
+    calculatedAt:article?.costoStimaData||''
+  };
+}
+function acceptedArticleCostEstimate(){
+  const e=currentArticleCostEstimate;
+  return e?.ok && e?.active && Number(e?.estimatedCost)>0 && Number(e?.suggestedPrice)>0 ? e : null;
+}
+function renderArticleCostEstimateBox(force=false){
+  const box=document.getElementById('a_cost_estimate_box');
+  const txt=document.getElementById('a_cost_estimate_text');
+  const actions=document.getElementById('a_cost_estimate_actions');
+  const badge=document.getElementById('a_cost_estimate_badge');
+  if(!box||!txt||!actions) return;
+  const usd=Number(document.getElementById('a_usd')?.value||0);
+  const promoUsd=Number(document.getElementById('a_usd_promo')?.value||0);
+  if(usd>0 || promoUsd>0){
+    box.style.display='none';
+    if(usd>0) currentArticleCostEstimate=null;
+    return;
+  }
+  const input=articleCostEstimateInputFromForm();
+  const signature=articleCostEstimateSignature(input);
+  const previous=currentArticleCostEstimate;
+  if(previous?.active && previous?.signature && previous.signature!==signature){
+    currentArticleCostEstimate=null;
+  }
+  if(force || !currentArticleCostEstimate || currentArticleCostEstimate.signature!==signature){
+    const next=estimateArticleCostFromHistory(input,loadDB(),currentArtId||'');
+    if(next?.ok && previous?.active && previous?.signature===signature) next.active=true;
+    currentArticleCostEstimate=next;
+  }
+  const est=currentArticleCostEstimate;
+  box.style.display='block';
+  box.classList.toggle('active',!!est?.active);
+  if(badge) badge.textContent=est?.active?'Costo ipotetico in uso':'Costo ipotetico';
+  if(!est?.ok){
+    txt.textContent=est?.reason||'Non ci sono abbastanza dati storici affidabili per stimare il costo.';
+    actions.innerHTML='<button class="btn secondary smallish" type="button" data-action="estimateArticleCost">Riprova stima</button>';
+    return;
+  }
+  const range=(est.minCost>0&&est.maxCost>0)?` • storico ${money(est.minCost)}–${money(est.maxCost)} €`:'';
+  txt.innerHTML=`<b>Costo prudente stimato:</b> ${money(est.estimatedCost)} €<br><b>Prezzo consigliato:</b> ${money(est.suggestedPrice)} € • <b>Soglia minima prudente:</b> ${money(est.minimumPrice)} €<br>Basato su ${est.sampleCount} articoli comparabili${range} • Affidabilità <b>${esc(est.confidence)}</b>.`;
+  actions.innerHTML=est.active
+    ? '<button class="btn secondary smallish" type="button" data-action="estimateArticleCost">Ricalcola</button><button class="btn danger smallish" type="button" data-action="clearArticleCostEstimate">Rimuovi stima</button>'
+    : '<button class="btn secondary smallish" type="button" data-action="acceptArticleCostEstimate">Usa questa stima</button><button class="btn smallish" type="button" data-action="estimateArticleCost">Ricalcola</button>';
+}
 function normalizePromoStartDate(v=''){
   const raw=String(v||'').trim();
   return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : '';
@@ -5182,12 +5394,15 @@ function hydrateHistoricalSnapshotsBeforeArticleRemoval(db, article){
 function orderMargin(o, db){
   const righe=(Array.isArray(o?.righe)?o.righe:[]).map(r=>hydrateOrderRowWithHistoricalArticle(r, db||loadDB()));
   let costTotal=0;
+  let missingCost=false;
   for(const r of righe){
     const art=findArticleForOrderRow(db||loadDB(), r);
     const snap=normalizeOrderArticleSnapshot(r?.articoloSnapshot||{});
     const costo=historicalNumber(r?.costoEur, snap.costoEur, art ? currentCost(art) : 0, art?.costoEur);
-    costTotal += Math.max(0, isFinite(costo) ? costo : 0);
+    if(!(costo>0)) missingCost=true;
+    costTotal += Math.max(0, Number.isFinite(costo) ? costo : 0);
   }
+  if(missingCost) return null;
   const subtotal=calcOrderSubtotal(righe);
   const discount=calcOrderDiscount(o);
   const netFromRows=calcOrderNetTotal(righe, discount);
@@ -7107,6 +7322,18 @@ function buildCloudArticleMeta(art){
     costoUsdPromo: Number(art?.costoUsdPromo||0),
     costoEur: Number(art?.costoEur||0),
     costoEurPromo: Number(art?.costoEurPromo||0),
+    costoStimatoAttivo: !!(art?.costoStimatoAttivo||art?.costoIpotetico),
+    costoIpotetico: !!(art?.costoStimatoAttivo||art?.costoIpotetico),
+    costoEurStimato: Number(art?.costoEurStimato||0),
+    prezzoVenditaStimato: Number(art?.prezzoVenditaStimato||0),
+    costoStimaCampioni: Number(art?.costoStimaCampioni||0),
+    costoStimaAffidabilita: art?.costoStimaAffidabilita||'',
+    costoStimaMetodo: art?.costoStimaMetodo||'',
+    costoStimaData: art?.costoStimaData||'',
+    costoStimaMin: Number(art?.costoStimaMin||0),
+    costoStimaMax: Number(art?.costoStimaMax||0),
+    costoStimaSogliaMinima: Number(art?.costoStimaSogliaMinima||0),
+    costoStimaSignature: art?.costoStimaSignature||'',
     prezzoVendita: Number(art?.prezzoVendita||0),
     promoAttiva: !!art?.promoAttiva,
     prezzoPromo: Number(art?.prezzoPromo||0),
@@ -8704,49 +8931,59 @@ function articleAvailabilityBadge(a){
 }
 function articleMarginInfo(a){
   const usd=Number(a?.costoUsd||0);
-  if(!isFinite(usd) || usd<=0) return null;
-  const qualKey=normalizeQualityValue(articleQualityLabel(a)).toUpperCase();
-  const base=calcFromUsd(usd, qualKey==='ORIGINALE' ? 'ORIGINALE' : 'STANDARD');
-  const current=Math.max(0, Number(currentPrice(a)||0) - Number(base?.costo||0));
+  const estimated=!(usd>0) && !!(a?.costoStimatoAttivo||a?.costoIpotetico) && Number(a?.costoEurStimato)>0;
+  let base=null;
+  if(Number.isFinite(usd)&&usd>0){
+    const qualKey=normalizeQualityValue(articleQualityLabel(a)).toUpperCase();
+    base=calcFromUsd(usd,qualKey==='ORIGINALE'?'ORIGINALE':'STANDARD');
+  }else if(estimated){
+    const qualKey=normalizeQualityValue(articleQualityLabel(a)).toUpperCase();
+    base=calcSellFromEurCost(Number(a.costoEurStimato),qualKey==='ORIGINALE'?'ORIGINALE':'STANDARD');
+  }
+  if(!base||!(Number(base.costo)>0)) return null;
+  const current=Math.max(0,Number(currentPrice(a)||0)-Number(base.costo||0));
   const sale=Number(currentPrice(a)||0);
-  const pct=(sale>0 && current>0) ? Math.round((current/sale)*100) : 0;
-  const target=Math.max(1, Number(base?.marg||0));
+  const pct=(sale>0&&current>0)?Math.round((current/sale)*100):0;
+  const target=Math.max(1,Number(base.marg||0));
   const ratio=current/target;
-  if(ratio >= 0.92){
-    return { tone:'good', label:'Buon margine', amount:current, pct };
-  }
-  if(ratio >= 0.75){
-    return { tone:'mid', label:'Margine nella media', amount:current, pct };
-  }
-  return { tone:'low', label:'Margine al limite', amount:current, pct };
+  if(ratio>=0.92) return {tone:'good',label:estimated?'Buon margine stimato':'Buon margine',amount:current,pct,estimated};
+  if(ratio>=0.75) return {tone:'mid',label:estimated?'Margine stimato nella media':'Margine nella media',amount:current,pct,estimated};
+  return {tone:'low',label:estimated?'Margine stimato al limite':'Margine al limite',amount:current,pct,estimated};
 }
 function articleCostInfo(a){
   const usd=Number(a?.costoUsd||0);
   const eurStored=Number(a?.costoEur||0);
-  if(isFinite(usd) && usd>0){
+  if(Number.isFinite(usd)&&usd>0){
     const qualKey=normalizeQualityValue(articleQualityLabel(a)).toUpperCase();
-    const base=calcFromUsd(usd, qualKey==='ORIGINALE' ? 'ORIGINALE' : 'STANDARD');
-    const eur=isFinite(Number(base?.costo)) && Number(base?.costo)>0 ? Number(base.costo) : eurStored;
-    return { eur, usd };
+    const base=calcFromUsd(usd,qualKey==='ORIGINALE'?'ORIGINALE':'STANDARD');
+    const eur=Number(base?.costo)>0?Number(base.costo):eurStored;
+    return {eur,usd,estimated:false};
   }
-  if(isFinite(eurStored) && eurStored>0) return { eur:eurStored, usd:0 };
+  if(Number.isFinite(eurStored)&&eurStored>0) return {eur:eurStored,usd:0,estimated:false};
+  const est=Number(a?.costoEurStimato||0);
+  if((a?.costoStimatoAttivo||a?.costoIpotetico)&&Number.isFinite(est)&&est>0){
+    return {eur:est,usd:0,estimated:true,samples:Number(a?.costoStimaCampioni||0),confidence:a?.costoStimaAffidabilita||''};
+  }
   return null;
 }
 function articleCostInfoHtml(a){
   const info=articleCostInfo(a);
-  if(!info || !isFinite(info.eur) || info.eur<=0) return '';
-  const usdText=(isFinite(info.usd) && info.usd>0) ? ` <span>(${money(info.usd)} USD)</span>` : '';
+  if(!info||!Number.isFinite(info.eur)||info.eur<=0) return '';
+  if(info.estimated){
+    const meta=[info.samples?`${info.samples} articoli`:'',info.confidence?`affidabilità ${info.confidence}`:''].filter(Boolean).join(' • ');
+    return `<div class="costMeta estimatedCostText">⚠️ Costo stimato: ${money(info.eur)} €${meta?` <span>(${esc(meta)})</span>`:''}</div>`;
+  }
+  const usdText=(Number.isFinite(info.usd)&&info.usd>0)?` <span>(${money(info.usd)} USD)</span>`:'';
   return `<div class="costMeta">Costo: ${money(info.eur)} €${usdText}</div>`;
 }
 function articleMarginInfoHtml(a){
   const info=articleMarginInfo(a);
   const costHtml=articleCostInfoHtml(a);
-  if(!info){
-    return `<div class="pill">Margine non disponibile</div><div class="marginMeta">Serve il costo USD per calcolarlo.</div>${costHtml}`;
-  }
-  const toneClass=info.tone==='good' ? 'marginGood' : (info.tone==='mid' ? 'marginMid' : 'marginLow');
-  const pctText=info.pct ? ` • ${info.pct}%` : '';
-  return `<div class="pill ${toneClass}">${esc(info.label)}</div><div class="marginMeta">${money(info.amount)}${pctText}</div>${costHtml}`;
+  if(!info) return `<div class="pill">Margine non disponibile</div><div class="marginMeta">Serve un costo reale oppure una stima accettata.</div>${costHtml}`;
+  const toneClass=info.tone==='good'?'marginGood':(info.tone==='mid'?'marginMid':'marginLow');
+  const pctText=info.pct?` • ${info.pct}%`:'';
+  const note=info.estimated?'<div class="marginMeta estimatedCostText">Valore ipotetico: non è guadagno verificato.</div>':'';
+  return `<div class="pill ${toneClass}">${esc(info.label)}</div><div class="marginMeta">${money(info.amount)}${pctText}</div>${note}${costHtml}`;
 }
 function articleSearchHay(a){
   const catLabel=displayCategoryValue(a?.categoria);
@@ -9092,7 +9329,7 @@ function renderOrd(){
         <div class="s"><span class="statusText status${statusMeta.key.charAt(0).toUpperCase()+statusMeta.key.slice(1)}"><span class="statusIcon">${esc(statusMeta.icon)}</span>${esc(statusMeta.label)}</span> • ${esc(o.data||'')}${o.mis?` • Mis. ${esc(o.mis)}`:''}${paymentText?` • ${esc(paymentText)}`:''}${o.tracking?` • Track ${esc(o.tracking)}`:''}</div>
         ${measureWarningHtml}
         ${articlesHtml}
-        <div class="s" style="margin-top:6px">Guadagno <span class="pricePaid">${money(profitVal)}</span></div>
+        <div class="s" style="margin-top:6px">${profitVal==null?'<span class="estimatedCostText">Guadagno non disponibile: costo reale mancante</span>':`Guadagno <span class="pricePaid">${money(profitVal)}</span>`}</div>
       </div>
       ${orderStatusBadgeHtml(o.stato||'-')}
     </div>`;
@@ -9546,6 +9783,7 @@ let currentArtExistingVideoIds=[]; // paths Supabase già salvati
 const MAX_ART_VIDEOS=3;
 let currentArtPhotosCleared=false;
 let currentArtDuplicateData=null;
+let currentArticleCostEstimate=null;
 function articleCreatedAtValue(article){
   const raw=article?.createdAt||article?.dataInserimento||article?.created_at||'';
   if(!raw) return '';
@@ -9664,6 +9902,7 @@ async function openArtEdit(id){
   currentArtId=id||null;
   if(!currentArtId) __articlePhotoShareContext=null;
   currentArtDuplicateData=null;
+  currentArticleCostEstimate=null;
   currentArtPhotosCleared=false;
   resetPendingArtPhotoFiles();
   document.getElementById('artEditTitle').textContent = a?'Modifica articolo':'Nuovo articolo';
@@ -9697,6 +9936,7 @@ async function openArtEdit(id){
   set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
   set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
   set('a_mis', a?.misura); set('a_belt_h', a?.altezzaCintura||a?.hCintura||''); set('a_usd', a?.costoUsd||''); set('a_usd_promo', a?.costoUsdPromo||'');
+  currentArticleCostEstimate=storedArticleCostEstimate(a);
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
   set('a_promo_date', a?.scadenzaPromoPersonale||a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||''); set('a_supplier_promo_end', a?.scadenzaPromoFornitore||''); document.getElementById('a_supplier_promo_on').checked=(typeof a?.promoFornitoreAttiva==='boolean')?a.promoFornitoreAttiva:(Number(a?.costoUsdPromo||0)>0); document.getElementById('a_std_cost_unknown').checked=!!a?.costoNormaleSconosciuto; document.getElementById('a_supplier_date_unknown').checked=!!a?.promoFornitoreDataSconosciuta;
   document.getElementById('a_note').value=a?.note||'';
@@ -9980,8 +10220,11 @@ function renderArtAutoFields(){
   const qual=hasCode ? qualityFromCode(code) : '';
   document.getElementById('a_qual').value=qual||'';
   updateSupplierField(document.getElementById('a_forn')?.value||'');
+  renderArticleCostEstimateBox(false);
+  const acceptedEstimate=acceptedArticleCostEstimate();
+  const hasAcceptedEstimate=!!acceptedEstimate && !hasUsd && !hasPromoUsd;
 
-  if(!hasCode && !hasUsd){
+  if(!hasCode && !hasUsd && !hasAcceptedEstimate){
     document.getElementById('a_eur').value='';
     document.getElementById('a_sell').value='';
     document.getElementById('a_final').value='';
@@ -9994,7 +10237,7 @@ function renderArtAutoFields(){
     return;
   }
 
-  if(!hasUsd && !hasPromoUsd){
+  if(!hasUsd && !hasPromoUsd && !hasAcceptedEstimate){
     document.getElementById('a_eur').value='';
     document.getElementById('a_sell').value='';
     document.getElementById('a_final').value='';
@@ -10027,16 +10270,16 @@ function renderArtAutoFields(){
   }
 
   const usd=hasUsd ? Number(usdRaw) : 0;
-  const r=usd>0 ? calcFromUsd(usd, qual) : {costo:0,sell:0,marg:0};
+  const r=usd>0 ? calcFromUsd(usd, qual) : (hasAcceptedEstimate ? calcSellFromEurCost(acceptedEstimate.estimatedCost,qual) : {costo:0,sell:0,marg:0});
   const promoUsd=hasPromoUsd ? Number(usdPromoRaw) : 0;
   const rPromo=promoUsd>0 ? calcFromUsd(promoUsd, qual) : {costo:0, sell:0, marg:0};
   const baseSell=Number(r.sell||rPromo.sell||0);
-  document.getElementById('a_eur').value = r.costo>0 ? money(r.costo) : '';
+  document.getElementById('a_eur').value = r.costo>0 ? (hasAcceptedEstimate ? money(r.costo)+' (stimato)' : money(r.costo)) : '';
   document.getElementById('a_sell').value = baseSell>0 ? String(baseSell) : '';
   const promoOn=document.getElementById('a_promo_on').checked;
   const promoPrice=Number(document.getElementById('a_promo_price').value||0);
   const promoDate=document.getElementById('a_promo_date').value.trim();
-  let a={codice:code, costoUsd:usd, costoEur:r.costo, costoUsdPromo:promoUsd, costoEurPromo:rPromo.costo, prezzoVendita:baseSell, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate, scadenzaPromoPersonale:promoDate, dataInizioPromoPersonale:'', promoFornitoreAttiva:!!document.getElementById('a_supplier_promo_on')?.checked, dataInizioPromoFornitore:'', scadenzaPromoFornitore:document.getElementById('a_supplier_promo_end').value.trim(), promoFornitoreDataSconosciuta:document.getElementById('a_supplier_date_unknown').checked, costoNormaleSconosciuto:document.getElementById('a_std_cost_unknown').checked};
+  let a={codice:code, costoUsd:usd, costoEur:hasAcceptedEstimate?0:r.costo, costoUsdPromo:promoUsd, costoEurPromo:rPromo.costo, costoStimatoAttivo:hasAcceptedEstimate, costoIpotetico:hasAcceptedEstimate, costoEurStimato:hasAcceptedEstimate?acceptedEstimate.estimatedCost:0, prezzoVenditaStimato:hasAcceptedEstimate?acceptedEstimate.suggestedPrice:0, prezzoVendita:baseSell, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate, scadenzaPromoPersonale:promoDate, dataInizioPromoPersonale:'', promoFornitoreAttiva:!!document.getElementById('a_supplier_promo_on')?.checked, dataInizioPromoFornitore:'', scadenzaPromoFornitore:document.getElementById('a_supplier_promo_end').value.trim(), promoFornitoreDataSconosciuta:document.getElementById('a_supplier_date_unknown').checked, costoNormaleSconosciuto:document.getElementById('a_std_cost_unknown').checked};
   a=normalizeArticlePromoState(a);
   // Aggiorna anche i controlli visivi: una promo scaduta non deve sembrare
   // ancora selezionata mentre il prezzo è già tornato normale.
@@ -10044,10 +10287,10 @@ function renderArtAutoFields(){
   if(document.getElementById('a_supplier_promo_on')) document.getElementById('a_supplier_promo_on').checked=!!a.promoFornitoreAttiva;
   const finalPrice = a.prezzoVendita ? round5(currentPrice(a)) : 0;
   document.getElementById('a_final').value = finalPrice ? String(finalPrice) : '';
-  const costForMargin = currentCost(a) || Number(r.costo)||0;
+  const costForMargin = hasAcceptedEstimate ? Number(acceptedEstimate.estimatedCost||0) : (currentCost(a) || Number(r.costo)||0);
   const margin = Math.max(0, finalPrice - costForMargin);
   document.getElementById('a_margin').value = margin ? money(margin) : '';
-  document.getElementById('a_margin_pct').textContent = (finalPrice && margin) ? ('Margine ' + Math.round((margin/finalPrice)*100) + '%') : '';
+  document.getElementById('a_margin_pct').textContent = (finalPrice && margin) ? ((hasAcceptedEstimate?'Margine stimato ':'Margine ') + Math.round((margin/finalPrice)*100) + '%') : '';
   document.getElementById('a_promo_type').value=promoTypeLabel(a);
   const standardCost=Number(r.costo||0), effectiveCost=Number(currentCost(a)||0), standardSell=Number(r.sell||0);
   const supplierBenefit=(standardCost>0 && effectiveCost>0) ? Math.max(0, standardCost-effectiveCost) : 0;
@@ -10055,7 +10298,7 @@ function renderArtAutoFields(){
   const summary=[];
   if(supplierPromoValid(a)) summary.push('Vantaggio fornitore: '+(supplierBenefit>0?money(supplierBenefit):'costo promo in uso'));
   if(personalPromoValid(a)) summary.push('Sconto personale: '+money(personalDiscount));
-  if(a.costoNormaleSconosciuto) summary.push('Costo normale non verificato');
+  if(a.costoNormaleSconosciuto) summary.push(hasAcceptedEstimate?'Costo ipotetico da storico':'Costo normale non verificato');
   if(a.promoFornitoreDataSconosciuta && supplierPromoValid(a)) summary.push('Scadenza fornitore non comunicata');
   document.getElementById('a_promo_summary').textContent=summary.join(' · ');
   // auto post
@@ -10242,7 +10485,8 @@ async function saveArt(){
     const qual=qualityFromCode(code);
     const usd=Number(document.getElementById('a_usd').value||0);
     const promoUsd=Number(document.getElementById('a_usd_promo')?.value||0);
-    const r=calcFromUsd(usd, qual);
+    const acceptedEstimate=(!usd && !promoUsd) ? acceptedArticleCostEstimate() : null;
+    const r=usd>0 ? calcFromUsd(usd, qual) : (acceptedEstimate ? calcSellFromEurCost(acceptedEstimate.estimatedCost,qual) : {costo:0,sell:0,marg:0});
     const rPromo=promoUsd>0 ? calcFromUsd(promoUsd, qual) : {costo:0, sell:0, marg:0};
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
     const preservedPublishLog=currentArtId ? normalizeArticlePublishLog(old?.pubblicazioniCanali||old?.publishStats||old?.socialPub||{}) : {fb:[],tg:[],ig:[]};
@@ -10274,15 +10518,27 @@ async function saveArt(){
       hCintura: altezzaCinturaValue,
       costoUsd: usd,
       costoUsdPromo: promoUsd,
-      costoEur: r.costo,
+      costoEur: acceptedEstimate ? 0 : r.costo,
       costoEurPromo: rPromo.costo,
-      prezzoVendita: r.sell || rPromo.sell,
+      costoStimatoAttivo: !!acceptedEstimate,
+      costoIpotetico: !!acceptedEstimate,
+      costoEurStimato: acceptedEstimate ? Number(acceptedEstimate.estimatedCost||0) : 0,
+      prezzoVenditaStimato: acceptedEstimate ? Number(acceptedEstimate.suggestedPrice||0) : 0,
+      costoStimaCampioni: acceptedEstimate ? Number(acceptedEstimate.sampleCount||0) : 0,
+      costoStimaAffidabilita: acceptedEstimate ? String(acceptedEstimate.confidence||'') : '',
+      costoStimaMetodo: acceptedEstimate ? String(acceptedEstimate.method||'') : '',
+      costoStimaData: acceptedEstimate ? String(acceptedEstimate.calculatedAt||new Date().toISOString()) : '',
+      costoStimaMin: acceptedEstimate ? Number(acceptedEstimate.minCost||0) : 0,
+      costoStimaMax: acceptedEstimate ? Number(acceptedEstimate.maxCost||0) : 0,
+      costoStimaSogliaMinima: acceptedEstimate ? Number(acceptedEstimate.minimumPrice||0) : 0,
+      costoStimaSignature: acceptedEstimate ? String(acceptedEstimate.signature||'') : '',
+      prezzoVendita: acceptedEstimate ? Number(acceptedEstimate.suggestedPrice||0) : (r.sell || rPromo.sell),
       promoAttiva: document.getElementById('a_promo_on').checked,
       prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
       scadenzaPromo: document.getElementById('a_promo_date').value.trim(),
       scadenzaPromoPersonale: document.getElementById('a_promo_date').value.trim(),
       dataInizioPromoPersonale: '',
-      costoNormaleSconosciuto: !!document.getElementById('a_std_cost_unknown').checked,
+      costoNormaleSconosciuto: !!document.getElementById('a_std_cost_unknown').checked || !!acceptedEstimate,
       promoFornitoreAttiva: !!document.getElementById('a_supplier_promo_on')?.checked,
       dataInizioPromoFornitore: '',
       scadenzaPromoFornitore: document.getElementById('a_supplier_promo_end').value.trim(),
@@ -10596,8 +10852,8 @@ async function openOrdView(id){
   if(totalLabelEl) totalLabelEl.textContent=paid?'Totale pagato':'Da pagare';
   totalEl.textContent=money(totalPagato);
   totalEl.className='t statusTotal '+ordStatusMeta.total;
-  profitEl.textContent=money(profit);
-  profitEl.className='t pricePaid';
+  profitEl.textContent=profit==null?'Non disponibile':money(profit);
+  profitEl.className=profit==null?'t estimatedCostText':'t pricePaid';
   if(cumEl){
     cumEl.style.display='none';
     cumEl.textContent='';
@@ -11631,7 +11887,8 @@ function readArticleForm(){
   const code=document.getElementById('a_cod')?.value.trim()||'';
   const qual=code ? qualityFromCode(code) : '';
   const usd=Number(document.getElementById('a_usd')?.value||0);
-  const r=calcFromUsd(usd, qual);
+  const est=(!usd) ? acceptedArticleCostEstimate() : null;
+  const r=usd>0 ? calcFromUsd(usd, qual) : (est ? calcSellFromEurCost(est.estimatedCost,qual) : {costo:0,sell:0,marg:0});
   return {
     id: currentArtId||'',
     codice: code,
@@ -11649,8 +11906,12 @@ function readArticleForm(){
     altezzaCintura: document.getElementById('a_belt_h')?.value.trim()||'',
     hCintura: document.getElementById('a_belt_h')?.value.trim()||'',
     costoUsd: usd,
-    costoEur: r.costo||0,
-    prezzoVendita: r.sell||0,
+    costoEur: est?0:(r.costo||0),
+    costoStimatoAttivo:!!est,
+    costoIpotetico:!!est,
+    costoEurStimato:est?Number(est.estimatedCost||0):0,
+    prezzoVenditaStimato:est?Number(est.suggestedPrice||0):0,
+    prezzoVendita:est?Number(est.suggestedPrice||0):(r.sell||0),
     promoAttiva: !!document.getElementById('a_promo_on')?.checked,
     prezzoPromo: Number(document.getElementById('a_promo_price')?.value||0),
     costoUsdPromo: Number(document.getElementById('a_usd_promo')?.value||0),
@@ -11823,6 +12084,31 @@ document.addEventListener('click',(ev)=>{
   if(a==='addBrand') return addBrand();
   if(a==='renameBrand') return renameBrand(el.dataset.name||'');
   if(a==='deleteBrand') return deleteBrand(el.dataset.name||'');
+  if(a==='estimateArticleCost'){
+    const wasActive=!!currentArticleCostEstimate?.active;
+    currentArticleCostEstimate=estimateArticleCostFromHistory(articleCostEstimateInputFromForm(),loadDB(),currentArtId||'');
+    if(currentArticleCostEstimate?.ok) currentArticleCostEstimate.active=wasActive;
+    renderArticleCostEstimateBox(false);
+    if(wasActive) renderArtAutoFields();
+    saveArticleDraft();
+    return;
+  }
+  if(a==='acceptArticleCostEstimate'){
+    if(!currentArticleCostEstimate?.ok){ toast('Stima non disponibile'); return; }
+    currentArticleCostEstimate.active=true;
+    document.getElementById('a_std_cost_unknown').checked=true;
+    renderArtAutoFields();
+    saveArticleDraft();
+    toast('⚠️ Costo ipotetico attivato');
+    return;
+  }
+  if(a==='clearArticleCostEstimate'){
+    currentArticleCostEstimate=null;
+    renderArtAutoFields();
+    saveArticleDraft();
+    toast('Stima rimossa');
+    return;
+  }
   if(a==='copyPost'){
     const db=loadDB();
     const art=db.articoli.find(x=>x.id===currentArtId);
@@ -12019,6 +12305,9 @@ bindSearchSuggest('qOrd','qOrdSuggest','ord', ()=>renderOrd());
 document.getElementById('catName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addCategory(); } });
 document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addBrand(); } });
 
+document.getElementById('a_usd')?.addEventListener('input',()=>{
+  if(Number(document.getElementById('a_usd')?.value||0)>0) currentArticleCostEstimate=null;
+});
 document.getElementById('a_usd_promo')?.addEventListener('input', ()=>{
   const amount=Number(document.getElementById('a_usd_promo')?.value||0);
   const check=document.getElementById('a_supplier_promo_on');
@@ -12030,7 +12319,7 @@ document.getElementById('a_promo_price')?.addEventListener('input', ()=>{
   if(check && Number.isFinite(amount) && amount>0) check.checked=true;
 });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_supplier_promo_on','a_promo_on','a_promo_price','a_promo_date','a_supplier_promo_end','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_std_cost_unknown','a_supplier_promo_on','a_promo_on','a_promo_price','a_promo_date','a_supplier_promo_end','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
   ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));
@@ -12103,7 +12392,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.26-2026-07-23';
+const VG_BUILD='1.0.41-2026-07-26';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -12582,7 +12871,7 @@ async function pullCloudToLocal(opts={}){
         const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
         const cloudTs=parseTimestampLike(meta._ts, p.updated_at, p.created_at, local?._ts, Date.now());
         const createdAt=meta.createdAt||local?.createdAt||local?.dataInserimento||p.created_at||'';
-        return {id:p.id,createdAt,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),costoNormaleSconosciuto:!!(meta.costoNormaleSconosciuto??local?.costoNormaleSconosciuto),promoFornitoreAttiva:(typeof meta.promoFornitoreAttiva==='boolean'?meta.promoFornitoreAttiva:(typeof local?.promoFornitoreAttiva==='boolean'?local.promoFornitoreAttiva:pulledCostoUsdPromo>0)),dataInizioPromoFornitore:normalizePromoStartDate(meta.dataInizioPromoFornitore||local?.dataInizioPromoFornitore||''),scadenzaPromoFornitore:meta.scadenzaPromoFornitore||local?.scadenzaPromoFornitore||'',promoFornitoreDataSconosciuta:!!(meta.promoFornitoreDataSconosciuta??local?.promoFornitoreDataSconosciuta),dataInizioPromoPersonale:normalizePromoStartDate(meta.dataInizioPromoPersonale||local?.dataInizioPromoPersonale||meta.dataInizioPromo||local?.dataInizioPromo||''),scadenzaPromoPersonale:meta.scadenzaPromoPersonale||local?.scadenzaPromoPersonale||meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
+        return {id:p.id,createdAt,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,costoStimatoAttivo:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoIpotetico:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoEurStimato:firstFiniteNumber(meta.costoEurStimato,local?.costoEurStimato,0),prezzoVenditaStimato:firstFiniteNumber(meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),costoStimaCampioni:Math.max(0,parseInt(meta.costoStimaCampioni||local?.costoStimaCampioni||0,10)||0),costoStimaAffidabilita:meta.costoStimaAffidabilita||local?.costoStimaAffidabilita||'',costoStimaMetodo:meta.costoStimaMetodo||local?.costoStimaMetodo||'',costoStimaData:meta.costoStimaData||local?.costoStimaData||'',costoStimaMin:firstFiniteNumber(meta.costoStimaMin,local?.costoStimaMin,0),costoStimaMax:firstFiniteNumber(meta.costoStimaMax,local?.costoStimaMax,0),costoStimaSogliaMinima:firstFiniteNumber(meta.costoStimaSogliaMinima,local?.costoStimaSogliaMinima,0),costoStimaSignature:meta.costoStimaSignature||local?.costoStimaSignature||'',prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),costoNormaleSconosciuto:!!(meta.costoNormaleSconosciuto??local?.costoNormaleSconosciuto),promoFornitoreAttiva:(typeof meta.promoFornitoreAttiva==='boolean'?meta.promoFornitoreAttiva:(typeof local?.promoFornitoreAttiva==='boolean'?local.promoFornitoreAttiva:pulledCostoUsdPromo>0)),dataInizioPromoFornitore:normalizePromoStartDate(meta.dataInizioPromoFornitore||local?.dataInizioPromoFornitore||''),scadenzaPromoFornitore:meta.scadenzaPromoFornitore||local?.scadenzaPromoFornitore||'',promoFornitoreDataSconosciuta:!!(meta.promoFornitoreDataSconosciuta??local?.promoFornitoreDataSconosciuta),dataInizioPromoPersonale:normalizePromoStartDate(meta.dataInizioPromoPersonale||local?.dataInizioPromoPersonale||meta.dataInizioPromo||local?.dataInizioPromo||''),scadenzaPromoPersonale:meta.scadenzaPromoPersonale||local?.scadenzaPromoPersonale||meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
       }).filter(a=>!articleMatchesDeleteTombstone(a, deletedArticleTombstones)),
       clienti:(cli||[]).map(c=>{
         const packed=unpackCloudClientNote(c.note||'');
