@@ -483,7 +483,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v120-archivio-articoli">
+  <meta name="vg-version" content="v121-cloud-ripristinato">
 </head>
 <body>
 
@@ -776,7 +776,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.45</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.46</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -784,6 +784,12 @@ window.addEventListener('error',e=>{
         <div class="small">Accesso e strumenti</div>
         <div id="cloudBar" class="date" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span id="cloudState">Cloud</span>
+        </div>
+        <div id="cloudConfigWarning" class="mutedBox" style="display:none;margin-top:10px;border-color:#fecaca;background:#fff1f2;color:#991b1b">
+          <div class="t">Configurazione cloud non caricata</div>
+          <div class="s" style="color:#991b1b;margin-top:4px">Il gestionale non ha trovato la configurazione Supabase. I dati locali non vengono cancellati.</div>
+          <div style="margin-top:8px"><input id="cloudPublicKey" type="password" placeholder="Chiave pubblica Supabase (anon o publishable)" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+          <div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="saveCloudPublicKey">Salva configurazione cloud</button></div>
         </div>
         <div class="actions">
           <button id="btnCloudLogin" class="btn" type="button">Login cloud</button>
@@ -873,6 +879,7 @@ window.addEventListener('error',e=>{
     <button data-go="ordini" data-nav="ordini">Ordini</button>
     <button data-go="finanze" data-nav="finanze">Finanze</button>
     <button data-go="social" data-nav="social">Bacheca</button>
+    <button data-go="impostazioni" data-nav="impostazioni">Impost.</button>
   </div>
 </div>
 
@@ -11494,6 +11501,14 @@ document.addEventListener('click',(ev)=>{
   if(a==='newOrd') return openOrdEdit(null);
   if(a==='exportFull') return exportDB('full');
   if(a==='exportLite') return exportDB('lite');
+  if(a==='saveCloudPublicKey'){
+    const key=String(document.getElementById('cloudPublicKey')?.value||'').trim();
+    if(!key){ toast('Inserisci la chiave pubblica Supabase'); return; }
+    try{ localStorage.setItem('vg_supabase_public_key',key); }catch(_e){}
+    toast('Configurazione cloud salvata. Riavvio in corso…');
+    setTimeout(()=>location.reload(),450);
+    return;
+  }
   if(a==='refreshDiag'){ renderDiagnostics(); toast('Diagnostica aggiornata'); return; }
   if(a==='regenThumbs'){
     askConfirm('Rigenero le miniature locali per tutte le foto articoli. Non cancello articoli, ordini o foto originali su Supabase. Può richiedere qualche minuto.', ()=>regenerateArticleThumbCache().catch(err=>{toast('Rigenerazione anteprime fallita'); console.error(err);}), 'Rigenera anteprime', 'Rigenera', 'primary');
@@ -11899,7 +11914,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.45-2026-07-26';
+const VG_BUILD='1.0.46-2026-07-26';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -11949,11 +11964,14 @@ function cloudUi(){
   const logged=!!cloudSession;
   const hide=(el,on)=>{ el.hidden=!!on; el.style.display=on?'none':''; };
   const setDisabled=(el,on)=>{ el.disabled=!!on; el.style.opacity=on?'.65':''; };
-  if(!window.VG_SUPABASE_READY){
-    s.textContent=uiPrefs.cloud||'Cloud';
+  const cfgWarn=document.getElementById('cloudConfigWarning');
+  if(!window.VG_SUPABASE_READY || window.VG_SUPABASE_CONFIG_MISSING){
+    s.textContent=(uiPrefs.cloud||'Cloud')+': configurazione mancante';
+    if(cfgWarn) cfgWarn.style.display='block';
     hide(bIn,true); hide(bPull,true); hide(bPush,true); hide(bOut,true);
     return;
   }
+  if(cfgWarn) cfgWarn.style.display='none';
   if(cloudBusy){ s.textContent=(uiPrefs.cloud||'Cloud')+': lavoro in corso…'; }
   else if(cloudSession?.user?.email){ s.textContent=`${uiPrefs.cloud||'Cloud'}: ${cloudSession.user.email}`; }
   else { s.textContent=uiPrefs.cloud||'Cloud'; }
