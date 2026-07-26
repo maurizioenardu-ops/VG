@@ -1446,6 +1446,18 @@ const AGENDA_KEY='vg_dashboard_agenda_v2_clean';
 const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
 const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
 function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function normalizeOrderPaymentMethod(value){
+  const raw=normalizeSpaceText(value||'');
+  if(!raw) return '';
+  const key=raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  if(key.includes('postepay') || key.includes('posta pay') || key.includes('ricarica')) return 'Ricarica Postepay';
+  if(key.includes('bonifico') && key.includes('istant')) return 'Bonifico istantaneo';
+  if(key.includes('bonifico')) return 'Bonifico ordinario';
+  if(key.includes('paypal')) return 'PayPal';
+  if(key.includes('satispay')) return 'Satispay';
+  return raw;
+}
+
 const round5=n=>Math.round(n/5)*5;
 const MAX_ARTICLE_PHOTOS=9;
 const PROMO_EXPIRED_GRACE_DAYS=3;

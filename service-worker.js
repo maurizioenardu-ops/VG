@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.51-import-fix';
+const VERSION = 'gestionale-vg-1.0.52-import-funzioni-complete';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json', './supabaseClient.js',
