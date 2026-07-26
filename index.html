@@ -753,7 +753,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.54</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.55</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -11812,9 +11812,34 @@ function importDB(file){
       }
 
       const rawCore=JSON.stringify(nextDb);
-      localStorage.setItem(KEY+'_pre_import_backup', localStorage.getItem(KEY)||'');
-      localStorage.setItem(KEY,rawCore);
-      localStorage.setItem(KEY+'_backup_latest',rawCore);
+
+      // Non duplicare il database nel localStorage: Android ha una quota ridotta.
+      // La copia integrale del JSON è già stata tentata in IndexedDB da saveRawImportRecovery().
+      // Rimuoviamo solo vecchie copie tecniche ridondanti create dalle versioni precedenti.
+      const redundantImportBackups=[
+        KEY+'_pre_import_backup',
+        KEY+'_backup_latest',
+        KEY+'_backup_before_cloud_pull',
+        'vg_db_full_v7_clean_pre_import_backup'
+      ];
+      redundantImportBackups.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
+
+      try{
+        localStorage.setItem(KEY,rawCore);
+      }catch(storageError){
+        // Un secondo tentativo dopo aver liberato esclusivamente cache/anteprime tecniche.
+        const removableCacheKeys=[];
+        for(let i=0;i<localStorage.length;i++){
+          const k=localStorage.key(i)||'';
+          if(/thumb|anteprim|preview|cache/i.test(k) && k!==KEY) removableCacheKeys.push(k);
+        }
+        removableCacheKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
+        try{
+          localStorage.setItem(KEY,rawCore);
+        }catch(finalStorageError){
+          throw new Error('Spazio locale insufficiente anche dopo la pulizia delle sole cache. Il JSON originale resta intatto sul telefono.');
+        }
+      }
       try{ localStorage.setItem(AGENDA_KEY,JSON.stringify(Array.isArray(nextDb.agenda)?nextDb.agenda:[])); }catch(_e){}
 
       const verified=loadDB();
@@ -12492,7 +12517,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.54-2026-07-26';
+const VG_BUILD='1.0.55-2026-07-26';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -13758,7 +13783,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.54', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.55', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
