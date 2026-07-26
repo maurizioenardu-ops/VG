@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Gestionale"/>
-<link rel="manifest" href="manifest.json?v=1.0.45"/>
+<link rel="manifest" href="manifest.json?v=1.0.26"/>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-v1-32.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-v1-192.png"/>
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v1.png"/>
@@ -188,7 +188,6 @@ video.hero{background:#000}
 #authGate .authErr{font-size:13px;font-weight:900;color:#ef4444;text-align:center;display:none;margin-top:-6px}
 #authGate .authBtn{width:100%;min-height:48px;font-size:16px;font-weight:900;background:var(--accent,#2563eb);color:#fff;border:none;border-radius:14px;cursor:pointer;margin-top:4px}
 #authGate .authBtn:active{opacity:.85}
-#authGate .authLocalBtn{background:#fff;color:#0f172a;border:1px solid #cbd5e1;box-shadow:0 5px 12px rgba(15,23,42,.08)}
 .thumbs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .thumbs img{width:70px;height:70px;border-radius:12px;object-fit:cover;border:1px solid var(--line);cursor:pointer}
 .orderPhotoGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}.orderPhotoGrid img{width:100%;aspect-ratio:1/1;border-radius:14px;object-fit:cover;border:1px solid var(--line);background:#f3f4f6}.helperRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
@@ -452,29 +451,6 @@ input,select,textarea{font-size:17px;line-height:1.25}
 @media (max-width:420px){
   .articleShareCompact{height:54px !important;min-height:54px !important;max-height:54px !important;font-size:12px !important;padding:4px 5px !important}
 }
-
-/* Archivio articoli: discreto, sempre in fondo */
-.articleArchiveFolder{grid-column:1/-1;margin-top:18px;border:1px dashed #cbd5e1;border-radius:16px;background:rgba(248,250,252,.82);opacity:.78;overflow:hidden}
-.articleArchiveFolder[open]{opacity:1;background:#fff}
-.articleArchiveFolder summary{list-style:none;cursor:pointer;padding:10px 12px;font-size:12px;font-weight:1000;color:#64748b;display:flex;align-items:center;justify-content:space-between;gap:10px;user-select:none}
-.articleArchiveFolder summary::-webkit-details-marker{display:none}
-.articleArchiveFolder summary::after{content:'⌄';font-size:16px;color:#94a3b8;transition:transform .16s ease}
-.articleArchiveFolder[open] summary::after{transform:rotate(180deg)}
-.articleArchiveBody{border-top:1px dashed #dbe3ef;padding:10px;display:flex;flex-direction:column;gap:8px}
-.articleArchiveRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 10px;border:1px solid #e2e8f0;border-radius:13px;background:#fff}
-.articleArchiveTitle{font-size:12px;font-weight:1000;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.articleArchiveMeta{font-size:10px;color:#64748b;font-weight:800;margin-top:2px;line-height:1.3}
-.articleArchiveActions{display:flex;gap:6px;align-items:center}
-.articleArchiveActions .btn{min-height:32px!important;padding:6px 8px!important;font-size:10.5px!important;border-radius:10px!important}
-.archiveStatePill{display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;border:1px solid #cbd5e1;background:#f8fafc;color:#475569;font-size:9.5px;font-weight:1000;text-transform:uppercase;letter-spacing:.03em}
-.archiveStatePill.sospeso{background:#fffbeb;border-color:#fde68a;color:#92400e}
-.archiveStatePill.non_disponibile{background:#fff1f2;border-color:#fecaca;color:#b91c1c}
-.archiveStatePill.eliminato{background:#f1f5f9;border-color:#cbd5e1;color:#334155}
-.archiveStatePill.altro{background:#eef2ff;border-color:#c7d2fe;color:#3730a3}
-.archiveEditBox{margin-top:10px;padding:11px;border:1px dashed #cbd5e1;border-radius:14px;background:#f8fafc}
-.archiveEditBox .helper{font-size:11px;line-height:1.35;color:#64748b;margin-top:6px}
-@media(max-width:420px){.articleArchiveRow{grid-template-columns:1fr}.articleArchiveActions{justify-content:flex-end}}
-
 </style>
 <script>
 window.addEventListener('error',e=>{
@@ -484,7 +460,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v122-accesso-locale-sicuro">
+  <meta name="vg-version" content="v120-import-json-stabile">
 </head>
 <body>
 
@@ -493,7 +469,7 @@ window.addEventListener('error',e=>{
   <div class="authBox">
     <div class="authLogo">🔐</div>
     <div class="authTitle" id="authAppTitle">Gestionale</div>
-    <div class="authSub">Accedi al Cloud oppure continua con i dati locali</div>
+    <div class="authSub">Accedi per continuare</div>
     <div>
       <div class="k">Email</div>
       <input id="authEmail" type="email" placeholder="tua@email.com" autocomplete="username" autocapitalize="off" spellcheck="false" style="margin-top:6px"/>
@@ -503,9 +479,7 @@ window.addEventListener('error',e=>{
       <input id="authPassword" type="password" placeholder="••••••••" autocomplete="current-password" style="margin-top:6px"/>
     </div>
     <div id="authErr" class="authErr">Email o password non corretti</div>
-    <button class="authBtn" id="authLoginBtn" type="button">Accedi al Cloud</button>
-    <button class="authBtn authLocalBtn" id="authLocalBtn" type="button">Entra con i dati locali</button>
-    <div class="authSub" style="margin-top:0">La modalità locale non cancella nulla. Il Cloud potrà essere collegato dalle Impostazioni.</div>
+    <button class="authBtn" id="authLoginBtn" type="button">Accedi</button>
   </div>
 </div>
 
@@ -779,27 +753,19 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.48</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.54</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
         <div class="h2">Cloud</div>
-        <div class="small">Accesso e strumenti</div>
+        <div class="small">Disattivato nella versione di recupero per impedire sovrascritture.</div>
         <div id="cloudBar" class="date" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span id="cloudState">Cloud</span>
-        </div>
-        <div id="cloudConfigWarning" class="mutedBox" style="display:none;margin-top:10px;border-color:#fecaca;background:#fff1f2;color:#991b1b">
-          <div class="t" id="cloudConfigTitle">Configurazione cloud non caricata</div>
-          <div class="s" id="cloudConfigText" style="color:#991b1b;margin-top:4px">Inserisci la chiave pubblica del progetto Supabase. I dati locali non vengono cancellati.</div>
-          <div class="s" style="color:#7f1d1d;margin-top:6px"><b>Dove trovarla:</b> Supabase → progetto → Settings → API Keys → Publishable key. Va bene anche la vecchia chiave anon. Non usare secret o service_role.</div>
-          <div style="margin-top:8px"><input id="cloudPublicKey" type="password" placeholder="sb_publishable_… oppure chiave anon" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-          <div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="saveCloudPublicKey">Salva configurazione cloud</button><button class="btn smallish" type="button" data-action="clearCloudPublicKey">Rimuovi chiave salvata</button></div>
         </div>
         <div class="actions">
           <button id="btnCloudLogin" class="btn" type="button">Login cloud</button>
           <button id="btnCloudPull" class="btn" type="button" data-action="cloudPull">Carica cloud</button>
           <button id="btnCloudPush" class="btn" type="button" data-action="cloudPush">Invia cloud</button>
-          <button class="btn" type="button" data-action="unlockCloudAfterRecovery">Riattiva sincronizzazione cloud</button>
           <button id="btnCloudLogout" class="btn danger" type="button">Esci</button>
         </div>
       </div>
@@ -836,18 +802,7 @@ window.addEventListener('error',e=>{
         <div class="small" style="margin-top:8px" id="brandHint">Puoi aggiungere, rinominare o eliminare i brand. Gli articoli restano salvati.</div>
       </div>
 
-<div class="card" style="margin-top:12px;border:2px solid #f59e0b;background:#fffaf0">
-      <div class="h2">🛟 Recupero dati</div>
-      <div class="small">Questa versione non cancella alcun archivio. Cerca copie locali precedenti e le unisce senza sovrascrivere i record esistenti.</div>
-      <div id="recoveryStatus" class="mutedBox" style="margin-top:10px">In attesa di controllo.</div>
-      <div class="actions" style="margin-top:10px">
-        <button class="btn primary" type="button" data-action="recoverLocalData">Cerca e recupera dati locali</button>
-        <button class="btn" type="button" data-action="showRecoveryCounts">Controlla archivio attuale</button>
-      </div>
-      <div class="small" style="margin-top:8px"><b>Importante:</b> non usare “Invia cloud” finché articoli, clienti e ordini non sono ricomparsi.</div>
-    </div>
-
-    <div class="card" style="margin-top:12px">
+<div class="card" style="margin-top:12px">
       <div class="h2">Diagnostica archivio</div>
       <div id="diagBox" class="small">Lettura archivio in corso…</div>
     </div>
@@ -895,7 +850,6 @@ window.addEventListener('error',e=>{
     <button data-go="ordini" data-nav="ordini">Ordini</button>
     <button data-go="finanze" data-nav="finanze">Finanze</button>
     <button data-go="social" data-nav="social">Bacheca</button>
-    <button data-go="impostazioni" data-nav="impostazioni">Impost.</button>
   </div>
 </div>
 
@@ -974,7 +928,6 @@ window.addEventListener('error',e=>{
   </div>
   <div style="margin-top:10px"><div class="k">Fornitore</div><div id="vArtForn" class="t">-</div></div>
   <div style="margin-top:10px"><div class="k">Data inserimento</div><div id="vArtCreatedAt" class="t">-</div></div>
-  <div id="vArtArchiveBox" class="mutedBox" style="display:none;margin-top:10px"></div>
   <div style="margin-top:10px"><div class="k" id="vArtColorsLabel">Colori disponibili</div><div id="vArtColors" class="t">-</div></div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">Prezzo vendita</div><div id="vArtPrezzo" class="t">-</div></div>
@@ -1019,14 +972,7 @@ window.addEventListener('error',e=>{
       <div><div class="k">Categoria</div><select id="a_cat"><option value="">Seleziona categoria</option></select></div>
     </div>
     <div style="margin-top:10px"><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Descrizione articolo da inserire nel post Facebook sotto il nome modello..."></textarea></div>
-    <div style="margin-top:10px"><div class="k">Disponibilità</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_unavailable" type="checkbox" style="width:auto;margin-right:8px"/>Segna come NON DISPONIBILE</label><div class="helper" style="margin-top:6px">Se selezionato, l'articolo viene spostato automaticamente nella cartella Archivio in fondo all'elenco.</div></div>
-    <div class="archiveEditBox">
-      <div class="grid2">
-        <div><div class="k">Cartella archivio</div><select id="a_archive_state"><option value="">Attivo — mostra nell'elenco</option><option value="sospeso">Sospeso</option><option value="non_disponibile">Non disponibile</option><option value="eliminato">Eliminato — conservato in archivio</option><option value="altro">Altro</option></select></div>
-        <div><div class="k">Nota archivio</div><input id="a_archive_note" placeholder="Es. esaurito dal fornitore, da ripubblicare..." autocomplete="off" autocapitalize="sentences" spellcheck="false"/></div>
-      </div>
-      <div class="helper">Gli articoli archiviati non vengono cancellati: foto, costi, ordini storici e dati JSON restano intatti. Puoi ripristinarli in qualsiasi momento.</div>
-    </div>
+    <div style="margin-top:10px"><div class="k">Disponibilità</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_unavailable" type="checkbox" style="width:auto;margin-right:8px"/>Segna come NON DISPONIBILE</label><div class="helper" style="margin-top:6px">L'articolo resta visibile in lista, ma viene segnato come non disponibile e non si può aggiungere agli ordini.</div></div>
     <div style="margin-top:10px"><div class="k">Fornitore</div><select id="a_forn"></select><div id="a_forn_hint" class="date" style="margin-top:6px">Scelta automatica dal codice articolo.</div></div>
   </div>
 
@@ -1353,7 +1299,7 @@ window.addEventListener('error',e=>{
 /* ====== DB ====== */
 const KEY='vg_db_full_v7_clean';
 const CAT_IMAGES_KEY='vg_category_images_v2';
-const LEGACY_KEYS=['vg_db_full_v6','vg_db_full_v5','vg_v7_web','vanity_glamour_v9_db','vg_db_full_v7_clean_backup_latest','vg_db_full_v7','vg_db_full_v6_clean','vg_db_full_v5_clean'];
+const LEGACY_KEYS=[];
 const PHOTO_DB='vg_photos_v2_clean';
 const PHOTO_STORE='photos';
 const THUMB_STORE='thumbs';
@@ -1446,19 +1392,6 @@ const ORD_DRAFT_KEY='vg_draft_ord_v2_clean';
 const AGENDA_KEY='vg_dashboard_agenda_v2_clean';
 const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
 const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
-function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-function normalizeOrderPaymentMethod(value){
-  const raw=normalizeSpaceText(value||'');
-  if(!raw) return '';
-  const key=raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
-  if(key.includes('postepay') || key.includes('posta pay') || key.includes('ricarica')) return 'Ricarica Postepay';
-  if(key.includes('bonifico') && key.includes('istant')) return 'Bonifico istantaneo';
-  if(key.includes('bonifico')) return 'Bonifico ordinario';
-  if(key.includes('paypal')) return 'PayPal';
-  if(key.includes('satispay')) return 'Satispay';
-  return raw;
-}
-
 const round5=n=>Math.round(n/5)*5;
 const MAX_ARTICLE_PHOTOS=9;
 const PROMO_EXPIRED_GRACE_DAYS=3;
@@ -1477,9 +1410,41 @@ const APP_RESET_OLD_KEYS=[
 const ARTICLE_PUBLISH_RESET_FLAG='vg_publish_reset_20260419_v1';
 const ARTICLE_PUBLISH_RESET_CLOUD_PENDING='vg_publish_reset_20260419_v1_cloud_pending';
 async function runOneTimeFreshReset(){
-  // Versione di recupero: non cancella mai archivi, bozze, sessioni o foto.
-  try{ localStorage.setItem(APP_RESET_FLAG,'1'); }catch(_e){}
-  return true;
+  try{
+    if(localStorage.getItem(APP_RESET_FLAG)==='1') return;
+    const keys=[];
+    try{
+      for(let i=0;i<localStorage.length;i++){
+        const k=localStorage.key(i);
+        if(k) keys.push(k);
+      }
+    }catch(_e){}
+    const shouldRemove=(k)=>{
+      const key=String(k||'');
+      if(!key) return false;
+      if(APP_RESET_OLD_KEYS.includes(key)) return true;
+      if(/^vg_db_full_/i.test(key)) return true;
+      if(/^vg_draft_(art|cli|ord)_/i.test(key)) return true;
+      if(/^vg_dashboard_agenda_/i.test(key)) return true;
+      if(/^vanity_glamour_/i.test(key)) return true;
+      if(/^sb-qfjwtawsqfwmsmrrgqfi-auth-token$/i.test(key)) return true;
+      return false;
+    };
+    keys.filter(shouldRemove).forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
+    try{
+      if(typeof indexedDB!=='undefined'){
+        await Promise.all(['vg_photos_v1'].map(name=>new Promise(resolve=>{
+          try{
+            const req=indexedDB.deleteDatabase(name);
+            req.onsuccess=req.onerror=req.onblocked=()=>resolve(true);
+          }catch(_e){ resolve(true); }
+        })));
+      }
+    }catch(_e){}
+    localStorage.setItem(APP_RESET_FLAG,'1');
+  }catch(err){
+    console.warn('Reset iniziale build fallito', err);
+  }
 }
 
 function parseIsoDay(value=''){
@@ -1594,10 +1559,6 @@ function normalizeDBShape(o){
     promoFornitoreDataSconosciuta:!!x?.promoFornitoreDataSconosciuta,
     dataInizioPromoPersonale:normalizePromoStartDate(x?.dataInizioPromoPersonale||x?.dataInizioPromo||''),
     scadenzaPromoPersonale:normalizeSpaceText(x?.scadenzaPromoPersonale||x?.scadenzaPromo||''),
-    archivioStato:normalizeArticleArchiveStateValue(x?.archivioStato||x?.statoArchivio||x?.archiveState||(((typeof x?.nonDisponibile==='boolean' && x.nonDisponibile) || x?.disponibile===false || x?.attivo===false)?'non_disponibile':'')),
-    archiviato:!!(x?.archiviato||x?.inArchivio||x?.archiveState||x?.archivioStato||x?.statoArchivio||((typeof x?.nonDisponibile==='boolean' && x.nonDisponibile) || x?.disponibile===false || x?.attivo===false)),
-    archivioNota:normalizeSpaceText(x?.archivioNota||x?.notaArchivio||x?.archiveNote||''),
-    archivioData:normalizeSpaceText(x?.archivioData||x?.dataArchivio||x?.archivedAt||''),
     nonDisponibile:(typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.disponibile===false || x?.attivo===false),
     disponibile:(typeof x?.disponibile==='boolean') ? x.disponibile : !((typeof x?.nonDisponibile==='boolean') ? x.nonDisponibile : (x?.attivo===false)),
     foto:Array.isArray(x?.foto)?x.foto.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],
@@ -2513,17 +2474,6 @@ function mergeArticleRecords(prev,item){
   const fallbackStatusSource=itemTs>=prevTs ? prev : item;
   merged.stato=normalizeSpaceText(latestStatusSource?.stato||fallbackStatusSource?.stato||'Richiesto') || 'Richiesto';
   merged._ts=Math.max(prevTs,itemTs,Date.now()>0?0:0);
-  const latestArticleSource=itemTs>=prevTs ? item : prev;
-  const latestHasArchiveFields=Object.prototype.hasOwnProperty.call(latestArticleSource||{},'archivioStato') || Object.prototype.hasOwnProperty.call(latestArticleSource||{},'archiviato');
-  if(latestHasArchiveFields){
-    const latestArchiveState=normalizeArticleArchiveStateValue(latestArticleSource?.archivioStato||latestArticleSource?.statoArchivio||latestArticleSource?.archiveState||'');
-    merged.archivioStato=latestArchiveState;
-    merged.archiviato=!!(latestArchiveState || latestArticleSource?.archiviato===true);
-    merged.archivioNota=merged.archiviato ? normalizeSpaceText(latestArticleSource?.archivioNota||'') : '';
-    merged.archivioData=merged.archiviato ? normalizeSpaceText(latestArticleSource?.archivioData||'') : '';
-    merged.nonDisponibile=merged.archiviato ? true : !!latestArticleSource?.nonDisponibile;
-    merged.disponibile=!merged.nonDisponibile;
-  }
   merged.id=choosePreferredId(prev?.id, item?.id) || merged.id;
   merged.codice=normalizeSpaceText(merged?.codice||merged?.sku||'');
   merged.brand=normalizeSpaceText(merged?.brand||item?.brand||item?.marca||prev?.brand||prev?.marca||'');
@@ -2678,7 +2628,8 @@ function loadDB(){
     const rawMain=localStorage.getItem(KEY);
     if(rawMain!==mergedRaw) localStorage.setItem(KEY, mergedRaw);
 
-    // Recupero: le chiavi legacy restano intatte come copia di sicurezza.
+    // Dopo la migrazione, le chiavi legacy non devono più rimettere in vita record cancellati.
+    legacyKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
     return merged;
   }catch(e){ return defDB(); }
 }
@@ -2689,7 +2640,8 @@ function saveDB(db){
     localStorage.setItem(KEY, raw);
     try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
     try{ localStorage.setItem(AGENDA_KEY, JSON.stringify(Array.isArray(cleanDb.agenda)?cleanDb.agenda:[])); }catch(_e){}
-    // Recupero: non eliminare gli archivi precedenti dopo il salvataggio.
+    const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
+    legacyKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
   }catch(err){
     const msg=String(err?.message||err||'');
     if(/quota|storage/i.test(msg)) toast('Salvataggio fallito: archivio locale pieno o sporco');
@@ -2786,8 +2738,6 @@ function collectArticleDraft(){
       colorCount:document.getElementById('a_color_count')?.value||'',
       colorLabels:document.getElementById('a_color_labels')?.value||'',
       nonDisponibile:!!document.getElementById('a_unavailable')?.checked,
-      archivioStato:document.getElementById('a_archive_state')?.value||'',
-      archivioNota:document.getElementById('a_archive_note')?.value||'',
       misura:document.getElementById('a_mis')?.value||'',
       altezzaCintura:document.getElementById('a_belt_h')?.value||'',
       hCintura:document.getElementById('a_belt_h')?.value||'',
@@ -2831,9 +2781,6 @@ function restoreArticleDraft(targetId=''){
   document.getElementById('a_color_count').value=v.colorCount||'';
   document.getElementById('a_color_labels').value=Array.isArray(v.colorLabels) ? formatColorLabelsInput(v.colorLabels, v.colorCount||0) : (v.colorLabels||'');
   document.getElementById('a_unavailable').checked=!!v.nonDisponibile;
-  document.getElementById('a_archive_state').value=normalizeArticleArchiveStateValue(v.archivioStato||'');
-  document.getElementById('a_archive_note').value=v.archivioNota||'';
-  updateArticleArchiveUi();
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=v.misura||'';
   document.getElementById('a_belt_h').value=v.altezzaCintura||v.hCintura||'';
@@ -7394,10 +7341,6 @@ function buildCloudArticleMeta(art){
     prezzoPromo: Number(art?.prezzoPromo||0),
     scadenzaPromo: art?.scadenzaPromo||'',
     dataInizioPromo: getPromoStartDate(art),
-    archivioStato: articleArchiveState(art),
-    archiviato: isArticleArchived(art),
-    archivioNota: art?.archivioNota||'',
-    archivioData: art?.archivioData||'',
     nonDisponibile: !!art?.nonDisponibile,
     disponibile: art?.disponibile===false ? false : !art?.nonDisponibile,
     post: art?.post||'',
@@ -8981,56 +8924,11 @@ function normalizeQualityValue(v){
 function articleQualityLabel(a){
   return normalizeQualityValue(a?.qualita||a?.qualità||qualityFromCode(a?.codice)||'');
 }
-function normalizeArticleArchiveStateValue(value){
-  const key=normalizeSpaceText(value||'').toLowerCase().replace(/[\s-]+/g,'_');
-  if(['sospeso','sospesa','suspend','suspended'].includes(key)) return 'sospeso';
-  if(['non_disponibile','nondisponibile','esaurito','unavailable'].includes(key)) return 'non_disponibile';
-  if(['eliminato','eliminata','deleted','cancellato'].includes(key)) return 'eliminato';
-  if(['altro','other'].includes(key)) return 'altro';
-  return '';
-}
-function articleArchiveState(a){
-  if(!a) return '';
-  const explicit=normalizeArticleArchiveStateValue(a.archivioStato||a.statoArchivio||a.archiveState||'');
-  if(explicit) return explicit;
-  if(a.archiviato===true || a.inArchivio===true) return 'altro';
-  if(a.nonDisponibile===true || a.disponibile===false || a.attivo===false) return 'non_disponibile';
-  return '';
-}
-function isArticleArchived(a){ return !!articleArchiveState(a); }
-function articleArchiveLabel(value){
-  const state=normalizeArticleArchiveStateValue(value);
-  if(state==='sospeso') return 'Sospeso';
-  if(state==='non_disponibile') return 'Non disponibile';
-  if(state==='eliminato') return 'Eliminato';
-  if(state==='altro') return 'Altro';
-  return 'Attivo';
-}
-function articleArchiveIcon(value){
-  const state=normalizeArticleArchiveStateValue(value);
-  if(state==='sospeso') return '⏸️';
-  if(state==='non_disponibile') return '🚫';
-  if(state==='eliminato') return '🗑️';
-  if(state==='altro') return '📦';
-  return '✅';
-}
-function updateArticleArchiveUi(){
-  const stateEl=document.getElementById('a_archive_state');
-  const unavailableEl=document.getElementById('a_unavailable');
-  const noteEl=document.getElementById('a_archive_note');
-  if(!stateEl||!unavailableEl) return;
-  const state=normalizeArticleArchiveStateValue(stateEl.value||'');
-  stateEl.value=state;
-  if(state){ unavailableEl.checked=true; }
-  if(noteEl) noteEl.disabled=!state;
-}
 function isArticleUnavailable(a){
-  return !!(a && (isArticleArchived(a) || a.nonDisponibile===true || a.disponibile===false || a.attivo===false));
+  return !!(a && (a.nonDisponibile===true || a.disponibile===false || a.attivo===false));
 }
 function articleAvailabilityBadge(a){
   if(!isArticleUnavailable(a)) return '';
-  const state=articleArchiveState(a);
-  if(state) return `<div class="archiveStatePill ${state}" style="margin-top:6px">${esc(articleArchiveIcon(state)+' '+articleArchiveLabel(state))}</div>`;
   return '<div class="pill unavailable" style="margin-top:6px">NON DISPONIBILE</div>';
 }
 function articleMarginInfo(a){
@@ -9161,26 +9059,9 @@ function renderArtStats(items){
   box.innerHTML=`<span class="artStatsItem">Totale articoli: <strong>${total}</strong></span>${withoutPhotos>0 ? `<button type="button" class="artStatsItem noPhoto" data-action="openArticlesWithoutPhotos">Senza foto: <strong>${withoutPhotos}</strong></button>` : ''}`;
 }
 
-function articleArchiveFolderHtml(items,totalCount){
-  const list=Array.isArray(items)?items:[];
-  const total=Math.max(0,Number(totalCount||0));
-  if(!total) return '';
-  const rows=list.map(a=>{
-    const state=articleArchiveState(a)||'altro';
-    const note=normalizeSpaceText(a.archivioNota||'');
-    const meta=[articleArchiveLabel(state),a.codice?`Cod. ${a.codice}`:'',note].filter(Boolean).join(' • ');
-    return `<div class="articleArchiveRow"><div><div class="articleArchiveTitle">${esc(articleArchiveIcon(state)+' '+(a.modello||a.codice||'Articolo'))}</div><div class="articleArchiveMeta">${esc(meta)}</div></div><div class="articleArchiveActions"><button class="btn smallish" type="button" data-open="art" data-id="${esc(a.id)}">Apri</button><button class="btn smallish" style="background:#eaf2ff;border-color:#bcd3ff;color:#1d4ed8" type="button" data-action="restoreArchivedArticle" data-id="${esc(a.id)}">Ripristina</button></div></div>`;
-  }).join('');
-  const body=rows || '<div class="small">Nessun articolo archiviato corrisponde ai filtri attuali.</div>';
-  return `<details class="articleArchiveFolder"><summary><span>📁 Archivio articoli</span><span>${total}</span></summary><div class="articleArchiveBody">${body}</div></details>`;
-}
-
 function renderArt(){
   const db=loadDB();
-  const allArticles=Array.isArray(db.articoli)?db.articoli:[];
-  const activeAll=allArticles.filter(a=>!isArticleArchived(a));
-  const archivedAll=allArticles.filter(isArticleArchived);
-  const promoCount=activeAll.filter(promoValid).length;
+  const promoCount=(db.articoli||[]).filter(promoValid).length;
   updateArtPromoFilterButton(promoCount);
   refreshArticlePreviewFilters();
   const q=document.getElementById('qArt').value.trim().toLowerCase();
@@ -9189,7 +9070,7 @@ function renderArt(){
   const qualityFilter=String(document.getElementById('qArtQuality')?.value||'').trim();
   const promoOnly=artBrowseState.level==='promo';
   const noPhotoOnly=artBrowseState.level==='noPhoto';
-  const matchesFilters=a=>{
+  const items=db.articoli.filter(a=>{
     const hay=articleSearchHay(a);
     const okText=!q || hay.includes(q);
     const okCat=!catFilter || displayCategoryValue(a.categoria)===displayCategoryValue(catFilter);
@@ -9198,17 +9079,13 @@ function renderArt(){
     const okPromo=!promoOnly || promoValid(a);
     const okNoPhoto=!noPhotoOnly || articlePhotoCountSync(a)===0;
     return okText && okCat && okBrand && okQuality && okPromo && okNoPhoto;
-  };
-  const items=activeAll.filter(matchesFilters).sort((a,b)=>compareArticlesForPreview(a,b));
-  const archivedItems=archivedAll.filter(matchesFilters).sort((a,b)=>String(b.archivioData||b._ts||'').localeCompare(String(a.archivioData||a._ts||'')));
-  const archiveHtml=articleArchiveFolderHtml(archivedItems,archivedAll.length);
+  }).sort((a,b)=>compareArticlesForPreview(a,b));
   const el=document.getElementById('listArt');
   renderArtBreadcrumbs();
   renderArtStats(items);
   const showOverview=artBrowseState.level==='categorie' && !promoOnly && !noPhotoOnly && !q && !catFilter && !brandFilter && !qualityFilter;
   if(showOverview){
     renderCategoryOverview(items,{promoOnly,brandFilter,qualityFilter});
-    el.insertAdjacentHTML('beforeend',archiveHtml);
     return;
   }
   const cards=items.map(a=>{
@@ -9223,7 +9100,7 @@ function renderArt(){
     return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}">${noteHtml}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s artPhotoCount">${esc(metaLine)}</div>${unavailable}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions"><button class="btn smallish articleShareCompact" style="background:#fff;border-color:#cbd5e1;color:#0f172a" type="button" data-action="shareArtTelegramFromList" data-id="${a.id}"><span>Condividi su</span><span>Telegram</span></button><button class="btn smallish articleShareCompact" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtFacebookFromList" data-id="${a.id}"><span>Condividi su</span><span>FB</span></button></div></div>`;
   }).join('');
   const emptyText=noPhotoOnly ? 'Nessun articolo senza foto.' : (promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.');
-  el.innerHTML=(cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`) + archiveHtml;
+  el.innerHTML=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
   hydrateArticleThumbs(items);
 }
 let ARTICLE_THUMB_HYDRATE_TOKEN=0;
@@ -9967,12 +9844,6 @@ async function openArtView(id){
   if(createdAtEl) createdAtEl.textContent=articleCreatedAtValue(a)||'Data non disponibile';
   const availabilityEl=document.getElementById('vArtAvailability');
   if(availabilityEl) availabilityEl.innerHTML=isArticleUnavailable(a) ? '<span class="pill unavailable">NON DISPONIBILE</span>' : 'Disponibile';
-  const archiveBox=document.getElementById('vArtArchiveBox');
-  if(archiveBox){
-    const archiveState=articleArchiveState(a);
-    archiveBox.style.display=archiveState?'block':'none';
-    archiveBox.innerHTML=archiveState?`<div class="k">Archivio articoli</div><div class="t" style="margin-top:4px">${esc(articleArchiveIcon(archiveState)+' '+articleArchiveLabel(archiveState))}</div>${a.archivioNota?`<div class="s" style="margin-top:4px">${esc(a.archivioNota)}</div>`:''}`:'';
-  }
   const addFromViewBtn=document.querySelector('[data-action="addArtToOrderFromView"]');
   if(addFromViewBtn){
     const blocked=isArticleUnavailable(a);
@@ -9981,12 +9852,6 @@ async function openArtView(id){
     addFromViewBtn.textContent=blocked ? 'Non disponibile' : 'Aggiungi a ordine';
     addFromViewBtn.title=blocked ? 'Articolo non disponibile per nuovi ordini' : 'Aggiungi a ordine';
   }
-  const archivedForView=isArticleArchived(a);
-  document.querySelectorAll('#mArtView [data-action="shareArtAll"],#mArtView [data-action="shareArtTelegram"],#mArtView [data-action="shareArtPhotos"],#mArtView [data-action="shareArtPhotosFb"],#mArtView [data-action="shareArtPhotosTg"]').forEach(btn=>{
-    btn.disabled=archivedForView;
-    btn.classList.toggle('is-disabled',archivedForView);
-    btn.title=archivedForView?'Articolo archiviato: ripristinalo prima di condividerlo':'';
-  });
   const colorMode=getArticleColorMode(a);
   const colorCount=getArticleColorCount(a);
   const colorLabels=getArticleColorLabels(a);
@@ -10052,9 +9917,6 @@ async function openArtEdit(id){
     document.getElementById('a_color_count').value='';
     document.getElementById('a_color_labels').value='';
     document.getElementById('a_unavailable').checked=false;
-    document.getElementById('a_archive_state').value='';
-    document.getElementById('a_archive_note').value='';
-    updateArticleArchiveUi();
     updateArticleColorModeUI();
     syncBrandField('');
     refreshArticleCategorySelects('');
@@ -10074,7 +9936,7 @@ async function openArtEdit(id){
   set('a_cod', a?.codice); syncBrandField(a?.brand); set('a_mod', a?.modello);
   refreshArticleCategorySelects(a?.categoria||'');
   set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
-  set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); set('a_archive_state', articleArchiveState(a)); set('a_archive_note', a?.archivioNota||''); updateArticleArchiveUi(); updateArticleColorModeUI();
+  set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
   set('a_mis', a?.misura); set('a_belt_h', a?.altezzaCintura||a?.hCintura||''); set('a_usd', a?.costoUsd||''); set('a_usd_promo', a?.costoUsdPromo||'');
   currentArticleCostEstimate=storedArticleCostEstimate(a);
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
@@ -10574,10 +10436,7 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_color_mode').value=getArticleColorMode(clone);
   document.getElementById('a_color_count').value=getArticleColorCount(clone)||'';
   document.getElementById('a_color_labels').value=formatColorLabelsInput(getArticleColorLabels(clone), getArticleColorCount(clone));
-  document.getElementById('a_unavailable').checked=false;
-  document.getElementById('a_archive_state').value='';
-  document.getElementById('a_archive_note').value='';
-  updateArticleArchiveUi();
+  document.getElementById('a_unavailable').checked=isArticleUnavailable(clone);
   updateArticleColorModeUI();
   document.getElementById('a_mis').value=clone.misura||'';
   document.getElementById('a_belt_h').value=clone.altezzaCintura||clone.hCintura||'';
@@ -10656,13 +10515,6 @@ async function saveArt(){
     const r=usd>0 ? calcFromUsd(usd, qual) : (acceptedEstimate ? calcSellFromEurCost(acceptedEstimate.estimatedCost,qual) : {costo:0,sell:0,marg:0});
     const rPromo=promoUsd>0 ? calcFromUsd(promoUsd, qual) : {costo:0, sell:0, marg:0};
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
-    const unavailableChecked=!!document.getElementById('a_unavailable')?.checked;
-    let archiveState=normalizeArticleArchiveStateValue(document.getElementById('a_archive_state')?.value||'');
-    if(!archiveState && unavailableChecked) archiveState='non_disponibile';
-    const archiveActive=!!archiveState;
-    const archiveNote=archiveActive ? normalizeSpaceText(document.getElementById('a_archive_note')?.value||'') : '';
-    const previousArchiveState=articleArchiveState(old||{});
-    const archiveDate=archiveActive ? ((previousArchiveState===archiveState && old?.archivioData) ? old.archivioData : new Date().toISOString()) : '';
     const preservedPublishLog=currentArtId ? normalizeArticlePublishLog(old?.pubblicazioniCanali||old?.publishStats||old?.socialPub||{}) : {fb:[],tg:[],ig:[]};
     const keptFoto=currentArtPhotosCleared ? [] : (Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : []);
     const keptPhotoIds=currentArtPhotosCleared ? [] : (Array.isArray(old?.photoIds) ? old.photoIds.filter(Boolean).slice() : []);
@@ -10680,12 +10532,8 @@ async function saveArt(){
       taglia: '',
       variante: document.getElementById('a_variante').value.trim(),
       colore: colorMode==='single' ? document.getElementById('a_colore').value.trim() : '',
-      archivioStato: archiveState,
-      archiviato: archiveActive,
-      archivioNota: archiveNote,
-      archivioData: archiveDate,
-      nonDisponibile: archiveActive || unavailableChecked,
-      disponibile: !(archiveActive || unavailableChecked),
+      nonDisponibile: !!document.getElementById('a_unavailable').checked,
+      disponibile: !document.getElementById('a_unavailable').checked,
       colorMode,
       colorType: colorMode,
       colorCount: colorMode==='multiple' ? colorCount : 0,
@@ -10842,38 +10690,738 @@ async function deleteArt(){
   const visibleCode=normalizeSpaceText(document.getElementById('a_codice')?.value||document.getElementById('vCod')?.textContent||'');
   const candidate=(dbNow.articoli||[]).find(a=>String(a?.id||'')===String(currentArtId||'')) || (visibleCode ? (dbNow.articoli||[]).find(a=>normalizeTextKey(a?.codice||'')===normalizeTextKey(visibleCode)) : null);
   if(!candidate){ toast('Articolo non trovato: riapri la scheda e riprova'); return; }
-  askConfirm(`Sposto ${candidate.modello||candidate.codice||'questo articolo'} nell'Archivio come Eliminato? Nessun dato verrà cancellato.`, async ()=>{
+  const artId=candidate.id;
+  askConfirm(`Elimino ${candidate.modello||candidate.codice||'questo articolo'}? Gli ordini storici resteranno intatti.`, async ()=>{
     const db=loadDB();
-    const idx=(db.articoli||[]).findIndex(a=>String(a?.id||'')===String(candidate.id||''));
-    if(idx<0){ toast('Articolo non trovato'); return; }
-    const updated={...db.articoli[idx],archivioStato:'eliminato',archiviato:true,archivioNota:db.articoli[idx]?.archivioNota||'',archivioData:new Date().toISOString(),nonDisponibile:true,disponibile:false,_ts:Date.now()};
-    db.articoli[idx]=updated;
-    if(!saveDB(db)) return;
-    currentArtId=null;
-    clearArticleDraft();
-    hide('mArtEdit'); hide('mArtView');
-    renderAll();
-    if(cloudEnabled()){
-      try{ const saved=await cloudSaveOne('art',updated,db); db.articoli[idx]={...updated,...saved,archivioStato:'eliminato',archiviato:true,nonDisponibile:true,disponibile:false,_ts:Date.now()}; saveDBLocal(db); }
-      catch(err){ console.error('Archiviazione cloud articolo fallita',err); toast('Articolo archiviato localmente, cloud non aggiornato'); return; }
+    const old=(db.articoli||[]).find(a=>String(a?.id||'')===String(artId||'')) || (db.articoli||[]).find(a=>normalizeTextKey(a?.codice||'')===normalizeTextKey(candidate.codice||''));
+    if(!old){ hide('mArtEdit'); hide('mArtView'); currentArtId=null; renderArt(); toast('Articolo già eliminato'); return; }
+    let storicoCount=0;
+    try{ storicoCount=hydrateHistoricalSnapshotsBeforeArticleRemoval(db, old); }
+    catch(err){ console.error('Preparazione storico articolo fallita',err); toast('Storico ordini non aggiornato, eliminazione annullata'); return; }
+    addArticleDeleteTombstone(old);
+    if(!storicoCount){
+      for(const pid of (old?.photoIds||[])){
+        try{ await idbDelete(pid); }catch(_e){}
+      }
+      try{ await deleteArticlePhotosFromSupabase(old?.foto||[]); }catch(_e){}
+      if(Array.isArray(old?.videoIds)&&old.videoIds.length){ try{ await deleteArtVideosFromSupabase(old.videoIds); }catch(_e){} }
     }
-    toast('Articolo spostato nell’Archivio come Eliminato');
-  },'Archivia articolo','Sposta in archivio','danger');
+    db.articoli=db.articoli.filter(a=>a.id!==artId);
+    currentArtId=null;
+    if(!saveDB(db)) return;
+    clearArticleDraft();
+    hide('mArtEdit');
+    hide('mArtView');
+    renderAll();
+initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship','c_alt_ship','vCliAltShip']);
+updateArticleColorModeUI();
+    if(old && cloudEnabled()){
+      try{
+        await cloudDeleteOne('art', {...old, _keepStoricoMedia:!!storicoCount});
+        toast(storicoCount ? 'Articolo eliminato, ordini e guadagni storici mantenuti' : 'Articolo eliminato');
+      }catch(err){
+        console.error('Eliminazione cloud articolo fallita', err);
+        toast(storicoCount ? 'Storico ordini mantenuto. Cloud non aggiornato' : 'Articolo eliminato, ma cloud non aggiornato');
+      }
+    }else{
+      toast(storicoCount ? 'Articolo eliminato, ordini e guadagni storici mantenuti' : 'Articolo eliminato');
+    }
+  },'Elimina articolo');
 }
-async function restoreArchivedArticle(articleId){
-  const id=String(articleId||'').trim();
-  const db=loadDB();
-  const idx=(db.articoli||[]).findIndex(a=>String(a?.id||'')===id);
-  if(idx<0){ toast('Articolo archiviato non trovato'); return; }
-  const restored={...db.articoli[idx],archivioStato:'',archiviato:false,archivioNota:'',archivioData:'',nonDisponibile:false,disponibile:true,_ts:Date.now()};
-  db.articoli[idx]=restored;
-  if(!saveDB(db)) return;
-  renderArt();
-  if(cloudEnabled()){
-    try{ const saved=await cloudSaveOne('art',restored,db); db.articoli[idx]={...restored,...saved,archivioStato:'',archiviato:false,nonDisponibile:false,disponibile:true,_ts:Date.now()}; saveDBLocal(db); }
-    catch(err){ console.error('Ripristino cloud articolo fallito',err); toast('Articolo ripristinato localmente, cloud non aggiornato'); return; }
+
+function openCliView(id){
+  const db=loadDB(); const c=db.clienti.find(x=>x.id===id);
+  if(!c) return;
+  currentCliId=id;
+  document.getElementById('vCliNome').textContent=c.nome||'-';
+  document.getElementById('vCliTel').textContent=withIntlPrefix(c.telefono||'',c.paese||'Italia')||'-';
+  document.getElementById('vCliInd').textContent=c.indirizzo||'-';
+  document.getElementById('vCliCap').textContent=c.cap||'-';
+  document.getElementById('vCliCity').textContent=c.citta||'-';
+  document.getElementById('vCliProv').textContent=c.provincia||'-';
+  document.getElementById('vCliCountry').textContent=normalizeCountryName(c.paese||'Italia');
+  const cliNoteWrap=document.getElementById('vCliNoteWrap');
+  const cliNoteEl=document.getElementById('vCliNote');
+  const cliNote=normalizeSpaceText(c.note||'');
+  if(cliNoteWrap && cliNoteEl){
+    cliNoteEl.textContent=cliNote||'-';
+    cliNoteWrap.style.display=cliNote?'block':'none';
   }
-  toast('Articolo ripristinato nell’elenco principale');
+  const ship=document.getElementById('vCliShip');
+  ship.value=buildShippingAddress(c);
+  fitTextarea(ship);
+  const altWrap=document.getElementById('vCliAltWrap');
+  const altShip=document.getElementById('vCliAltShip');
+  const hasAlt=hasAlternativeAddress(c);
+  if(altWrap) altWrap.style.display=hasAlt?'block':'none';
+  if(altShip){ altShip.value=hasAlt?buildShippingAddress(c,true):''; fitTextarea(altShip); }
+  const clientOrders=(db.ordini||[]).filter(o=>o.clienteId===id).sort((a,b)=>String(b.data||b._ts||'').localeCompare(String(a.data||a._ts||'')));
+  const ordersEl=document.getElementById('vCliOrders');
+  if(ordersEl){
+    ordersEl.innerHTML=clientOrders.map(o=>{
+      const righe=Array.isArray(o.righe)?o.righe:[];
+      const desc=righe.map(r=>[r?.codice,r?.modello].filter(Boolean).join(' • ')).filter(Boolean).join(' · ') || 'Ordine';
+      const subTotale=calcOrderSubtotal(righe);
+      const scontoCliente=calcOrderDiscount(o);
+      const totale=(Number(o?.totale)>0 || subTotale===0) ? Number(o?.totale||0) : calcOrderNetTotal(righe, scontoCliente);
+      const pagato=orderPaidStatus(o) ? totale : orderIncassato({...o, totale});
+      return `<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(o.data||'-')}</div><div class="s">${esc(desc)}</div></div><div class="pill">${money(pagato)}</div></div>`;
+    }).join('') || `<div class="card"><div class="small">Nessun acquisto</div></div>`;
+  }
+  const currentYear=new Date().getFullYear();
+  const sameYear=o=>{ const d=new Date(String(o?.data||'')+'T12:00:00'); return !isNaN(d) && d.getFullYear()===currentYear; };
+  const profitTotal=clientOrders.reduce((sum,o)=>sum+(orderPaidStatus(o)?orderMargin(o,db):0),0);
+  const profitYear=clientOrders.filter(sameYear).reduce((sum,o)=>sum+(orderPaidStatus(o)?orderMargin(o,db):0),0);
+  const profitTotalEl=document.getElementById('vCliProfitTotal');
+  const profitYearEl=document.getElementById('vCliProfitYear');
+  if(profitTotalEl) profitTotalEl.textContent=money(profitTotal);
+  if(profitYearEl) profitYearEl.textContent=money(profitYear);
+  show('mCliView');
+}
+
+let currentOrdExistingManualPhotos=[];
+
+function mergeUniquePics(){
+  const out=[];
+  Array.from(arguments).flat().forEach(src=>{
+    if(src && !out.includes(src)) out.push(src);
+  });
+  return out.slice(0,15);
+}
+function pickOrderRowPhoto(art, row, artPics){
+  const pics=Array.isArray(artPics)?artPics.filter(Boolean):[];
+  if(!pics.length) return '';
+  const colorIndex=Math.max(0, (parseInt(row?.numeroColore||'0',10) || 1) - 1);
+  if(!!row?.richiedeNumeroColore && pics[colorIndex]) return pics[colorIndex];
+  return pics[0] || '';
+}
+async function getOrderArticleSnapshotPhotos(rows, db){
+  const pics=[];
+  for(const r of (rows||[])) {
+    const art=findArticleForOrderRow(db||loadDB(), r);
+    try{
+      let artPics=[];
+      if(art){
+        artPics=await getArticlePics(art);
+      }else{
+        const snap=normalizeOrderArticleSnapshot(r?.articoloSnapshot||{});
+        const stored=await getStoredPhotoSources(snap.photoIds||[]).catch(()=>[]);
+        const refs=[];
+        for(const src of (snap.foto||[])){
+          const clean=String(src||'').trim();
+          if(!clean) continue;
+          if(/^data:|^blob:|^https?:/i.test(clean)) refs.push(clean);
+          else{
+            const url=await getPublicFotoUrl(clean);
+            if(url) refs.push(url);
+          }
+        }
+        artPics=mergeUniquePics(refs, stored);
+      }
+      const picked=pickOrderRowPhoto(art, r, artPics);
+      if(picked && !pics.includes(picked)) pics.push(picked);
+      if(pics.length>=12) return pics;
+    }catch(err){ console.warn('Lettura foto articolo per ordine fallita', err); }
+  }
+  return pics.slice(0,15);
+}
+async function refreshOrdPhotoPreviewFromState(){
+  const input=document.getElementById('o_photo');
+  const box=document.getElementById('o_photo_prev');
+  if(!box) return;
+  const db=loadDB();
+  const articlePics=await getOrderArticleSnapshotPhotos(ordRows, db);
+  const maxNew=Math.max(0, 1 - currentOrdExistingManualPhotos.length);
+  const files=Array.from(input?.files||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
+  if(input && files.length>maxNew){
+    toast(`Puoi aggiungere ancora ${maxNew} foto manuale`);
+    const dt=new DataTransfer();
+    files.slice(0,maxNew).forEach(f=>dt.items.add(f));
+    input.files=dt.files;
+  }
+  const selected=Array.from(input?.files||[]);
+  const blobUrls=await filesToObjectUrls(selected, maxNew);
+  const pics=mergeUniquePics(articlePics, currentOrdExistingManualPhotos, blobUrls);
+  box.innerHTML=pics.map(src=>`<img src="${src}"/>`).join('') || `<div class="small">Nessuna foto ordine</div>`;
+  setTimeout(()=>revokeObjectUrls(blobUrls), 1200);
+}
+
+async function openOrdView(id){
+  const db=loadDB(); const o=db.ordini.find(x=>x.id===id);
+  if(!o) return;
+  currentOrdId=id;
+  const c=db.clienti.find(x=>x.id===o.clienteId) || o.clienteSnapshot || o.clienteStorico || null;
+  const subTotale=calcOrderSubtotal(o.righe||[]);
+  const scontoCliente=calcOrderDiscount(o);
+  const totale=(Number(o?.totale)>0 || subTotale===0) ? Number(o?.totale||0) : calcOrderNetTotal(o.righe||[], scontoCliente);
+  const paid=orderPaidStatus(o);
+  const totalPagato=paid ? totale : orderIncassato({...o, totale});
+  const profit=orderMargin(o, db);
+  const totalEl=document.getElementById('vOrdTot');
+  const profitEl=document.getElementById('vOrdProfit');
+  const cumEl=document.getElementById('vOrdCumMeta');
+  document.getElementById('vOrdCli').textContent=c?.nome||'-';
+  const ordStatusMeta=orderStatusMeta(o.stato||'-');
+  const ordStatoEl=document.getElementById('vOrdStato');
+  ordStatoEl.textContent='';
+  ordStatoEl.innerHTML=`<span class="statusIcon">${esc(ordStatusMeta.icon)}</span>${esc(ordStatusMeta.label)}`;
+  ordStatoEl.className='pill statusPill '+ordStatusMeta.pill;
+  document.getElementById('vOrdData').textContent=o.data||'-';
+  document.getElementById('vOrdMis').textContent=o.mis||'-';
+  const measureWarning=document.getElementById('vOrdMeasureWarning');
+  if(measureWarning) measureWarning.hidden=!orderMeasureIsUndefined(o.mis);
+  document.getElementById('vOrdPaymentMethod').textContent=normalizeOrderPaymentMethod(o.modalitaPagamento||o.metodoPagamento||'')||'-';
+  document.getElementById('vOrdTrack').textContent=o.tracking||'-';
+  document.getElementById('vOrdNote').textContent=o.note||'-';
+  document.getElementById('vOrdSub').textContent=money(subTotale);
+  document.getElementById('vOrdDiscount').textContent=money(scontoCliente);
+  const totalLabelEl=document.getElementById('vOrdTotLabel');
+  if(totalLabelEl) totalLabelEl.textContent=paid?'Totale pagato':'Da pagare';
+  totalEl.textContent=money(totalPagato);
+  totalEl.className='t statusTotal '+ordStatusMeta.total;
+  profitEl.textContent=profit==null?'Non disponibile':money(profit);
+  profitEl.className=profit==null?'t estimatedCostText':'t pricePaid';
+  if(cumEl){
+    cumEl.style.display='none';
+    cumEl.textContent='';
+  }
+  const righeOrd=Array.isArray(o.righe)?o.righe:[];
+  const rows=document.getElementById('vOrdRows');
+  rows.innerHTML=righeOrd.map((r,i)=>{
+    const art=(db.articoli||[]).find(a=>a.id===r?.articoloId || (r?.codice && a.codice===r.codice));
+    const labels=Array.isArray(r?.colorLabels) && r.colorLabels.length ? r.colorLabels : getArticleColorLabels(art);
+    const needsColor=!!r?.richiedeNumeroColore && Number(r?.colorCount||labels.length||0)>0;
+    const colorText=r?.colore ? `Colore ${esc(r.colore)}` : (r?.numeroColore ? `Colore ${esc(r.numeroColore)}` : '');
+    const metaParts=[`Prezzo ${money(r.prezzo||0)}`];
+    if(colorText) metaParts.push(colorText);
+    const colorUi=needsColor
+      ? `<div style="margin-top:8px"><div class="k">Colore</div><select data-role="viewRowColorNum" data-i="${i}">${buildOrderColorOptions(r.colorCount||labels.length||0, r.numeroColore||'', labels||[])}</select></div>`
+      : (r?.colore ? `<div class="s" style="margin-top:6px">Colore: ${esc(r.colore)}</div>` : '');
+    return `<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(r.codice||'')} • ${esc(r.modello||'')}</div><div class="s">${metaParts.join(' • ')}</div>${colorUi}</div><div class="pill">Riga</div></div>`;
+  }).join('') || `<div class="small">Nessuna riga</div>`;
+  rows.querySelectorAll('[data-role="viewRowColorNum"]').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      const idx=Number(sel.dataset.i);
+      const dbNow=loadDB();
+      const ord=dbNow.ordini.find(x=>x.id===currentOrdId);
+      if(!ord || !Array.isArray(ord.righe) || !ord.righe[idx]) return;
+      const row={...(ord.righe[idx]||{})};
+      const art=(dbNow.articoli||[]).find(a=>a.id===row?.articoloId || (row?.codice && a.codice===row.codice));
+      const labels=Array.isArray(row?.colorLabels) && row.colorLabels.length ? row.colorLabels : getArticleColorLabels(art);
+      const colorCount=Math.max(0, parseInt(row?.colorCount||labels.length||0,10) || 0);
+      const val=String(sel.value||'').trim();
+      row.richiedeNumeroColore=colorCount>0;
+      row.colorCount=colorCount;
+      row.colorLabels=labels.slice();
+      row.colorData=makeStableColorData({colorMode:colorCount>1?'multiple':'single', colorCount, colorLabels:labels});
+      row.numeroColore=val;
+      row.colore=(parseInt(val,10)>0 && labels[parseInt(val,10)-1]) ? labels[parseInt(val,10)-1] : '';
+      ord.righe[idx]=row;
+      ord.fotoArticoli=await getOrderArticleSnapshotPhotos(ord.righe, dbNow);
+      if(!saveDB(dbNow)) return;
+      if(cloudEnabled()){
+        try{
+          await cloudSaveOne('ord', ord, dbNow);
+        }catch(err){
+          console.error('Sync cloud colore ordine fallita', err);
+        }
+      }
+      toast('Colore ordine aggiornato');
+      await openOrdView(ord.id);
+    });
+  });
+  const ordPics=await getOrderPics(o, db);
+  document.getElementById('vOrdPhotos').innerHTML=ordPics.map(src=>`<img src="${src}" onclick="window.open('${src}','_blank','noopener')"/>`).join('');
+  document.getElementById('vOrdPhotosEmpty').style.display=ordPics.length?'none':'block';
+  show('mOrdView');
+}
+
+/* ====== CLIENTI ====== */
+let currentCliId=null;
+function openCliEdit(id){
+  const db=loadDB(); const c=id?db.clienti.find(x=>x.id===id):null;
+  currentCliId=id||null;
+  document.getElementById('cliEditTitle').textContent=c?'Modifica cliente':'Nuovo cliente';
+  document.getElementById('c_nome').value=c?.nome||'';
+  document.getElementById('c_tel').value=c?.telefono||'';
+  document.getElementById('c_ind').value=c?.indirizzo||'';
+  document.getElementById('c_cap').value=c?.cap||'';
+  document.getElementById('c_citta').value=c?.citta||'';
+  document.getElementById('c_paese').value=normalizeCountryName(c?.paese||'Italia');
+  setClientProvinceValue(c?.provincia||'', c?.paese||'Italia');
+  document.getElementById('c_alt_on').checked=!!c?.indirizzoAlternativoAttivo;
+  document.getElementById('c_alt_nome').value=c?.nomeAlternativo||'';
+  document.getElementById('c_alt_cognome').value=c?.cognomeAlternativo||'';
+  document.getElementById('c_alt_ind').value=c?.indirizzoAlternativo||'';
+  document.getElementById('c_alt_cap').value=c?.capAlternativo||'';
+  document.getElementById('c_alt_citta').value=c?.cittaAlternativa||'';
+  document.getElementById('c_alt_prov').value=c?.provinciaAlternativa||'';
+  document.getElementById('c_alt_paese').value=normalizeCountryName(c?.paeseAlternativo||c?.paese||'Italia');
+  document.getElementById('c_note').value=c?.note||'';
+  updateClientCountryUI();
+  updateAlternativeCountryUI();
+  updateAlternativeAddressUI();
+  restoreClientDraft(c?.id||'');
+  updateClientCountryUI();
+  updateAlternativeCountryUI();
+  scheduleAddressLookup('city',false,false);
+  if(document.getElementById('c_alt_on')?.checked) scheduleAddressLookup('city',true,false);
+  refreshClientShipping();
+  show('mCliEdit');
+}
+async function saveCli(){
+  const db=loadDB();
+  const nome=document.getElementById('c_nome').value.trim();
+  if(!nome){ toast('Nome obbligatorio'); return; }
+
+  const old=currentCliId?db.clienti.find(c=>c.id===currentCliId):null;
+  const candidate={
+    ...old,
+    id: currentCliId||uid(),
+    nome,
+    cognome: old?.cognome||'',
+    email: old?.email||'',
+    telefono: document.getElementById('c_tel').value.trim(),
+    indirizzo: document.getElementById('c_ind').value.trim(),
+    cap: document.getElementById('c_cap').value.trim(),
+    citta: document.getElementById('c_citta').value.trim(),
+    provincia: getClientProvinceValue(),
+    paese: normalizeCountryName(document.getElementById('c_paese').value||'Italia'),
+    indirizzoAlternativoAttivo:!!document.getElementById('c_alt_on').checked,
+    nomeAlternativo:document.getElementById('c_alt_nome').value.trim(),
+    cognomeAlternativo:document.getElementById('c_alt_cognome').value.trim(),
+    indirizzoAlternativo:document.getElementById('c_alt_ind').value.trim(),
+    capAlternativo:document.getElementById('c_alt_cap').value.trim(),
+    cittaAlternativa:document.getElementById('c_alt_citta').value.trim(),
+    provinciaAlternativa:document.getElementById('c_alt_prov').value.trim(),
+    paeseAlternativo:normalizeCountryName(document.getElementById('c_alt_paese').value||document.getElementById('c_paese').value||'Italia'),
+    note: document.getElementById('c_note').value,
+    _ts: Date.now()
+  };
+  const candidateKey=normalizeClientDedupKey(candidate) || normalizeTextKey(candidate.nome);
+  const exists = db.clienti.find(c => c.id !== currentCliId && (normalizeClientDedupKey(c) || normalizeTextKey(c?.nome)) === candidateKey);
+  if(exists){
+    toast('Cliente già esistente');
+    return;
+  }
+  const obj={
+    ...candidate,
+    nome: normalizeClientDisplayName(candidate),
+    telefono: normalizePhone(candidate.telefono),
+    email: normalizeEmail(candidate.email),
+    indirizzo: normalizeSpaceText(candidate.indirizzo),
+    cap: candidate.paese==='Italia' ? normalizeSpaceText(candidate.cap).replace(/\D/g,'').slice(0,5) : normalizeSpaceText(candidate.cap),
+    citta: normalizeSpaceText(candidate.citta),
+    provincia: normalizeSpaceText(candidate.provincia),
+    paese:normalizeCountryName(candidate.paese||'Italia'),
+    indirizzoAlternativoAttivo:!!candidate.indirizzoAlternativoAttivo,
+    nomeAlternativo:normalizeSpaceText(candidate.nomeAlternativo),
+    cognomeAlternativo:normalizeSpaceText(candidate.cognomeAlternativo),
+    indirizzoAlternativo:normalizeSpaceText(candidate.indirizzoAlternativo),
+    capAlternativo:normalizeSpaceText(candidate.capAlternativo),
+    cittaAlternativa:normalizeSpaceText(candidate.cittaAlternativa),
+    provinciaAlternativa:normalizeSpaceText(candidate.provinciaAlternativa),
+    paeseAlternativo:normalizeCountryName(candidate.paeseAlternativo||candidate.paese||'Italia')
+  };
+  const i=db.clienti.findIndex(x=>x.id===obj.id);
+  if(i>=0) db.clienti[i]=obj; else db.clienti.unshift(obj);
+  if(!saveDB(db)) return;
+  clearClientDraft();
+  hide('mCliEdit');
+  toast('Cliente salvato');
+  if(cloudEnabled()){
+    try{
+      const saved=await cloudSaveOne('cli', obj, db);
+      const savedKey=normalizeClientDedupKey(saved) || normalizeClientDedupKey(obj) || normalizeTextKey(saved?.nome||obj?.nome);
+      const idx=db.clienti.findIndex(x=>x.id===obj.id || x.id===saved?.id || (normalizeClientDedupKey(x) || normalizeTextKey(x?.nome))===savedKey);
+      if(idx>=0) db.clienti[idx]={...db.clienti[idx], ...saved, nome:normalizeClientDisplayName({...db.clienti[idx], ...saved}), _ts: Date.now()};
+      saveDBLocal(db);
+    }catch(cloudErr){
+      console.error('Sync cloud cliente fallita', cloudErr);
+      toast('Cliente salvato, ma cloud non aggiornato');
+    }
+  }
+}
+async function deleteCli(){
+  if(!currentCliId) return hide('mCliEdit');
+  
+  const db=loadDB();
+  const old=db.clienti.find(c=>c.id===currentCliId);
+  db.clienti=db.clienti.filter(c=>c.id!==currentCliId);
+  if(!saveDB(db)) return;
+  if(old && cloudEnabled()) await cloudDeleteOne('cli', old);
+  clearClientDraft();
+  hide('mCliEdit');
+  toast(cloudEnabled() ? 'Cliente eliminato anche dal cloud' : 'Cliente eliminato');
+}
+
+
+function articleCategoryIsShoe(rawCat=''){
+  const cat=normalizeTextKey(rawCat||'');
+  return ['scarpa','scarpe','sneaker','sneakers','shoe','shoes'].some(token=>cat===token || cat.includes(token));
+}
+function articleCategoryIsBelt(rawCat=''){
+  const cat=normalizeTextKey(rawCat||'');
+  return ['cintura','cinture','belt','belts'].some(token=>cat===token || cat.includes(token));
+}
+function articleCategoryNeedsMeasure(rawCat=''){
+  return articleCategoryIsShoe(rawCat) || articleCategoryIsBelt(rawCat);
+}
+function updateArticleMeasureState(){
+  const catSel=document.getElementById('a_cat');
+  const mis=document.getElementById('a_mis');
+  const label=document.getElementById('a_mis_label');
+  const hint=document.getElementById('a_mis_hint');
+  const hWrap=document.getElementById('a_belt_h_wrap');
+  const hInput=document.getElementById('a_belt_h');
+  const hHint=document.getElementById('a_belt_h_hint');
+  if(!mis) return false;
+  const cat=catSel?.value||'';
+  const isBelt=articleCategoryIsBelt(cat);
+  const isShoe=articleCategoryIsShoe(cat);
+  const needed=isBelt || isShoe;
+  if(label) label.textContent=isBelt ? 'Lungh.' : 'Mis.';
+  mis.required=needed;
+  mis.placeholder=isBelt ? 'Es. 110 cm' : (isShoe ? 'Es. 38' : 'Es. 25 x 18 x 8 cm');
+  if(hint){
+    if(isBelt) hint.textContent='Lunghezza cintura. Valori consigliati: 70, 75, 80… fino a 130 cm.';
+    else if(isShoe) hint.textContent='Per le scarpe scegli una misura da 34 a 45.';
+    else hint.textContent='Per borse e portafogli indica le misure se disponibili.';
+  }
+  if(hWrap) hWrap.style.display=isBelt ? '' : 'none';
+  if(hInput){
+    hInput.required=isBelt;
+    if(!isBelt) hInput.value='';
+  }
+  if(hHint) hHint.textContent='Altezza cintura. Esempio: 3,5 cm.';
+  return needed;
+}
+
+/* ====== ORDINI ====== */
+let currentOrdId=null;
+let ordRows=[];
+const ORDER_SIZE_UNDEFINED='DA DEFINIRE';
+const ORDER_SHOE_SIZES=[ORDER_SIZE_UNDEFINED,'34','35','36','37','38','39','40','41','42','43','44','45'];
+const ORDER_BELT_SIZES=['70','75','80','85','90','95','100','105','110','115','120','125','130'];
+function orderMeasureIsUndefined(value){ return normalizeTextKey(value)===normalizeTextKey(ORDER_SIZE_UNDEFINED); }
+function normalizeOrderPaymentMethod(value){
+  const raw=normalizeSpaceText(value||'');
+  if(!raw) return '';
+  const methods=['Ricarica Postepay','Bonifico ordinario','Bonifico istantaneo','PayPal','Satispay'];
+  return methods.find(item=>normalizeTextKey(item)===normalizeTextKey(raw)) || raw;
+}
+function orderRowMeasureType(row, db){
+  const art=(db?.articoli||[]).find(a=>a.id===row?.articoloId || (row?.codice && a.codice===row.codice));
+  const cat=normalizeTextKey(art?.categoria||row?.categoria||'');
+  if(['scarpa','scarpe','shoe','shoes'].some(token=>cat===token || cat.includes(token))) return 'shoe';
+  if(['cintura','cinture','belt','belts'].some(token=>cat===token || cat.includes(token))) return 'belt';
+  return '';
+}
+function orderRowNeedsShoeSize(row, db){
+  return orderRowMeasureType(row, db)==='shoe';
+}
+function orderRowNeedsBeltSize(row, db){
+  return orderRowMeasureType(row, db)==='belt';
+}
+function orderRowNeedsMeasure(row, db){
+  return !!orderRowMeasureType(row, db);
+}
+function orderNeedsShoeSize(rows, db){
+  return (Array.isArray(rows)?rows:[]).some(row=>orderRowNeedsShoeSize(row, db||loadDB()));
+}
+function orderNeedsBeltSize(rows, db){
+  return (Array.isArray(rows)?rows:[]).some(row=>orderRowNeedsBeltSize(row, db||loadDB()));
+}
+function orderNeedsMeasure(rows, db){
+  return (Array.isArray(rows)?rows:[]).some(row=>orderRowNeedsMeasure(row, db||loadDB()));
+}
+function orderMeasureAllowedSizes(rows, db){
+  const data=db||loadDB();
+  const hasShoe=orderNeedsShoeSize(rows, data);
+  const hasBelt=orderNeedsBeltSize(rows, data);
+  if(hasShoe && hasBelt) return Array.from(new Set([...ORDER_SHOE_SIZES, ...ORDER_BELT_SIZES]));
+  if(hasBelt) return ORDER_BELT_SIZES.slice();
+  if(hasShoe) return ORDER_SHOE_SIZES.slice();
+  return ORDER_SHOE_SIZES.slice();
+}
+function rebuildOrderMeasureOptions(sel, sizes, needed, current=''){
+  if(!sel) return;
+  const clean=String(current||'').trim();
+  const firstLabel=needed ? 'Seleziona misura' : 'Non necessaria';
+  sel.innerHTML=`<option value="">${firstLabel}</option>` + (sizes||[]).map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  if(clean && (sizes||[]).includes(clean)) sel.value=clean;
+  else sel.value='';
+}
+function ensureOrderSizeOption(value){
+  const sel=document.getElementById('o_mis');
+  if(!sel) return;
+  const clean=String(value||'').trim();
+  const sizes=Array.from(new Set([...ORDER_SHOE_SIZES, ...ORDER_BELT_SIZES, clean].filter(Boolean)));
+  rebuildOrderMeasureOptions(sel, sizes, false, clean);
+}
+function updateOrderShoeSizeState(){
+  const sel=document.getElementById('o_mis');
+  const hint=document.getElementById('o_mis_hint');
+  if(!sel) return false;
+  const db=loadDB();
+  const needed=orderNeedsMeasure(ordRows, db);
+  const hasShoe=orderNeedsShoeSize(ordRows, db);
+  const hasBelt=orderNeedsBeltSize(ordRows, db);
+  const current=String(sel.value||'').trim();
+  const allowed=orderMeasureAllowedSizes(ordRows, db);
+  rebuildOrderMeasureOptions(sel, allowed, needed, current);
+  sel.required=needed;
+  if(hint){
+    if(hasShoe && hasBelt) hint.textContent='Scarpe: misura 34-45 oppure DA DEFINIRE. Cinture: lunghezze da 70 a 130 cm con incremento di 5 cm.';
+    else if(hasBelt) hint.textContent='Per le cinture scegli una lunghezza da 70 a 130 cm, con incremento di 5 cm.';
+    else if(hasShoe) hint.textContent='Per le scarpe scegli una misura da 34 a 45 oppure DA DEFINIRE.';
+    else hint.textContent='Misura non necessaria se non ci sono scarpe o cinture.';
+  }
+  return needed;
+}
+async function openOrdEdit(id, prefillArticleId=null){
+  const db=loadDB();
+  const o=id?db.ordini.find(x=>x.id===id):null;
+  const isEditing=!!o;
+  currentOrdId=isEditing ? id : null;
+  document.getElementById('ordEditTitle').textContent=isEditing?'Modifica ordine':'Nuovo ordine';
+  document.getElementById('o_cli_q').value='';
+  document.getElementById('o_art_q').value='';
+  const pickColorEl=document.getElementById('o_pick_color');
+  if(pickColorEl){
+    pickColorEl.innerHTML='<option value="">Seleziona colore</option>';
+    pickColorEl.value='';
+  }
+  fillClientSelect(db);
+  fillArtSelect(db);
+  document.getElementById('o_cli').value=isEditing?(o?.clienteId||''):'';
+  const orderCli=isEditing ? (db.clienti||[]).find(c=>String(c.id)===String(o?.clienteId||'')) : null;
+  document.getElementById('o_cli_q').value=orderCli?.nome||'';
+  document.getElementById('o_stato').value=isEditing?(o?.stato||'Richiesto'):'Richiesto';
+  document.getElementById('o_data').value=isEditing?(o?.data||todayStr()):todayStr();
+  document.getElementById('o_note').value=isEditing?(o?.note||''):'';
+  ensureOrderSizeOption(isEditing?(o?.mis||''):'' );
+  document.getElementById('o_mis').value=isEditing?(o?.mis||''):'';
+  document.getElementById('o_payment_method').value=isEditing?normalizeOrderPaymentMethod(o?.modalitaPagamento||o?.metodoPagamento||''):'';
+  document.getElementById('o_tracking').value=isEditing?(o?.tracking||''):'';
+  document.getElementById('o_discount').value=isEditing && calcOrderDiscount(o) ? String(calcOrderDiscount(o)).replace('.', ',') : '';
+  document.getElementById('o_art').value='';
+  document.getElementById('o_art_pick').value='';
+  document.getElementById('o_photo').value='';
+  currentOrdExistingManualPhotos=isEditing ? await getOrderManualPics(o) : [];
+  ordRows=isEditing ? (o?.righe||[]).slice() : [];
+  if(isEditing){
+    restoreOrderDraft(o?.id||'', null);
+  }else{
+    clearOrderDraft();
+  }
+  if(prefillArticleId){
+    const a=db.articoli.find(x=>String(x.id)===String(prefillArticleId));
+    if(a && !ordRows.some(r=>String(r.articoloId)===String(prefillArticleId))){
+      const labels=getArticleColorLabels(a);
+      const defaultColor=(getArticleColorMode(a)==='single') ? normalizeSpaceText(a?.colore||labels[0]||'') : '';
+      ordRows.push(hydrateOrderRowWithHistoricalArticle({
+        articoloId:a.id,
+        codice:a?.codice||'',
+        modello:a?.modello||'',
+        brand:a?.brand||'',
+        categoria:a?.categoria||'',
+        qualita:articleQualityLabel(a),
+        prezzo:Number(currentPrice(a)||0),
+        costoEur:Number(currentCost(a)||0),
+        richiedeNumeroColore:getArticleColorMode(a)==='multiple',
+        colorCount:getArticleColorCount(a),
+        colorLabels:labels,
+        numeroColore:'',
+        colore:defaultColor
+      }, db));
+    }
+  }
+  renderOrdRows();
+  renderOrderClientSummary();
+  renderSelectedOrderArticlesSummary();
+  updateOrderPriceFromSelection();
+  updateOrderTotalsPreview();
+  updateOrderShoeSizeState();
+  await refreshOrdPhotoPreviewFromState();
+  show('mOrdEdit');
+}
+function todayStr(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function findClientAutoMatch(items, raw=''){
+  const q=normalizeTextKey(raw);
+  if(!q) return items.length===1 ? items[0] : null;
+  const exact=items.find(c=>[
+    c?.nome,
+    c?.telefono,
+    c?.citta,
+    `${c?.nome||''} ${c?.telefono||''} ${c?.citta||''}`
+  ].some(v=>normalizeTextKey(v)===q));
+  if(exact) return exact;
+  if(items.length===1) return items[0];
+  const starts=items.filter(c=>searchStartsWith(c?.nome||'', raw) || searchStartsWith(c?.telefono||'', raw) || searchStartsWith(c?.citta||'', raw));
+  return starts.length===1 ? starts[0] : null;
+}
+function renderOrderClientSummary(){
+  const box=document.getElementById('o_cli_summary');
+  const sel=document.getElementById('o_cli');
+  const db=loadDB();
+  if(!box || !sel) return;
+  const cli=(db.clienti||[]).find(c=>String(c.id)===String(sel.value||''));
+  if(!cli){
+    box.className='orderClientSummary empty';
+    box.textContent='Seleziona un cliente per vedere subito nome, telefono e città.';
+    return;
+  }
+  const meta=[cli.telefono, [cli.citta, cli.provincia].filter(Boolean).join(' • '), cli.indirizzo].filter(Boolean);
+  box.className='orderClientSummary';
+  box.innerHTML=`<div class="title">${esc(cli.nome||'Cliente selezionato')}</div><div class="meta">${meta.length?esc(meta.join(' • ')):'Nessun dettaglio aggiuntivo'}</div>`;
+}
+function renderSelectedOrderArticlesSummary(){
+  const box=document.getElementById('o_art_selected_summary');
+  const pick=document.getElementById('o_art_pick');
+  const db=loadDB();
+  if(!box || !pick) return;
+  const id=String(pick.value||'').trim();
+  const a=(db.articoli||[]).find(x=>String(x.id)===id);
+  if(!a){
+    box.className='orderSelectedSummary empty';
+    box.textContent='Cerca un articolo e poi aggiungilo.';
+    renderSelectedOrderColorPicker(null);
+    return;
+  }
+  const model=((a.modello||a.brand||'').trim() || 'Articolo');
+  const code=(a.codice||'').trim();
+  const meta=[a.brand, displayCategoryValue(a.categoria), a.qualita, '€ '+money(currentPrice(a)||0)].filter(Boolean).join(' • ');
+  box.className='orderSelectedSummary';
+  box.innerHTML=`<div class="title"><span>Da aggiungere</span></div><div class="orderChoiceList"><span class="orderChoiceChip">${esc(model)}${code?`<span class="orderChoiceMeta">Cod. ${esc(code)}${meta?` • ${esc(meta)}`:''}</span>`:''}</span></div>`;
+  renderSelectedOrderColorPicker(a);
+}
+function renderSelectedOrderColorPicker(article){
+  const wrap=document.getElementById('o_pick_color_wrap');
+  const sel=document.getElementById('o_pick_color');
+  const hint=document.getElementById('o_pick_color_hint');
+  if(!wrap || !sel) return;
+  if(!article){
+    wrap.style.display='none';
+    sel.innerHTML='';
+    sel.value='';
+    return;
+  }
+  const labels=getArticleColorLabels(article);
+  const singleColor=normalizeSpaceText(article?.colore||labels[0]||'');
+  if(getArticleColorMode(article)==='multiple' && Number(getArticleColorCount(article)||0)>0){
+    wrap.style.display='block';
+    sel.innerHTML=buildOrderColorOptions(getArticleColorCount(article), sel.value||'', labels);
+    if(hint) hint.textContent="Scegli il colore e poi aggiungi l'articolo.";
+    return;
+  }
+  if(singleColor){
+    wrap.style.display='block';
+    sel.innerHTML=`<option value="${esc(singleColor)}">${esc(singleColor)}</option>`;
+    sel.value=singleColor;
+    if(hint) hint.textContent='Colore già impostato per questo articolo.';
+    return;
+  }
+  wrap.style.display='none';
+  sel.innerHTML='';
+  sel.value='';
+}
+function fillClientSelect(db, filter='', autoPick=false){
+  const sel=document.getElementById('o_cli');
+  const searchInput=document.getElementById('o_cli_q');
+  if(!sel) return [];
+  const prev=String(sel.value||'').trim();
+  const q=String(filter||'').trim().toLowerCase();
+  const items=(db.clienti||[]).filter(c=>{
+    const hay=`${c.nome||''} ${c.telefono||''} ${c.citta||''}`.toLowerCase();
+    return !q || hay.includes(q);
+  });
+  sel.innerHTML='<option value="">Seleziona</option>'+items.map(c=>`<option value="${c.id}">${esc(c.nome)} • ${esc(c.provincia||'')}</option>`).join('');
+  let picked=items.find(c=>String(c.id)===prev) || null;
+  if(autoPick) picked=findClientAutoMatch(items, filter);
+  if(picked){
+    sel.value=String(picked.id);
+    if(searchInput) searchInput.value=picked.nome||'';
+  }else if(prev && Array.from(sel.options).some(o=>o.value===prev)){
+    sel.value=prev;
+  }
+  renderOrderClientSummary();
+  return items;
+}
+function fillArtSelect(db, filter=''){
+  const sel=document.getElementById('o_art_pick');
+  const hidden=document.getElementById('o_art');
+  const q=String(filter||'').toLowerCase();
+  const prev=String(sel?.value||'').trim();
+  const items=(db.articoli||[]).filter(a=>{
+    const hay=articleSearchHay(a);
+    return !q || hay.includes(q);
+  });
+  if(sel){
+    sel.innerHTML='<option value="">Seleziona articolo</option>'+items.map(a=>{
+      const model=(a.modello||a.brand||'Articolo').trim();
+      const code=(a.codice||'').trim();
+      const cat=displayCategoryValue(a.categoria);
+      const price='€ '+money(currentPrice(a)||0);
+      const blocked=isArticleUnavailable(a);
+      const label=[model, code, cat, price, blocked ? 'NON DISPONIBILE' : ''].filter(Boolean).join(' • ');
+      return `<option value="${a.id}" ${blocked ? 'disabled' : ''}>${esc(label)}</option>`;
+    }).join('');
+    if(prev && Array.from(sel.options).some(o=>o.value===prev && !o.disabled)) sel.value=prev;
+  }
+  if(hidden) hidden.innerHTML='';
+  renderSelectedOrderArticlesSummary();
+}
+function selectedOrderArticleIds(){
+  const pick=document.getElementById('o_art_pick');
+  return pick && pick.value ? [pick.value] : [];
+}
+function updateOrderPriceFromSelection(){
+  const db=loadDB();
+  const ids=selectedOrderArticleIds();
+  return;
+}
+function addRow(){
+  const db=loadDB();
+  const ids=selectedOrderArticleIds();
+  if(!ids.length){ toast('Seleziona almeno un articolo'); return; }
+  ids.forEach((artId)=>{
+    const a=db.articoli.find(x=>String(x.id)===String(artId));
+    if(!a) return;
+    if(isArticleUnavailable(a)){
+      toast('Articolo segnato come non disponibile');
+      return;
+    }
+    if(ordRows.some(r=>String(r.articoloId)===String(artId))){
+      toast("Articolo già presente nell'ordine");
+      return;
+    }
+    const prezzo=Number(currentPrice(a)||0);
+    const labels=getArticleColorLabels(a);
+    const pickColor=String(document.getElementById('o_pick_color')?.value||'').trim();
+    const isMultiple=getArticleColorMode(a)==='multiple' && Number(getArticleColorCount(a)||0)>0;
+    const colorLabel=isMultiple ? ((parseInt(pickColor,10)>0 && labels[parseInt(pickColor,10)-1]) ? labels[parseInt(pickColor,10)-1] : '') : normalizeSpaceText(pickColor || a?.colore || labels[0] || '');
+    ordRows.push(hydrateOrderRowWithHistoricalArticle({articoloId:artId,codice:a?.codice||'',modello:a?.modello||'',brand:a?.brand||'',categoria:a?.categoria||'',qualita:articleQualityLabel(a),prezzo,costoEur:Number(currentCost(a)||0),richiedeNumeroColore:isMultiple,colorCount:getArticleColorCount(a),colorLabels:labels,colorData:makeStableColorData({colorMode:isMultiple?'multiple':'single', colorCount:getArticleColorCount(a), colorLabels:labels}),numeroColore:isMultiple ? pickColor : '',colore:colorLabel}, db));
+  });
+  const pick=document.getElementById('o_art_pick');
+  const colorPick=document.getElementById('o_pick_color');
+  if(pick) pick.value='';
+  if(colorPick){ colorPick.innerHTML=''; colorPick.value=''; }
+  document.getElementById('o_art_q').value='';
+  fillArtSelect(db);
+  renderSelectedOrderArticlesSummary();
+  renderOrdRows();
+  updateOrderShoeSizeState();
+  saveOrderDraft();
+}
+function getTrackingValue(){
+  const editVal=String(document.getElementById('o_tracking')?.value||'').trim();
+  if(editVal) return editVal;
+  const viewVal=String(document.getElementById('vOrdTrack')?.textContent||'').trim();
+  return viewVal==='-' ? '' : viewVal;
 }
 function openTrack17(){
   const code=getTrackingValue();
@@ -11178,139 +11726,115 @@ async function exportDB(mode){
   }
 }
 function unwrapImportedDatabase(parsed){
-  if(!parsed || typeof parsed!=='object') return parsed;
-  const candidates=[parsed,parsed.db,parsed.database,parsed.data,parsed.gestionale,parsed.backup];
-  for(const c of candidates){
-    if(c && typeof c==='object' && (Array.isArray(c.articoli)||Array.isArray(c.clienti)||Array.isArray(c.ordini))) return c;
+  const candidates=[parsed, parsed?.db, parsed?.database, parsed?.data, parsed?.backup];
+  for(const candidate of candidates){
+    if(!candidate || typeof candidate!=='object') continue;
+    if(Array.isArray(candidate.articoli) || Array.isArray(candidate.clienti) || Array.isArray(candidate.ordini)) return candidate;
   }
-  return parsed;
+  throw new Error('Il file non contiene un database gestionale riconoscibile');
 }
-function compactImportedOrderMedia(db){
-  const clean=normalizeDBShape(db||defDB());
-  clean.ordini=(clean.ordini||[]).map(o=>({
-    ...o,
-    // Le foto principali restano negli articoli. Evitiamo copie duplicate dentro ogni ordine,
-    // che su Android possono saturare localStorage durante un ripristino completo.
-    fotoArticoli:[],
-    righe:(Array.isArray(o.righe)?o.righe:[]).map(r=>({
-      ...r,
-      articoloSnapshot:r?.articoloSnapshot ? {
-        ...r.articoloSnapshot,
-        foto:[],photoIds:[],videoIds:[]
-      } : r?.articoloSnapshot
-    }))
-  }));
-  return clean;
+function stripImportedMedia(value, seen=new WeakSet()){
+  if(value===null || typeof value!=='object') return value;
+  if(seen.has(value)) return null;
+  seen.add(value);
+  if(Array.isArray(value)) return value.map(v=>stripImportedMedia(v,seen));
+  const out={};
+  const mediaKeys=new Set(['foto','photoIds','videoIds','fotoArticoli','fotoManuali','orderPhotoIds','thumbs','anteprime']);
+  for(const [key,val] of Object.entries(value)){
+    if(mediaKeys.has(key)){
+      out[key]=[];
+      continue;
+    }
+    out[key]=stripImportedMedia(val,seen);
+  }
+  return out;
 }
-function humanImportError(err){
-  const msg=String(err?.message||err||'Errore sconosciuto');
-  if(/quota|storage|space/i.test(msg)) return 'Spazio locale insufficiente. I dati sono stati alleggeriti, ma il browser non concede ancora spazio.';
-  if(/JSON|Unexpected token|position/i.test(msg)) return 'Il file non è un JSON leggibile oppure è stato scaricato in modo incompleto.';
-  if(/compatibile/i.test(msg)) return 'Il file non contiene le sezioni articoli, clienti e ordini riconoscibili.';
-  if(/IndexedDB|transaction|database/i.test(msg)) return 'Errore nel salvataggio separato delle fotografie.';
-  return msg;
+function saveRawImportRecovery(rawText, filename){
+  return new Promise(resolve=>{
+    try{
+      const req=indexedDB.open('vg_json_recovery_v1',1);
+      req.onupgradeneeded=()=>{ const db=req.result; if(!db.objectStoreNames.contains('backups')) db.createObjectStore('backups',{keyPath:'id'}); };
+      req.onerror=()=>resolve(false);
+      req.onsuccess=()=>{
+        const db=req.result;
+        try{
+          const tx=db.transaction('backups','readwrite');
+          tx.objectStore('backups').put({id:'latest',filename:filename||'backup.json',savedAt:new Date().toISOString(),raw:rawText});
+          tx.oncomplete=()=>{ db.close(); resolve(true); };
+          tx.onerror=()=>{ db.close(); resolve(false); };
+        }catch(_e){ db.close(); resolve(false); }
+      };
+    }catch(_e){ resolve(false); }
+  });
 }
 function importDB(file){
-  const mode=(document.getElementById('importMode')?.value||'replace');
   const hint=document.getElementById('importHint');
-  if(hint) hint.textContent='Importazione in corso… Non chiudere la PWA.';
+  const mode=(document.getElementById('importMode')?.value||'replace');
+  if(!file) return;
+  if(hint) hint.textContent='Importazione in corso. Non chiudere la PWA.';
   const r=new FileReader();
-  r.onerror=()=>{
-    const msg='Impossibile leggere il file selezionato.';
-    if(hint) hint.textContent=msg;
-    toast(msg);
-  };
+  r.onerror=()=>{ const msg='Impossibile leggere il file selezionato'; if(hint) hint.textContent=msg; toast(msg); };
   r.onload=async()=>{
-    let photoImported=0, photoSkipped=0;
     try{
-      const raw=String(r.result||'').replace(/^\uFEFF/,'').trim();
-      if(!raw) throw new Error('Il file selezionato è vuoto');
-      const parsedRoot=JSON.parse(raw);
-      const parsed=unwrapImportedDatabase(parsedRoot);
-      const incomingBacheca=(parsedRoot && typeof parsedRoot.bacheca==='object' && parsedRoot.bacheca)
-        ? JSON.parse(JSON.stringify(parsedRoot.bacheca))
-        : ((parsed && typeof parsed.bacheca==='object' && parsed.bacheca) ? JSON.parse(JSON.stringify(parsed.bacheca)) : null);
-      let incoming=normalizeDBShape(parsed);
-      if(!incoming || !Array.isArray(incoming.articoli)||!Array.isArray(incoming.clienti)||!Array.isArray(incoming.ordini)) throw new Error('JSON non compatibile');
-      if(!(incoming.articoli.length||incoming.clienti.length||incoming.ordini.length)) throw new Error('JSON compatibile ma privo di dati');
+      const raw=String(r.result||'');
+      if(!raw.trim()) throw new Error('Il file è vuoto');
+      const parsed=JSON.parse(raw);
+      const source=unwrapImportedDatabase(parsed);
+      const counts={
+        articoli:Array.isArray(source.articoli)?source.articoli.length:0,
+        clienti:Array.isArray(source.clienti)?source.clienti.length:0,
+        ordini:Array.isArray(source.ordini)?source.ordini.length:0
+      };
+      if(!counts.articoli && !counts.clienti && !counts.ordini) throw new Error('Il file non contiene articoli, clienti o ordini');
 
-      for(const art of incoming.articoli){
-        const sources=Array.isArray(art.foto)?art.foto.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[];
-        // I vecchi photoIds appartengono all’altro dispositivo e non sono utilizzabili qui.
-        art.photoIds=[];
-        for(const src of sources){
-          try{
-            const pid='ph_'+uid();
-            await idbSet(pid,src);
-            art.photoIds.push(pid);
-            photoImported++;
-          }catch(photoErr){
-            photoSkipped++;
-            console.warn('Foto non importata',art?.codice||art?.id,photoErr);
-          }
-        }
-        art.foto=[];
-      }
-      incoming=compactImportedOrderMedia(incoming);
+      // Copia integrale di emergenza in IndexedDB prima di trasformare qualunque dato.
+      await saveRawImportRecovery(raw,file.name);
+
+      // Il database operativo viene alleggerito solo dei media duplicati/pesanti.
+      // Tutti i dati gestionali ed economici restano invariati.
+      const cleanedSource=stripImportedMedia(source);
+      let incoming=normalizeDBShape(cleanedSource);
+      if(!Array.isArray(incoming.articoli)||!Array.isArray(incoming.clienti)||!Array.isArray(incoming.ordini)) throw new Error('Struttura JSON non compatibile');
 
       let nextDb=incoming;
       if(mode==='merge'){
         const curr=loadDB();
         nextDb=normalizeDBShape({
-          version: incoming.version || curr.version || 'v6.2',
-          createdAt: curr.createdAt || incoming.createdAt || new Date().toISOString(),
-          articoli: [...(curr.articoli||[]), ...(incoming.articoli||[])],
-          clienti: [...(curr.clienti||[]), ...(incoming.clienti||[])],
-          ordini: [...(curr.ordini||[]), ...(incoming.ordini||[])],
-          categorie: [...new Set([...(curr.categorie||[]), ...(incoming.categorie||[])])],
-          brands: [...new Set([...(curr.brands||[]), ...(incoming.brands||[])])]
+          version:incoming.version||curr.version||'v6.9',
+          createdAt:curr.createdAt||incoming.createdAt||new Date().toISOString(),
+          articoli:[...(curr.articoli||[]),...(incoming.articoli||[])],
+          clienti:[...(curr.clienti||[]),...(incoming.clienti||[])],
+          ordini:[...(curr.ordini||[]),...(incoming.ordini||[])],
+          categorie:[...new Set([...(curr.categorie||[]),...(incoming.categorie||[])])],
+          brands:[...new Set([...(curr.brands||[]),...(incoming.brands||[])])],
+          agenda:[...(curr.agenda||[]),...(incoming.agenda||[])]
         });
-        nextDb=compactImportedOrderMedia(nextDb);
-      }
-      updateShippingNotifications(nextDb,'json-import');
-      // Modalità recupero: impedisce a un pull Cloud automatico di sovrascrivere subito il backup appena importato.
-      try{
-        localStorage.setItem(RECOVERY_LOCAL_LOCK_KEY,'1');
-        localStorage.setItem('vg_access_mode','local');
-        localStorage.setItem(KEY+'_backup_import_'+Date.now(),JSON.stringify(nextDb));
-      }catch(_e){}
-      if(autoCloudPullTimer){ clearInterval(autoCloudPullTimer); autoCloudPullTimer=null; }
-      if(!saveDB(nextDb)) throw new Error('Salvataggio locale fallito: quota storage');
-      const verifyDb=loadDB();
-      const expectedCount=(nextDb.articoli||[]).length+(nextDb.clienti||[]).length+(nextDb.ordini||[]).length;
-      const verifiedCount=(verifyDb.articoli||[]).length+(verifyDb.clienti||[]).length+(verifyDb.ordini||[]).length;
-      if(expectedCount>0 && verifiedCount===0) throw new Error('I dati sono stati letti ma non risultano salvati nel database locale');
-      nextDb=verifyDb;
-
-      let bachecaImported=false;
-      if(incomingBacheca){
-        incomingBacheca.posts=Array.isArray(incomingBacheca.posts)?incomingBacheca.posts:[];
-        if(mode==='merge'){
-          const currentSocial=loadSocial();
-          const allPosts=[...(Array.isArray(currentSocial?.posts)?currentSocial.posts:[]), ...incomingBacheca.posts];
-          const byId=new Map();
-          for(const post of allPosts){
-            const key=String(post?.id||'').trim() || `legacy_${String(post?.titolo||'')}_${String(post?.data||post?.createdAt||'')}`;
-            const prev=byId.get(key);
-            if(!prev || Number(post?._ts||post?.updatedAt||0)>=Number(prev?._ts||prev?.updatedAt||0)) byId.set(key,post);
-          }
-          saveSocial({...currentSocial,...incomingBacheca,posts:Array.from(byId.values())});
-        }else saveSocial(incomingBacheca);
-        bachecaImported=true;
       }
 
+      const rawCore=JSON.stringify(nextDb);
+      localStorage.setItem(KEY+'_pre_import_backup', localStorage.getItem(KEY)||'');
+      localStorage.setItem(KEY,rawCore);
+      localStorage.setItem(KEY+'_backup_latest',rawCore);
+      try{ localStorage.setItem(AGENDA_KEY,JSON.stringify(Array.isArray(nextDb.agenda)?nextDb.agenda:[])); }catch(_e){}
+
+      const verified=loadDB();
+      const after={articoli:verified.articoli?.length||0,clienti:verified.clienti?.length||0,ordini:verified.ordini?.length||0};
+      if((counts.articoli&&after.articoli===0)||(counts.clienti&&after.clienti===0)||(counts.ordini&&after.ordini===0)) throw new Error('I dati non risultano salvati dopo la verifica');
+
+      if(parsed?.bacheca && typeof parsed.bacheca==='object'){
+        try{ saveSocial(parsed.bacheca); }catch(_e){}
+      }
       renderAll();
-      const counts=`${nextDb.articoli.length} articoli, ${nextDb.clienti.length} clienti, ${nextDb.ordini.length} ordini`;
-      try{ hideAuthGate(); renderPageState('home'); renderActivePage('home'); }catch(_e){}
-      const photoMsg=photoSkipped ? ` Foto recuperate: ${photoImported}; non recuperate: ${photoSkipped}.` : ` Foto recuperate: ${photoImported}.`;
-      const baseMsg=mode==='merge' ? `Import completato e unito: ${counts}.` : `Import completato: ${counts}.`;
-      if(hint) hint.textContent=baseMsg+photoMsg+(bachecaImported?' Bacheca ripristinata.':'');
-      toast('Dati ripristinati correttamente');
+      renderSocial();
+      const msg=`Import completato: ${after.articoli} articoli, ${after.clienti} clienti, ${after.ordini} ordini.`;
+      if(hint) hint.textContent=msg+' Foto escluse dal database operativo per evitare il blocco di Android; il JSON integrale è conservato come copia di emergenza.';
+      toast(msg);
+      go('articoli');
     }catch(e){
-      console.error('Importazione database fallita',e);
-      const detail=humanImportError(e);
-      if(hint) hint.textContent='Import fallito: '+detail;
-      toast('Import fallito: '+detail);
+      console.error('Import JSON fallito',e);
+      const msg='Import fallito: '+String(e?.message||e||'errore sconosciuto');
+      if(hint) hint.textContent=msg;
+      toast(msg);
     }
   };
   r.readAsText(file);
@@ -11567,30 +12091,6 @@ document.addEventListener('click',(ev)=>{
   if(a==='newOrd') return openOrdEdit(null);
   if(a==='exportFull') return exportDB('full');
   if(a==='exportLite') return exportDB('lite');
-  if(a==='saveCloudPublicKey'){
-    const key=String(document.getElementById('cloudPublicKey')?.value||'').trim();
-    if(!key){ toast('Inserisci la chiave pubblica Supabase'); return; }
-    const validation=typeof window.VG_VALIDATE_SUPABASE_PUBLIC_KEY==='function'
-      ? window.VG_VALIDATE_SUPABASE_PUBLIC_KEY(key)
-      : {ok:/^sb_publishable_[A-Za-z0-9_-]+$/.test(key)};
-    if(!validation.ok){
-      const msg=validation.reason==='jwt_not_anon'
-        ? 'Questa sembra una sessione utente o una chiave con ruolo diverso da anon'
-        : 'Chiave non valida: usa Publishable oppure anon';
-      toast(msg);
-      return;
-    }
-    try{ localStorage.setItem('vg_supabase_public_key',key); }catch(_e){}
-    toast('Chiave cloud salvata. Riavvio in corso…');
-    setTimeout(()=>location.reload(),450);
-    return;
-  }
-  if(a==='clearCloudPublicKey'){
-    try{ localStorage.removeItem('vg_supabase_public_key'); localStorage.removeItem('supabase_anon_key'); }catch(_e){}
-    toast('Chiave cloud rimossa. Riavvio in corso…');
-    setTimeout(()=>location.reload(),450);
-    return;
-  }
   if(a==='refreshDiag'){ renderDiagnostics(); toast('Diagnostica aggiornata'); return; }
   if(a==='regenThumbs'){
     askConfirm('Rigenero le miniature locali per tutte le foto articoli. Non cancello articoli, ordini o foto originali su Supabase. Può richiedere qualche minuto.', ()=>regenerateArticleThumbCache().catch(err=>{toast('Rigenerazione anteprime fallita'); console.error(err);}), 'Rigenera anteprime', 'Rigenera', 'primary');
@@ -11798,7 +12298,6 @@ document.addEventListener('click',(ev)=>{
   if(a==='clearArtPhotos'){ currentArtExistingPics=[]; currentArtPhotosCleared=true; document.getElementById('a_photo').value=''; renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Foto attuali rimosse'); return; }
   if(a==='saveArt') return saveArt();
   if(a==='deleteArt') return deleteArt();
-  if(a==='restoreArchivedArticle') return restoreArchivedArticle(el.dataset.id||'');
   if(a==='saveCli') return saveCli();
   if(a==='closeCli'){ saveClientDraft(); return hide('mCliEdit'); }
   if(a==='deleteCli') return deleteCli();
@@ -11809,9 +12308,6 @@ document.addEventListener('click',(ev)=>{
   if(a==='track17') return openTrack17();
   if(a==='openParcel') return openTrackParcel();
   if(a==='closeMonthSales') return hide('mMonthSales');
-  if(a==='recoverLocalData') return recoverLocalData();
-  if(a==='showRecoveryCounts') return showRecoveryCounts();
-  if(a==='unlockCloudAfterRecovery'){ try{ localStorage.removeItem(RECOVERY_LOCAL_LOCK_KEY); refreshAutoCloudPull(); toast('Sincronizzazione cloud riattivata'); }catch(_e){ toast('Impossibile riattivare il cloud'); } return; }
   if(a==='cloudPull'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pullCloudToLocal().catch(err=>{toast(err?.message||'Carica cloud fallita'); console.error(err);}); }
   if(a==='cloudPush'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pushLocalToCloud().catch(err=>{toast(err?.message||'Invia cloud fallita'); console.error(err);}); }
   if(a==='doCloudLogin') return cloudLogin();
@@ -11931,9 +12427,6 @@ document.getElementById('a_sell')?.addEventListener('input', ()=>{
   if(id==='a_color_mode') el.addEventListener('change', ()=>{ updateArticleColorModeUI(); saveArticleDraft(); });
   if(id==='a_color_count' || id==='a_color_labels' || id==='a_colore' || id==='a_belt_h') el.addEventListener('change', saveArticleDraft);
 });
-document.getElementById('a_archive_state')?.addEventListener('change', ()=>{ updateArticleArchiveUi(); saveArticleDraft(); });
-document.getElementById('a_archive_note')?.addEventListener('input', saveArticleDraft);
-document.getElementById('a_unavailable')?.addEventListener('change', ()=>{ const state=document.getElementById('a_archive_state'); if(state){ state.value=document.getElementById('a_unavailable').checked?'non_disponibile':''; } updateArticleArchiveUi(); saveArticleDraft(); });
 document.getElementById('a_cat')?.addEventListener('change', ()=>{ updateArticleMeasureState(); renderArtAutoFields(); saveArticleDraft(); });
 
 bindSearchSuggest('o_cli_q','oCliSuggest','orderCli', value=>fillClientSelect(loadDB(), value, true));
@@ -11969,10 +12462,10 @@ document.getElementById('a_video')?.addEventListener('change',()=>{
 });
 document.getElementById('btnCloudLogin')?.addEventListener('click', ()=>show('mCloudLogin'));
 document.getElementById('btnCloudLogout')?.addEventListener('click', cloudLogout);
-document.addEventListener('visibilitychange', ()=>{ if(document.hidden) flushVisibleDrafts(); else autoCloudPullNow('visible'); });
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) flushVisibleDrafts(); });
 window.addEventListener('pagehide', flushVisibleDrafts);
 window.addEventListener('beforeunload', flushVisibleDrafts);
-window.addEventListener('focus', ()=>autoCloudPullNow('focus'));
+
 
 // Paesi europei e province italiane
 const provSel=document.getElementById('c_prov');
@@ -11994,128 +12487,18 @@ ensureComuniCapIndex().then(()=>{
   if(capVal) scheduleAddressLookup('cap',false,false); else if(cityVal) scheduleAddressLookup('city',false,false);
 }).catch(()=>{ setCapHint('Archivio CAP italiano non raggiungibile: puoi inserire CAP e città manualmente.'); });
 
-
-/* ====== RECUPERO DATI LOCALE ====== */
-function dbRecordCounts(db){
-  const d=normalizeDBShape(db||defDB());
-  return {articoli:(d.articoli||[]).length,clienti:(d.clienti||[]).length,ordini:(d.ordini||[]).length};
-}
-function recoveryCountText(db){
-  const c=dbRecordCounts(db);
-  return `${c.articoli} articoli · ${c.clienti} clienti · ${c.ordini} ordini`;
-}
-function recoveryDbScore(db){
-  const c=dbRecordCounts(db);
-  return c.articoli+c.clienti+c.ordini;
-}
-function extractDbCandidatesFromValue(value,key=''){
-  const out=[];
-  const seen=new Set();
-  const visit=(node,label,depth=0)=>{
-    if(depth>3 || !node || typeof node!=='object' || seen.has(node)) return;
-    seen.add(node);
-    const hasCore=Array.isArray(node.articoli)||Array.isArray(node.clienti)||Array.isArray(node.ordini);
-    if(hasCore){
-      try{
-        const db=normalizeDBShape(node);
-        if(recoveryDbScore(db)>0) out.push({key:label,db});
-      }catch(_e){}
-    }
-    ['db','database','data','backup','payload','state'].forEach(k=>{
-      if(node[k] && typeof node[k]==='object') visit(node[k],label+':'+k,depth+1);
-    });
-  };
-  try{
-    const parsed=typeof value==='string'?JSON.parse(value):value;
-    visit(parsed,key,0);
-  }catch(_e){}
-  return out;
-}
-function discoverLocalDbCandidates(){
-  const found=[];
-  try{
-    for(let i=0;i<localStorage.length;i++){
-      const key=localStorage.key(i);
-      if(!key) continue;
-      const raw=localStorage.getItem(key);
-      if(!raw || raw.length<20) continue;
-      found.push(...extractDbCandidatesFromValue(raw,key));
-    }
-  }catch(_e){}
-  return found;
-}
-function mergeRecoveryDatabases(databases=[]){
-  const base=normalizeDBShape(loadDB());
-  const merged={
-    version:base.version||'v6.1',createdAt:base.createdAt||new Date().toISOString(),
-    articoli:[...(base.articoli||[])],clienti:[...(base.clienti||[])],ordini:[...(base.ordini||[])],
-    categorie:[...(base.categorie||[])],brands:[...(base.brands||[])],agenda:[...(base.agenda||[])]
-  };
-  databases.forEach(db=>{
-    const d=normalizeDBShape(db||defDB());
-    merged.articoli.push(...(d.articoli||[]));
-    merged.clienti.push(...(d.clienti||[]));
-    merged.ordini.push(...(d.ordini||[]));
-    merged.categorie.push(...(d.categorie||[]));
-    merged.brands.push(...(d.brands||[]));
-    merged.agenda.push(...(d.agenda||[]));
-  });
-  return normalizeDBShape(merged);
-}
-function setRecoveryStatus(message,kind=''){
-  const el=document.getElementById('recoveryStatus');
-  if(!el) return;
-  el.textContent=message;
-  el.style.borderColor=kind==='ok'?'#86efac':kind==='warn'?'#f59e0b':'#cbd5e1';
-  el.style.background=kind==='ok'?'#f0fdf4':kind==='warn'?'#fff7ed':'#f8fafc';
-  el.style.color=kind==='ok'?'#166534':kind==='warn'?'#9a3412':'#334155';
-}
-function showRecoveryCounts(){
-  const db=loadDB();
-  const score=recoveryDbScore(db);
-  setRecoveryStatus(`Archivio attuale: ${recoveryCountText(db)}.`,score>0?'ok':'warn');
-  return db;
-}
-function recoverLocalData(){
-  const candidates=discoverLocalDbCandidates();
-  const useful=candidates.filter(x=>recoveryDbScore(x.db)>0);
-  if(!useful.length){
-    showRecoveryCounts();
-    setRecoveryStatus('Nessuna copia locale aggiuntiva trovata. Usa il backup JSON oppure “Carica cloud”; non premere “Invia cloud”.','warn');
-    toast('Nessun archivio locale aggiuntivo trovato');
-    return false;
-  }
-  const before=loadDB();
-  const recovered=mergeRecoveryDatabases(useful.map(x=>x.db));
-  try{
-    const stamp=Date.now();
-    localStorage.setItem('vg_recovery_snapshot_'+stamp,JSON.stringify(recovered));
-    localStorage.setItem(KEY,JSON.stringify(recovered));
-    localStorage.setItem(KEY+'_backup_latest',JSON.stringify(recovered));
-  }catch(err){
-    console.error(err); toast('Recupero non salvato'); return false;
-  }
-  renderAll(); renderDiagnostics();
-  const added=Math.max(0,recoveryDbScore(recovered)-recoveryDbScore(before));
-  setRecoveryStatus(`Recupero completato: ${recoveryCountText(recovered)}. Record aggiuntivi recuperati: ${added}.`,'ok');
-  toast('Recupero locale completato');
-  return true;
-}
-
 /* ====== CLOUD / SUPABASE ====== */
 let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.53-2026-07-26';
+const VG_BUILD='1.0.54-2026-07-26';
 const AUTO_CLOUD_PULL_MS=180000;
-const RECOVERY_LOCAL_LOCK_KEY='vg_recovery_local_lock_v1';
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
 let autoCloudPullLastAt=0;
 function refreshAutoCloudPull(){
   if(autoCloudPullTimer){ clearInterval(autoCloudPullTimer); autoCloudPullTimer=null; }
-  try{ if(localStorage.getItem(RECOVERY_LOCAL_LOCK_KEY)==='1') return; }catch(_e){}
   if(!cloudEnabled()) return;
   autoCloudPullTimer=setInterval(()=>{ autoCloudPullNow('timer'); }, AUTO_CLOUD_PULL_MS);
 }
@@ -12159,23 +12542,11 @@ function cloudUi(){
   const logged=!!cloudSession;
   const hide=(el,on)=>{ el.hidden=!!on; el.style.display=on?'none':''; };
   const setDisabled=(el,on)=>{ el.disabled=!!on; el.style.opacity=on?'.65':''; };
-  const cfgWarn=document.getElementById('cloudConfigWarning');
-  if(!window.VG_SUPABASE_READY || window.VG_SUPABASE_CONFIG_MISSING){
-    const keyErr=String(window.VG_SUPABASE_KEY_ERROR||'missing');
-    s.textContent=(uiPrefs.cloud||'Cloud')+(keyErr==='missing'?': configurazione mancante':': chiave non valida');
-    if(cfgWarn){
-      cfgWarn.style.display='block';
-      const title=cfgWarn.querySelector('#cloudConfigTitle');
-      const body=cfgWarn.querySelector('#cloudConfigText');
-      if(title) title.textContent=keyErr==='missing'?'Configurazione cloud non caricata':'Chiave cloud non valida';
-      if(body) body.textContent=keyErr==='jwt_not_anon'
-        ? 'È stata rilevata una sessione utente o una chiave con ruolo non adatto. Serve la Publishable key oppure la vecchia anon.'
-        : (keyErr==='missing'?'Inserisci la chiave pubblica del progetto Supabase. I dati locali non vengono cancellati.':'Il formato della chiave salvata non è valido. Sostituiscila con la Publishable key oppure con la vecchia anon.');
-    }
+  if(!window.VG_SUPABASE_READY){
+    s.textContent=uiPrefs.cloud||'Cloud';
     hide(bIn,true); hide(bPull,true); hide(bPush,true); hide(bOut,true);
     return;
   }
-  if(cfgWarn) cfgWarn.style.display='none';
   if(cloudBusy){ s.textContent=(uiPrefs.cloud||'Cloud')+': lavoro in corso…'; }
   else if(cloudSession?.user?.email){ s.textContent=`${uiPrefs.cloud||'Cloud'}: ${cloudSession.user.email}`; }
   else { s.textContent=uiPrefs.cloud||'Cloud'; }
@@ -12188,11 +12559,7 @@ function cloudUi(){
   setDisabled(bPush,cloudBusy||!logged);
   setDisabled(bOut,cloudBusy||!logged);
 }
-function cloudEnabled(){
-  let recoveryLocked=false;
-  try{ recoveryLocked=localStorage.getItem(RECOVERY_LOCAL_LOCK_KEY)==='1'; }catch(_e){}
-  return !recoveryLocked && !!(window.VG_SUPABASE_READY && cloudSession);
-}
+function cloudEnabled(){ return !!(window.VG_SUPABASE_READY && cloudSession); }
 async function cloudSaveOne(type, payload, dbRef){
   if(!cloudEnabled()) return payload;
   cloudBusy=true; cloudUi();
@@ -12604,7 +12971,7 @@ async function pullCloudToLocal(opts={}){
         const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
         const cloudTs=parseTimestampLike(meta._ts, p.updated_at, p.created_at, local?._ts, Date.now());
         const createdAt=meta.createdAt||local?.createdAt||local?.dataInserimento||p.created_at||'';
-        return {id:p.id,createdAt,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,costoStimatoAttivo:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoIpotetico:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoEurStimato:firstFiniteNumber(meta.costoEurStimato,local?.costoEurStimato,0),prezzoVenditaStimato:firstFiniteNumber(meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),prezzoVenditaStimatoOriginale:firstFiniteNumber(meta.prezzoVenditaStimatoOriginale,local?.prezzoVenditaStimatoOriginale,meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),costoStimaCampioni:Math.max(0,parseInt(meta.costoStimaCampioni||local?.costoStimaCampioni||0,10)||0),costoStimaAffidabilita:meta.costoStimaAffidabilita||local?.costoStimaAffidabilita||'',costoStimaMetodo:meta.costoStimaMetodo||local?.costoStimaMetodo||'',costoStimaData:meta.costoStimaData||local?.costoStimaData||'',costoStimaMin:firstFiniteNumber(meta.costoStimaMin,local?.costoStimaMin,0),costoStimaMax:firstFiniteNumber(meta.costoStimaMax,local?.costoStimaMax,0),costoStimaSogliaMinima:firstFiniteNumber(meta.costoStimaSogliaMinima,local?.costoStimaSogliaMinima,0),costoStimaSignature:meta.costoStimaSignature||local?.costoStimaSignature||'',prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),costoNormaleSconosciuto:!!(meta.costoNormaleSconosciuto??local?.costoNormaleSconosciuto),promoFornitoreAttiva:(typeof meta.promoFornitoreAttiva==='boolean'?meta.promoFornitoreAttiva:(typeof local?.promoFornitoreAttiva==='boolean'?local.promoFornitoreAttiva:pulledCostoUsdPromo>0)),dataInizioPromoFornitore:normalizePromoStartDate(meta.dataInizioPromoFornitore||local?.dataInizioPromoFornitore||''),scadenzaPromoFornitore:meta.scadenzaPromoFornitore||local?.scadenzaPromoFornitore||'',promoFornitoreDataSconosciuta:!!(meta.promoFornitoreDataSconosciuta??local?.promoFornitoreDataSconosciuta),dataInizioPromoPersonale:normalizePromoStartDate(meta.dataInizioPromoPersonale||local?.dataInizioPromoPersonale||meta.dataInizioPromo||local?.dataInizioPromo||''),scadenzaPromoPersonale:meta.scadenzaPromoPersonale||local?.scadenzaPromoPersonale||meta.scadenzaPromo||local?.scadenzaPromo||'',archivioStato:normalizeArticleArchiveStateValue(meta.archivioStato||local?.archivioStato||(pulledUnavailable?'non_disponibile':'')),archiviato:!!(meta.archiviato||local?.archiviato||meta.archivioStato||local?.archivioStato||pulledUnavailable),archivioNota:meta.archivioNota||local?.archivioNota||'',archivioData:meta.archivioData||local?.archivioData||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
+        return {id:p.id,createdAt,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,costoStimatoAttivo:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoIpotetico:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoEurStimato:firstFiniteNumber(meta.costoEurStimato,local?.costoEurStimato,0),prezzoVenditaStimato:firstFiniteNumber(meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),prezzoVenditaStimatoOriginale:firstFiniteNumber(meta.prezzoVenditaStimatoOriginale,local?.prezzoVenditaStimatoOriginale,meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),costoStimaCampioni:Math.max(0,parseInt(meta.costoStimaCampioni||local?.costoStimaCampioni||0,10)||0),costoStimaAffidabilita:meta.costoStimaAffidabilita||local?.costoStimaAffidabilita||'',costoStimaMetodo:meta.costoStimaMetodo||local?.costoStimaMetodo||'',costoStimaData:meta.costoStimaData||local?.costoStimaData||'',costoStimaMin:firstFiniteNumber(meta.costoStimaMin,local?.costoStimaMin,0),costoStimaMax:firstFiniteNumber(meta.costoStimaMax,local?.costoStimaMax,0),costoStimaSogliaMinima:firstFiniteNumber(meta.costoStimaSogliaMinima,local?.costoStimaSogliaMinima,0),costoStimaSignature:meta.costoStimaSignature||local?.costoStimaSignature||'',prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),costoNormaleSconosciuto:!!(meta.costoNormaleSconosciuto??local?.costoNormaleSconosciuto),promoFornitoreAttiva:(typeof meta.promoFornitoreAttiva==='boolean'?meta.promoFornitoreAttiva:(typeof local?.promoFornitoreAttiva==='boolean'?local.promoFornitoreAttiva:pulledCostoUsdPromo>0)),dataInizioPromoFornitore:normalizePromoStartDate(meta.dataInizioPromoFornitore||local?.dataInizioPromoFornitore||''),scadenzaPromoFornitore:meta.scadenzaPromoFornitore||local?.scadenzaPromoFornitore||'',promoFornitoreDataSconosciuta:!!(meta.promoFornitoreDataSconosciuta??local?.promoFornitoreDataSconosciuta),dataInizioPromoPersonale:normalizePromoStartDate(meta.dataInizioPromoPersonale||local?.dataInizioPromoPersonale||meta.dataInizioPromo||local?.dataInizioPromo||''),scadenzaPromoPersonale:meta.scadenzaPromoPersonale||local?.scadenzaPromoPersonale||meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
       }).filter(a=>!articleMatchesDeleteTombstone(a, deletedArticleTombstones)),
       clienti:(cli||[]).map(c=>{
         const packed=unpackCloudClientNote(c.note||'');
@@ -12660,23 +13027,10 @@ async function pushLocalToCloud(){
   cloudBusy=true; cloudUi();
   try{
     const db=loadDB();
-    const localTotal=(db.articoli||[]).length+(db.clienti||[]).length+(db.ordini||[]).length;
-    if(!localTotal){
-      toast('Invio bloccato: archivio locale vuoto');
+    if(!db.articoli.length && !db.clienti.length && !db.ordini.length){
+      toast('Niente da inviare al cloud');
       return;
     }
-    try{
-      const tables=['articoli','clienti','ordini'];
-      let cloudTotal=0;
-      for(const table of tables){
-        const {count,error}=await sb.from(table).select('id',{count:'exact',head:true});
-        if(!error) cloudTotal+=Number(count||0);
-      }
-      if(cloudTotal>0 && localTotal<Math.max(5,Math.floor(cloudTotal*.5))){
-        toast('Invio cloud bloccato: archivio locale troppo piccolo. Prima usa Carica cloud.');
-        return;
-      }
-    }catch(err){ console.warn('Controllo sicurezza cloud non disponibile',err); }
     const artIdMap=new Map();
     const cliIdMap=new Map();
     for(let i=0;i<db.articoli.length;i++){
@@ -12740,10 +13094,9 @@ async function cloudLogout(){
     const sb=await ensureCloud(); if(!sb) return;
     await sb.auth.signOut();
     cloudSession=null;
-    try{ localStorage.setItem('vg_access_mode','local'); }catch(_e){}
     cloudUi();
-    hideAuthGate();
-    toast('Cloud disconnesso. Il gestionale resta disponibile in locale.');
+    showAuthGate();
+    toast('Disconnesso. Arrivederci! 👋');
   }catch(err){ toast('Logout fallito'); console.error(err); }
 }
 
@@ -13284,24 +13637,12 @@ function hideAuthGate(){
   const gate=document.getElementById('authGate');
   if(gate) gate.style.display='none';
 }
-function enterLocalMode(showMessage=true){
-  try{ localStorage.setItem('vg_access_mode','local'); }catch(_e){}
-  hideAuthGate();
-  cloudUi();
-  try{ renderActivePage(currentHistoryPage()); }catch(_e){}
-  if(showMessage) toast('Gestionale aperto in modalità locale');
-}
 function initAuthGate(){
   const btn=document.getElementById('authLoginBtn');
   const emailEl=document.getElementById('authEmail');
   const passEl=document.getElementById('authPassword');
   const errEl=document.getElementById('authErr');
-  const localBtn=document.getElementById('authLocalBtn');
   if(!btn) return;
-  if(localBtn && !localBtn.dataset.bound){
-    localBtn.dataset.bound='1';
-    localBtn.addEventListener('click',()=>enterLocalMode(true));
-  }
   const doLogin=async()=>{
     const email=(emailEl?.value||'').trim();
     const pass=passEl?.value||'';
@@ -13310,7 +13651,7 @@ function initAuthGate(){
     if(errEl) errEl.style.display='none';
     try{
       const sb=await ensureCloud();
-      if(!sb){ throw new Error('Cloud non configurato'); }
+      if(!sb){ throw new Error('Supabase non disponibile'); }
       const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
       if(error) throw error;
       cloudSession=data.session||null;
@@ -13321,13 +13662,7 @@ function initAuthGate(){
       try{ await autoCloudPullNow('login'); }catch(_e){}
       toast('Benvenuto! 👋');
     }catch(err){
-      if(errEl){
-        const msg=String(err?.message||'');
-        errEl.textContent=/Cloud non configurato|Supabase non disponibile/i.test(msg)
-          ? 'Cloud non configurato: entra con i dati locali e collegalo dalle Impostazioni'
-          : 'Email o password non corretti';
-        errEl.style.display='block';
-      }
+      if(errEl){ errEl.textContent='Email o password non corretti'; errEl.style.display='block'; }
       console.warn('Auth gate login fallito:',err);
     }finally{
       btn.textContent='Accedi'; btn.disabled=false;
@@ -13340,9 +13675,6 @@ function initAuthGate(){
 
 /* init */
 async function bootApp(){
-  await runOneTimeFreshReset();
-  // Recupero: non modificare statistiche o record durante l’avvio.
-  try{ showRecoveryCounts(); }catch(_e){}
   renderAll();
   renderSocial();
   renderSocialSuggestions();
@@ -13357,35 +13689,13 @@ async function bootApp(){
   const initial=location.hash.replace('#','')||'home';
   history.replaceState({page:initial, artBrowse:{...artBrowseState}},'', '#'+initial);
   go(initial,false);
-  cloudUi();
-  refreshAutoCloudPull();
   requestPersistentStorage();
-  initAuthGate();
-
-  // Controlla se l'utente è già loggato
+  hideAuthGate();
   try{
-    const sb=await ensureCloud();
-    if(sb){
-      const {data:{session}}=await sb.auth.getSession();
-      cloudSession=session||null;
-    }
+    const state=document.getElementById('cloudState');
+    if(state) state.textContent='Cloud disattivato in questa versione di recupero';
+    ['btnCloudLogin','btnCloudPull','btnCloudPush','btnCloudLogout'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.disabled=true; el.style.opacity='.5'; } });
   }catch(_e){}
-
-  if(cloudSession){
-    // Sessione cloud valida: entra e sincronizza normalmente.
-    try{ localStorage.setItem('vg_access_mode','cloud'); }catch(_e){}
-    hideAuthGate();
-    try{ renderActivePage(currentHistoryPage()); }catch(_e){}
-    try{ refreshAutoCloudPull(); }catch(_e){}
-  } else if(!window.VG_SUPABASE_READY || window.VG_SUPABASE_CONFIG_MISSING){
-    // Il Cloud non è configurato: non deve mai bloccare i dati locali.
-    enterLocalMode(false);
-    setTimeout(()=>toast('Modalità locale attiva: configura il Cloud dalle Impostazioni'),500);
-  } else {
-    // Cloud disponibile ma nessuna sessione: lascia scegliere tra login e modalità locale.
-    const remembered=(()=>{ try{return localStorage.getItem('vg_access_mode')==='local';}catch(_e){return false;} })();
-    if(remembered) enterLocalMode(false); else showAuthGate();
-  }
 }
 bootApp();
 try{
@@ -13448,7 +13758,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.48', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.54', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

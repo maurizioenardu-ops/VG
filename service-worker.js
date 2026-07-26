@@ -1,7 +1,7 @@
-const VERSION = 'gestionale-vg-1.0.52-import-funzioni-complete';
+const VERSION = 'gestionale-vg-1.0.54-2026-07-26';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
-  './', './index.html', './manifest.json', './supabaseClient.js',
+  './', './index.html', './manifest.json',
   './icon-v1-192.png', './icon-v1-512.png', './icon-v1-maskable-512.png',
   './apple-touch-icon-v1.png', './favicon-v1-32.png',
   './screenshot-mobile-v1.jpg', './screenshot-wide-v1.jpg'
