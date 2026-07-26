@@ -776,7 +776,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.46</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.47</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -786,10 +786,11 @@ window.addEventListener('error',e=>{
           <span id="cloudState">Cloud</span>
         </div>
         <div id="cloudConfigWarning" class="mutedBox" style="display:none;margin-top:10px;border-color:#fecaca;background:#fff1f2;color:#991b1b">
-          <div class="t">Configurazione cloud non caricata</div>
-          <div class="s" style="color:#991b1b;margin-top:4px">Il gestionale non ha trovato la configurazione Supabase. I dati locali non vengono cancellati.</div>
-          <div style="margin-top:8px"><input id="cloudPublicKey" type="password" placeholder="Chiave pubblica Supabase (anon o publishable)" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-          <div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="saveCloudPublicKey">Salva configurazione cloud</button></div>
+          <div class="t" id="cloudConfigTitle">Configurazione cloud non caricata</div>
+          <div class="s" id="cloudConfigText" style="color:#991b1b;margin-top:4px">Inserisci la chiave pubblica del progetto Supabase. I dati locali non vengono cancellati.</div>
+          <div class="s" style="color:#7f1d1d;margin-top:6px"><b>Dove trovarla:</b> Supabase → progetto → Settings → API Keys → Publishable key. Va bene anche la vecchia chiave anon. Non usare secret o service_role.</div>
+          <div style="margin-top:8px"><input id="cloudPublicKey" type="password" placeholder="sb_publishable_… oppure chiave anon" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+          <div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="saveCloudPublicKey">Salva configurazione cloud</button><button class="btn smallish" type="button" data-action="clearCloudPublicKey">Rimuovi chiave salvata</button></div>
         </div>
         <div class="actions">
           <button id="btnCloudLogin" class="btn" type="button">Login cloud</button>
@@ -11504,8 +11505,24 @@ document.addEventListener('click',(ev)=>{
   if(a==='saveCloudPublicKey'){
     const key=String(document.getElementById('cloudPublicKey')?.value||'').trim();
     if(!key){ toast('Inserisci la chiave pubblica Supabase'); return; }
+    const validation=typeof window.VG_VALIDATE_SUPABASE_PUBLIC_KEY==='function'
+      ? window.VG_VALIDATE_SUPABASE_PUBLIC_KEY(key)
+      : {ok:/^sb_publishable_[A-Za-z0-9_-]+$/.test(key)};
+    if(!validation.ok){
+      const msg=validation.reason==='jwt_not_anon'
+        ? 'Questa sembra una sessione utente o una chiave con ruolo diverso da anon'
+        : 'Chiave non valida: usa Publishable oppure anon';
+      toast(msg);
+      return;
+    }
     try{ localStorage.setItem('vg_supabase_public_key',key); }catch(_e){}
-    toast('Configurazione cloud salvata. Riavvio in corso…');
+    toast('Chiave cloud salvata. Riavvio in corso…');
+    setTimeout(()=>location.reload(),450);
+    return;
+  }
+  if(a==='clearCloudPublicKey'){
+    try{ localStorage.removeItem('vg_supabase_public_key'); localStorage.removeItem('supabase_anon_key'); }catch(_e){}
+    toast('Chiave cloud rimossa. Riavvio in corso…');
     setTimeout(()=>location.reload(),450);
     return;
   }
@@ -11966,8 +11983,17 @@ function cloudUi(){
   const setDisabled=(el,on)=>{ el.disabled=!!on; el.style.opacity=on?'.65':''; };
   const cfgWarn=document.getElementById('cloudConfigWarning');
   if(!window.VG_SUPABASE_READY || window.VG_SUPABASE_CONFIG_MISSING){
-    s.textContent=(uiPrefs.cloud||'Cloud')+': configurazione mancante';
-    if(cfgWarn) cfgWarn.style.display='block';
+    const keyErr=String(window.VG_SUPABASE_KEY_ERROR||'missing');
+    s.textContent=(uiPrefs.cloud||'Cloud')+(keyErr==='missing'?': configurazione mancante':': chiave non valida');
+    if(cfgWarn){
+      cfgWarn.style.display='block';
+      const title=cfgWarn.querySelector('#cloudConfigTitle');
+      const body=cfgWarn.querySelector('#cloudConfigText');
+      if(title) title.textContent=keyErr==='missing'?'Configurazione cloud non caricata':'Chiave cloud non valida';
+      if(body) body.textContent=keyErr==='jwt_not_anon'
+        ? 'È stata rilevata una sessione utente o una chiave con ruolo non adatto. Serve la Publishable key oppure la vecchia anon.'
+        : (keyErr==='missing'?'Inserisci la chiave pubblica del progetto Supabase. I dati locali non vengono cancellati.':'Il formato della chiave salvata non è valido. Sostituiscila con la Publishable key oppure con la vecchia anon.');
+    }
     hide(bIn,true); hide(bPull,true); hide(bPush,true); hide(bOut,true);
     return;
   }

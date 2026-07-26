@@ -2,14 +2,29 @@
   'use strict';
   const PROJECT_URL='https://qfjwtawsqfwmsmrrgqfi.supabase.co';
   const STORAGE_KEY='sb-qfjwtawsqfwmsmrrgqfi-auth-token';
-  function readStoredSessionToken(){
+
+  function decodeJwtPayload(token){
     try{
-      const raw=localStorage.getItem(STORAGE_KEY);
-      if(!raw) return '';
-      const data=JSON.parse(raw);
-      return String(data?.access_token || data?.currentSession?.access_token || '').trim();
-    }catch(_e){ return ''; }
+      const parts=String(token||'').split('.');
+      if(parts.length!==3) return null;
+      const raw=parts[1].replace(/-/g,'+').replace(/_/g,'/');
+      const padded=raw+'='.repeat((4-raw.length%4)%4);
+      return JSON.parse(decodeURIComponent(Array.prototype.map.call(atob(padded),c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+    }catch(_e){ return null; }
   }
+
+  function validatePublicKey(value){
+    const key=String(value||'').trim();
+    if(!key) return {ok:false,reason:'missing'};
+    if(/^sb_publishable_[A-Za-z0-9_-]+$/.test(key)) return {ok:true,type:'publishable'};
+    if(key.split('.').length===3){
+      const payload=decodeJwtPayload(key);
+      if(payload && String(payload.role||'').toLowerCase()==='anon') return {ok:true,type:'anon'};
+      return {ok:false,reason:'jwt_not_anon'};
+    }
+    return {ok:false,reason:'format'};
+  }
+
   function readPublicKey(){
     const candidates=[
       window.VG_SUPABASE_PUBLIC_KEY,
@@ -17,11 +32,11 @@
       window.SUPABASE_ANON_KEY,
       document.querySelector('meta[name="vg-supabase-key"]')?.content,
       (()=>{ try{return localStorage.getItem('vg_supabase_public_key')}catch(_e){return ''} })(),
-      (()=>{ try{return localStorage.getItem('supabase_anon_key')}catch(_e){return ''} })(),
-      readStoredSessionToken()
+      (()=>{ try{return localStorage.getItem('supabase_anon_key')}catch(_e){return ''} })()
     ];
     return String(candidates.find(v=>String(v||'').trim())||'').trim();
   }
+
   function loadSupabaseLibrary(){
     if(window.supabase?.createClient) return Promise.resolve(window.supabase);
     return new Promise((resolve,reject)=>{
@@ -40,9 +55,13 @@
       document.head.appendChild(script);
     });
   }
+
+  window.VG_VALIDATE_SUPABASE_PUBLIC_KEY=validatePublicKey;
   const publicKey=readPublicKey();
-  window.VG_SUPABASE_CONFIG_MISSING=!publicKey;
-  if(!publicKey){
+  const validation=validatePublicKey(publicKey);
+  window.VG_SUPABASE_KEY_ERROR=validation.ok?'':validation.reason;
+  window.VG_SUPABASE_CONFIG_MISSING=!validation.ok;
+  if(!validation.ok){
     window.VG_SUPABASE_READY=null;
     return;
   }
