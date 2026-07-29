@@ -762,7 +762,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.56</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.58</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -4844,6 +4844,7 @@ function realHistoricalArticleCost(article){
 }
 function articleCostEstimateSignature(input={}){
   return [
+    'v2-margine-storico',
     normalizeTextKey(input?.categoria||''),
     normalizeTextKey(qualityFromCode(input?.codice||'')||input?.qualita||''),
     normalizeTextKey(input?.fornitore||''),
@@ -4885,20 +4886,30 @@ function estimateArticleCostFromHistory(input={},db=loadDB(),excludeId=''){
   const median=sortedQuantile(costs,.5);
   const p75=sortedQuantile(costs,.75);
   const min=Math.min(...costs), max=Math.max(...costs);
-  const prudent=Math.round(Math.max(median*1.05,p75)*100)/100;
+  const prudent=Math.round(Math.max(median*1.03,p75)*100)/100;
+  const historicalMargins=chosen.map(x=>{
+    const sale=Number(x?.art?.prezzoVendita||0);
+    return sale>0 ? sale-x.cost : NaN;
+  }).filter(x=>Number.isFinite(x)&&x>0).sort((a,b)=>a-b);
   const qual=String(qualityFromCode(input?.codice||'')||'STANDARD').toUpperCase();
-  const pricing=calcSellFromEurCost(prudent,qual);
-  const minimum=Math.ceil((prudent*1.08)/5)*5;
-  const suggested=Math.max(Number(pricing.sell||0),minimum);
+  const fallback=calcSellFromEurCost(prudent,qual);
+  const marginLow=historicalMargins.length>=3 ? sortedQuantile(historicalMargins,.25) : Math.max(0,Number(fallback.marg||0)*.85);
+  const marginBalanced=historicalMargins.length>=3 ? sortedQuantile(historicalMargins,.50) : Number(fallback.marg||0);
+  const marginHigh=historicalMargins.length>=3 ? sortedQuantile(historicalMargins,.75) : Number(fallback.marg||0)*1.10;
+  const hardFloor=Math.ceil((prudent*1.08)/5)*5;
+  const minimum=Math.max(hardFloor,round5(prudent+marginLow));
+  const suggested=Math.max(minimum,round5(prudent+marginBalanced));
+  const prudentPrice=Math.max(suggested,round5(prudent+marginHigh));
   const spread=median>0 ? (max-min)/median : 1;
   const sameSupplierCount=chosen.filter(x=>x.sameSupplier).length;
   let confidence='Bassa';
   if(chosen.length>=6 && spread<=0.22 && (!supplier || sameSupplierCount>=3)) confidence='Alta';
   else if(chosen.length>=4 && spread<=0.38) confidence='Media';
   return {
-    ok:true,active:false,estimatedCost:prudent,suggestedPrice:suggested,salePrice:suggested,minimumPrice:minimum,
+    ok:true,active:false,estimatedCost:prudent,suggestedPrice:suggested,salePrice:suggested,minimumPrice:minimum,prudentPrice,
+    historicalMarginLow:Math.round(marginLow*100)/100,historicalMarginMedian:Math.round(marginBalanced*100)/100,historicalMarginHigh:Math.round(marginHigh*100)/100,
     sampleCount:chosen.length,confidence,minCost:Math.round(min*100)/100,maxCost:Math.round(max*100)/100,
-    method:'Mediana prudente + fascia alta dello storico comparabile',signature:articleCostEstimateSignature(input),
+    method:'Costo prudente + guadagno storico reale della categoria',signature:articleCostEstimateSignature(input),
     calculatedAt:new Date().toISOString(),sameSupplierCount
   };
 }
@@ -4972,7 +4983,8 @@ function renderArticleCostEstimateBox(force=false){
   const range=(est.minCost>0&&est.maxCost>0)?` • storico ${money(est.minCost)}–${money(est.maxCost)} €`:'';
   const chosenSale=Number(est.salePrice||est.suggestedPrice||0);
   const manuallyChanged=est.active && chosenSale>0 && Math.abs(chosenSale-Number(est.suggestedPrice||0))>0.009;
-  txt.innerHTML=`<b>Costo prudente stimato:</b> ${money(est.estimatedCost)} €<br><b>Prezzo consigliato:</b> ${money(est.suggestedPrice)} €${manuallyChanged?` • <b>Prezzo scelto:</b> ${money(chosenSale)} €`:''} • <b>Soglia minima prudente:</b> ${money(est.minimumPrice)} €<br>Basato su ${est.sampleCount} articoli comparabili${range} • Affidabilità <b>${esc(est.confidence)}</b>.`;
+  const prudentSale=Number(est.prudentPrice||est.suggestedPrice||0);
+  txt.innerHTML=`<b>Costo prudente stimato:</b> ${money(est.estimatedCost)} €<br><b>Prezzo minimo:</b> ${money(est.minimumPrice)} € • <b>Prezzo equilibrato:</b> ${money(est.suggestedPrice)} € • <b>Prezzo prudente:</b> ${money(prudentSale)} €${manuallyChanged?`<br><b>Prezzo scelto:</b> ${money(chosenSale)} €`:''}<br>Basato su ${est.sampleCount} articoli comparabili${range} • Affidabilità <b>${esc(est.confidence)}</b>.<br><span style="font-weight:800">Il valore predefinito è quello equilibrato, calcolato sul guadagno reale mediano dello storico.</span>`;
   actions.innerHTML=est.active
     ? `<button class="btn secondary smallish" type="button" data-action="estimateArticleCost">Ricalcola</button>${manuallyChanged?'<button class="btn smallish" type="button" data-action="resetEstimatedSalePrice">Ripristina prezzo consigliato</button>':''}<button class="btn danger smallish" type="button" data-action="clearArticleCostEstimate">Rimuovi stima</button>`
     : '<button class="btn secondary smallish" type="button" data-action="acceptArticleCostEstimate">Usa questa stima</button><button class="btn smallish" type="button" data-action="estimateArticleCost">Ricalcola</button>';
@@ -12550,7 +12562,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.56-2026-07-26';
+const VG_BUILD='1.0.58-2026-07-29';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -13816,7 +13828,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.56', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.58', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
