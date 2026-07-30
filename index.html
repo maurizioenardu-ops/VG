@@ -436,29 +436,29 @@ input,select,textarea{font-size:17px;line-height:1.25}
 .artActionsSocial{
   display:grid !important;
   grid-template-columns:1fr 1fr !important;
-  gap:6px !important;
+  gap:4px !important;
   align-items:center !important;
 }
 .articleShareCompact{
-  height:44px !important;
-  min-height:44px !important;
-  max-height:44px !important;
-  padding:4px 6px !important;
-  font-size:11.5px !important;
+  height:35px !important;
+  min-height:35px !important;
+  max-height:35px !important;
+  padding:2px 5px !important;
+  font-size:10px !important;
   line-height:1.03 !important;
   display:flex !important;
   flex-direction:column !important;
   align-items:center !important;
   justify-content:center !important;
-  gap:1px !important;
+  gap:0 !important;
   overflow:hidden !important;
-  border-radius:10px !important;
+  border-radius:8px !important;
 }
 .articleShareCompact span{display:block !important;white-space:nowrap !important;line-height:1.03 !important}
-.articleShareTelegramBottom{grid-column:1 / -1 !important;width:52% !important;justify-self:center !important}
+.articleShareTelegramBottom{grid-column:1 / -1 !important;width:44% !important;justify-self:center !important}
 @media (max-width:420px){
-  .articleShareCompact{height:42px !important;min-height:42px !important;max-height:42px !important;font-size:11px !important;padding:3px 4px !important}
-  .articleShareTelegramBottom{width:58% !important}
+  .articleShareCompact{height:34px !important;min-height:34px !important;max-height:34px !important;font-size:9.5px !important;padding:2px 3px !important}
+  .articleShareTelegramBottom{width:50% !important}
 }
 
 .archiveFolder{grid-column:1/-1;margin-top:14px;border:2px dashed #cbd5e1;border-radius:18px;background:#f8fafc;overflow:hidden}
@@ -771,7 +771,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.59</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.60</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -12574,7 +12574,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.59-2026-07-30';
+const VG_BUILD='1.0.60-2026-07-30';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
