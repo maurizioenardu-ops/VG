@@ -433,23 +433,32 @@ input,select,textarea{font-size:17px;line-height:1.25}
   .artStats{font-size:13.5px}
 }
 
+.artActionsSocial{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:6px !important;
+  align-items:center !important;
+}
 .articleShareCompact{
-  height:58px !important;
-  min-height:58px !important;
-  max-height:58px !important;
-  padding:5px 6px !important;
-  font-size:12.5px !important;
-  line-height:1.05 !important;
+  height:44px !important;
+  min-height:44px !important;
+  max-height:44px !important;
+  padding:4px 6px !important;
+  font-size:11.5px !important;
+  line-height:1.03 !important;
   display:flex !important;
   flex-direction:column !important;
   align-items:center !important;
   justify-content:center !important;
-  gap:2px !important;
+  gap:1px !important;
   overflow:hidden !important;
+  border-radius:10px !important;
 }
-.articleShareCompact span{display:block !important;white-space:nowrap !important;line-height:1.05 !important}
+.articleShareCompact span{display:block !important;white-space:nowrap !important;line-height:1.03 !important}
+.articleShareTelegramBottom{grid-column:1 / -1 !important;width:52% !important;justify-self:center !important}
 @media (max-width:420px){
-  .articleShareCompact{height:54px !important;min-height:54px !important;max-height:54px !important;font-size:12px !important;padding:4px 5px !important}
+  .articleShareCompact{height:42px !important;min-height:42px !important;max-height:42px !important;font-size:11px !important;padding:3px 4px !important}
+  .articleShareTelegramBottom{width:58% !important}
 }
 
 .archiveFolder{grid-column:1/-1;margin-top:14px;border:2px dashed #cbd5e1;border-radius:18px;background:#f8fafc;overflow:hidden}
@@ -762,7 +771,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.58</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.59</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -4435,8 +4444,12 @@ async function shareArticleFromListByChannel(artId, channel='fb'){
   if(!a){ toast('Articolo non trovato'); return; }
 
   currentArtId=a.id;
-  const isTelegram=String(channel||'fb').toLowerCase()==='tg';
-  const text=isTelegram
+  const cleanChannel=String(channel||'fb').toLowerCase();
+  const isTelegram=cleanChannel==='tg';
+  const isWhatsApp=cleanChannel==='wa';
+  const isDirectSocial=isTelegram||isWhatsApp;
+  const channelLabel=isTelegram?'Telegram':(isWhatsApp?'WhatsApp':'Facebook');
+  const text=isDirectSocial
     ? String(buildPostTelegram(a) || '').trim()
     : normalizeFacebookPostForArticle(buildPostFacebook(a), a);
   let ctx=null;
@@ -4447,7 +4460,7 @@ async function shareArticleFromListByChannel(artId, channel='fb'){
     if(text){
       try{ await navigator.clipboard.writeText(text); }
       catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
-      toast(isTelegram ? '📋 Testo Telegram copiato. Nessuna foto disponibile.' : '📋 Testo FB senza prezzo copiato. Nessuna foto disponibile.');
+      toast(isDirectSocial ? `📋 Testo ${channelLabel} copiato. Nessuna foto disponibile.` : '📋 Testo FB senza prezzo copiato. Nessuna foto disponibile.');
     }else{
       toast('Nessuna foto disponibile');
     }
@@ -4464,8 +4477,8 @@ async function shareArticleFromListByChannel(artId, channel='fb'){
 
   if(!cached.length){
     toast(text
-      ? (isTelegram ? '📋 Testo Telegram copiato. Sto preparando le foto: premi Telegram tra un attimo.' : '📋 Testo FB senza prezzo copiato. Sto preparando le foto: premi Facebook tra un attimo.')
-      : (isTelegram ? 'Sto preparando le foto: premi Telegram tra un attimo.' : 'Sto preparando le foto: premi Facebook tra un attimo.'));
+      ? (isDirectSocial ? `📋 Testo ${channelLabel} copiato. Sto preparando le foto: premi ${channelLabel} tra un attimo.` : '📋 Testo FB senza prezzo copiato. Sto preparando le foto: premi Facebook tra un attimo.')
+      : (isDirectSocial ? `Sto preparando le foto: premi ${channelLabel} tra un attimo.` : 'Sto preparando le foto: premi Facebook tra un attimo.'));
     if(text){
       try{ await navigator.clipboard.writeText(text); }
       catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
@@ -4475,20 +4488,20 @@ async function shareArticleFromListByChannel(artId, channel='fb'){
   }
 
   try{
-    const shareResult=await shareArticleFilesSmart(cached,{baseName:(a.codice||a.modello||'articolo'),title:(a.modello||a.codice||'Articolo'),channel:isTelegram?'tg':'fb',text});
+    const shareResult=await shareArticleFilesSmart(cached,{baseName:(a.codice||a.modello||'articolo'),title:(a.modello||a.codice||'Articolo'),channel:isTelegram?'tg':(isWhatsApp?'wa':'fb'),text});
     if(shareResult?.ok){
-      recordArticlePublication(isTelegram?'tg':'fb');
+      recordArticlePublication(isTelegram?'tg':(isWhatsApp?'wa':'fb'));
       if(shareResult.mode==='sheet'){
         toast(text
-          ? (isTelegram ? `✅ Telegram aperto! Ho unito ${shareResult.count||cached.length} foto in un'unica immagine con testo pronto.` : `✅ Facebook aperto con foto e testo. Ho unito ${shareResult.count||cached.length} foto in un'unica immagine; il testo resta anche copiato 📋`)
+          ? (isDirectSocial ? `✅ ${channelLabel} aperto! Ho unito ${shareResult.count||cached.length} foto in un'unica immagine con testo pronto.` : `✅ Facebook aperto con foto e testo. Ho unito ${shareResult.count||cached.length} foto in un'unica immagine; il testo resta anche copiato 📋`)
           : `✅ Condivisione aperta! Ho unito ${shareResult.count||cached.length} foto in un'unica immagine.`);
       }else if(shareResult.mode==='title'){
         toast(text
-          ? (isTelegram ? '✅ Telegram aperto. Se il testo non appare, è già copiato 📋' : '📋 Testo FB copiato. La condivisione file completa non era disponibile.')
+          ? (isDirectSocial ? `✅ ${channelLabel} aperto. Se il testo non appare, è già copiato 📋` : '📋 Testo FB copiato. La condivisione file completa non era disponibile.')
           : '✅ Condivisione aperta!');
       }else{
         toast(text
-          ? (isTelegram ? '✅ Telegram aperto con foto e testo.' : '✅ Facebook aperto con foto separate. Testo FB copiato negli appunti 📋')
+          ? (isDirectSocial ? `✅ ${channelLabel} aperto con foto e testo.` : '✅ Facebook aperto con foto separate. Testo FB copiato negli appunti 📋')
           : '✅ Condivisione aperta!');
       }
       return;
@@ -4498,12 +4511,12 @@ async function shareArticleFromListByChannel(artId, channel='fb'){
       catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
     }
     toast(text
-      ? (isTelegram ? '📋 Testo Telegram copiato. Condivisione file non supportata su questo browser.' : '📋 Testo FB copiato. Condivisione file non supportata su questo browser.')
+      ? (isDirectSocial ? `📋 Testo ${channelLabel} copiato. Condivisione file non supportata su questo browser.` : '📋 Testo FB copiato. Condivisione file non supportata su questo browser.')
       : 'Condivisione non supportata su questo browser');
   }catch(err){
     if(isShareAbortError(err)) return;
     if(isShareActivationError(err)){
-      toast(isTelegram ? '⚠️ Premi di nuovo Telegram: il browser ha perso il tocco durante la preparazione.' : '⚠️ Premi di nuovo Facebook: il browser ha perso il tocco durante la preparazione.');
+      toast(isDirectSocial ? `⚠️ Premi di nuovo ${channelLabel}: il browser ha perso il tocco durante la preparazione.` : '⚠️ Premi di nuovo Facebook: il browser ha perso il tocco durante la preparazione.');
       return;
     }
     console.warn('Condivisione articolo da elenco fallita:', err);
@@ -4512,12 +4525,13 @@ async function shareArticleFromListByChannel(artId, channel='fb'){
       catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
     }
     toast(text
-      ? (isTelegram ? '📋 Testo Telegram copiato. Condivisione foto non riuscita.' : '📋 Testo FB copiato. Condivisione foto non riuscita.')
+      ? (isDirectSocial ? `📋 Testo ${channelLabel} copiato. Condivisione foto non riuscita.` : '📋 Testo FB copiato. Condivisione foto non riuscita.')
       : '⚠️ Condivisione non riuscita');
   }
 }
 async function shareArticleFromList(artId){ return shareArticleFromListByChannel(artId,'fb'); }
 async function shareArticleTelegramFromList(artId){ return shareArticleFromListByChannel(artId,'tg'); }
+async function shareArticleWhatsAppFromList(artId){ return shareArticleFromListByChannel(artId,'wa'); }
 async function syncArticlePhotosToCloud(artId, codice, pics){
   const sb=await ensureCloud();
   if(!sb||!cloudSession||!artId) return [];
@@ -5013,11 +5027,11 @@ function formatPromoDayMonth(v=''){
   return `${Number(dd)} ${monthName}`;
 }
 const ARTICLE_PUBLISH_COUNT_WINDOW_DAYS=7;
-const ARTICLE_PUBLISH_CHANNELS=['fb','tg','ig'];
+const ARTICLE_PUBLISH_CHANNELS=['fb','tg','wa','ig'];
 function normalizeArticlePublishLog(raw, refDay=todayStr()){
   const src=(raw && typeof raw==='object') ? raw : {};
   const ref=parseIsoDay(refDay) || parseIsoDay(todayStr());
-  const out={fb:[],tg:[],ig:[]};
+  const out={fb:[],tg:[],wa:[],ig:[]};
   ARTICLE_PUBLISH_CHANNELS.forEach(ch=>{
     const vals=Array.isArray(src?.[ch]) ? src[ch] : (Array.isArray(src?.[`${ch}Dates`]) ? src[`${ch}Dates`] : []);
     const seen=new Set();
@@ -7276,7 +7290,8 @@ function buildPostTelegram(a, includePrice=true){
   const misura=normalizePostLine(a.misura||'', brand);
   const materialeCompat=normalizePostLine(a.materiale||a.taglia||'', brand);
   const qemoji=emojiQualityForPost(a);
-  const lines=[];
+  const qualityHeading=(qemoji==='🥇') ? '🥇 ORIGINAL QUALITY' : '🥈 TOP QUALITY';
+  const lines=[qualityHeading];
   const seen = new Set();
   const pushUnique = (value, formatter=null)=>{
     let txt = compactPostValue(value||'');
@@ -7291,9 +7306,7 @@ function buildPostTelegram(a, includePrice=true){
   if(promoValid(a)){
     const tipoMateriale=materiale || materialeCompat || variante;
     lines.push(...promoPostIntroLines(a));
-    if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
-    const premiumQualityLine=originalPremiumSocialLine(a);
-    if(premiumQualityLine) lines.push(premiumQualityLine);
+    if(modello) lines.push(modello);
     pushUnique(tipoMateriale);
     pushUnique(colore);
     pushUnique(misura, v=>formatPostMisura(v, a));
@@ -7305,9 +7318,7 @@ function buildPostTelegram(a, includePrice=true){
     lines.push(`cod. ${a.codice}`);
     return normalizePublicPostForArticle(formatGeneratedPostLines(lines), a);
   }
-  if(modello || qemoji) lines.push([modello,qemoji].filter(Boolean).join(' ').trim());
-  const premiumQualityLine=originalPremiumSocialLine(a);
-  if(premiumQualityLine) lines.push(premiumQualityLine);
+  if(modello) lines.push(modello);
   pushUnique(variante);
   pushUnique(colore);
   pushUnique(misura, v=>formatPostMisura(v, a));
@@ -9140,7 +9151,7 @@ function renderArt(){
     const metaLine=[qualityLine, photoLine].filter(Boolean).join(' • ');
     const notePreview=normalizeSpaceText(a.note||'');
     const noteHtml=notePreview ? `<div class="artCardNote" title="${esc(notePreview)}">${esc(notePreview)}</div>` : '';
-    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}">${noteHtml}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s artPhotoCount">${esc(metaLine)}</div>${unavailable}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions"><button class="btn smallish articleShareCompact" style="background:#fff;border-color:#cbd5e1;color:#0f172a" type="button" data-action="shareArtTelegramFromList" data-id="${a.id}"><span>Condividi su</span><span>Telegram</span></button><button class="btn smallish articleShareCompact" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtFacebookFromList" data-id="${a.id}"><span>Condividi su</span><span>FB</span></button></div></div>`;
+    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}">${noteHtml}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s artPhotoCount">${esc(metaLine)}</div>${unavailable}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions artActionsSocial"><button class="btn smallish articleShareCompact" style="background:#1877F2;border-color:#1877F2;color:#fff" type="button" data-action="shareArtFacebookFromList" data-id="${a.id}"><span>Condividi su</span><span>Facebook</span></button><button class="btn smallish articleShareCompact" style="background:#25D366;border-color:#25D366;color:#fff" type="button" data-action="shareArtWhatsAppFromList" data-id="${a.id}"><span>Condividi su</span><span>WhatsApp</span></button><button class="btn smallish articleShareCompact articleShareTelegramBottom" style="background:#229ED9;border-color:#229ED9;color:#fff" type="button" data-action="shareArtTelegramFromList" data-id="${a.id}"><span>Condividi su</span><span>Telegram</span></button></div></div>`;
   }).join('');
   const emptyText=noPhotoOnly ? 'Nessun articolo senza foto.' : (promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.');
   const activeHtml=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
@@ -9793,8 +9804,8 @@ function renderFinanze(){
   if(neverPublished.length) oppBlocks.push(`<div class="small" style="margin-top:10px"><b>Mai pubblicati</b></div>`+neverPublished.map(x=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(x.a.modello||'Senza nome')}</div><div class="s">${x.a.codice?'Cod. '+esc(x.a.codice):'Codice mancante'}</div></div>${commercialSafeOpenButton('article',x.a.id,'Apri')}</div>`).join(''));
   oppEl.innerHTML=oppBlocks.join('');
 
-  const pubStats={fb:{label:'Facebook',posts:0,soldArticles:0},tg:{label:'Telegram',posts:0,soldArticles:0},ig:{label:'Instagram',posts:0,soldArticles:0}};
-  articles.forEach(x=>['fb','tg','ig'].forEach(ch=>{ const n=Array.isArray(x.a?.pubblicazioniCanali?.[ch])?x.a.pubblicazioniCanali[ch].length:0; pubStats[ch].posts+=n; if(n&&x.sold)pubStats[ch].soldArticles++; }));
+  const pubStats={fb:{label:'Facebook',posts:0,soldArticles:0},tg:{label:'Telegram',posts:0,soldArticles:0},wa:{label:'WhatsApp',posts:0,soldArticles:0},ig:{label:'Instagram',posts:0,soldArticles:0}};
+  articles.forEach(x=>['fb','tg','wa','ig'].forEach(ch=>{ const n=Array.isArray(x.a?.pubblicazioniCanali?.[ch])?x.a.pubblicazioniCanali[ch].length:0; pubStats[ch].posts+=n; if(n&&x.sold)pubStats[ch].soldArticles++; }));
   const concentration=Object.values(allCustomerStats).sort((a,b)=>b.rev-a.rev);
   const totalCustomerRev=concentration.reduce((s,x)=>s+x.rev,0); const top5Rev=concentration.slice(0,5).reduce((s,x)=>s+x.rev,0); const top5Pct=totalCustomerRev>0?top5Rev/totalCustomerRev*100:0;
   document.getElementById('finPublicationPerformance').innerHTML=`<div class="mutedBox"><b>Concentrazione clienti:</b> i primi 5 generano ${top5Pct.toFixed(1)}% del fatturato storico.</div>`+Object.values(pubStats).map(v=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${v.label}</div><div class="s">${v.posts} pubblicazioni • ${v.soldArticles} articoli pubblicati risultano anche venduti</div></div><div class="priceHot">${v.posts?((v.soldArticles/v.posts)*100).toFixed(1):'0.0'}%</div></div>`).join('');
@@ -10559,7 +10570,7 @@ async function saveArt(){
     const r=usd>0 ? calcFromUsd(usd, qual) : (acceptedEstimate ? calcSellFromEurCost(acceptedEstimate.estimatedCost,qual) : {costo:0,sell:0,marg:0});
     const rPromo=promoUsd>0 ? calcFromUsd(promoUsd, qual) : {costo:0, sell:0, marg:0};
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
-    const preservedPublishLog=currentArtId ? normalizeArticlePublishLog(old?.pubblicazioniCanali||old?.publishStats||old?.socialPub||{}) : {fb:[],tg:[],ig:[]};
+    const preservedPublishLog=currentArtId ? normalizeArticlePublishLog(old?.pubblicazioniCanali||old?.publishStats||old?.socialPub||{}) : {fb:[],tg:[],wa:[],ig:[]};
     const keptFoto=currentArtPhotosCleared ? [] : (Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : []);
     const keptPhotoIds=currentArtPhotosCleared ? [] : (Array.isArray(old?.photoIds) ? old.photoIds.filter(Boolean).slice() : []);
     const obj=normalizeArticlePromoState({
@@ -11996,7 +12007,7 @@ function bindSearchSuggest(inputId, boxId, kind, onApply){
 
 /* ====== EVENTS ====== */
 document.addEventListener('pointerdown',(ev)=>{
-  const listShareBtn=ev.target?.closest?.('[data-action="shareArtFromList"],[data-action="shareArtFacebookFromList"],[data-action="shareArtTelegramFromList"]');
+  const listShareBtn=ev.target?.closest?.('[data-action="shareArtFromList"],[data-action="shareArtFacebookFromList"],[data-action="shareArtTelegramFromList"],[data-action="shareArtWhatsAppFromList"]');
   if(listShareBtn){
     const id=String(listShareBtn.dataset.id||'').trim();
     Promise.resolve().then(()=>{
@@ -12356,6 +12367,7 @@ document.addEventListener('click',(ev)=>{
   }
   if(a==='shareArtFromList' || a==='shareArtFacebookFromList') return shareArticleFromListByChannel(el.dataset.id || null, 'fb');
   if(a==='shareArtTelegramFromList') return shareArticleFromListByChannel(el.dataset.id || null, 'tg');
+  if(a==='shareArtWhatsAppFromList') return shareArticleFromListByChannel(el.dataset.id || null, 'wa');
   if(a==='duplicateArt') return duplicateCurrentArticle(el.dataset.id || null);
   if(a==='editFromView'){ hide('mArtView', true); return openArtEdit(currentArtId); }
   if(a==='closeView') return hide('mArtView');
@@ -12562,7 +12574,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.58-2026-07-29';
+const VG_BUILD='1.0.59-2026-07-30';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -12693,7 +12705,7 @@ function clearAllArticlePublishLogsInDb(db){
     changed=true;
     return {
       ...art,
-      pubblicazioniCanali:{fb:[],tg:[],ig:[]},
+      pubblicazioniCanali:{fb:[],tg:[],wa:[],ig:[]},
       publishStats:{fb:[],tg:[],ig:[]},
       socialPub:{fb:[],tg:[],ig:[]},
       _ts: Date.now()
@@ -13828,7 +13840,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.58', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.59', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
