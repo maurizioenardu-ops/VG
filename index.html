@@ -775,7 +775,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.61</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.62</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -790,6 +790,16 @@ window.addEventListener('error',e=>{
           <button id="btnCloudPush" class="btn" type="button" data-action="cloudPush">Invia cloud</button>
           <button id="btnCloudLogout" class="btn danger" type="button">Esci</button>
         </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="h2">ChatGPT spedizioni</div>
+        <div class="small">Inserisci il link privato della conversazione da usare sempre per il controllo delle spedizioni.</div>
+        <div style="margin-top:10px">
+          <div class="k">Link conversazione ChatGPT</div>
+          <input id="chatgptTrackingChatUrl" type="url" placeholder="https://chatgpt.com/c/..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
+        </div>
+        <div class="small" style="margin-top:8px">Il pulsante negli ordini copia cliente, articoli, codici, tracking, data e stato, poi apre sempre questa conversazione. Il numero ordine non viene inserito.</div>
       </div>
 
       <div class="card" style="margin-top:12px">
@@ -1211,8 +1221,8 @@ window.addEventListener('error',e=>{
   <div style="margin-top:10px"><div class="k">Modalità di pagamento</div><div id="vOrdPaymentMethod" class="mutedBox">-</div></div>
   <div style="margin-top:10px"><div class="k">Tracking</div><div id="vOrdTrack" class="mutedBox">-</div></div>
   <div class="actions compact bottomMini" style="margin-top:8px">
-    <button class="btn smallish" type="button" data-action="track17View">Traccia spedizione</button>
     <button class="btn smallish" type="button" data-action="openParcelView">Apri Parcel</button>
+    <button class="btn smallish" type="button" data-action="askChatGPTView" style="background:#111827;border-color:#111827;color:#fff">✦ Chiedi a ChatGPT</button>
   </div>
   <div class="hr"></div>
   <div class="h2">Righe ordine</div>
@@ -1291,7 +1301,7 @@ window.addEventListener('error',e=>{
   <div class="orderSection">
     <div class="h3">Foto ordine</div>
     <div><div class="k">Aggiungi foto</div><input id="o_photo" type="file" accept="image/*"/><div class="small" style="margin-top:6px">Per ogni articolo viene copiata una sola foto, cercando quella del colore scelto. Se serve, puoi aggiungerne una manuale.</div><div id="o_photo_prev" class="orderPhotoGrid"></div></div>
-    <div class="orderTrackCard"><div class="k">Tracking</div><input id="o_tracking" placeholder="Inserisci tracking" autocomplete="off" autocapitalize="off" spellcheck="false"/><div class="orderTrackActions"><button class="btn smallish" type="button" data-action="track17">Traccia spedizione</button><button class="btn smallish" type="button" data-action="openParcel">Apri Parcel</button></div></div>
+    <div class="orderTrackCard"><div class="k">Tracking</div><input id="o_tracking" placeholder="Inserisci tracking" autocomplete="off" autocapitalize="off" spellcheck="false"/><div class="orderTrackActions"><button class="btn smallish" type="button" data-action="openParcel">Apri Parcel</button><button class="btn smallish" type="button" data-action="askChatGPT" style="background:#111827;border-color:#111827;color:#fff">✦ Chiedi a ChatGPT</button></div></div>
   </div>
 
   <div class="actions bottomMini">
@@ -11656,6 +11666,105 @@ function openTrackParcel(){
   const win=window.open(webUrl,'_blank','noopener');
   if(!win) window.location.href=webUrl;
 }
+const CHATGPT_TRACKING_CHAT_URL_KEY='vg_chatgpt_tracking_chat_url_v1';
+function normalizeChatGPTConversationUrl(value=''){
+  const raw=String(value||'').trim();
+  if(!raw) return '';
+  try{
+    const u=new URL(/^https?:\/\//i.test(raw)?raw:`https://${raw}`);
+    if(!/(^|\.)chatgpt\.com$/i.test(u.hostname)) return '';
+    if(!/^\/c\/[A-Za-z0-9-]+\/?$/.test(u.pathname)) return '';
+    u.search=''; u.hash='';
+    return u.toString().replace(/\/$/,'');
+  }catch(_e){ return ''; }
+}
+function getConfiguredChatGPTConversationUrl(){
+  try{return normalizeChatGPTConversationUrl(localStorage.getItem(CHATGPT_TRACKING_CHAT_URL_KEY)||'');}catch(_e){return '';}
+}
+function saveConfiguredChatGPTConversationUrl(value){
+  const raw=String(value||'').trim();
+  if(!raw){ try{localStorage.removeItem(CHATGPT_TRACKING_CHAT_URL_KEY);}catch(_e){} return true; }
+  const clean=normalizeChatGPTConversationUrl(raw);
+  if(!clean) return false;
+  try{localStorage.setItem(CHATGPT_TRACKING_CHAT_URL_KEY, clean);}catch(_e){return false;}
+  return true;
+}
+function getOrderForChatGPTTracking(){
+  const db=loadDB();
+  const editModal=document.getElementById('mOrdEdit');
+  const editingVisible=!!editModal && getComputedStyle(editModal).display!=='none';
+  let order=null;
+  if(editingVisible){
+    const clienteId=String(document.getElementById('o_cli')?.value||'').trim();
+    order={
+      clienteId,
+      tracking:String(document.getElementById('o_tracking')?.value||'').trim(),
+      data:String(document.getElementById('o_data')?.value||'').trim(),
+      stato:String(document.getElementById('o_stato')?.value||'').trim(),
+      righe:Array.isArray(ordRows)?ordRows:[]
+    };
+  }else{
+    order=(db.ordini||[]).find(x=>String(x.id||'')===String(currentOrdId||''))||null;
+  }
+  if(!order) return {order:null,db,client:null};
+  const client=(db.clienti||[]).find(c=>String(c.id||'')===String(order.clienteId||''))||null;
+  return {order,db,client};
+}
+function buildChatGPTTrackingMessage(){
+  const {order,db,client}=getOrderForChatGPTTracking();
+  if(!order) return {error:'Ordine non trovato'};
+  const tracking=String(order.tracking||'').trim();
+  if(!tracking) return {error:'Inserisci il tracking'};
+  const clientName=String(client?.nome||client?.nomeCompleto||'').trim()||'Cliente non indicato';
+  const rows=Array.isArray(order.righe)?order.righe:[];
+  const articleLines=rows.map(r=>{
+    const art=(db.articoli||[]).find(a=>String(a.id||'')===String(r?.articoloId||''))||null;
+    const name=String(r?.modello||art?.modello||r?.articoloSnapshot?.modello||'Articolo').trim();
+    const code=String(r?.codice||art?.codice||r?.articoloSnapshot?.codice||'').trim();
+    return `- ${name}${code?` (Cod. ${code})`:''}`;
+  }).filter(Boolean);
+  const date=String(order.data||'').trim();
+  const status=String(order.stato||'').trim();
+  const parts=[
+    'Controlla questa spedizione e tienila nello storico:',
+    '',
+    `Cliente: ${clientName}`,
+    'Articoli:',
+    ...(articleLines.length?articleLines:['- Articolo non indicato']),
+    `Numero di spedizione: ${tracking}`
+  ];
+  if(date) parts.push(`Data ordine: ${date}`);
+  if(status) parts.push(`Stato ordine: ${status}`);
+  return {text:parts.join('\n')};
+}
+function copyTextImmediate(text){
+  let copied=false;
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=text; ta.setAttribute('readonly','');
+    ta.style.position='fixed'; ta.style.opacity='0'; ta.style.pointerEvents='none';
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0,ta.value.length);
+    copied=document.execCommand('copy'); ta.remove();
+  }catch(_e){}
+  if(!copied && navigator.clipboard?.writeText){ navigator.clipboard.writeText(text).catch(()=>{}); copied=true; }
+  return copied;
+}
+function askChatGPTAboutTracking(){
+  const url=getConfiguredChatGPTConversationUrl();
+  if(!url){
+    toast('Inserisci prima il link della conversazione ChatGPT nelle Impostazioni');
+    go('impostazioni');
+    setTimeout(()=>document.getElementById('chatgptTrackingChatUrl')?.focus(),250);
+    return;
+  }
+  const built=buildChatGPTTrackingMessage();
+  if(built.error){ toast(built.error); return; }
+  const copied=copyTextImmediate(built.text);
+  const win=window.open(url,'_blank','noopener');
+  if(!win) window.location.href=url;
+  toast(copied?'Dati spedizione copiati: incollali nella chat':'Chat aperta: copia manualmente i dati della spedizione');
+}
+
 function buildOrderSizeOptions(selected=''){
   const current=String(selected||'').trim();
   const values=current && !ORDER_SHOE_SIZES.includes(current) ? [current, ...ORDER_SHOE_SIZES] : ORDER_SHOE_SIZES.slice();
@@ -12515,7 +12624,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='closeCliView') return hide('mCliView');
   if(a==='editOrdFromView'){ hide('mOrdView', true); return openOrdEdit(currentOrdId); }
   if(a==='closeOrdView') return hide('mOrdView');
-  if(a==='track17View') return openTrack17();
+  if(a==='askChatGPTView') return askChatGPTAboutTracking();
   if(a==='openParcelView') return openTrackParcel();
   if(a==='openMonthSales') return openMonthSales(Number(el.dataset.year), Number(el.dataset.month), el.dataset.label||'');
   if(a==='addAgenda') return saveAgendaQuick(document.getElementById('agendaText')?.value||'', document.getElementById('agendaDate')?.value||'');
@@ -12557,7 +12666,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='closeOrd'){ saveOrderDraft(); return hide('mOrdEdit'); }
   if(a==='deleteOrd') return deleteOrd();
   if(a==='addRow') return addRow();
-  if(a==='track17') return openTrack17();
+  if(a==='askChatGPT') return askChatGPTAboutTracking();
   if(a==='openParcel') return openTrackParcel();
   if(a==='closeMonthSales') return hide('mMonthSales');
   if(a==='cloudPull'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pullCloudToLocal().catch(err=>{toast(err?.message||'Carica cloud fallita'); console.error(err);}); }
@@ -12744,7 +12853,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.61-2026-07-31';
+const VG_BUILD='1.0.62-2026-07-31';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -13938,6 +14047,16 @@ async function bootApp(){
   renderDiagnostics();
   fillUiEditor();
   applyUiPrefs();
+  const chatUrlInput=document.getElementById('chatgptTrackingChatUrl');
+  if(chatUrlInput){
+    chatUrlInput.value=getConfiguredChatGPTConversationUrl();
+    chatUrlInput.addEventListener('change',()=>{
+      const ok=saveConfiguredChatGPTConversationUrl(chatUrlInput.value);
+      if(!ok){ toast('Link ChatGPT non valido: usa il link privato https://chatgpt.com/c/...'); chatUrlInput.focus(); return; }
+      chatUrlInput.value=getConfiguredChatGPTConversationUrl();
+      toast(chatUrlInput.value?'Link conversazione ChatGPT salvato':'Link conversazione ChatGPT rimosso');
+    });
+  }
   const initial=location.hash.replace('#','')||'home';
   history.replaceState({page:initial, artBrowse:{...artBrowseState}},'', '#'+initial);
   go(initial,false);
@@ -14010,7 +14129,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.59', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.62', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
