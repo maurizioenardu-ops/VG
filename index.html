@@ -780,6 +780,10 @@ window.addEventListener('error',e=>{
       <div><div class="k">Prezzo vendita standard (auto)</div><input id="a_sell" readonly/></div>
       <div><div class="k">Prezzo finale in uso</div><input id="a_final" readonly/></div>
     </div>
+    <div style="margin-top:10px">
+      <button class="btn primary" type="button" data-action="estimateSupplierCostAI" style="width:100%;background:#10a37f;border-color:#0d8f70;color:#fff">✨ Stima costo con IA</button>
+      <div class="helper" style="margin-top:6px">Analizza insieme lo storico del gestionale e fino a 9 foto. Si apre la condivisione verso ChatGPT; non usa API e non costa nulla in più.</div>
+    </div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k">Margine</div><input id="a_margin" readonly/><div id="a_margin_pct" class="miniNote"></div></div>
       <div><div class="k">Scadenza promo</div><input id="a_promo_date" type="date" autocomplete="off"/></div>
@@ -3148,6 +3152,147 @@ async function shareArtAll(opts={}){
     toast('⚠️ Condivisione non riuscita');
   }
 }
+
+function normalizeAiHistoryText(value){
+  return String(value||'').replace(/\s+/g,' ').trim();
+}
+function articleQualityForAi(a){
+  try{ return normalizeAiHistoryText(articleQualityLabel(a)); }
+  catch(_e){ return normalizeAiHistoryText(a?.qualita||qualityFromCode(a?.codice||'')); }
+}
+function articleSimilarityScoreForAi(target, candidate){
+  let score=0;
+  const tCat=normalizeAiHistoryText(target?.categoria).toLowerCase();
+  const cCat=normalizeAiHistoryText(candidate?.categoria).toLowerCase();
+  const tBrand=normalizeAiHistoryText(target?.brand).toLowerCase();
+  const cBrand=normalizeAiHistoryText(candidate?.brand).toLowerCase();
+  const tQual=articleQualityForAi(target).toLowerCase();
+  const cQual=articleQualityForAi(candidate).toLowerCase();
+  if(tCat && cCat && tCat===cCat) score+=6;
+  if(tBrand && cBrand && tBrand===cBrand) score+=5;
+  if(tQual && cQual && tQual===cQual) score+=4;
+  const tWords=new Set(normalizeAiHistoryText(`${target?.modello||''} ${target?.descrizione||''}`).toLowerCase().split(/[^a-zà-ÿ0-9]+/i).filter(w=>w.length>=4));
+  const cWords=new Set(normalizeAiHistoryText(`${candidate?.modello||''} ${candidate?.descrizione||''}`).toLowerCase().split(/[^a-zà-ÿ0-9]+/i).filter(w=>w.length>=4));
+  for(const w of tWords) if(cWords.has(w)) score+=1;
+  return score;
+}
+function getSupplierCostHistoryForAi(target, limit=12){
+  const db=loadDB();
+  return (db.articoli||[])
+    .filter(a=>String(a?.id||'')!==String(target?.id||'') && Number(a?.costoUsd||0)>0)
+    .map(a=>({a, score:articleSimilarityScoreForAi(target,a)}))
+    .sort((x,y)=>y.score-x.score || Number(y.a?._ts||0)-Number(x.a?._ts||0))
+    .slice(0,limit)
+    .map(({a,score})=>({
+      codice:normalizeAiHistoryText(a.codice),
+      brand:normalizeAiHistoryText(a.brand),
+      modello:normalizeAiHistoryText(a.modello),
+      categoria:normalizeAiHistoryText(a.categoria),
+      qualita:articleQualityForAi(a),
+      misura:normalizeAiHistoryText(a.misura),
+      costoUsd:Number(a.costoUsd||0),
+      score
+    }));
+}
+function buildSupplierCostAiPrompt(art, history, photoCount){
+  const lines=[
+    'Analizza questo articolo e stima il PREZZO FORNITORE STANDARD IN USD.',
+    'Usa insieme le foto allegate e lo storico reale del mio gestionale riportato sotto.',
+    'Non stimare il prezzo di vendita. Mi serve esclusivamente il costo che probabilmente chiede il fornitore.',
+    '',
+    'ARTICOLO DA STIMARE:',
+    `Codice: ${normalizeAiHistoryText(art?.codice)||'non indicato'}`,
+    `Brand: ${normalizeAiHistoryText(art?.brand)||'non indicato'}`,
+    `Modello: ${normalizeAiHistoryText(art?.modello)||'non indicato'}`,
+    `Categoria: ${normalizeAiHistoryText(art?.categoria)||'non indicata'}`,
+    `Qualità: ${articleQualityForAi(art)||'non indicata'}`,
+    `Misure: ${normalizeAiHistoryText(art?.misura)||'non indicate'}`,
+    `Colore/variante: ${normalizeAiHistoryText(`${art?.colore||''} ${art?.variante||''}`)||'non indicati'}`,
+    `Descrizione: ${normalizeAiHistoryText(art?.descrizione)||'non indicata'}`,
+    `Foto allegate: ${photoCount}`,
+    '',
+    'STORICO ARTICOLI PIÙ SIMILI (costi reali in USD):'
+  ];
+  if(history.length){
+    history.forEach((h,i)=>lines.push(`${i+1}. ${[h.codice,h.brand,h.modello,h.categoria,h.qualita,h.misura].filter(Boolean).join(' | ')} | costo reale: $${h.costoUsd}`));
+  }else{
+    lines.push('Nessun articolo storico con costo noto disponibile. Basa la stima soprattutto sulle foto e dichiaralo.');
+  }
+  lines.push(
+    '',
+    'Rispondi ESATTAMENTE con questa struttura:',
+    'COSTO STIMATO: $[numero]',
+    'FASCIA PROBABILE: $[minimo] - $[massimo]',
+    'AFFIDABILITÀ: alta / media / bassa',
+    'BASATO SU: storico + foto / soprattutto storico / soprattutto foto',
+    'MOTIVO: massimo 4 righe, concreto e senza inventare materiali o caratteristiche non visibili.',
+    '',
+    'Se i dati non bastano, non fingere precisione: allarga la fascia e abbassa l’affidabilità.'
+  );
+  return lines.join('\n');
+}
+async function collectArticleFilesForAi(art){
+  const out=[];
+  const pending=(Array.isArray(currentArtPendingFiles)?currentArtPendingFiles:[]).filter(f=>f instanceof File && String(f.type||'').startsWith('image/'));
+  for(const f of pending){
+    out.push(f);
+    if(out.length>=9) return out;
+  }
+  const existing=(Array.isArray(currentArtExistingPics)?currentArtExistingPics:[]).filter(Boolean).slice(0,9-out.length);
+  if(existing.length){
+    const built=await buildArticlePhotoFiles(art, existing, getArticlePhotoShareBaseName(art));
+    out.push(...built.slice(0,9-out.length));
+  }
+  if(!out.length && currentArtId){
+    try{
+      const ctx=await getCurrentArticlePhotoContext();
+      if(ctx){
+        const files=await ensureCurrentArticlePhotoFiles(ctx,{silent:true});
+        out.push(...normalizePreparedPhotoFiles(files,9));
+      }
+    }catch(_e){}
+  }
+  return normalizePreparedPhotoFiles(out,9);
+}
+async function estimateSupplierCostWithAi(){
+  const art=readArticleForm();
+  if(!art?.codice && !art?.modello && !art?.categoria){
+    toast('Inserisci almeno codice, modello o categoria');
+    return;
+  }
+  toast('⏳ Preparo storico e foto…');
+  let files=[];
+  try{ files=await collectArticleFilesForAi(art); }
+  catch(err){ console.warn('Preparazione foto IA fallita',err); }
+  const history=getSupplierCostHistoryForAi(art,12);
+  const prompt=buildSupplierCostAiPrompt(art,history,files.length);
+  try{ await navigator.clipboard.writeText(prompt); }
+  catch(_e){ try{ fallbackCopyText(prompt); }catch(__e){} }
+  if(!files.length){
+    if(typeof navigator.share==='function'){
+      try{ await navigator.share({title:'Stima costo fornitore con IA',text:prompt}); return; }
+      catch(err){ if(isShareAbortError(err)) return; }
+    }
+    toast('Richiesta copiata. Apri ChatGPT, incolla e invia.');
+    return;
+  }
+  try{
+    if(canNativeShareFiles(files)){
+      await navigator.share({title:'Stima costo fornitore con IA',text:prompt,files});
+      toast('Foto condivise. Se il testo non compare, è già copiato: incollalo in ChatGPT.');
+    }else if(typeof navigator.share==='function'){
+      await navigator.share({title:'Stima costo fornitore con IA',text:prompt});
+      toast('Richiesta condivisa; le foto non sono supportate da questo browser.');
+    }else{
+      toast('Richiesta copiata. Apri ChatGPT, incolla e allega le foto.');
+    }
+  }catch(err){
+    if(isShareAbortError(err)) return;
+    console.warn('Condivisione stima IA fallita',err);
+    toast('Richiesta copiata. Apri ChatGPT, incolla e invia.');
+  }
+}
+
 async function syncArticlePhotosToCloud(artId, codice, pics){
   const sb=await ensureCloud();
   if(!sb||!cloudSession||!artId) return [];
@@ -9442,6 +9587,7 @@ document.addEventListener('click',(ev)=>{
   }
   const a=el.dataset.action;
   if(a==='newArt') return openArtEdit(null);
+  if(a==='estimateSupplierCostAI') return estimateSupplierCostWithAi();
   if(a==='openPromoArticles'){
     const qArt=document.getElementById('qArt');
     const qArtCat=document.getElementById('qArtCat');
