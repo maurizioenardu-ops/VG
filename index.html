@@ -147,6 +147,10 @@ body{-webkit-tap-highlight-color:transparent}
 .navBottom button.active{background:#fef3c7;border-color:#f59e0b;color:#111827;box-shadow:0 6px 14px rgba(245,158,11,.14)}
 /* modal */
 .modalwrap{position:fixed;inset:0;background:rgba(15,23,42,.4);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}
+.bulkPasteLaunch{width:100%;margin:8px 0 12px;background:#7f1d1d!important;border-color:#7f1d1d!important;color:#fff!important;font-weight:900;min-height:42px}
+.bulkPasteBox{min-height:260px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px;line-height:1.45}
+.bulkPasteHint{padding:10px 12px;border-radius:12px;background:#fff7ed;border:1px solid #fdba74;color:#7c2d12;font-weight:700;line-height:1.35}
+
 .modal{background:#fff;width:100%;max-width:560px;border-radius:20px;border:1px solid var(--line);padding:14px;max-height:85vh;overflow:auto}
 #mArtEdit .modal.artModal{background:#F3F0EA !important}
 #mArtEdit .formBlock{background:transparent !important}
@@ -771,7 +775,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.60</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.61</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -975,6 +979,7 @@ window.addEventListener('error',e=>{
 
   <div class="formBlock dati inputSoft">
     <div class="blockTitle">Dati articolo</div>
+    <button type="button" class="btn bulkPasteLaunch" data-action="openBulkPasteArticle">📋 Incolla tutti i dati articolo</button>
     <div class="grid2">
       <div><div class="k">Codice articolo</div><input id="a_cod" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="a_cod_hint" class="date" style="margin-top:6px"></div></div>
       <div>
@@ -1094,6 +1099,18 @@ window.addEventListener('error',e=>{
     <button class="btn primary" type="button" data-action="saveArt">Salva</button>
     <button class="btn" type="button" data-action="closeEdit">Annulla</button>
     <button class="btn danger" type="button" data-action="deleteArt">Elimina</button>
+  </div>
+</div></div>
+
+<div id="mArtBulkPaste" class="modalwrap"><div class="modal">
+  <div class="h2">Incolla dati articolo</div>
+  <div class="bulkPasteHint">Incolla il testo con le etichette. Descrizione e note vengono ignorate apposta. Foto, prezzo fornitore e link possono essere aggiunti anche dopo.</div>
+  <textarea id="a_bulk_paste" class="bulkPasteBox" style="margin-top:10px" placeholder="CODICE: 1224&#10;BRAND: Gucci&#10;MODELLO: Nome modello&#10;CATEGORIA: Portafogli&#10;FORNITORE: Daniel&#10;MATERIALE: Pelle bovina&#10;VARIANTE: Monogram&#10;COLORE: Nero&#10;MISURE: 19 × 10,5 × 3 cm&#10;PREZZO FORNITORE USD: 49&#10;LINK: https://..."></textarea>
+  <div id="a_bulk_result" class="small" style="margin-top:8px"></div>
+  <div class="actions compact" style="margin-top:12px">
+    <button type="button" class="btn primary" data-action="readBulkPasteClipboard">Incolla dagli appunti</button>
+    <button type="button" class="btn" data-action="applyBulkPasteArticle">Compila campi</button>
+    <button type="button" class="btn" data-action="closeBulkPasteArticle">Annulla</button>
   </div>
 </div></div>
 
@@ -9953,6 +9970,155 @@ async function openArtView(id){
   show('mArtView');
   scheduleModalTextareaFit('mArtView');
 }
+
+function normalizeBulkArticleLabel(raw){
+  return String(raw||'').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[()\[\]]/g,' ').replace(/[^a-z0-9]+/g,' ').trim();
+}
+function parseBulkArticleNumber(raw){
+  const m=String(raw||'').replace(/\s/g,'').replace(',','.').match(/-?\d+(?:\.\d+)?/);
+  return m ? m[0] : '';
+}
+function parseBulkArticleText(text){
+  const out={};
+  const ignored=[];
+  const aliases={
+    codice:['codice','codice articolo','search code','code'],
+    brand:['brand','marca'],
+    modello:['modello','nome modello','nome articolo','articolo'],
+    categoria:['categoria','category'],
+    fornitore:['fornitore','supplier'],
+    materiale:['materiale','material'],
+    variante:['variante','versione'],
+    colore:['colore','color'],
+    tipoColore:['tipo colore','modalita colore'],
+    colori:['colori','colori disponibili','abbinamento colori','varianti colore'],
+    misura:['misura','misure','dimensioni','taglia'],
+    altezzaCintura:['altezza cintura','h cintura'],
+    costoUsd:['prezzo fornitore standard usd','prezzo fornitore usd','costo fornitore usd','costo usd','prezzo acquisto usd'],
+    costoUsdPromo:['prezzo fornitore promo usd','costo promo usd','prezzo promo fornitore usd'],
+    scadenzaPromoFornitore:['fine promo fornitore','scadenza promo fornitore'],
+    link:['link','link fornitore','pagina fornitore','url'],
+    descrizione:['descrizione','description'],
+    note:['note','nota']
+  };
+  const lookup={};
+  Object.entries(aliases).forEach(([key,vals])=>vals.forEach(v=>lookup[normalizeBulkArticleLabel(v)]=key));
+  const lines=String(text||'').replace(/\r/g,'').split('\n');
+  let currentKey='';
+  for(const rawLine of lines){
+    const line=String(rawLine||'').trim();
+    if(!line) continue;
+    const m=line.match(/^([^:=]{2,45})\s*[:=]\s*(.*)$/);
+    if(m){
+      const key=lookup[normalizeBulkArticleLabel(m[1])];
+      if(key){
+        currentKey=key;
+        const value=String(m[2]||'').trim();
+        if(key==='descrizione'||key==='note'){ ignored.push(key); continue; }
+        if(value) out[key]=value;
+        continue;
+      }
+    }
+    if(currentKey && !['descrizione','note'].includes(currentKey)){
+      out[currentKey]=[out[currentKey],line].filter(Boolean).join('\n');
+    }
+  }
+  // Formato compatto senza etichette: codice, modello, descrizione, colore, materiale, misure, link.
+  if(!out.codice && !Object.keys(out).length){
+    const compact=lines.map(x=>x.trim()).filter(Boolean);
+    if(compact.length>=2){
+      out.codice=compact[0]||'';
+      out.modello=String(compact[1]||'').replace(/\s*[🥈🥇]\s*$/u,'').trim();
+      if(compact[3]) out.colore=compact[3];
+      if(compact[4]) out.materiale=compact[4];
+      if(compact[5]) out.misura=compact[5];
+      if(compact[6] && /^(https?:\/\/|www\.)/i.test(compact[6])) out.link=compact[6];
+      if(compact[2]) ignored.push('descrizione');
+    }
+  }
+  out._ignored=[...new Set(ignored)];
+  return out;
+}
+function setBulkSelectValue(id,value,{allowCustom=false}={}){
+  const el=document.getElementById(id);
+  const clean=String(value||'').trim();
+  if(!el || !clean) return false;
+  const opt=Array.from(el.options||[]).find(o=>normalizeBulkArticleLabel(o.value)===normalizeBulkArticleLabel(clean) || normalizeBulkArticleLabel(o.textContent)===normalizeBulkArticleLabel(clean));
+  if(opt){ el.value=opt.value; return true; }
+  if(allowCustom){
+    const node=document.createElement('option'); node.value=clean; node.textContent=clean; el.appendChild(node); el.value=clean; return true;
+  }
+  return false;
+}
+async function openBulkPasteArticle(){
+  const box=document.getElementById('a_bulk_paste');
+  const result=document.getElementById('a_bulk_result');
+  if(box) box.value='';
+  if(result) result.textContent='';
+  show('mArtBulkPaste');
+  setTimeout(()=>box?.focus(),50);
+}
+async function readBulkPasteClipboard(){
+  const box=document.getElementById('a_bulk_paste');
+  try{
+    const text=await navigator.clipboard.readText();
+    if(!text) throw new Error('Appunti vuoti');
+    if(box) box.value=text;
+    toast('Testo incollato');
+  }catch(err){
+    toast('Tieni premuto nel riquadro e scegli Incolla');
+    box?.focus();
+  }
+}
+function applyBulkPasteArticle(){
+  const box=document.getElementById('a_bulk_paste');
+  const result=document.getElementById('a_bulk_result');
+  const data=parseBulkArticleText(box?.value||'');
+  const keys=Object.keys(data).filter(k=>!k.startsWith('_') && String(data[k]||'').trim());
+  if(!keys.length){ if(result) result.textContent='Nessun dato riconosciuto.'; toast('Nessun dato riconosciuto'); return; }
+  const set=(id,val)=>{ const el=document.getElementById(id); if(el && String(val||'').trim()){ el.value=String(val).trim(); return true; } return false; };
+  const applied=[];
+  if(set('a_cod',data.codice)) applied.push('codice');
+  if(data.brand){ syncBrandField(data.brand); applied.push('brand'); }
+  if(set('a_mod',data.modello)) applied.push('modello');
+  if(data.categoria){ refreshArticleCategorySelects(data.categoria); applied.push('categoria'); }
+  if(set('a_taglia',data.materiale)) applied.push('materiale');
+  if(set('a_variante',data.variante)) applied.push('variante');
+  if(set('a_mis',data.misura)) applied.push('misure');
+  if(set('a_belt_h',data.altezzaCintura)) applied.push('altezza cintura');
+  if(set('a_usd',parseBulkArticleNumber(data.costoUsd))) applied.push('costo USD');
+  if(set('a_usd_promo',parseBulkArticleNumber(data.costoUsdPromo))) applied.push('costo promo USD');
+  if(set('a_supplier_promo_end',data.scadenzaPromoFornitore)) applied.push('scadenza promo');
+  if(set('a_forn_link',data.link)) applied.push('link');
+  if(data.colori){
+    document.getElementById('a_color_mode').value='multiple';
+    const colorLines=String(data.colori).split(/\n|,|;/).map(x=>x.trim()).filter(Boolean);
+    document.getElementById('a_color_count').value=String(colorLines.length||'');
+    document.getElementById('a_color_labels').value=colorLines.map((x,i)=>/^\d+\s*[-.)]/.test(x)?x:`${i+1} - ${x}`).join('\n');
+    applied.push('colori');
+  }else if(data.colore){
+    document.getElementById('a_color_mode').value=normalizeBulkArticleLabel(data.tipoColore).includes('piu')?'multiple':'single';
+    if(document.getElementById('a_color_mode').value==='single') document.getElementById('a_colore').value=String(data.colore).trim();
+    else {
+      const colorLines=String(data.colore).split(/,|;/).map(x=>x.trim()).filter(Boolean);
+      document.getElementById('a_color_count').value=String(colorLines.length||'');
+      document.getElementById('a_color_labels').value=colorLines.map((x,i)=>`${i+1} - ${x}`).join('\n');
+    }
+    applied.push('colore');
+  }
+  updateArticleColorModeUI();
+  updateArticleMeasureState();
+  updateArticleCodeStatus();
+  renderArtAutoFields();
+  if(data.fornitore){ updateSupplierField(data.fornitore); setBulkSelectValue('a_forn',data.fornitore,{allowCustom:true}); applied.push('fornitore'); }
+  // Descrizione e note restano sempre intatte/vuote.
+  saveArticleDraft();
+  hide('mArtBulkPaste');
+  toast(`Compilati ${applied.length} campi`);
+}
+
 async function openArtEdit(id){
   const db=loadDB();
   const a=id?db.articoli.find(x=>x.id===id):null;
@@ -12376,6 +12542,10 @@ document.addEventListener('click',(ev)=>{
   if(a==='pickArtVideos'){ document.getElementById('a_video')?.click(); return; }
   if(a==='clearArtVideos'){ currentArtExistingVideoIds=[]; currentArtPendingVideos=[]; renderArtVideoPreview(); toast('Video rimossi'); return; }
   if(a==='shareArtAll'){ shareArtAll(); return; }
+  if(a==='openBulkPasteArticle') return openBulkPasteArticle();
+  if(a==='readBulkPasteClipboard') return readBulkPasteClipboard();
+  if(a==='applyBulkPasteArticle') return applyBulkPasteArticle();
+  if(a==='closeBulkPasteArticle') return hide('mArtBulkPaste');
   if(a==='closeEdit'){ saveArticleDraft(); return hide('mArtEdit'); }
   if(a==='clearArtPhotos'){ currentArtExistingPics=[]; currentArtPhotosCleared=true; document.getElementById('a_photo').value=''; renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Foto attuali rimosse'); return; }
   if(a==='saveArt') return saveArt();
@@ -12574,7 +12744,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.60-2026-07-30';
+const VG_BUILD='1.0.61-2026-07-31';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
