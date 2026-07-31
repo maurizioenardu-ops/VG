@@ -121,6 +121,8 @@ body{-webkit-tap-highlight-color:transparent}
 .btn.promoOnlyBtn.active{background:#16a34a;border-color:#16a34a;color:#fff}
 .btn.artAllBtn.active{background:#e0ecff;border-color:#93c5fd;color:#0f172a}
 .btn.smallish{padding:9px 11px;min-height:40px;font-size:12px;border-radius:12px}
+.btn[data-action="openParcel"],.btn[data-action="openParcelView"]{background:#635bff;border-color:#635bff;color:#fff}
+.btn[data-action="askChatGPT"],.btn[data-action="askChatGPTView"]{background:#10a37f;border-color:#10a37f;color:#fff}
 .btn.orderAdd{background:#fff;border:1px solid var(--line);color:#111827;box-shadow:0 3px 10px rgba(15,23,42,.04)}
 .btn[data-action^="shareArtPhotos"],.btn[data-action="addArtToOrderFromView"]{background:#16a34a;border-color:#16a34a;color:#fff}
   .btn[data-action^="downloadArtPhotos"]{background:#38bdf8;border-color:#38bdf8;color:#082f49}
@@ -871,9 +873,8 @@ window.addEventListener('error',e=>{
   </div>
   <div style="margin-top:10px"><div class="k">Tracking</div><div id="vOrdTrack" class="mutedBox">-</div></div>
   <div class="actions compact bottomMini" style="margin-top:8px">
-    <button class="btn smallish" type="button" data-action="track17View">Traccia spedizione</button>
     <button class="btn smallish" type="button" data-action="openParcelView">Apri Parcel</button>
-    <button class="btn smallish" type="button" data-action="askChatGPTView">✦ Chiedi a ChatGPT</button>
+    <button class="btn smallish" type="button" data-action="askChatGPTView">✦ Chiedi all’IA</button>
   </div>
   <div class="hr"></div>
   <div class="h2">Righe ordine</div>
@@ -950,7 +951,7 @@ window.addEventListener('error',e=>{
   <div class="orderSection">
     <div class="h3">Foto ordine</div>
     <div><div class="k">Aggiungi foto</div><input id="o_photo" type="file" accept="image/*"/><div class="small" style="margin-top:6px">Per ogni articolo viene copiata una sola foto, cercando quella del colore scelto. Se serve, puoi aggiungerne una manuale.</div><div id="o_photo_prev" class="orderPhotoGrid"></div></div>
-    <div class="orderTrackCard"><div class="k">Tracking</div><input id="o_tracking" placeholder="Inserisci tracking" autocomplete="off" autocapitalize="off" spellcheck="false"/><div class="orderTrackActions"><button class="btn smallish" type="button" data-action="track17">Traccia spedizione</button><button class="btn smallish" type="button" data-action="openParcel">Apri Parcel</button><button class="btn smallish" type="button" data-action="askChatGPT">✦ Chiedi a ChatGPT</button></div></div>
+    <div class="orderTrackCard"><div class="k">Tracking</div><input id="o_tracking" placeholder="Inserisci tracking" autocomplete="off" autocapitalize="off" spellcheck="false"/><div class="orderTrackActions"><button class="btn smallish" type="button" data-action="openParcel">Apri Parcel</button><button class="btn smallish" type="button" data-action="askChatGPT">✦ Chiedi all’IA</button></div></div>
   </div>
 
   <div class="actions bottomMini">
