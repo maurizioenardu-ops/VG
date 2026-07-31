@@ -802,6 +802,21 @@ window.addEventListener('error',e=>{
     <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
+    <div class="formBlock" style="margin-top:12px;background:#ecfdf5;border:1px solid #a7f3d0">
+      <div class="blockTitle">Compilazione automatica con IA</div>
+      <input id="a_supplier_screen" type="file" accept="image/*" style="display:none"/>
+      <div class="actions compact" style="margin-top:8px">
+        <button class="btn smallish" type="button" data-action="pickSupplierScreen">Aggiungi screenshot fornitore</button>
+        <button class="btn danger smallish" type="button" data-action="clearSupplierScreen">Rimuovi screenshot</button>
+      </div>
+      <div id="a_supplier_screen_status" class="small" style="margin-top:6px">Nessuno screenshot temporaneo selezionato.</div>
+      <div id="a_supplier_screen_prev" class="thumbs" style="margin-top:8px"></div>
+      <div class="actions compact" style="margin-top:10px">
+        <button class="btn primary" type="button" data-action="analyzeAndFillArticleAI" style="background:#10a37f;border-color:#0d8f70;color:#fff">✨ Analizza con IA</button>
+        <button class="btn" type="button" data-action="pasteArticleAIData">📋 Incolla risposta IA</button>
+      </div>
+      <div class="helper" style="margin-top:6px">Condivide le foto dell’articolo e lo screenshot temporaneo con ChatGPT. Poi copi una sola risposta e premi “Incolla risposta IA”: tutte le caselle vengono compilate insieme. Il prezzo non viene toccato.</div>
+    </div>
     <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Aggiungi foto</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 9 foto totali per articolo.</div></div>
     <div id="a_photo_prev" class="thumbs"></div>
     <div style="margin-top:10px"><div class="k">Video articolo</div><input id="a_video" type="file" accept="video/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickArtVideos">Aggiungi video</button><button class="btn danger smallish" type="button" data-action="clearArtVideos">Rimuovi tutti i video</button></div><div id="a_video_status" class="small" style="margin-top:6px">I video vengono caricati su Supabase. Max 3 video per articolo.</div></div>
@@ -3150,6 +3165,169 @@ async function shareArtAll(opts={}){
     if(isShareActivationError(err)){ toast('⚠️ File non ancora pronti. Premi di nuovo Condividi.'); return; }
     console.warn('shareArtAll fallito:',err);
     toast('⚠️ Condivisione non riuscita');
+  }
+}
+
+
+function resetSupplierScreen(){
+  if(currentSupplierScreenPreviewUrl){
+    try{ URL.revokeObjectURL(currentSupplierScreenPreviewUrl); }catch(_e){}
+  }
+  currentSupplierScreenFile=null;
+  currentSupplierScreenPreviewUrl='';
+  const input=document.getElementById('a_supplier_screen');
+  if(input) input.value='';
+  renderSupplierScreenPreview();
+}
+function renderSupplierScreenPreview(){
+  const status=document.getElementById('a_supplier_screen_status');
+  const prev=document.getElementById('a_supplier_screen_prev');
+  if(status) status.textContent=currentSupplierScreenFile ? `Screenshot temporaneo: ${currentSupplierScreenFile.name||'immagine'}` : 'Nessuno screenshot temporaneo selezionato.';
+  if(prev) prev.innerHTML=currentSupplierScreenPreviewUrl ? `<img src="${currentSupplierScreenPreviewUrl}" style="width:92px;height:92px;object-fit:cover;border-radius:12px;border:1px solid var(--line)"/>` : '';
+}
+function buildArticleAutofillAiPrompt(art, productPhotoCount, hasSupplierScreen){
+  return [
+    'Analizza le immagini allegate e restituisci i dati per compilare la scheda articolo del mio gestionale.',
+    'Le immagini comprendono fino a 9 foto del prodotto e, se presente, uno screenshot temporaneo della pagina del fornitore.',
+    'NON stimare né modificare prezzi o costi.',
+    'Leggi con attenzione testo, codici, misure e qualità presenti nello screenshot. Non inventare materiale o dettagli non verificabili.',
+    '',
+    'DATI GIÀ PRESENTI (mantienili se le immagini non mostrano informazioni migliori):',
+    `codice: ${normalizeAiHistoryText(art?.codice)||''}`,
+    `brand: ${normalizeAiHistoryText(art?.brand)||''}`,
+    `modello: ${normalizeAiHistoryText(art?.modello)||''}`,
+    `categoria: ${normalizeAiHistoryText(art?.categoria)||''}`,
+    `descrizione: ${normalizeAiHistoryText(art?.descrizione)||''}`,
+    `materiale: ${normalizeAiHistoryText(art?.materiale)||''}`,
+    `variante: ${normalizeAiHistoryText(art?.variante)||''}`,
+    `colore: ${normalizeAiHistoryText(art?.colore)||''}`,
+    `misure: ${normalizeAiHistoryText(art?.misura)||''}`,
+    `fornitore: ${normalizeAiHistoryText(art?.fornitore)||''}`,
+    `foto prodotto: ${productPhotoCount}`,
+    `screenshot fornitore: ${hasSupplierScreen?'sì':'no'}`,
+    '',
+    'REGOLE IMPORTANTI:',
+    '- Per codice usa il codice di ricerca/articolo del fornitore, se chiaramente indicato. Non usare il codice modello del brand al posto del codice articolo se nello screenshot sono entrambi presenti.',
+    '- Per modello includi il nome commerciale e, se utile, il codice modello del brand.',
+    '- Categoria deve essere una voce semplice, per esempio Borse, Portafogli, Scarpe, Cinture, Abbigliamento, Orologi, Accessori.',
+    '- Descrizione breve, concreta e adatta a un post Facebook, senza prezzo.',
+    '- Materiale deve essere vuoto se non è dichiarato o chiaramente leggibile.',
+    '- Colore in italiano.',
+    '- Misure nel formato 28 × 19 × 4,5 cm.',
+    '- Fornitore vuoto se non è identificabile.',
+    '',
+    'Rispondi SOLO con questo blocco, senza spiegazioni prima o dopo:',
+    'BEGIN_GESTIONALE_JSON',
+    '{',
+    '  "codice": "",',
+    '  "brand": "",',
+    '  "modello": "",',
+    '  "categoria": "",',
+    '  "descrizione": "",',
+    '  "materiale": "",',
+    '  "variante": "",',
+    '  "tipo_colore": "single",',
+    '  "colore": "",',
+    '  "numero_colori": "",',
+    '  "abbinamento_colori": "",',
+    '  "misure": "",',
+    '  "altezza_cintura": "",',
+    '  "fornitore": "",',
+    '  "link_fornitore": "",',
+    '  "note": ""',
+    '}',
+    'END_GESTIONALE_JSON'
+  ].join('\n');
+}
+async function collectArticleAutofillFiles(art){
+  const productFiles=await collectArticleFilesForAi(art);
+  const files=[...productFiles.slice(0,9)];
+  if(currentSupplierScreenFile instanceof File) files.push(currentSupplierScreenFile);
+  return {files, productPhotoCount:productFiles.length, hasSupplierScreen:!!currentSupplierScreenFile};
+}
+async function analyzeAndFillArticleWithAi(){
+  const art=readArticleForm();
+  toast('⏳ Preparo foto e richiesta…');
+  let pack;
+  try{ pack=await collectArticleAutofillFiles(art); }
+  catch(err){ console.warn('Preparazione immagini compilazione IA fallita',err); pack={files:[],productPhotoCount:0,hasSupplierScreen:false}; }
+  if(!pack.files.length){ toast('Aggiungi almeno una foto o lo screenshot del fornitore'); return; }
+  const prompt=buildArticleAutofillAiPrompt(art,pack.productPhotoCount,pack.hasSupplierScreen);
+  try{ await navigator.clipboard.writeText(prompt); }catch(_e){ try{ fallbackCopyText(prompt); }catch(__e){} }
+  try{
+    if(canNativeShareFiles(pack.files)){
+      await navigator.share({title:'Compila articolo con IA',text:prompt,files:pack.files});
+      toast('Immagini condivise. Se il testo non compare, è già copiato negli appunti.');
+    }else if(typeof navigator.share==='function'){
+      await navigator.share({title:'Compila articolo con IA',text:prompt});
+      toast('Richiesta condivisa; il browser non ha passato le immagini.');
+    }else{
+      toast('Richiesta copiata. Apri ChatGPT, incolla e allega le immagini.');
+    }
+  }catch(err){
+    if(isShareAbortError(err)) return;
+    console.warn('Condivisione compilazione IA fallita',err);
+    toast('Richiesta copiata. Apri ChatGPT, incolla e invia.');
+  }
+}
+function extractArticleAiJson(raw){
+  const text=String(raw||'').trim();
+  if(!text) throw new Error('Risposta vuota');
+  const marked=text.match(/BEGIN_GESTIONALE_JSON\s*([\s\S]*?)\s*END_GESTIONALE_JSON/i);
+  let candidate=marked ? marked[1].trim() : text;
+  candidate=candidate.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+  const first=candidate.indexOf('{'), last=candidate.lastIndexOf('}');
+  if(first<0 || last<=first) throw new Error('Blocco JSON non trovato');
+  candidate=candidate.slice(first,last+1);
+  return JSON.parse(candidate);
+}
+function setArticleSelectValue(id,value){
+  const el=document.getElementById(id);
+  const clean=String(value||'').trim();
+  if(!el || !clean) return;
+  const exact=Array.from(el.options||[]).find(o=>String(o.value||'').trim().toLowerCase()===clean.toLowerCase());
+  if(exact){ el.value=exact.value; return; }
+  const opt=document.createElement('option'); opt.value=clean; opt.textContent=clean; el.appendChild(opt); el.value=clean;
+}
+function applyArticleAiData(data){
+  const setIf=(id,val)=>{ const el=document.getElementById(id); const clean=String(val??'').trim(); if(el && clean) el.value=clean; };
+  setIf('a_cod',data.codice);
+  if(String(data.brand||'').trim()) syncBrandField(String(data.brand).trim());
+  setIf('a_mod',data.modello);
+  if(String(data.categoria||'').trim()) setArticleSelectValue('a_cat',data.categoria);
+  setIf('a_desc',data.descrizione);
+  setIf('a_taglia',data.materiale);
+  setIf('a_variante',data.variante);
+  const mode=String(data.tipo_colore||'').toLowerCase()==='multiple' ? 'multiple' : 'single';
+  const modeEl=document.getElementById('a_color_mode'); if(modeEl) modeEl.value=mode;
+  setIf('a_colore',data.colore);
+  setIf('a_color_count',data.numero_colori);
+  setIf('a_color_labels',data.abbinamento_colori);
+  setIf('a_mis',data.misure);
+  setIf('a_belt_h',data.altezza_cintura);
+  if(String(data.fornitore||'').trim()) setArticleSelectValue('a_forn',data.fornitore);
+  setIf('a_forn_link',data.link_fornitore);
+  setIf('a_note',data.note);
+  updateSupplierField(document.getElementById('a_forn')?.value||'');
+  updateArticleColorModeUI();
+  updateArticleMeasureState();
+  updateArticleCodeStatus();
+  renderArtAutoFields();
+  saveArticleDraft();
+  ['a_desc','a_note'].forEach(id=>fitTextarea(document.getElementById(id)));
+}
+async function pasteArticleAiData(){
+  let raw='';
+  try{ raw=await navigator.clipboard.readText(); }
+  catch(_e){ raw=prompt('Incolla qui tutta la risposta di ChatGPT:')||''; }
+  if(!raw){ toast('Nessuna risposta trovata negli appunti'); return; }
+  try{
+    const data=extractArticleAiJson(raw);
+    applyArticleAiData(data);
+    toast('✅ Caselle compilate. Controlla i dati prima di salvare.');
+  }catch(err){
+    console.warn('Importazione risposta IA fallita',err);
+    toast('⚠️ Risposta IA non riconosciuta. Copia tutto il blocco BEGIN_GESTIONALE_JSON.');
   }
 }
 
@@ -7641,6 +7819,8 @@ let currentArtId=null;
 let currentArtExistingPics=[];
 let currentArtPendingFiles=[];
 let currentArtPendingPreviewUrls=[];
+let currentSupplierScreenFile=null;
+let currentSupplierScreenPreviewUrl='';
 let currentArtPendingVideos=[];   // File objects per nuovi video
 let currentArtExistingVideoIds=[]; // paths Supabase già salvati
 const MAX_ART_VIDEOS=3;
@@ -7757,6 +7937,7 @@ async function openArtEdit(id){
   currentArtDuplicateData=null;
   currentArtPhotosCleared=false;
   resetPendingArtPhotoFiles();
+  resetSupplierScreen();
   document.getElementById('artEditTitle').textContent = a?'Modifica articolo':'Nuovo articolo';
   const set=(k,v)=>document.getElementById(k).value=(v===0?0:(v||''));
 
@@ -9588,6 +9769,10 @@ document.addEventListener('click',(ev)=>{
   const a=el.dataset.action;
   if(a==='newArt') return openArtEdit(null);
   if(a==='estimateSupplierCostAI') return estimateSupplierCostWithAi();
+  if(a==='analyzeAndFillArticleAI') return analyzeAndFillArticleWithAi();
+  if(a==='pasteArticleAIData') return pasteArticleAiData();
+  if(a==='pickSupplierScreen'){ document.getElementById('a_supplier_screen')?.click(); return; }
+  if(a==='clearSupplierScreen'){ resetSupplierScreen(); return; }
   if(a==='openPromoArticles'){
     const qArt=document.getElementById('qArt');
     const qArtCat=document.getElementById('qArtCat');
@@ -9903,6 +10088,14 @@ document.getElementById('importFile').addEventListener('change',(e)=>{
 });
 document.getElementById('a_brand')?.addEventListener('change', ()=>{ handleBrandSelectionChange(); saveArticleDraft(); });
 document.getElementById('a_photo')?.addEventListener('change', async ()=>{ await refreshArtPhotoPreviewFromInput(); saveArticleDraft(); });
+document.getElementById('a_supplier_screen')?.addEventListener('change',()=>{
+  const input=document.getElementById('a_supplier_screen');
+  const file=Array.from(input?.files||[]).find(f=>String(f.type||'').startsWith('image/'))||null;
+  if(currentSupplierScreenPreviewUrl){ try{ URL.revokeObjectURL(currentSupplierScreenPreviewUrl); }catch(_e){} }
+  currentSupplierScreenFile=file;
+  currentSupplierScreenPreviewUrl=file ? URL.createObjectURL(file) : '';
+  renderSupplierScreenPreview();
+});
 document.getElementById('a_video')?.addEventListener('change',()=>{
   const files=Array.from(document.getElementById('a_video').files||[]);
   const total=currentArtExistingVideoIds.length+currentArtPendingVideos.length;
