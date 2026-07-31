@@ -775,7 +775,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.62</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.63</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -11672,10 +11672,14 @@ function normalizeChatGPTConversationUrl(value=''){
   if(!raw) return '';
   try{
     const u=new URL(/^https?:\/\//i.test(raw)?raw:`https://${raw}`);
-    if(!/(^|\.)chatgpt\.com$/i.test(u.hostname)) return '';
-    if(!/^\/c\/[A-Za-z0-9-]+\/?$/.test(u.pathname)) return '';
-    u.search=''; u.hash='';
-    return u.toString().replace(/\/$/,'');
+    const host=String(u.hostname||'').toLowerCase().replace(/^www\./,'');
+    if(host!=='chatgpt.com' && host!=='chat.openai.com') return '';
+    // Accetta sia /c/ID sia eventuali percorsi ChatGPT più lunghi che contengono /c/ID.
+    // Mantiene query e percorso originali per riaprire esattamente la stessa conversazione.
+    if(!/(^|\/)c\/[A-Za-z0-9-]+(?:\/|$)/i.test(u.pathname)) return '';
+    u.protocol='https:';
+    u.hash='';
+    return u.toString();
   }catch(_e){ return ''; }
 }
 function getConfiguredChatGPTConversationUrl(){
@@ -12853,7 +12857,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.62-2026-07-31';
+const VG_BUILD='1.0.63-2026-08-01';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14052,7 +14056,7 @@ async function bootApp(){
     chatUrlInput.value=getConfiguredChatGPTConversationUrl();
     chatUrlInput.addEventListener('change',()=>{
       const ok=saveConfiguredChatGPTConversationUrl(chatUrlInput.value);
-      if(!ok){ toast('Link ChatGPT non valido: usa il link privato https://chatgpt.com/c/...'); chatUrlInput.focus(); return; }
+      if(!ok){ toast('Link non riconosciuto: incolla l’indirizzo della conversazione aperta su ChatGPT'); chatUrlInput.focus(); return; }
       chatUrlInput.value=getConfiguredChatGPTConversationUrl();
       toast(chatUrlInput.value?'Link conversazione ChatGPT salvato':'Link conversazione ChatGPT rimosso');
     });
@@ -14129,7 +14133,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.62', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.63', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
