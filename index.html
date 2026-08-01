@@ -782,7 +782,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.66</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.67</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -984,7 +984,6 @@ window.addEventListener('error',e=>{
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
     <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
-    <button class="btn smallish" type="button" data-action="askAIContext" data-ai-scope="article" style="background:#111827;border-color:#111827;color:#fff">✦ IA</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
     <button class="btn danger smallish" type="button" data-action="deleteArt">Elimina</button>
     <button class="btn smallish" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button>
@@ -1162,7 +1161,6 @@ window.addEventListener('error',e=>{
   </div>
   <div class="actions compact bottomMini">
     <button class="btn primary smallish" type="button" data-action="copyCliShipView">Copia indirizzo</button>
-    <button class="btn smallish" type="button" data-action="askAIContext" data-ai-scope="client" style="background:#111827;border-color:#111827;color:#fff">✦ IA</button>
     <button class="btn smallish" type="button" data-action="editCliFromView">Modifica</button>
     <button class="btn smallish" type="button" data-action="closeCliView">Chiudi</button>
   </div>
@@ -1250,7 +1248,6 @@ window.addEventListener('error',e=>{
   <div id="vOrdCumMeta" class="small" style="margin-top:8px;display:none"></div>
   <div class="actions compact bottomMini">
     <button class="btn primary smallish" type="button" data-action="copyOrdClientAddress">Copia indirizzo cliente</button>
-    <button class="btn smallish" type="button" data-action="askAIContext" data-ai-scope="order" style="background:#111827;border-color:#111827;color:#fff">✦ IA</button>
     <button class="btn smallish" type="button" data-action="editOrdFromView">Modifica</button>
     <button class="btn smallish" type="button" data-action="closeOrdView">Chiudi</button>
   </div>
@@ -13019,7 +13016,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.66-2026-08-01';
+const VG_BUILD='1.0.67-2026-08-01';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14295,7 +14292,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.66', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.67', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
