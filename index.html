@@ -776,7 +776,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.64</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.65</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -978,6 +978,7 @@ window.addEventListener('error',e=>{
   <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
   <div class="actions compact viewBottomSpace">
     <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
+    <button class="btn smallish" type="button" data-action="askAIContext" data-ai-scope="article" style="background:#111827;border-color:#111827;color:#fff">✦ IA</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
     <button class="btn danger smallish" type="button" data-action="deleteArt">Elimina</button>
     <button class="btn smallish" type="button" data-action="addArtToOrderFromView">Aggiungi a ordine</button>
@@ -1155,6 +1156,7 @@ window.addEventListener('error',e=>{
   </div>
   <div class="actions compact bottomMini">
     <button class="btn primary smallish" type="button" data-action="copyCliShipView">Copia indirizzo</button>
+    <button class="btn smallish" type="button" data-action="askAIContext" data-ai-scope="client" style="background:#111827;border-color:#111827;color:#fff">✦ IA</button>
     <button class="btn smallish" type="button" data-action="editCliFromView">Modifica</button>
     <button class="btn smallish" type="button" data-action="closeCliView">Chiudi</button>
   </div>
@@ -1242,6 +1244,7 @@ window.addEventListener('error',e=>{
   <div id="vOrdCumMeta" class="small" style="margin-top:8px;display:none"></div>
   <div class="actions compact bottomMini">
     <button class="btn primary smallish" type="button" data-action="copyOrdClientAddress">Copia indirizzo cliente</button>
+    <button class="btn smallish" type="button" data-action="askAIContext" data-ai-scope="order" style="background:#111827;border-color:#111827;color:#fff">✦ IA</button>
     <button class="btn smallish" type="button" data-action="editOrdFromView">Modifica</button>
     <button class="btn smallish" type="button" data-action="closeOrdView">Chiudi</button>
   </div>
@@ -11807,6 +11810,108 @@ function askChatGPTAboutTracking(){
   toast(copied?'Dati spedizione copiati: incollali nella chat':'Chat aperta: copia manualmente i dati della spedizione');
 }
 
+
+function aiSafeValue(value, fallback='-'){
+  const text=String(value??'').trim();
+  return text||fallback;
+}
+function aiOrderArticleLines(order,db){
+  const rows=Array.isArray(order?.righe)?order.righe:[];
+  return rows.map(r=>{
+    const art=(db.articoli||[]).find(a=>String(a.id||'')===String(r?.articoloId||''))||null;
+    const snap=r?.articoloSnapshot||{};
+    const model=aiSafeValue(r?.modello||art?.modello||snap?.modello,'Articolo');
+    const code=String(r?.codice||art?.codice||snap?.codice||'').trim();
+    const qty=Math.max(1,Number(r?.quantita||1));
+    const price=Number(r?.prezzo||0);
+    return `- ${model}${code?` (Cod. ${code})`:''}${qty>1?` × ${qty}`:''}${price?` · € ${money(price)}`:''}`;
+  });
+}
+function buildAIClientContext(id){
+  const db=loadDB();
+  const client=(db.clienti||[]).find(c=>String(c.id||'')===String(id||''));
+  if(!client) return {error:'Cliente non trovato'};
+  const orders=(db.ordini||[]).filter(o=>String(o.clienteId||'')===String(client.id||'')).sort((a,b)=>String(b.data||'').localeCompare(String(a.data||'')));
+  const openOrders=orders.filter(o=>!['consegnato','annullato'].includes(String(o.stato||'').toLowerCase()));
+  const lines=[
+    'CONTESTO GESTIONALE · CLIENTE',
+    `Cliente: ${aiSafeValue(client.nome||client.nomeCompleto)}`,
+    `Telefono: ${aiSafeValue(withIntlPrefix(client.telefono||'',client.paese||'Italia'))}`,
+    `Città: ${aiSafeValue(client.citta)}`,
+    `Paese: ${aiSafeValue(client.paese,'Italia')}`,
+    `Indirizzo spedizione: ${aiSafeValue(buildShippingAddress(client))}`,
+    `Ordini totali: ${orders.length}`,
+    `Ordini in corso: ${openOrders.length}`
+  ];
+  orders.forEach((o,i)=>{
+    lines.push('',`ORDINE ${i+1} · ${aiSafeValue(o.data)} · ${aiSafeValue(o.stato)}`);
+    lines.push(...(aiOrderArticleLines(o,db).length?aiOrderArticleLines(o,db):['- Nessun articolo']));
+    if(o.tracking) lines.push(`Spedizione: ${o.tracking}`);
+    if(o.modalitaPagamento||o.metodoPagamento) lines.push(`Pagamento: ${o.modalitaPagamento||o.metodoPagamento}`);
+  });
+  lines.push('','Usa questi dati come contesto. Attendi la mia domanda senza fare ancora analisi.');
+  return {text:lines.join('\n')};
+}
+function buildAIArticleContext(id){
+  const db=loadDB();
+  const art=(db.articoli||[]).find(a=>String(a.id||'')===String(id||''));
+  if(!art) return {error:'Articolo non trovato'};
+  const linked=(db.ordini||[]).filter(o=>(o.righe||[]).some(r=>String(r?.articoloId||'')===String(art.id||'') || (art.codice && String(r?.codice||'')===String(art.codice))));
+  const lines=[
+    'CONTESTO GESTIONALE · ARTICOLO',
+    `Codice: ${aiSafeValue(art.codice)}`,
+    `Modello: ${aiSafeValue(art.modello)}`,
+    `Brand: ${aiSafeValue(art.brand)}`,
+    `Categoria: ${aiSafeValue(art.categoria)}`,
+    `Fornitore: ${aiSafeValue(art.fornitore)}`,
+    `Materiale: ${aiSafeValue(art.materiale||art.taglia)}`,
+    `Colore: ${aiSafeValue(art.colore||(art.colorLabels||[]).filter(Boolean).join(', '))}`,
+    `Misure: ${aiSafeValue(art.misura)}`,
+    `Costo reale EUR: ${Number(art.costoEur||0)?money(art.costoEur):'-'}`,
+    `Costo stimato EUR: ${Number(art.costoEurStimato||0)?money(art.costoEurStimato):'-'}`,
+    `Prezzo vendita: ${Number(art.prezzoVendita||0)?money(art.prezzoVendita):'-'}`,
+    `Ordini collegati: ${linked.length}`
+  ];
+  linked.forEach((o,i)=>{
+    const cli=(db.clienti||[]).find(c=>String(c.id||'')===String(o.clienteId||''));
+    lines.push(`- ${aiSafeValue(o.data)} · ${aiSafeValue(cli?.nome)} · ${aiSafeValue(o.stato)}${o.tracking?` · Tracking ${o.tracking}`:''}`);
+  });
+  lines.push('','Usa questi dati come contesto. Attendi la mia domanda senza fare ancora analisi.');
+  return {text:lines.join('\n')};
+}
+function buildAIOrderContext(id){
+  const db=loadDB();
+  const order=(db.ordini||[]).find(o=>String(o.id||'')===String(id||''));
+  if(!order) return {error:'Ordine non trovato'};
+  const client=(db.clienti||[]).find(c=>String(c.id||'')===String(order.clienteId||''));
+  const lines=[
+    'CONTESTO GESTIONALE · ORDINE',
+    `Cliente: ${aiSafeValue(client?.nome||client?.nomeCompleto)}`,
+    `Telefono: ${aiSafeValue(withIntlPrefix(client?.telefono||'',client?.paese||'Italia'))}`,
+    `Data ordine: ${aiSafeValue(order.data)}`,
+    `Stato: ${aiSafeValue(order.stato)}`,
+    `Pagamento: ${aiSafeValue(order.modalitaPagamento||order.metodoPagamento)}`,
+    `Spedizione: ${aiSafeValue(order.tracking)}`,
+    'Articoli:',
+    ...(aiOrderArticleLines(order,db).length?aiOrderArticleLines(order,db):['- Nessun articolo'])
+  ];
+  lines.push('','Usa questi dati come contesto. Attendi la mia domanda senza fare ancora analisi.');
+  return {text:lines.join('\n')};
+}
+function askChatGPTWithLinkedContext(scope){
+  const url=getConfiguredChatGPTConversationUrl();
+  if(!url){ toast('Inserisci prima il link della conversazione ChatGPT nelle Impostazioni'); go('impostazioni'); return; }
+  let built={error:'Elemento non trovato'};
+  if(scope==='client') built=buildAIClientContext(currentCliId);
+  else if(scope==='article') built=buildAIArticleContext(currentArtId);
+  else if(scope==='order') built=buildAIOrderContext(currentOrdId);
+  if(built.error){ toast(built.error); return; }
+  const copied=copyTextImmediate(built.text);
+  const win=window.open(url,'_blank','noopener');
+  if(!win) window.location.href=url;
+  toast(copied?'Contesto incrociato copiato: incollalo nella chat':'Chat aperta: copia manualmente il contesto');
+}
+
 function buildOrderSizeOptions(selected=''){
   const current=String(selected||'').trim();
   const values=current && !ORDER_SHOE_SIZES.includes(current) ? [current, ...ORDER_SHOE_SIZES] : ORDER_SHOE_SIZES.slice();
@@ -12666,6 +12771,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='closeCliView') return hide('mCliView');
   if(a==='editOrdFromView'){ hide('mOrdView', true); return openOrdEdit(currentOrdId); }
   if(a==='closeOrdView') return hide('mOrdView');
+  if(a==='askAIContext') return askChatGPTWithLinkedContext(String(el.dataset.aiScope||''));
   if(a==='askChatGPTView') return askChatGPTAboutTracking();
   if(a==='openParcelView') return openTrackParcel();
   if(a==='openMonthSales') return openMonthSales(Number(el.dataset.year), Number(el.dataset.month), el.dataset.label||'');
@@ -12895,7 +13001,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.64-2026-08-01';
+const VG_BUILD='1.0.65-2026-08-01';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14171,7 +14277,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.64', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.65', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
