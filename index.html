@@ -782,7 +782,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.69</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.70</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -11090,7 +11090,7 @@ function openCliView(id){
         const info=orderInfo(o);
         const tracking=String(o?.tracking||o?.numeroSpedizione||o?.trackingNumber||'').trim();
         const payment=String(o?.metodoPagamento||o?.pagamento||'').trim();
-        return `<div class="row" style="grid-template-columns:1fr auto;align-items:start" data-open="ord" data-id="${esc(o.id||'')}"><div><div class="t">${esc(o.data||'-')} • ${esc(orderStatusNorm(o))}</div><div class="s">${info.items.map(esc).join('<br>')||'Ordine senza righe'}</div>${payment?`<div class="s">Pagamento: ${esc(payment)}</div>`:''}${tracking?`<div class="s">Spedizione: ${esc(tracking)}</div>`:''}</div><div class="pill">${money(info.totale)}</div></div>`;
+        return `<div class="row" style="grid-template-columns:1fr auto;align-items:start;cursor:pointer" data-open="ord" data-id="${esc(o.id||'')}" role="button" tabindex="0" title="Apri il relativo ordine"><div><div class="t">${esc(o.data||'-')} • ${esc(orderStatusNorm(o))}</div><div class="s">${info.items.map(esc).join('<br>')||'Ordine senza righe'}</div>${payment?`<div class="s">Pagamento: ${esc(payment)}</div>`:''}${tracking?`<div class="s">Spedizione: ${esc(tracking)}</div>`:''}</div><div style="display:flex;flex-direction:column;gap:7px;align-items:flex-end"><div class="pill">${money(info.totale)}</div><button class="btn smallish" type="button" data-open="ord" data-id="${esc(o.id||'')}" style="min-height:32px;padding:6px 10px">Apri ordine</button></div></div>`;
       }).join('')}</div>`;
     };
     ordersEl.innerHTML=[renderGroup('Ordini in corso',clientOrders.filter(isOpen)),renderGroup('Ordini conclusi',clientOrders.filter(isClosed)),renderGroup('Ordini annullati',clientOrders.filter(isCancelled))].join('') || `<div class="card"><div class="small">Nessun acquisto</div></div>`;
@@ -13057,7 +13057,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.69-2026-08-03';
+const VG_BUILD='1.0.70-2026-08-03';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14333,7 +14333,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.69', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.70', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
