@@ -782,7 +782,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.68</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.69</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -1154,6 +1154,7 @@ window.addEventListener('error',e=>{
     <textarea id="vCliAltShip" readonly placeholder="Alternative Shipping Address" style="margin-top:6px"></textarea>
     <div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyCliAltShipView">Copia indirizzo alternativo</button></div>
   </div>
+  <div style="margin-top:10px"><div class="k">Riepilogo acquisti</div><div id="vCliOrderSummary" class="mutedBox"></div></div>
   <div style="margin-top:10px"><div class="k">Acquisti effettuati</div><div id="vCliOrders" class="list"></div></div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">Guadagno totale</div><div id="vCliProfitTotal" class="t pricePaid">-</div></div>
@@ -11054,18 +11055,45 @@ function openCliView(id){
   const hasAlt=hasAlternativeAddress(c);
   if(altWrap) altWrap.style.display=hasAlt?'block':'none';
   if(altShip){ altShip.value=hasAlt?buildShippingAddress(c,true):''; fitTextarea(altShip); }
-  const clientOrders=(db.ordini||[]).filter(o=>o.clienteId===id).sort((a,b)=>String(b.data||b._ts||'').localeCompare(String(a.data||a._ts||'')));
+  const clientOrders=(db.ordini||[]).filter(o=>String(o?.clienteId||'')===String(id)).sort((a,b)=>String(b.data||b._ts||'').localeCompare(String(a.data||a._ts||'')));
+  const orderStatusNorm=o=>String(o?.stato||o?.status||'Richiesto').trim();
+  const isCancelled=o=>/annull/i.test(orderStatusNorm(o));
+  const isClosed=o=>/consegn/i.test(orderStatusNorm(o));
+  const isOpen=o=>!isCancelled(o)&&!isClosed(o);
+  const orderInfo=o=>{
+    const righe=Array.isArray(o?.righe)?o.righe:[];
+    const subTotale=calcOrderSubtotal(righe);
+    const scontoCliente=calcOrderDiscount(o);
+    const totale=(Number(o?.totale)>0 || subTotale===0) ? Number(o?.totale||0) : calcOrderNetTotal(righe, scontoCliente);
+    const qty=righe.reduce((n,r)=>n+(Number(r?.qty||r?.quantita||1)||1),0);
+    const items=righe.map(r=>{
+      const nome=String(r?.modello||r?.nome||'Articolo').trim();
+      const code=String(r?.codice||'').trim();
+      const q=Number(r?.qty||r?.quantita||1)||1;
+      return `${q>1?q+' × ':''}${nome}${code?' (Cod. '+code+')':''}`;
+    }).filter(Boolean);
+    return {righe,totale,qty,items};
+  };
+  const validOrders=clientOrders.filter(o=>!isCancelled(o));
+  const totalSpent=validOrders.filter(orderPaidStatus).reduce((sum,o)=>sum+orderInfo(o).totale,0);
+  const totalItems=validOrders.reduce((sum,o)=>sum+orderInfo(o).qty,0);
+  const latest=clientOrders[0]?.data||'-';
+  const summaryEl=document.getElementById('vCliOrderSummary');
+  if(summaryEl){
+    summaryEl.innerHTML=`<div class="grid2"><div><div class="k">Ordini totali</div><div class="t">${clientOrders.length}</div></div><div><div class="k">Ordini in corso</div><div class="t">${clientOrders.filter(isOpen).length}</div></div><div><div class="k">Articoli acquistati</div><div class="t">${totalItems}</div></div><div><div class="k">Totale pagato</div><div class="t pricePaid">${money(totalSpent)}</div></div></div><div class="small" style="margin-top:7px">Ultimo ordine: ${esc(latest)}</div>`;
+  }
   const ordersEl=document.getElementById('vCliOrders');
   if(ordersEl){
-    ordersEl.innerHTML=clientOrders.map(o=>{
-      const righe=Array.isArray(o.righe)?o.righe:[];
-      const desc=righe.map(r=>[r?.codice,r?.modello].filter(Boolean).join(' • ')).filter(Boolean).join(' · ') || 'Ordine';
-      const subTotale=calcOrderSubtotal(righe);
-      const scontoCliente=calcOrderDiscount(o);
-      const totale=(Number(o?.totale)>0 || subTotale===0) ? Number(o?.totale||0) : calcOrderNetTotal(righe, scontoCliente);
-      const pagato=orderPaidStatus(o) ? totale : orderIncassato({...o, totale});
-      return `<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(o.data||'-')}</div><div class="s">${esc(desc)}</div></div><div class="pill">${money(pagato)}</div></div>`;
-    }).join('') || `<div class="card"><div class="small">Nessun acquisto</div></div>`;
+    const renderGroup=(title,list)=>{
+      if(!list.length) return '';
+      return `<div class="card" style="margin-top:8px"><div class="t" style="margin-bottom:7px">${esc(title)} (${list.length})</div>${list.map(o=>{
+        const info=orderInfo(o);
+        const tracking=String(o?.tracking||o?.numeroSpedizione||o?.trackingNumber||'').trim();
+        const payment=String(o?.metodoPagamento||o?.pagamento||'').trim();
+        return `<div class="row" style="grid-template-columns:1fr auto;align-items:start" data-open="ord" data-id="${esc(o.id||'')}"><div><div class="t">${esc(o.data||'-')} • ${esc(orderStatusNorm(o))}</div><div class="s">${info.items.map(esc).join('<br>')||'Ordine senza righe'}</div>${payment?`<div class="s">Pagamento: ${esc(payment)}</div>`:''}${tracking?`<div class="s">Spedizione: ${esc(tracking)}</div>`:''}</div><div class="pill">${money(info.totale)}</div></div>`;
+      }).join('')}</div>`;
+    };
+    ordersEl.innerHTML=[renderGroup('Ordini in corso',clientOrders.filter(isOpen)),renderGroup('Ordini conclusi',clientOrders.filter(isClosed)),renderGroup('Ordini annullati',clientOrders.filter(isCancelled))].join('') || `<div class="card"><div class="small">Nessun acquisto</div></div>`;
   }
   const currentYear=new Date().getFullYear();
   const sameYear=o=>{ const d=new Date(String(o?.data||'')+'T12:00:00'); return !isNaN(d) && d.getFullYear()===currentYear; };
@@ -13029,7 +13057,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.68-2026-08-03';
+const VG_BUILD='1.0.69-2026-08-03';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14305,7 +14333,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.68', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.69', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
