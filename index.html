@@ -782,7 +782,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.70</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.71</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -1067,6 +1067,7 @@ window.addEventListener('error',e=>{
       <div class="inputSupplierPromo"><div class="k">Prezzo fornitore promo USD</div><input id="a_usd_promo" inputmode="decimal" autocomplete="off"/></div>
       <div><div class="k">Costo EUR standard (auto)</div><input id="a_eur" readonly/></div>
     </div>
+    <div style="margin-top:10px"><div class="k">Regola costo elevato</div><input id="a_high_cost_rule" readonly/><div class="helper">Oltre 350 €: maggiore tra +120 € e +25%, senza cambiare il calcolo PayPal già esistente.</div></div>
     <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_supplier_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Promo fornitore attiva</label></div>
     <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_std_cost_unknown" type="checkbox" style="width:auto;margin-right:8px"/>Costo normale fornitore non conosciuto</label></div>
     <div id="a_cost_estimate_box" class="costEstimateBox" style="display:none">
@@ -1089,6 +1090,7 @@ window.addEventListener('error',e=>{
       <div><div class="k">Margine</div><input id="a_margin" readonly/><div id="a_margin_pct" class="miniNote"></div></div>
       <div><div class="k">Tipo promozione</div><input id="a_promo_type" readonly/></div>
     </div>
+    <div id="a_high_cost_warning" class="helper" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid #dc2626;border-radius:12px;background:#fef2f2;color:#991b1b;font-weight:900"></div>
     <div id="a_promo_summary" class="helper" style="margin-top:8px"></div>
     <div class="hr"></div>
     <div class="grid2">
@@ -4834,36 +4836,43 @@ function updateSupplierField(preferredValue=''){
   sel.value=rule.options.includes(current)?current:'';
   if(hint) hint.textContent='Codice standard: scegli Jessica oppure Daniel.';
 }
+function highCostPriceRule(costo, baseMargin){
+  const cost=Math.max(0,Number(costo||0));
+  let marg=Math.max(0,Number(baseMargin||0));
+  if(cost>350) marg=Math.max(marg,120,cost*0.25);
+  return {marg,sell:round5(cost+marg),highCost:cost>350};
+}
 function calcFromUsd(usd, qual){
   const costo=(Number(usd||0)*0.90)+5;
-  if(!isFinite(costo)) return {costo:0, sell:0, marg:0};
+  if(!isFinite(costo)) return {costo:0, sell:0, marg:0, highCost:false};
+  let marg;
   if(qual==='ORIGINALE'){
-    let guad=costo*0.35;
-    if(guad<68) guad=68;
-    if(guad>85) guad=85;
-    const sell=round5(costo+guad);
-    return {costo, sell, marg:guad};
+    marg=costo*0.35;
+    if(marg<68) marg=68;
+    if(marg>85) marg=85;
   }else{
-    let marg=costo*0.50;
+    marg=costo*0.50;
     if(marg<45) marg=45;
     if(marg>55) marg=55;
-    const sell=round5(costo+marg);
-    return {costo, sell, marg};
   }
+  const rule=highCostPriceRule(costo,marg);
+  return {costo, sell:rule.sell, marg:rule.marg, highCost:rule.highCost};
 }
 function calcSellFromEurCost(cost, qual){
   const costo=Math.max(0,Number(cost||0));
-  if(!(costo>0)) return {costo:0,sell:0,marg:0};
+  if(!(costo>0)) return {costo:0,sell:0,marg:0,highCost:false};
+  let marg;
   if(String(qual||'').toUpperCase()==='ORIGINALE'){
-    let marg=costo*0.35;
+    marg=costo*0.35;
     if(marg<68) marg=68;
     if(marg>85) marg=85;
-    return {costo,sell:round5(costo+marg),marg};
+  }else{
+    marg=costo*0.50;
+    if(marg<45) marg=45;
+    if(marg>55) marg=55;
   }
-  let marg=costo*0.50;
-  if(marg<45) marg=45;
-  if(marg>55) marg=55;
-  return {costo,sell:round5(costo+marg),marg};
+  const rule=highCostPriceRule(costo,marg);
+  return {costo,sell:rule.sell,marg:rule.marg,highCost:rule.highCost};
 }
 function sortedQuantile(values,q){
   const arr=(values||[]).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
@@ -10211,7 +10220,7 @@ async function openArtEdit(id){
   const set=(k,v)=>document.getElementById(k).value=(v===0?0:(v||''));
 
   if(!a){
-    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_belt_h','a_usd','a_usd_promo','a_promo_price','a_promo_date','a_supplier_promo_end','a_supplier_promo_end','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
+    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_belt_h','a_usd','a_usd_promo','a_high_cost_rule','a_promo_price','a_promo_date','a_supplier_promo_end','a_supplier_promo_end','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
     .forEach(fid => document.getElementById(fid).value='');
     document.getElementById('a_color_mode').value='single';
     document.getElementById('a_color_count').value='';
@@ -10617,6 +10626,15 @@ function renderArtAutoFields(){
   const margin = Math.max(0, finalPrice - costForMargin);
   document.getElementById('a_margin').value = margin ? money(margin) : '';
   document.getElementById('a_margin_pct').textContent = (finalPrice && margin) ? ((hasAcceptedEstimate?'Margine stimato ':'Margine ') + Math.round((margin/finalPrice)*100) + '%') : '';
+  const highRule=document.getElementById('a_high_cost_rule');
+  if(highRule) highRule.value=(Number(costForMargin)>350)?'Attiva: min. +120 € / +25%':'Non applicata';
+  const highWarn=document.getElementById('a_high_cost_warning');
+  if(highWarn){
+    const marginPct=(finalPrice>0)?(margin/finalPrice)*100:0;
+    const lowHighCost=Number(costForMargin)>350 && (margin<100 || marginPct<20);
+    highWarn.style.display=lowHighCost?'block':'none';
+    highWarn.textContent=lowHighCost?'⚠️ Margine basso per un articolo ad alto costo: meno di 100 € oppure meno del 20% sul prezzo finale.':'';
+  }
   document.getElementById('a_promo_type').value=promoTypeLabel(a);
   const standardCost=Number(r.costo||0), effectiveCost=Number(currentCost(a)||0), standardSell=Number(r.sell||0);
   const supplierBenefit=(standardCost>0 && effectiveCost>0) ? Math.max(0, standardCost-effectiveCost) : 0;
@@ -13057,7 +13075,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.70-2026-08-03';
+const VG_BUILD='1.0.71-2026-08-05';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14333,7 +14351,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.70', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.71', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
