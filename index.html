@@ -782,7 +782,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.76</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.77</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -1222,7 +1222,7 @@ window.addEventListener('error',e=>{
   <div class="h2">Dettaglio ordine</div>
   <div class="grid2">
     <div><div class="k">Cliente</div><div id="vOrdCli" class="t">-</div></div>
-    <div><div class="k">Stato</div><div id="vOrdStato" class="pill">-</div></div>
+    <div><div class="k">Stato</div><div id="vOrdStato" class="pill">-</div><select id="vOrdStatusQuick" aria-label="Aggiorna stato ordine" style="margin-top:7px;min-height:38px;padding:6px 9px;font-size:14px"><option>Richiesto</option><option>In attesa di pagamento</option><option>Pagato</option><option>In lavorazione</option><option>Spedito</option><option>Consegnato</option><option>Annullato</option></select></div>
   </div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">Data</div><div id="vOrdData" class="t">-</div></div>
@@ -5331,7 +5331,7 @@ function resolvePromoStartDate(prevArticle, nextPromo){
 
 function orderPaidStatus(o){
   const stato=String(o?.stato||'').trim().toLowerCase();
-  const autoPaidStatuses=new Set(['pagato','spedito','consegnato']);
+  const autoPaidStatuses=new Set(['pagato','in lavorazione','spedito','consegnato']);
   return autoPaidStatuses.has(stato);
 }
 
@@ -11276,6 +11276,57 @@ async function downloadCurrentOrderShippingPhoto(){
     toast('Impossibile scaricare la foto');
   }
 }
+
+function normalizeTrackingCandidate(value=''){
+  const compact=String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const match=compact.match(/[A-Z]{2}\d{9}[A-Z]{2}/);
+  return match ? match[0] : '';
+}
+async function extractTrackingFromShippingPhoto(file){
+  if(!file || typeof BarcodeDetector==='undefined' || typeof createImageBitmap!=='function') return '';
+  let bitmap=null;
+  try{
+    const supported=typeof BarcodeDetector.getSupportedFormats==='function' ? await BarcodeDetector.getSupportedFormats() : [];
+    const wanted=['code_128','code_39','codabar','ean_13','ean_8','itf','qr_code'];
+    const formats=supported.length ? wanted.filter(f=>supported.includes(f)) : wanted;
+    const detector=new BarcodeDetector(formats.length?{formats}:undefined);
+    bitmap=await createImageBitmap(file);
+    const results=await detector.detect(bitmap);
+    for(const item of results||[]){
+      const tracking=normalizeTrackingCandidate(item?.rawValue||'');
+      if(tracking) return tracking;
+    }
+  }catch(err){
+    console.warn('Lettura automatica tracking non riuscita',err);
+  }finally{
+    try{ bitmap?.close?.(); }catch(_e){}
+  }
+  return '';
+}
+async function updateCurrentOrderStatusQuick(nextStatus){
+  if(!currentOrdId) return;
+  const db=loadDB();
+  const ord=(db.ordini||[]).find(o=>String(o?.id||'')===String(currentOrdId));
+  if(!ord){ toast('Ordine non trovato'); return; }
+  const normalized=normalizeOrderStatus(nextStatus);
+  ord.stato=normalized;
+  ord._ts=Date.now();
+  if(!saveDB(db)) return;
+  if(cloudEnabled()){
+    try{
+      const saved=await cloudSaveOne('ord',ord,db);
+      const idx=db.ordini.findIndex(o=>String(o?.id||'')===String(ord.id) || String(o?.id||'')===String(saved?.id||''));
+      if(idx>=0) db.ordini[idx]={...db.ordini[idx],...saved,stato:normalized,_ts:Date.now()};
+      saveDBLocal(db);
+    }catch(err){
+      console.error('Aggiornamento stato cloud fallito',err);
+      toast('Stato aggiornato sul dispositivo, cloud non aggiornato');
+    }
+  }
+  renderAll();
+  await openOrdView(ord.id);
+  toast(`Stato aggiornato: ${normalized}`);
+}
 async function saveCurrentOrderShippingPhoto(file){
   if(!currentOrdId || !file || !String(file.type||'').startsWith('image/')) return;
   const db=loadDB();
@@ -11297,6 +11348,8 @@ async function saveCurrentOrderShippingPhoto(file){
   }
   ord.shippingPhotoId=pid;
   ord.shippingPhoto=legacy;
+  const detectedTracking=await extractTrackingFromShippingPhoto(file);
+  if(detectedTracking) ord.tracking=detectedTracking;
   ord._ts=Date.now();
   if(!saveDB(db)) return;
   if(oldId && oldId!==pid){ try{ await idbDelete(oldId); }catch(_e){} }
@@ -11304,7 +11357,7 @@ async function saveCurrentOrderShippingPhoto(file){
     try{ await cloudSaveOne('ord',ord,db); }catch(err){ console.error('Sync cloud foto spedizione fallita',err); toast('Foto salvata sul dispositivo, cloud non aggiornato'); }
   }
   await renderOrderShippingPhoto(ord);
-  toast('Foto spedizione salvata');
+  toast(detectedTracking ? `Foto salvata e tracking copiato: ${detectedTracking}` : 'Foto spedizione salvata. Tracking non riconosciuto automaticamente');
 }
 async function removeCurrentOrderShippingPhoto(){
   if(!currentOrdId) return;
@@ -11348,6 +11401,8 @@ async function openOrdView(id){
   if(measureWarning) measureWarning.hidden=!orderMeasureIsUndefined(o.mis);
   document.getElementById('vOrdPaymentMethod').textContent=normalizeOrderPaymentMethod(o.modalitaPagamento||o.metodoPagamento||'')||'-';
   document.getElementById('vOrdTrack').textContent=o.tracking||'-';
+  const quickStatus=document.getElementById('vOrdStatusQuick');
+  if(quickStatus) quickStatus.value=normalizeOrderStatus(o.stato||'Richiesto');
   document.getElementById('vOrdNote').textContent=o.note||'-';
   document.getElementById('vOrdSub').textContent=money(subTotale);
   document.getElementById('vOrdDiscount').textContent=money(scontoCliente);
@@ -13168,6 +13223,7 @@ document.getElementById('o_art').addEventListener('change', ()=>{ renderSelected
 document.getElementById('o_discount').addEventListener('input', ()=>{ updateOrderTotalsPreview(); saveOrderDraft(); });
 ['o_cli','o_stato','o_data','o_note','o_payment_method','o_tracking'].forEach(id=>{ const el=document.getElementById(id); if(el) ['input','change'].forEach(evt=>el.addEventListener(evt, saveOrderDraft)); });
 document.getElementById('o_mis')?.addEventListener('change', ()=>{ renderOrdRows(); saveOrderDraft(); });
+document.getElementById('vOrdStatusQuick')?.addEventListener('change', ev=>updateCurrentOrderStatusQuick(ev.target.value));
 document.getElementById('o_cli')?.addEventListener('change', ()=>{ const db=loadDB(); const cli=(db.clienti||[]).find(c=>String(c.id)===String(document.getElementById('o_cli').value||'')); if(cli) document.getElementById('o_cli_q').value=cli.nome||''; renderOrderClientSummary(); saveOrderDraft(); });
 
 document.getElementById('importFile').addEventListener('change',(e)=>{
@@ -13219,7 +13275,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.76-2026-08-05';
+const VG_BUILD='1.0.77-2026-08-05';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -13545,7 +13601,7 @@ async function upsertCloudOrder(ord, db){
     data_ordine: ord.data || todayStr(),
     stato: normalizeOrderStatus(ord.stato)==='Consegnato' ? 'consegnato' : (normalizeOrderStatus(ord.stato)==='Spedito' ? 'spedito' : (normalizeOrderStatus(ord.stato)==='Annullato' ? 'annullato' : 'in_lavorazione')),
     totale: Number(ord.totale || 0),
-    pagato: ['Pagato','Spedito','Consegnato'].includes(normalizeOrderStatus(ord.stato)),
+    pagato: ['Pagato','In lavorazione','Spedito','Consegnato'].includes(normalizeOrderStatus(ord.stato)),
     note: buildOrderCloudNote(ord),
     tracking_code: ord.tracking || null,
     tracking_url: ord.tracking ? `https://17track.net/en/track?nums=${encodeURIComponent(ord.tracking)}` : null
@@ -14495,7 +14551,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.76', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.77', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
