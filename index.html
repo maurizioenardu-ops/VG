@@ -782,7 +782,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.77</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.78</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -1070,13 +1070,11 @@ window.addEventListener('error',e=>{
     <div style="margin-top:10px"><div class="k">Regola costo elevato</div><input id="a_high_cost_rule" readonly/><div class="helper">Oltre 350 €: maggiore tra +120 € e +25%, senza cambiare il calcolo PayPal già esistente.</div></div>
     <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_supplier_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Promo fornitore attiva</label></div>
     <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_std_cost_unknown" type="checkbox" style="width:auto;margin-right:8px"/>Costo normale fornitore non conosciuto</label></div>
-    <div id="a_cost_estimate_box" class="costEstimateBox" style="display:none">
-      <div class="costEstimateHead"><div class="costEstimateTitle">⚠️ COSTO FORNITORE STIMATO</div><div id="a_cost_estimate_badge" class="costEstimateBadge">Costo ipotetico</div></div>
-      <div id="a_cost_estimate_text" class="costEstimateText"></div>
-      <div id="a_cost_estimate_actions" class="costEstimateActions"></div>
-      <div class="costEstimateWarn">La stima non sostituisce il costo reale. Finché manca il costo fornitore, i guadagni restano non verificati.</div>
+    <div id="a_cost_estimate_box" style="display:none;margin-top:10px">
+      <div class="k">Costo stimato EUR</div>
+      <input id="a_cost_estimate_value" inputmode="decimal" readonly/>
+      <div class="helper" style="margin-top:5px">Costo stimato, guadagno non verificato</div>
     </div>
-    <div id="a_external_estimate_notice" class="externalEstimateNotice" style="display:none">⚠️ COSTO FORNITORE STIMATO: valore ipotetico, non confermato dal fornitore.</div>
     <div style="margin-top:10px">
       <div class="k">Fine promo fornitore</div><input id="a_supplier_promo_end" type="date" autocomplete="off"/>
     </div>
@@ -5024,29 +5022,25 @@ function acceptedArticleCostEstimate(){
 }
 function renderArticleCostEstimateBox(force=false){
   const box=document.getElementById('a_cost_estimate_box');
-  const txt=document.getElementById('a_cost_estimate_text');
-  const actions=document.getElementById('a_cost_estimate_actions');
-  const badge=document.getElementById('a_cost_estimate_badge');
-  if(!box||!txt||!actions) return;
+  const value=document.getElementById('a_cost_estimate_value');
+  if(!box||!value) return;
   const usd=Number(document.getElementById('a_usd')?.value||0);
   const promoUsd=Number(document.getElementById('a_usd_promo')?.value||0);
-  const permanentNotice=document.getElementById('a_external_estimate_notice');
-  if(usd>0 || promoUsd>0){
+  const unknown=!!document.getElementById('a_std_cost_unknown')?.checked;
+  if(usd>0 || promoUsd>0 || !unknown){
     box.style.display='none';
-    if(permanentNotice) permanentNotice.style.display='none';
+    value.value='';
     if(usd>0) currentArticleCostEstimate=null;
+    else if(currentArticleCostEstimate) currentArticleCostEstimate.active=false;
     return;
   }
   const input=articleCostEstimateInputFromForm();
   const signature=articleCostEstimateSignature(input);
   const previous=currentArticleCostEstimate;
-  if(previous?.active && previous?.signature && previous.signature!==signature){
-    currentArticleCostEstimate=null;
-  }
+  if(previous?.signature && previous.signature!==signature) currentArticleCostEstimate=null;
   if((force && !currentArticleCostEstimate?.external) || !currentArticleCostEstimate || currentArticleCostEstimate.signature!==signature){
     const next=estimateArticleCostFromHistory(input,loadDB(),currentArtId||'');
-    if(next?.ok && previous?.active && previous?.signature===signature){
-      next.active=true;
+    if(next?.ok && previous?.signature===signature){
       const previousChosen=Number(previous?.salePrice||0);
       const previousWasManual=previousChosen>0 && Math.abs(previousChosen-Number(previous?.suggestedPrice||0))>0.009;
       if(previousWasManual) next.salePrice=previousChosen;
@@ -5055,22 +5049,15 @@ function renderArticleCostEstimateBox(force=false){
   }
   const est=currentArticleCostEstimate;
   box.style.display='block';
-  box.classList.toggle('active',!!est?.active);
-  if(permanentNotice) permanentNotice.style.display=est?.active?'block':'none';
-  if(badge) badge.textContent=est?.active?'Costo ipotetico in uso':'Costo ipotetico';
-  if(!est?.ok){
-    txt.textContent=est?.reason||'Non ci sono abbastanza dati storici affidabili per stimare il costo.';
-    actions.innerHTML='<button class="btn secondary smallish" type="button" data-action="estimateArticleCost">Riprova stima</button>';
-    return;
+  if(est?.ok && Number(est.estimatedCost)>0){
+    est.active=true;
+    est.salePrice=Number(est.salePrice||est.suggestedPrice||0);
+    value.value=money(est.estimatedCost);
+  }else{
+    if(est) est.active=false;
+    value.value='';
+    value.placeholder='Stima non disponibile';
   }
-  const range=(est.minCost>0&&est.maxCost>0)?` • storico ${money(est.minCost)}–${money(est.maxCost)} €`:'';
-  const chosenSale=Number(est.salePrice||est.suggestedPrice||0);
-  const manuallyChanged=est.active && chosenSale>0 && Math.abs(chosenSale-Number(est.suggestedPrice||0))>0.009;
-  const prudentSale=Number(est.prudentPrice||est.suggestedPrice||0);
-  txt.innerHTML=`<b>Costo prudente stimato:</b> ${money(est.estimatedCost)} €<br><b>Prezzo minimo:</b> ${money(est.minimumPrice)} € • <b>Prezzo equilibrato:</b> ${money(est.suggestedPrice)} € • <b>Prezzo prudente:</b> ${money(prudentSale)} €${manuallyChanged?`<br><b>Prezzo scelto:</b> ${money(chosenSale)} €`:''}<br>Basato su ${est.sampleCount} articoli comparabili${range} • Affidabilità <b>${esc(est.confidence)}</b>.<br><span style="font-weight:800">Il valore predefinito è quello equilibrato, calcolato sul guadagno reale mediano dello storico.</span>`;
-  actions.innerHTML=est.active
-    ? `<button class="btn secondary smallish" type="button" data-action="estimateArticleCost">Ricalcola</button>${manuallyChanged?'<button class="btn smallish" type="button" data-action="resetEstimatedSalePrice">Ripristina prezzo consigliato</button>':''}<button class="btn danger smallish" type="button" data-action="clearArticleCostEstimate">Rimuovi stima</button>`
-    : '<button class="btn secondary smallish" type="button" data-action="acceptArticleCostEstimate">Usa questa stima</button><button class="btn smallish" type="button" data-action="estimateArticleCost">Ricalcola</button>';
 }
 function normalizePromoStartDate(v=''){
   const raw=String(v||'').trim();
@@ -13275,7 +13262,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.77-2026-08-05';
+const VG_BUILD='1.0.78-2026-08-05';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14551,7 +14538,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.77', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.78', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
