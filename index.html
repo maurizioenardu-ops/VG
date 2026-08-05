@@ -782,7 +782,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.75</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.76</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -1244,6 +1244,8 @@ window.addEventListener('error',e=>{
       <input id="vOrdShippingInput" type="file" accept="image/*" hidden/>
       <div class="shippingPhotoActions">
         <button class="btn smallish" type="button" data-action="pickOrdShippingPhoto">Scegli foto</button>
+        <button id="vOrdShippingShare" class="btn smallish" type="button" data-action="shareOrdShippingPhoto" style="display:none;background:#16a34a;border-color:#16a34a;color:#fff">Condividi</button>
+        <button id="vOrdShippingDownload" class="btn smallish" type="button" data-action="downloadOrdShippingPhoto" style="display:none;background:#2563eb;border-color:#2563eb;color:#fff">Scarica</button>
         <button id="vOrdShippingRemove" class="btn danger smallish" type="button" data-action="removeOrdShippingPhoto" style="display:none">Rimuovi</button>
       </div>
     </div>
@@ -11221,11 +11223,58 @@ async function getOrderShippingPhotoSource(ord){
 async function renderOrderShippingPhoto(ord){
   const preview=document.getElementById('vOrdShippingPreview');
   const remove=document.getElementById('vOrdShippingRemove');
+  const share=document.getElementById('vOrdShippingShare');
+  const download=document.getElementById('vOrdShippingDownload');
   if(!preview) return;
   const src=await getOrderShippingPhotoSource(ord);
   preview.className=src?'':'shippingPhotoPlaceholder';
   preview.innerHTML=src?`<img src="${src}" alt="Foto spedizione"/>`:'📦<br/>Aggiungi foto';
   if(remove) remove.style.display=src?'inline-flex':'none';
+  if(share) share.style.display=src?'inline-flex':'none';
+  if(download) download.style.display=src?'inline-flex':'none';
+}
+async function getCurrentOrderShippingPhotoFile(){
+  if(!currentOrdId) throw new Error('Ordine non selezionato');
+  const db=loadDB();
+  const ord=(db.ordini||[]).find(o=>String(o?.id||'')===String(currentOrdId));
+  if(!ord) throw new Error('Ordine non trovato');
+  const src=await getOrderShippingPhotoSource(ord);
+  if(!src) throw new Error('Foto spedizione non presente');
+  const blob=await downloadArticlePhotoBlobForShare(src);
+  const ext=guessPhotoExtension(src,blob);
+  const type=blob?.type || (ext==='png'?'image/png':ext==='webp'?'image/webp':'image/jpeg');
+  const tracking=String(ord.tracking||ord.tracking_code||'spedizione').trim().replace(/[^a-z0-9_-]+/gi,'_') || 'spedizione';
+  return new File([blob],`foto_spedizione_${tracking}.${ext}`,{type,lastModified:Date.now()});
+}
+async function shareCurrentOrderShippingPhoto(){
+  try{
+    const file=await getCurrentOrderShippingPhotoFile();
+    if(typeof navigator.share!=='function'){
+      triggerBlobDownload(file,file.name);
+      toast('Condivisione non disponibile: foto scaricata');
+      return;
+    }
+    const payload={title:'Foto spedizione',files:[file]};
+    if(typeof navigator.canShare!=='function' || navigator.canShare({files:[file]})){
+      await navigator.share(payload);
+      return;
+    }
+    await navigator.share({title:'Foto spedizione'});
+  }catch(err){
+    if(isShareAbortError(err)) return;
+    console.error('Condivisione foto spedizione fallita',err);
+    toast('Impossibile condividere la foto');
+  }
+}
+async function downloadCurrentOrderShippingPhoto(){
+  try{
+    const file=await getCurrentOrderShippingPhotoFile();
+    triggerBlobDownload(file,file.name);
+    toast('Foto spedizione scaricata');
+  }catch(err){
+    console.error('Download foto spedizione fallito',err);
+    toast('Impossibile scaricare la foto');
+  }
 }
 async function saveCurrentOrderShippingPhoto(file){
   if(!currentOrdId || !file || !String(file.type||'').startsWith('image/')) return;
@@ -12940,6 +12989,8 @@ document.addEventListener('click',(ev)=>{
   if(a==='askChatGPTView') return askChatGPTAboutTracking();
   if(a==='openParcelView') return openTrackParcel();
   if(a==='pickOrdShippingPhoto') return document.getElementById('vOrdShippingInput')?.click();
+  if(a==='shareOrdShippingPhoto') return shareCurrentOrderShippingPhoto();
+  if(a==='downloadOrdShippingPhoto') return downloadCurrentOrderShippingPhoto();
   if(a==='removeOrdShippingPhoto') return removeCurrentOrderShippingPhoto();
   if(a==='openMonthSales') return openMonthSales(Number(el.dataset.year), Number(el.dataset.month), el.dataset.label||'');
   if(a==='addAgenda') return saveAgendaQuick(document.getElementById('agendaText')?.value||'', document.getElementById('agendaDate')?.value||'');
@@ -13168,7 +13219,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.75-2026-08-05';
+const VG_BUILD='1.0.76-2026-08-05';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14444,7 +14495,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.75', { updateViaCache:'none' }).then(reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.76', { updateViaCache:'none' }).then(reg=>{
       try{ reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
