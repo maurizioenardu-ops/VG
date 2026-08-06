@@ -782,7 +782,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.79</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.80</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -13262,7 +13262,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.79-2026-08-06';
+const VG_BUILD='1.0.80-2026-08-06';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14484,7 +14484,7 @@ try{
   if(__vgPrevBuild!==VG_BUILD){
     localStorage.setItem(__vgBuildKey, VG_BUILD);
     if('caches' in window){
-      caches.keys().then(keys=>Promise.all(keys.filter(k=>/^vg-runtime-/.test(k)).map(k=>caches.delete(k)))).catch(()=>{});
+      caches.keys().then(keys=>Promise.all(keys.filter(k=>/^gestionale-runtime-/.test(k)).map(k=>caches.delete(k)))).catch(()=>{});
     }
   }
 }catch(_e){}
@@ -14537,9 +14537,15 @@ window.addEventListener('DOMContentLoaded',()=>{
 });
 
 if('serviceWorker' in navigator){
+  let __vgReloadedForUpdate=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(__vgReloadedForUpdate) return;
+    __vgReloadedForUpdate=true;
+    window.location.reload();
+  });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.79', { updateViaCache:'none' }).then(reg=>{
-      try{ reg.update(); }catch(_e){}
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.80', { updateViaCache:'none' }).then(async reg=>{
+      try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
 }
