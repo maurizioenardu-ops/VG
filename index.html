@@ -441,26 +441,27 @@ input,select,textarea{font-size:17px;line-height:1.25}
 .artActionsSocial{
   display:grid !important;
   grid-template-columns:1fr 1fr !important;
-  gap:4px !important;
+  gap:6px !important;
   align-items:center !important;
 }
 .articleShareCompact{
-  width:72% !important;
-  justify-self:center !important;
-  height:28px !important;
-  min-height:28px !important;
-  max-height:28px !important;
-  padding:2px 4px !important;
-  font-size:12px !important;
+  width:100% !important;
+  min-width:0 !important;
+  justify-self:stretch !important;
+  height:36px !important;
+  min-height:36px !important;
+  max-height:36px !important;
+  padding:5px 6px !important;
+  font-size:12.5px !important;
   font-weight:900 !important;
   line-height:1 !important;
   display:flex !important;
   align-items:center !important;
   justify-content:center !important;
   overflow:hidden !important;
-  border-radius:8px !important;
+  border-radius:10px !important;
 }
-.articleShareCompact span{display:block !important;white-space:nowrap !important;line-height:1 !important}
+.articleShareCompact span{display:block !important;white-space:nowrap !important;line-height:1.05 !important}
 
 .artChannelStatus{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:7px}
 .artChannelBadge{display:inline-flex;align-items:center;justify-content:center;gap:3px;min-width:38px;padding:3px 6px;border-radius:999px;font-size:10px;font-weight:900;line-height:1;border:1px solid #cbd5e1;background:#f8fafc;color:#64748b}
@@ -468,8 +469,8 @@ input,select,textarea{font-size:17px;line-height:1.25}
 .artChannelBadge.fb.done{background:#1877F2}.artChannelBadge.wa.done{background:#25D366}.artChannelBadge.tg.done{background:#229ED9}
 .artChannelBadge.pending{background:#fff;color:#94a3b8;border-style:dashed}
 @media (max-width:420px){
-  .artActionsSocial{gap:3px !important}
-  .articleShareCompact{width:74% !important;height:27px !important;min-height:27px !important;max-height:27px !important;font-size:11.5px !important;padding:2px 3px !important}
+  .artActionsSocial{gap:5px !important}
+  .articleShareCompact{width:100% !important;height:34px !important;min-height:34px !important;max-height:34px !important;font-size:12px !important;padding:4px 5px !important}
 }
 
 .archiveFolder{grid-column:1/-1;margin-top:14px;border:2px dashed #cbd5e1;border-radius:18px;background:#f8fafc;overflow:hidden}
@@ -489,7 +490,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v120-import-json-stabile">
+  <meta name="vg-version" content="v121-pulsanti-grandi">
 </head>
 <body>
 
@@ -782,7 +783,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.80</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.81</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
