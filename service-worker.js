@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.84-2026-08-07-min-price-floor';
+const VERSION = 'gestionale-vg-1.0.85-2026-08-07-soglie-corrette';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',

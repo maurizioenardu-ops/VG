@@ -490,7 +490,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v124-prezzo-minimo">
+  <meta name="vg-version" content="v125-soglie-corrette">
 </head>
 <body>
 
@@ -783,7 +783,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.84</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.85</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -4914,6 +4914,13 @@ function recommendedProfitByQuality(costo, qual){
   const cost=Math.max(0,Number(costo||0));
   const quality=String(qual||'').toUpperCase();
   if(!(cost>0)) return 0;
+  // Soglie corrette concordate:
+  // ORIGINAL QUALITY
+  // fino a 210 €  -> 80 €
+  // 210,01-230 €  -> 85 €
+  // 230,01-250 €  -> 90 €
+  // 250,01-300 €  -> 100 €
+  // oltre 300 €   -> 110 € oppure 25% del costo, il maggiore
   if(quality==='ORIGINALE'){
     if(cost<=210) return 80;
     if(cost<=230) return 85;
@@ -4921,12 +4928,19 @@ function recommendedProfitByQuality(costo, qual){
     if(cost<=300) return 100;
     return Math.max(110,cost*0.25);
   }
+  // TOP QUALITY / STANDARD
+  // fino a 50 €   -> 45 €
+  // 50,01-80 €    -> 55 €
+  // 80,01-120 €   -> 60 €
+  // 120,01-160 €  -> 70 €
+  // 160,01-220 €  -> 80 €
+  // oltre 220 €   -> 90 € oppure 25% del costo, il maggiore
   if(cost<=50) return 45;
   if(cost<=80) return 55;
-  if(cost<=120) return 65;
-  if(cost<=160) return 75;
-  if(cost<=220) return 90;
-  return Math.max(100,cost*0.30);
+  if(cost<=120) return 60;
+  if(cost<=160) return 70;
+  if(cost<=220) return 80;
+  return Math.max(90,cost*0.25);
 }
 function calcSellFromEurCost(cost, qual){
   const costo=Math.max(0,Number(cost||0));
@@ -13349,7 +13363,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.84-2026-08-07';
+const VG_BUILD='1.0.85-2026-08-07';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14631,7 +14645,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.84', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.85', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
