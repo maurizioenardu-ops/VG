@@ -490,7 +490,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v122-pulsanti-due-righe">
+  <meta name="vg-version" content="v124-prezzo-minimo">
 </head>
 <body>
 
@@ -783,7 +783,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.82</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.84</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -1059,17 +1059,15 @@ window.addEventListener('error',e=>{
   </div>
 
   <div class="formBlock prezzi inputSoft">
-    <div class="blockTitle">Prezzi e margine</div>
+    <div class="blockTitle">Prezzi e guadagno</div>
     <div class="grid2">
       <div><div class="k">Qualità (auto)</div><input id="a_qual" readonly/></div>
       <div class="inputSupplierStd"><div class="k">Prezzo fornitore standard USD</div><input id="a_usd" inputmode="decimal" autocomplete="off"/></div>
     </div>
     <div class="grid2" style="margin-top:10px">
       <div class="inputSupplierPromo"><div class="k">Prezzo fornitore promo USD</div><input id="a_usd_promo" inputmode="decimal" autocomplete="off"/></div>
-      <div><div class="k">Costo EUR standard (auto)</div><input id="a_eur" readonly/></div>
+      <div style="display:flex;align-items:end"><label class="pill" style="justify-content:flex-start;cursor:pointer;width:100%"><input id="a_supplier_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Promo fornitore attiva</label></div>
     </div>
-    <div style="margin-top:10px"><div class="k">Regola costo elevato</div><input id="a_high_cost_rule" readonly/><div class="helper">Oltre 350 €: maggiore tra +120 € e +25%, senza cambiare il calcolo PayPal già esistente.</div></div>
-    <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_supplier_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Promo fornitore attiva</label></div>
     <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_std_cost_unknown" type="checkbox" style="width:auto;margin-right:8px"/>Costo normale fornitore non conosciuto</label></div>
     <div id="a_cost_estimate_box" style="display:none;margin-top:10px">
       <div class="k">Costo stimato EUR</div>
@@ -1081,16 +1079,29 @@ window.addEventListener('error',e=>{
     </div>
     <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_supplier_date_unknown" type="checkbox" style="width:auto;margin-right:8px"/>Scadenza fornitore non comunicata</label></div>
     <div id="a_supplier_expiry_warning" class="helper" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid #f59e0b;border-radius:12px;background:#fffbeb;color:#92400e;font-weight:900">⚠️ Indica la data di scadenza oppure spunta “Scadenza fornitore non comunicata”.</div>
-    <div class="grid2" style="margin-top:10px">
-      <div><div id="a_sell_label" class="k">Prezzo vendita standard (auto)</div><input id="a_sell" inputmode="decimal" readonly/><div id="a_sell_hint" class="helper" style="display:none;margin-top:5px">Prezzo basato su costo ipotetico: puoi modificarlo manualmente.</div></div>
-      <div><div class="k">Prezzo finale in uso (auto)</div><input id="a_final" readonly/><div class="helper">Usa il prezzo promo fornitore quando attivo; la promo personale ha priorità.</div></div>
+
+    <div class="hr"></div>
+    <div class="grid2">
+      <div><div class="k">Costo reale</div><input id="a_eur" readonly/></div>
+      <div><div class="k">Guadagno minimo consigliato</div><input id="a_profit_min" readonly/></div>
     </div>
     <div class="grid2" style="margin-top:10px">
-      <div><div class="k">Margine</div><input id="a_margin" readonly/><div id="a_margin_pct" class="miniNote"></div></div>
-      <div><div class="k">Tipo promozione</div><input id="a_promo_type" readonly/></div>
+      <div><div class="k">Prezzo teorico</div><input id="a_theoretical" readonly/></div>
+      <div><div class="k">Prezzo consigliato</div><input id="a_recommended" readonly/></div>
     </div>
+    <div class="grid2" style="margin-top:10px">
+      <div><div id="a_sell_label" class="k">Prezzo scelto da te</div><input id="a_sell" inputmode="decimal" autocomplete="off"/><div id="a_sell_hint" class="helper" style="display:none;margin-top:5px"></div></div>
+      <div><div class="k">Guadagno effettivo</div><input id="a_margin" readonly/></div>
+    </div>
+    <div id="a_min_price_warning" class="helper" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid #f59e0b;border-radius:12px;background:#fffbeb;color:#92400e;font-weight:900"></div>
     <div id="a_high_cost_warning" class="helper" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid #dc2626;border-radius:12px;background:#fef2f2;color:#991b1b;font-weight:900"></div>
     <div id="a_promo_summary" class="helper" style="margin-top:8px"></div>
+
+    <input id="a_high_cost_rule" type="hidden"/>
+    <input id="a_final" type="hidden"/>
+    <input id="a_promo_type" type="hidden"/>
+    <div id="a_margin_pct" style="display:none"></div>
+
     <div class="hr"></div>
     <div class="grid2">
       <div><div class="k">Promo personale attiva</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Attiva</label></div>
@@ -1299,6 +1310,7 @@ window.addEventListener('error',e=>{
       <div><div class="k">Sconto cliente (€)</div><input id="o_discount" inputmode="decimal" placeholder="0" autocomplete="off"/></div>
     </div>
     <div class="card" style="margin-top:10px"><div class="k">Riepilogo ordine</div><div id="o_tot" class="priceHot">0</div><div id="o_tot_meta" class="small" style="margin-top:6px">Subtotale €0,00 • Sconto €0,00</div></div>
+    <div id="o_min_price_warning" class="helper" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid #f59e0b;border-radius:12px;background:#fffbeb;color:#92400e;font-weight:900"></div>
     <div style="margin-top:10px"><div class="k">Note</div><input id="o_note" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Aggiungi una nota utile per questo ordine"/></div>
   </div>
 
@@ -1464,6 +1476,7 @@ const AGENDA_KEY='vg_dashboard_agenda_v2_clean';
 const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
 const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
 const round5=n=>Math.round(n/5)*5;
+const roundUp5=n=>Math.ceil(Math.max(0,Number(n||0))/5)*5;
 const MAX_ARTICLE_PHOTOS=9;
 const PROMO_EXPIRED_GRACE_DAYS=3;
 
@@ -2822,6 +2835,8 @@ function collectArticleDraft(){
       costoUsdPromo:document.getElementById('a_usd_promo')?.value||'',
       costoNormaleSconosciuto:!!document.getElementById('a_std_cost_unknown')?.checked,
       costoEstimate:currentArticleCostEstimate ? {...currentArticleCostEstimate} : null,
+      prezzoScelto:document.getElementById('a_sell')?.value||'',
+      prezzoSceltoManuale:!!currentArtPriceManuallySet,
       promoAttiva:!!document.getElementById('a_promo_on')?.checked,
       prezzoPromo:document.getElementById('a_promo_price')?.value||'',
       scadenzaPromo:document.getElementById('a_promo_date')?.value||'',
@@ -2865,6 +2880,8 @@ function restoreArticleDraft(targetId=''){
   document.getElementById('a_usd_promo').value=v.costoUsdPromo||'';
   document.getElementById('a_std_cost_unknown').checked=!!v.costoNormaleSconosciuto;
   currentArticleCostEstimate=(v.costoEstimate && typeof v.costoEstimate==='object') ? {...v.costoEstimate} : null;
+  currentArtChosenPrice=Number(v.prezzoScelto||0);
+  currentArtPriceManuallySet=!!v.prezzoSceltoManuale;
   document.getElementById('a_promo_on').checked=!!v.promoAttiva;
   document.getElementById('a_promo_price').value=v.prezzoPromo||'';
   document.getElementById('a_promo_date').value=v.scadenzaPromo||'';
@@ -4731,6 +4748,42 @@ function calcOrderDiscount(orderLike){
 function calcOrderNetTotal(rows, discount){
   return Math.max(0, calcOrderSubtotal(rows) - calcOrderDiscount({scontoCliente:discount}));
 }
+function calcOrderMinimumFloor(rows, db){
+  const list=Array.isArray(rows)?rows:[];
+  let minimum=0, missing=0;
+  list.forEach(row=>{
+    const qty=Math.max(1,Number(row?.quantita||1));
+    const art=(db?.articoli||[]).find(a=>String(a?.id||'')===String(row?.articoloId||'') || (row?.codice && String(a?.codice||'')===String(row.codice))) || null;
+    const snap=normalizeOrderArticleSnapshot(row?.articoloSnapshot||{});
+    const costCandidates=[row?.costoEur, snap?.costoEur, art?currentCost(art):0].map(Number);
+    const cost=costCandidates.find(v=>Number.isFinite(v) && v>0) || 0;
+    const qual=normalizeSpaceText(row?.qualita||snap?.qualita||(art?articleQualityLabel(art):''));
+    if(!(cost>0)){ missing+=1; return; }
+    minimum += (cost + recommendedProfitByQuality(cost,qual))*qty;
+  });
+  return {minimum,missing,complete:list.length>0 && missing===0};
+}
+function renderOrderMinimumWarning(total){
+  const el=document.getElementById('o_min_price_warning');
+  if(!el) return {minimum:0,missing:0,complete:false};
+  const info=calcOrderMinimumFloor(ordRows, loadDB());
+  if(!ordRows.length){ el.style.display='none'; el.textContent=''; return info; }
+  el.style.display='block';
+  if(info.missing>0){
+    el.style.borderColor='#f59e0b'; el.style.background='#fffbeb'; el.style.color='#92400e';
+    el.textContent=`⚠️ Prezzo minimo non verificabile: costo reale mancante per ${info.missing} articol${info.missing===1?'o':'i'}.`;
+    return info;
+  }
+  const below=Number(total||0)+0.005 < info.minimum;
+  if(below){
+    el.style.borderColor='#dc2626'; el.style.background='#fef2f2'; el.style.color='#991b1b';
+    el.textContent=`⚠️ Non scendere sotto ${money(info.minimum)}. Il totale è inferiore di ${money(info.minimum-Number(total||0))}.`;
+  }else{
+    el.style.borderColor='#f59e0b'; el.style.background='#fffbeb'; el.style.color='#92400e';
+    el.textContent=`⚠️ Non scendere sotto ${money(info.minimum)}.`;
+  }
+  return info;
+}
 function updateOrderTotalsPreview(){
   const subtotal=calcOrderSubtotal(ordRows);
   const discount=Math.min(parseFlexibleAmount(document.getElementById('o_discount')?.value||0), subtotal);
@@ -4739,7 +4792,8 @@ function updateOrderTotalsPreview(){
   if(totalEl) totalEl.textContent=money(total);
   const metaEl=document.getElementById('o_tot_meta');
   if(metaEl) metaEl.textContent=`Subtotale ${money(subtotal)} • Sconto ${money(discount)}`;
-  return {subtotal, discount, total};
+  const minimumInfo=renderOrderMinimumWarning(total);
+  return {subtotal, discount, total, minimumInfo};
 }
 function buildOrderCloudNote(ord){
   const parts=[];
@@ -4856,43 +4910,40 @@ function updateSupplierField(preferredValue=''){
   sel.value=rule.options.includes(current)?current:'';
   if(hint) hint.textContent='Codice standard: scegli Jessica oppure Daniel.';
 }
-function highCostPriceRule(costo, baseMargin){
+function recommendedProfitByQuality(costo, qual){
   const cost=Math.max(0,Number(costo||0));
-  let marg=Math.max(0,Number(baseMargin||0));
-  if(cost>350) marg=Math.max(marg,120,cost*0.25);
-  return {marg,sell:round5(cost+marg),highCost:cost>350};
-}
-function calcFromUsd(usd, qual){
-  const costo=(Number(usd||0)*0.90)+5;
-  if(!isFinite(costo)) return {costo:0, sell:0, marg:0, highCost:false};
-  let marg;
-  if(qual==='ORIGINALE'){
-    marg=costo*0.35;
-    if(marg<68) marg=68;
-    if(marg>85) marg=85;
-  }else{
-    marg=costo*0.50;
-    if(marg<45) marg=45;
-    if(marg>55) marg=55;
+  const quality=String(qual||'').toUpperCase();
+  if(!(cost>0)) return 0;
+  if(quality==='ORIGINALE'){
+    if(cost<=210) return 80;
+    if(cost<=230) return 85;
+    if(cost<=250) return 90;
+    if(cost<=300) return 100;
+    return Math.max(110,cost*0.25);
   }
-  const rule=highCostPriceRule(costo,marg);
-  return {costo, sell:rule.sell, marg:rule.marg, highCost:rule.highCost};
+  if(cost<=50) return 45;
+  if(cost<=80) return 55;
+  if(cost<=120) return 65;
+  if(cost<=160) return 75;
+  if(cost<=220) return 90;
+  return Math.max(100,cost*0.30);
 }
 function calcSellFromEurCost(cost, qual){
   const costo=Math.max(0,Number(cost||0));
-  if(!(costo>0)) return {costo:0,sell:0,marg:0,highCost:false};
-  let marg;
-  if(String(qual||'').toUpperCase()==='ORIGINALE'){
-    marg=costo*0.35;
-    if(marg<68) marg=68;
-    if(marg>85) marg=85;
-  }else{
-    marg=costo*0.50;
-    if(marg<45) marg=45;
-    if(marg>55) marg=55;
-  }
-  const rule=highCostPriceRule(costo,marg);
-  return {costo,sell:rule.sell,marg:rule.marg,highCost:rule.highCost};
+  if(!(costo>0)) return {costo:0,sell:0,marg:0,theoretical:0,minPrice:0,buffer:0,highCost:false};
+  const quality=String(qual||'').toUpperCase();
+  const marg=recommendedProfitByQuality(costo,quality);
+  const theoretical=costo+marg;
+  // Il prezzo teorico è il pavimento economico: costo + guadagno minimo.
+  // Sull'Original Quality aggiungiamo 10 € al prezzo consigliato per lasciare
+  // un piccolo spazio di trattativa senza intaccare il guadagno minimo.
+  const buffer=quality==='ORIGINALE' ? 10 : 0;
+  return {costo,sell:roundUp5(theoretical+buffer),marg,theoretical,minPrice:theoretical,buffer,highCost:(quality==='ORIGINALE'?costo>300:costo>220)};
+}
+function calcFromUsd(usd, qual){
+  const costo=(Number(usd||0)*0.90)+5;
+  if(!isFinite(costo) || !(costo>0)) return {costo:0,sell:0,marg:0,theoretical:0,highCost:false};
+  return calcSellFromEurCost(costo,qual);
 }
 function sortedQuantile(values,q){
   const arr=(values||[]).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
@@ -9922,6 +9973,8 @@ const MAX_ART_VIDEOS=3;
 let currentArtPhotosCleared=false;
 let currentArtDuplicateData=null;
 let currentArticleCostEstimate=null;
+let currentArtChosenPrice=0;
+let currentArtPriceManuallySet=false;
 function articleCreatedAtValue(article){
   const raw=article?.createdAt||article?.dataInserimento||article?.created_at||'';
   if(!raw) return '';
@@ -10223,13 +10276,15 @@ async function openArtEdit(id){
   if(!currentArtId) __articlePhotoShareContext=null;
   currentArtDuplicateData=null;
   currentArticleCostEstimate=null;
+  currentArtChosenPrice=0;
+  currentArtPriceManuallySet=false;
   currentArtPhotosCleared=false;
   resetPendingArtPhotoFiles();
   document.getElementById('artEditTitle').textContent = a?'Modifica articolo':'Nuovo articolo';
   const set=(k,v)=>document.getElementById(k).value=(v===0?0:(v||''));
 
   if(!a){
-    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_belt_h','a_usd','a_usd_promo','a_high_cost_rule','a_promo_price','a_promo_date','a_supplier_promo_end','a_supplier_promo_end','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
+    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_belt_h','a_usd','a_usd_promo','a_high_cost_rule','a_profit_min','a_theoretical','a_recommended','a_promo_price','a_promo_date','a_supplier_promo_end','a_supplier_promo_end','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
     .forEach(fid => document.getElementById(fid).value='');
     document.getElementById('a_color_mode').value='single';
     document.getElementById('a_color_count').value='';
@@ -10257,6 +10312,8 @@ async function openArtEdit(id){
   set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
   set('a_mis', a?.misura); set('a_belt_h', a?.altezzaCintura||a?.hCintura||''); set('a_usd', a?.costoUsd||''); set('a_usd_promo', a?.costoUsdPromo||'');
   currentArticleCostEstimate=storedArticleCostEstimate(a);
+  currentArtChosenPrice=Number(a?.prezzoVendita||0);
+  currentArtPriceManuallySet=currentArtChosenPrice>0;
   document.getElementById('a_promo_on').checked = !!a?.promoAttiva;
   set('a_promo_date', a?.scadenzaPromoPersonale||a?.scadenzaPromo); set('a_promo_price', a?.prezzoPromo||''); set('a_supplier_promo_end', a?.scadenzaPromoFornitore||''); document.getElementById('a_supplier_promo_on').checked=(typeof a?.promoFornitoreAttiva==='boolean')?a.promoFornitoreAttiva:(Number(a?.costoUsdPromo||0)>0); document.getElementById('a_std_cost_unknown').checked=!!a?.costoNormaleSconosciuto; document.getElementById('a_supplier_date_unknown').checked=!!a?.promoFornitoreDataSconosciuta;
   document.getElementById('a_note').value=a?.note||'';
@@ -10546,13 +10603,16 @@ function renderArtAutoFields(){
   const sellInput=document.getElementById('a_sell');
   const sellLabel=document.getElementById('a_sell_label');
   const sellHint=document.getElementById('a_sell_hint');
-  if(sellInput) sellInput.readOnly=!hasAcceptedEstimate;
-  if(sellLabel) sellLabel.textContent=hasAcceptedEstimate?'Prezzo vendita stimato (modificabile)':'Prezzo vendita standard (auto)';
-  if(sellHint) sellHint.style.display=hasAcceptedEstimate?'block':'none';
+  if(sellInput) sellInput.readOnly=false;
+  if(sellLabel) sellLabel.textContent='Prezzo scelto da te';
+  if(sellHint){ sellHint.style.display=hasAcceptedEstimate?'block':'none'; sellHint.textContent=hasAcceptedEstimate?'Costo stimato: il guadagno non è verificato.':''; }
 
   if(!hasCode && !hasUsd && !hasAcceptedEstimate){
     document.getElementById('a_eur').value='';
     document.getElementById('a_sell').value='';
+    document.getElementById('a_profit_min').value='';
+    document.getElementById('a_theoretical').value='';
+    document.getElementById('a_recommended').value='';
     document.getElementById('a_final').value='';
     document.getElementById('a_margin').value='';
     document.getElementById('a_margin_pct').textContent='';
@@ -10566,6 +10626,9 @@ function renderArtAutoFields(){
   if(!hasUsd && !hasPromoUsd && !hasAcceptedEstimate){
     document.getElementById('a_eur').value='';
     document.getElementById('a_sell').value='';
+    document.getElementById('a_profit_min').value='';
+    document.getElementById('a_theoretical').value='';
+    document.getElementById('a_recommended').value='';
     document.getElementById('a_final').value='';
     document.getElementById('a_margin').value='';
     document.getElementById('a_margin_pct').textContent='';
@@ -10599,23 +10662,25 @@ function renderArtAutoFields(){
   const r=usd>0 ? calcFromUsd(usd, qual) : (hasAcceptedEstimate ? calcSellFromEurCost(acceptedEstimate.estimatedCost,qual) : {costo:0,sell:0,marg:0});
   const promoUsd=hasPromoUsd ? Number(usdPromoRaw) : 0;
   const rPromo=promoUsd>0 ? calcFromUsd(promoUsd, qual) : {costo:0, sell:0, marg:0};
-  const estimatedChosenSale=hasAcceptedEstimate ? Number(acceptedEstimate.salePrice||acceptedEstimate.suggestedPrice||r.sell||0) : 0;
-  const baseSell=Number(hasAcceptedEstimate?estimatedChosenSale:(r.sell||rPromo.sell||0));
-  document.getElementById('a_eur').value = r.costo>0 ? (hasAcceptedEstimate ? money(r.costo)+' (stimato)' : money(r.costo)) : '';
-  document.getElementById('a_sell').value = baseSell>0 ? String(baseSell) : '';
+  const baseCalc=Number(r.costo)>0?r:rPromo;
+  const recommendedSell=Number(baseCalc.sell||0);
+  const theoreticalSell=Number(baseCalc.theoretical||((Number(baseCalc.costo)||0)+(Number(baseCalc.marg)||0))||0);
+  const profitMinimum=Number(baseCalc.marg||0);
+  if(!currentArtPriceManuallySet || !(currentArtChosenPrice>0)) currentArtChosenPrice=recommendedSell;
+  const chosenSale=Number(currentArtChosenPrice||recommendedSell||0);
+  document.getElementById('a_eur').value = Number(baseCalc.costo)>0 ? (hasAcceptedEstimate ? money(baseCalc.costo)+' (stimato)' : money(baseCalc.costo)) : '';
+  document.getElementById('a_profit_min').value = profitMinimum>0 ? money(profitMinimum) : '';
+  document.getElementById('a_theoretical').value = theoreticalSell>0 ? money(theoreticalSell) : '';
+  document.getElementById('a_recommended').value = recommendedSell>0 ? money(recommendedSell) : '';
+  if(sellInput && document.activeElement!==sellInput) sellInput.value = chosenSale>0 ? String(chosenSale) : '';
   if(sellHint && hasAcceptedEstimate){
     const estimatedCost=Number(acceptedEstimate.estimatedCost||0);
-    const prudentMinimum=Number(acceptedEstimate.minimumPrice||0);
-    if(baseSell>0 && estimatedCost>0 && baseSell<=estimatedCost){
-      sellHint.textContent='⚠️ Prezzo uguale o inferiore al costo ipotetico: possibile vendita in perdita.';
+    if(chosenSale>0 && estimatedCost>0 && chosenSale<=estimatedCost){
+      sellHint.textContent='⚠️ Prezzo uguale o inferiore al costo stimato: possibile vendita in perdita.';
       sellHint.style.color='#b91c1c';
       sellHint.style.fontWeight='1000';
-    }else if(baseSell>0 && prudentMinimum>0 && baseSell<prudentMinimum){
-      sellHint.textContent='⚠️ Prezzo inferiore alla soglia prudente calcolata dallo storico.';
-      sellHint.style.color='#b45309';
-      sellHint.style.fontWeight='1000';
     }else{
-      sellHint.textContent='Prezzo basato su costo ipotetico: puoi modificarlo manualmente.';
+      sellHint.textContent='Costo stimato: il guadagno non è verificato.';
       sellHint.style.color='';
       sellHint.style.fontWeight='';
     }
@@ -10623,29 +10688,42 @@ function renderArtAutoFields(){
   const promoOn=document.getElementById('a_promo_on').checked;
   const promoPrice=Number(document.getElementById('a_promo_price').value||0);
   const promoDate=document.getElementById('a_promo_date').value.trim();
-  let a={codice:code, costoUsd:usd, costoEur:hasAcceptedEstimate?0:r.costo, costoUsdPromo:promoUsd, costoEurPromo:rPromo.costo, costoStimatoAttivo:hasAcceptedEstimate, costoIpotetico:hasAcceptedEstimate, costoEurStimato:hasAcceptedEstimate?acceptedEstimate.estimatedCost:0, prezzoVenditaStimato:hasAcceptedEstimate?baseSell:0, prezzoVenditaStimatoOriginale:hasAcceptedEstimate?Number(acceptedEstimate.suggestedPrice||0):0, prezzoVendita:baseSell, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate, scadenzaPromoPersonale:promoDate, dataInizioPromoPersonale:'', promoFornitoreAttiva:!!document.getElementById('a_supplier_promo_on')?.checked, dataInizioPromoFornitore:'', scadenzaPromoFornitore:document.getElementById('a_supplier_promo_end').value.trim(), promoFornitoreDataSconosciuta:document.getElementById('a_supplier_date_unknown').checked, costoNormaleSconosciuto:document.getElementById('a_std_cost_unknown').checked};
+  let a={codice:code, costoUsd:usd, costoEur:hasAcceptedEstimate?0:r.costo, costoUsdPromo:promoUsd, costoEurPromo:rPromo.costo, costoStimatoAttivo:hasAcceptedEstimate, costoIpotetico:hasAcceptedEstimate, costoEurStimato:hasAcceptedEstimate?acceptedEstimate.estimatedCost:0, prezzoVenditaStimato:hasAcceptedEstimate?chosenSale:0, prezzoVenditaStimatoOriginale:hasAcceptedEstimate?recommendedSell:0, prezzoVendita:chosenSale, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate, scadenzaPromoPersonale:promoDate, dataInizioPromoPersonale:'', promoFornitoreAttiva:!!document.getElementById('a_supplier_promo_on')?.checked, dataInizioPromoFornitore:'', scadenzaPromoFornitore:document.getElementById('a_supplier_promo_end').value.trim(), promoFornitoreDataSconosciuta:document.getElementById('a_supplier_date_unknown').checked, costoNormaleSconosciuto:document.getElementById('a_std_cost_unknown').checked};
   a=normalizeArticlePromoState(a);
   // Aggiorna anche i controlli visivi: una promo scaduta non deve sembrare
   // ancora selezionata mentre il prezzo è già tornato normale.
   if(document.getElementById('a_promo_on')) document.getElementById('a_promo_on').checked=!!a.promoAttiva;
   if(document.getElementById('a_supplier_promo_on')) document.getElementById('a_supplier_promo_on').checked=!!a.promoFornitoreAttiva;
-  const finalPrice = a.prezzoVendita ? round5(currentPrice(a)) : 0;
+  const finalPrice = a.prezzoVendita ? Number(currentPrice(a)||0) : 0;
   document.getElementById('a_final').value = finalPrice ? String(finalPrice) : '';
   const costForMargin = hasAcceptedEstimate ? Number(acceptedEstimate.estimatedCost||0) : (currentCost(a) || Number(r.costo)||0);
-  const margin = Math.max(0, finalPrice - costForMargin);
+  const margin = Math.max(0, chosenSale - costForMargin);
   document.getElementById('a_margin').value = margin ? money(margin) : '';
-  document.getElementById('a_margin_pct').textContent = (finalPrice && margin) ? ((hasAcceptedEstimate?'Margine stimato ':'Margine ') + Math.round((margin/finalPrice)*100) + '%') : '';
+  document.getElementById('a_margin_pct').textContent='';
   const highRule=document.getElementById('a_high_cost_rule');
-  if(highRule) highRule.value=(Number(costForMargin)>350)?'Attiva: min. +120 € / +25%':'Non applicata';
+  if(highRule) highRule.value=qual==='ORIGINALE'?'Soglie Original Quality':'Soglie Top Quality';
+  const minWarn=document.getElementById('a_min_price_warning');
+  if(minWarn){
+    const minPrice=Number(theoreticalSell||0);
+    if(minPrice>0){
+      minWarn.style.display='block';
+      const belowMin=chosenSale>0 && chosenSale+0.005<minPrice;
+      minWarn.style.borderColor=belowMin?'#dc2626':'#f59e0b';
+      minWarn.style.background=belowMin?'#fef2f2':'#fffbeb';
+      minWarn.style.color=belowMin?'#991b1b':'#92400e';
+      minWarn.textContent=belowMin
+        ? `⚠️ Non scendere sotto ${money(minPrice)}. Il prezzo scelto è inferiore di ${money(minPrice-chosenSale)}.`
+        : `⚠️ Non scendere sotto ${money(minPrice)}.`;
+    }else{ minWarn.style.display='none'; minWarn.textContent=''; }
+  }
   const highWarn=document.getElementById('a_high_cost_warning');
   if(highWarn){
-    const marginPct=(finalPrice>0)?(margin/finalPrice)*100:0;
-    const lowHighCost=Number(costForMargin)>350 && (margin<100 || marginPct<20);
-    highWarn.style.display=lowHighCost?'block':'none';
-    highWarn.textContent=lowHighCost?'⚠️ Margine basso per un articolo ad alto costo: meno di 100 € oppure meno del 20% sul prezzo finale.':'';
+    const belowTarget=chosenSale>0 && profitMinimum>0 && margin<profitMinimum;
+    highWarn.style.display=belowTarget?'block':'none';
+    highWarn.textContent=belowTarget?`⚠️ Guadagno inferiore di ${money(profitMinimum-margin)} € rispetto alla soglia consigliata.`:'';
   }
   document.getElementById('a_promo_type').value=promoTypeLabel(a);
-  const standardCost=Number(r.costo||0), effectiveCost=Number(currentCost(a)||0), standardSell=Number(r.sell||0);
+  const standardCost=Number(baseCalc.costo||0), effectiveCost=Number(currentCost(a)||0), standardSell=Number(recommendedSell||0);
   const supplierBenefit=(standardCost>0 && effectiveCost>0) ? Math.max(0, standardCost-effectiveCost) : 0;
   const personalDiscount=(standardSell>0 && finalPrice>0) ? Math.max(0, standardSell-finalPrice) : 0;
   const summary=[];
@@ -10659,7 +10737,7 @@ function renderArtAutoFields(){
     ...a,
     codice:code, brand:getArticleBrandValue(),
     modello:document.getElementById('a_mod').value.trim(),
-    prezzoVendita:baseSell,
+    prezzoVendita:chosenSale,
     misura:document.getElementById('a_mis').value.trim(),
     altezzaCintura:document.getElementById('a_belt_h')?.value.trim()||'',
     hCintura:document.getElementById('a_belt_h')?.value.trim()||'',
@@ -10743,6 +10821,8 @@ async function duplicateCurrentArticle(sourceId=null){
   if(!a){ toast('Articolo non trovato'); return; }
   const clone=JSON.parse(JSON.stringify(a));
   currentArtId=null;
+  currentArtChosenPrice=Number(clone?.prezzoVendita||0);
+  currentArtPriceManuallySet=currentArtChosenPrice>0;
   currentArtPhotosCleared=false;
   currentArtDuplicateData={
     foto: Array.isArray(clone?.foto) ? clone.foto.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS) : [],
@@ -10840,7 +10920,8 @@ async function saveArt(){
     const promoUsd=Number(document.getElementById('a_usd_promo')?.value||0);
     const acceptedEstimate=(!usd && !promoUsd) ? acceptedArticleCostEstimate() : null;
     const r=usd>0 ? calcFromUsd(usd, qual) : (acceptedEstimate ? calcSellFromEurCost(acceptedEstimate.estimatedCost,qual) : {costo:0,sell:0,marg:0});
-    const rPromo=promoUsd>0 ? calcFromUsd(promoUsd, qual) : {costo:0, sell:0, marg:0};
+    const rPromo=promoUsd>0 ? calcFromUsd(promoUsd, qual) : {costo:0, sell:0, marg:0,theoretical:0};
+    const chosenSale=Number(document.getElementById('a_sell')?.value||0) || Number(r.sell||rPromo.sell||0);
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
     const preservedPublishLog=currentArtId ? normalizeArticlePublishLog(old?.pubblicazioniCanali||old?.publishStats||old?.socialPub||{}) : {fb:[],tg:[],wa:[],ig:[]};
     const keptFoto=currentArtPhotosCleared ? [] : (Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : []);
@@ -10876,8 +10957,8 @@ async function saveArt(){
       costoStimatoAttivo: !!acceptedEstimate,
       costoIpotetico: !!acceptedEstimate,
       costoEurStimato: acceptedEstimate ? Number(acceptedEstimate.estimatedCost||0) : 0,
-      prezzoVenditaStimato: acceptedEstimate ? Number(acceptedEstimate.salePrice||acceptedEstimate.suggestedPrice||0) : 0,
-      prezzoVenditaStimatoOriginale: acceptedEstimate ? Number(acceptedEstimate.suggestedPrice||0) : 0,
+      prezzoVenditaStimato: acceptedEstimate ? chosenSale : 0,
+      prezzoVenditaStimatoOriginale: acceptedEstimate ? Number(r.sell||acceptedEstimate.suggestedPrice||0) : 0,
       costoStimaCampioni: acceptedEstimate ? Number(acceptedEstimate.sampleCount||0) : 0,
       costoStimaAffidabilita: acceptedEstimate ? String(acceptedEstimate.confidence||'') : '',
       costoStimaMetodo: acceptedEstimate ? String(acceptedEstimate.method||'') : '',
@@ -10886,7 +10967,7 @@ async function saveArt(){
       costoStimaMax: acceptedEstimate ? Number(acceptedEstimate.maxCost||0) : 0,
       costoStimaSogliaMinima: acceptedEstimate ? Number(acceptedEstimate.minimumPrice||0) : 0,
       costoStimaSignature: acceptedEstimate ? String(acceptedEstimate.signature||'') : '',
-      prezzoVendita: acceptedEstimate ? Number(acceptedEstimate.salePrice||acceptedEstimate.suggestedPrice||0) : (r.sell || rPromo.sell),
+      prezzoVendita: chosenSale,
       promoAttiva: document.getElementById('a_promo_on').checked,
       prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
       scadenzaPromo: document.getElementById('a_promo_date').value.trim(),
@@ -12236,6 +12317,12 @@ async function saveOrd(){
   const subtotal=totals.subtotal;
   const scontoCliente=totals.discount;
   const tot=totals.total;
+  const minInfo=totals.minimumInfo||calcOrderMinimumFloor(ordRows,db);
+  if(minInfo.complete && tot+0.005<minInfo.minimum){
+    const deficit=minInfo.minimum-tot;
+    const ok=window.confirm(`⚠️ Il totale ordine è ${money(tot)}.\nIl minimo consigliato è ${money(minInfo.minimum)}.\nStai scendendo di ${money(deficit)} sotto il minimo.\n\nSalvare comunque?`);
+    if(!ok) return;
+  }
   const misuraSel=document.getElementById('o_mis');
   const misuraValue=String(misuraSel?.value||'').trim();
   const misuraObbligatoria=updateOrderShoeSizeState();
@@ -13179,14 +13266,13 @@ document.getElementById('a_promo_price')?.addEventListener('input', ()=>{
   if(check && Number.isFinite(amount) && amount>0) check.checked=true;
 });
 document.getElementById('a_sell')?.addEventListener('input', ()=>{
-  const est=acceptedArticleCostEstimate();
-  if(!est) return;
   const amount=firstFiniteNumber(document.getElementById('a_sell')?.value,0);
-  if(Number.isFinite(amount) && amount>0){
-    currentArticleCostEstimate.salePrice=amount;
-    renderArtAutoFields();
-    saveArticleDraft();
-  }
+  currentArtChosenPrice=Number.isFinite(amount)&&amount>0 ? amount : 0;
+  currentArtPriceManuallySet=currentArtChosenPrice>0;
+  const est=acceptedArticleCostEstimate();
+  if(est && currentArtChosenPrice>0) currentArticleCostEstimate.salePrice=currentArtChosenPrice;
+  renderArtAutoFields();
+  saveArticleDraft();
 });
 
 ['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_std_cost_unknown','a_supplier_promo_on','a_promo_on','a_promo_price','a_promo_date','a_supplier_promo_end','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
@@ -13263,7 +13349,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.82-2026-08-06';
+const VG_BUILD='1.0.84-2026-08-07';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14545,7 +14631,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.82', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.84', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
