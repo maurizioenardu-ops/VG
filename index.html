@@ -490,7 +490,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v126-minimo-in-dettaglio">
+  <meta name="vg-version" content="v128-listino-ufficiale-top-rivisto">
 </head>
 <body>
 
@@ -783,7 +783,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.86</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.88</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -970,6 +970,10 @@ window.addEventListener('error',e=>{
   <div style="margin-top:10px"><div class="k">Fornitore</div><div id="vArtForn" class="t">-</div></div>
   <div style="margin-top:10px"><div class="k">Data inserimento</div><div id="vArtCreatedAt" class="t">-</div></div>
   <div style="margin-top:10px"><div class="k" id="vArtColorsLabel">Colori disponibili</div><div id="vArtColors" class="t">-</div></div>
+  <div id="vArtOfficialWrap" class="grid2" style="margin-top:10px;display:none">
+    <div><div class="k">Prezzo listino ufficiale</div><div id="vArtOfficialPrice" class="t">-</div></div>
+    <div><div class="k">Riferimento ufficiale</div><button id="vArtOfficialLinkBtn" class="btn smallish" type="button" data-action="openOfficialLink">Apri sito ufficiale</button></div>
+  </div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">Prezzo vendita</div><div id="vArtPrezzo" class="t">-</div></div>
     <div>
@@ -1092,6 +1096,10 @@ window.addEventListener('error',e=>{
     <div class="grid2" style="margin-top:10px">
       <div><div id="a_sell_label" class="k">Prezzo scelto da te</div><input id="a_sell" inputmode="decimal" autocomplete="off"/><div id="a_sell_hint" class="helper" style="display:none;margin-top:5px"></div></div>
       <div><div class="k">Guadagno effettivo</div><input id="a_margin" readonly/></div>
+    </div>
+    <div class="grid2" style="margin-top:10px">
+      <div><div class="k">Prezzo listino ufficiale</div><input id="a_official_price" inputmode="decimal" autocomplete="off" placeholder="Es. 2500"/><div class="helper">Riferimento interno verificato sul sito ufficiale. Non viene inserito automaticamente nei post.</div></div>
+      <div><div class="k">Link ufficiale</div><input id="a_official_link" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://..."/></div>
     </div>
     <div id="a_min_price_warning" class="helper" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid #f59e0b;border-radius:12px;background:#fffbeb;color:#92400e;font-weight:900"></div>
     <div id="a_high_cost_warning" class="helper" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid #dc2626;border-radius:12px;background:#fef2f2;color:#991b1b;font-weight:900"></div>
@@ -1619,6 +1627,8 @@ function normalizeDBShape(o){
     costoEur:firstFiniteNumber(x?.costoEur, x?.costoEUR, x?.prezzo_acquisto, x?.costo, x?.costo_eur, 0),
     costoEurPromo:firstFiniteNumber(x?.costoEurPromo, x?.costoEURPromo, x?.promoCostoEur, 0),
     prezzoVendita:firstFiniteNumber(x?.prezzoVendita, x?.prezzo_vendita, x?.prezzo, x?.prezzo_vendita_iva, 0),
+    prezzoListinoUfficiale:firstFiniteNumber(x?.prezzoListinoUfficiale, x?.prezzoUfficiale, x?.prezzo_listino_ufficiale, 0),
+    linkUfficiale:normalizeSpaceText(x?.linkUfficiale||x?.linkOfficiale||x?.link_ufficiale||''),
     promoAttiva:(typeof x?.promoAttiva==='boolean') ? x.promoAttiva : !!x?.promo_on,
     prezzoPromo:firstFiniteNumber(x?.prezzoPromo, x?.promoPrezzo, x?.promo_price, 0),
     scadenzaPromo:normalizeSpaceText(x?.scadenzaPromo||x?.promoScadenza||x?.promo_date||''),
@@ -2821,6 +2831,8 @@ function collectArticleDraft(){
       descrizione:document.getElementById('a_desc')?.value||'',
       fornitore:document.getElementById('a_forn')?.value||'',
       fornitoreLink:document.getElementById('a_forn_link')?.value||'',
+      prezzoListinoUfficiale:document.getElementById('a_official_price')?.value||'',
+      linkUfficiale:document.getElementById('a_official_link')?.value||'',
       materiale:document.getElementById('a_taglia')?.value||'',
       variante:document.getElementById('a_variante')?.value||'',
       colore:(document.getElementById('a_color_mode')?.value==='multiple' ? '' : (document.getElementById('a_colore')?.value||'')),
@@ -2866,6 +2878,8 @@ function restoreArticleDraft(targetId=''){
   document.getElementById('a_desc').value=v.descrizione||'';
   updateSupplierField(v.fornitore||'');
   document.getElementById('a_forn_link').value=v.fornitoreLink||'';
+  if(document.getElementById('a_official_price')) document.getElementById('a_official_price').value=v.prezzoListinoUfficiale||'';
+  if(document.getElementById('a_official_link')) document.getElementById('a_official_link').value=v.linkUfficiale||'';
   document.getElementById('a_taglia').value=v.materiale||'';
   document.getElementById('a_variante').value=v.variante||'';
   document.getElementById('a_colore').value=v.colore||'';
@@ -4914,33 +4928,34 @@ function recommendedProfitByQuality(costo, qual){
   const cost=Math.max(0,Number(costo||0));
   const quality=String(qual||'').toUpperCase();
   if(!(cost>0)) return 0;
-  // Soglie corrette concordate:
-  // ORIGINAL QUALITY
-  // fino a 210 €  -> 80 €
-  // 210,01-230 €  -> 85 €
-  // 230,01-250 €  -> 90 €
-  // 250,01-300 €  -> 100 €
-  // oltre 300 €   -> 110 € oppure 25% del costo, il maggiore
+  // Soglie ORIGINAL QUALITY riviste per mantenere prezzi più competitivi:
+  // fino a 210 €  -> 70 €
+  // 210,01-230 €  -> 75 €
+  // 230,01-250 €  -> 80 €
+  // 250,01-300 €  -> 85 €
+  // 300,01-350 €  -> 95 €
+  // oltre 350 €   -> 110 € oppure 25% del costo, il maggiore
   if(quality==='ORIGINALE'){
-    if(cost<=210) return 80;
-    if(cost<=230) return 85;
-    if(cost<=250) return 90;
-    if(cost<=300) return 100;
+    if(cost<=210) return 70;
+    if(cost<=230) return 75;
+    if(cost<=250) return 80;
+    if(cost<=300) return 85;
+    if(cost<=350) return 95;
     return Math.max(110,cost*0.25);
   }
-  // TOP QUALITY / STANDARD
+  // TOP QUALITY / STANDARD, rimessa in pari con la revisione Original:
   // fino a 50 €   -> 45 €
   // 50,01-80 €    -> 55 €
-  // 80,01-120 €   -> 65 €
-  // 120,01-160 €  -> 75 €
-  // 160,01-220 €  -> 90 €
-  // oltre 220 €   -> 100 € oppure 30% del costo, il maggiore
+  // 80,01-120 €   -> 60 €
+  // 120,01-160 €  -> 70 €
+  // 160,01-220 €  -> 80 €
+  // oltre 220 €   -> 90 € oppure 25% del costo, il maggiore
   if(cost<=50) return 45;
   if(cost<=80) return 55;
-  if(cost<=120) return 65;
-  if(cost<=160) return 75;
-  if(cost<=220) return 90;
-  return Math.max(100,cost*0.30);
+  if(cost<=120) return 60;
+  if(cost<=160) return 70;
+  if(cost<=220) return 80;
+  return Math.max(90,cost*0.25);
 }
 function calcSellFromEurCost(cost, qual){
   const costo=Math.max(0,Number(cost||0));
@@ -4952,7 +4967,7 @@ function calcSellFromEurCost(cost, qual){
   // Sull'Original Quality aggiungiamo 10 € al prezzo consigliato per lasciare
   // un piccolo spazio di trattativa senza intaccare il guadagno minimo.
   const buffer=quality==='ORIGINALE' ? 10 : 0;
-  return {costo,sell:roundUp5(theoretical+buffer),marg,theoretical,minPrice:theoretical,buffer,highCost:(quality==='ORIGINALE'?costo>300:costo>220)};
+  return {costo,sell:roundUp5(theoretical+buffer),marg,theoretical,minPrice:theoretical,buffer,highCost:(quality==='ORIGINALE'?costo>350:costo>220)};
 }
 function calcFromUsd(usd, qual){
   const costo=(Number(usd||0)*0.90)+5;
@@ -7504,6 +7519,8 @@ function buildCloudArticleMeta(art){
     costoStimaSogliaMinima: Number(art?.costoStimaSogliaMinima||0),
     costoStimaSignature: art?.costoStimaSignature||'',
     prezzoVendita: Number(art?.prezzoVendita||0),
+    prezzoListinoUfficiale: Number(art?.prezzoListinoUfficiale||0),
+    linkUfficiale: art?.linkUfficiale||'',
     promoAttiva: !!art?.promoAttiva,
     prezzoPromo: Number(art?.prezzoPromo||0),
     scadenzaPromo: art?.scadenzaPromo||'',
@@ -10090,6 +10107,14 @@ async function openArtView(id){
       colorsValueEl.textContent=normalizeSpaceText(a.colore||'') || '-';
     }
   }
+  const officialWrap=document.getElementById('vArtOfficialWrap');
+  const officialPriceEl=document.getElementById('vArtOfficialPrice');
+  const officialLinkBtn=document.getElementById('vArtOfficialLinkBtn');
+  const officialPrice=Number(a.prezzoListinoUfficiale||0);
+  const officialLink=String(a.linkUfficiale||'').trim();
+  if(officialWrap) officialWrap.style.display=(officialPrice>0 || officialLink)?'grid':'none';
+  if(officialPriceEl) officialPriceEl.textContent=officialPrice>0?money(officialPrice):'-';
+  if(officialLinkBtn){ officialLinkBtn.style.display=officialLink?'inline-flex':'none'; officialLinkBtn.dataset.url=officialLink; }
   document.getElementById('vArtPrezzo').textContent=money(a.prezzoVendita||0);
   document.getElementById('vArtPrezzoUse').textContent=money(currentPrice(a));
   const pill=document.getElementById('vArtPromoPill');
@@ -10155,6 +10180,8 @@ function parseBulkArticleText(text){
     campioniStima:['campioni stima','articoli comparabili','numero campioni'],
     scadenzaPromoFornitore:['fine promo fornitore','scadenza promo fornitore'],
     link:['link','link fornitore','pagina fornitore','url'],
+    prezzoListinoUfficiale:['prezzo listino ufficiale','prezzo ufficiale','listino ufficiale','official price'],
+    linkUfficiale:['link ufficiale','sito ufficiale','pagina ufficiale','official link'],
     descrizione:['descrizione','description'],
     note:['note','nota']
   };
@@ -10245,6 +10272,8 @@ function applyBulkPasteArticle(){
   if(set('a_belt_h',data.altezzaCintura)) applied.push('altezza cintura');
   if(set('a_usd',parseBulkArticleNumber(data.costoUsd))) applied.push('costo USD');
   if(set('a_usd_promo',parseBulkArticleNumber(data.costoUsdPromo))) applied.push('costo promo USD');
+  if(set('a_official_price',parseBulkArticleNumber(data.prezzoListinoUfficiale))) applied.push('prezzo listino ufficiale');
+  if(set('a_official_link',data.linkUfficiale)) applied.push('link ufficiale');
   const realUsd=Number(parseBulkArticleNumber(data.costoUsd)||0);
   const estimatedUsd=Number(parseBulkArticleNumber(data.costoStimatoUsd)||0);
   let estimatedEur=Number(parseBulkArticleNumber(data.costoStimatoEur)||0);
@@ -10315,7 +10344,7 @@ async function openArtEdit(id){
   const set=(k,v)=>document.getElementById(k).value=(v===0?0:(v||''));
 
   if(!a){
-    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_belt_h','a_usd','a_usd_promo','a_high_cost_rule','a_profit_min','a_theoretical','a_recommended','a_promo_price','a_promo_date','a_supplier_promo_end','a_supplier_promo_end','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
+    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_belt_h','a_usd','a_usd_promo','a_official_price','a_official_link','a_high_cost_rule','a_profit_min','a_theoretical','a_recommended','a_promo_price','a_promo_date','a_supplier_promo_end','a_supplier_promo_end','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
     .forEach(fid => document.getElementById(fid).value='');
     document.getElementById('a_color_mode').value='single';
     document.getElementById('a_color_count').value='';
@@ -10340,6 +10369,7 @@ async function openArtEdit(id){
   set('a_cod', a?.codice); syncBrandField(a?.brand); set('a_mod', a?.modello);
   refreshArticleCategorySelects(a?.categoria||'');
   set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
+  set('a_official_price', a?.prezzoListinoUfficiale||''); set('a_official_link', a?.linkUfficiale||'');
   set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
   set('a_mis', a?.misura); set('a_belt_h', a?.altezzaCintura||a?.hCintura||''); set('a_usd', a?.costoUsd||''); set('a_usd_promo', a?.costoUsdPromo||'');
   currentArticleCostEstimate=storedArticleCostEstimate(a);
@@ -10868,6 +10898,8 @@ async function duplicateCurrentArticle(sourceId=null){
   document.getElementById('a_desc').value=clone.descrizione||'';
   updateSupplierField(clone.fornitore||'');
   document.getElementById('a_forn_link').value=clone.fornitoreLink||'';
+  if(document.getElementById('a_official_price')) document.getElementById('a_official_price').value=clone.prezzoListinoUfficiale||'';
+  if(document.getElementById('a_official_link')) document.getElementById('a_official_link').value=clone.linkUfficiale||'';
   document.getElementById('a_taglia').value=clone.materiale||clone.taglia||'';
   document.getElementById('a_variante').value=clone.variante||'';
   document.getElementById('a_colore').value=clone.colore||'';
@@ -10967,6 +10999,8 @@ async function saveArt(){
       descrizione: document.getElementById('a_desc').value.trim(),
       fornitore: document.getElementById('a_forn').value.trim(),
       fornitoreLink: document.getElementById('a_forn_link').value.trim(),
+      prezzoListinoUfficiale: firstFiniteNumber(document.getElementById('a_official_price')?.value,0),
+      linkUfficiale: String(document.getElementById('a_official_link')?.value||'').trim(),
       materiale: document.getElementById('a_taglia').value.trim(),
       taglia: '',
       variante: document.getElementById('a_variante').value.trim(),
@@ -12848,6 +12882,8 @@ function readArticleForm(){
     descrizione: document.getElementById('a_desc')?.value.trim()||'',
     fornitore: document.getElementById('a_forn')?.value.trim()||'',
     fornitoreLink: document.getElementById('a_forn_link')?.value.trim()||'',
+    prezzoListinoUfficiale: firstFiniteNumber(document.getElementById('a_official_price')?.value,0),
+    linkUfficiale: String(document.getElementById('a_official_link')?.value||'').trim(),
     materiale: document.getElementById('a_taglia')?.value.trim()||'',
     taglia: '',
     variante: document.getElementById('a_variante')?.value.trim()||'',
@@ -13136,6 +13172,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='downloadArtPhotosIg') return downloadCurrentArticlePhotos('ig');
   if(a==='downloadArtPhotos') return downloadCurrentArticlePhotos('tg');
   if(a==='openSupplierLink'){ const link=String(document.getElementById('vArtSupplierLink')?.value||'').trim(); if(!link){ toast('Nessun link fornitore'); return; } const safe=/^https?:\/\//i.test(link)?link:'https://'+link; window.open(safe,'_blank'); return; }
+  if(a==='openOfficialLink'){ const link=String(document.getElementById('vArtOfficialLinkBtn')?.dataset.url||'').trim(); if(!link){ toast('Nessun link ufficiale'); return; } const safe=/^https?:\/\//i.test(link)?link:'https://'+link; window.open(safe,'_blank'); return; }
   if(a==='copyCliShip') return copyTextFrom(document.getElementById('c_ship'));
   if(a==='copyCliAltShip') return copyTextFrom(document.getElementById('c_alt_ship'));
   if(a==='copyCliShipView') return copyTextFrom(document.getElementById('vCliShip'));
@@ -13240,7 +13277,7 @@ if(__viewFbPostEl){
   __viewFbPostEl.addEventListener('blur', ()=>saveViewFbPostNow({cloud:true}));
 }
 
-['a_post','a_post_fb','a_post_ig','a_note','a_forn_link'].forEach(id=>{
+['a_post','a_post_fb','a_post_ig','a_note','a_forn_link','a_official_price','a_official_link'].forEach(id=>{
   const el=document.getElementById(id);
   if(el) ['input','change'].forEach(evt=>el.addEventListener(evt, ()=>{
     if(id==='a_post_fb') el.dataset.fbCustom='1';
@@ -13306,7 +13343,7 @@ document.getElementById('a_sell')?.addEventListener('input', ()=>{
   saveArticleDraft();
 });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_std_cost_unknown','a_supplier_promo_on','a_promo_on','a_promo_price','a_promo_date','a_supplier_promo_end','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_official_price','a_official_link','a_std_cost_unknown','a_supplier_promo_on','a_promo_on','a_promo_price','a_promo_date','a_supplier_promo_end','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
   ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));
@@ -13380,7 +13417,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.86-2026-08-08';
+const VG_BUILD='1.0.88-2026-08-08';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -13859,7 +13896,7 @@ async function pullCloudToLocal(opts={}){
         const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
         const cloudTs=parseTimestampLike(meta._ts, p.updated_at, p.created_at, local?._ts, Date.now());
         const createdAt=meta.createdAt||local?.createdAt||local?.dataInserimento||p.created_at||'';
-        return {id:p.id,createdAt,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,costoStimatoAttivo:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoIpotetico:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoEurStimato:firstFiniteNumber(meta.costoEurStimato,local?.costoEurStimato,0),prezzoVenditaStimato:firstFiniteNumber(meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),prezzoVenditaStimatoOriginale:firstFiniteNumber(meta.prezzoVenditaStimatoOriginale,local?.prezzoVenditaStimatoOriginale,meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),costoStimaCampioni:Math.max(0,parseInt(meta.costoStimaCampioni||local?.costoStimaCampioni||0,10)||0),costoStimaAffidabilita:meta.costoStimaAffidabilita||local?.costoStimaAffidabilita||'',costoStimaMetodo:meta.costoStimaMetodo||local?.costoStimaMetodo||'',costoStimaData:meta.costoStimaData||local?.costoStimaData||'',costoStimaMin:firstFiniteNumber(meta.costoStimaMin,local?.costoStimaMin,0),costoStimaMax:firstFiniteNumber(meta.costoStimaMax,local?.costoStimaMax,0),costoStimaSogliaMinima:firstFiniteNumber(meta.costoStimaSogliaMinima,local?.costoStimaSogliaMinima,0),costoStimaSignature:meta.costoStimaSignature||local?.costoStimaSignature||'',prezzoVendita:pulledPrezzoVendita,promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),costoNormaleSconosciuto:!!(meta.costoNormaleSconosciuto??local?.costoNormaleSconosciuto),promoFornitoreAttiva:(typeof meta.promoFornitoreAttiva==='boolean'?meta.promoFornitoreAttiva:(typeof local?.promoFornitoreAttiva==='boolean'?local.promoFornitoreAttiva:pulledCostoUsdPromo>0)),dataInizioPromoFornitore:normalizePromoStartDate(meta.dataInizioPromoFornitore||local?.dataInizioPromoFornitore||''),scadenzaPromoFornitore:meta.scadenzaPromoFornitore||local?.scadenzaPromoFornitore||'',promoFornitoreDataSconosciuta:!!(meta.promoFornitoreDataSconosciuta??local?.promoFornitoreDataSconosciuta),dataInizioPromoPersonale:normalizePromoStartDate(meta.dataInizioPromoPersonale||local?.dataInizioPromoPersonale||meta.dataInizioPromo||local?.dataInizioPromo||''),scadenzaPromoPersonale:meta.scadenzaPromoPersonale||local?.scadenzaPromoPersonale||meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
+        return {id:p.id,createdAt,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,costoStimatoAttivo:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoIpotetico:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoEurStimato:firstFiniteNumber(meta.costoEurStimato,local?.costoEurStimato,0),prezzoVenditaStimato:firstFiniteNumber(meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),prezzoVenditaStimatoOriginale:firstFiniteNumber(meta.prezzoVenditaStimatoOriginale,local?.prezzoVenditaStimatoOriginale,meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),costoStimaCampioni:Math.max(0,parseInt(meta.costoStimaCampioni||local?.costoStimaCampioni||0,10)||0),costoStimaAffidabilita:meta.costoStimaAffidabilita||local?.costoStimaAffidabilita||'',costoStimaMetodo:meta.costoStimaMetodo||local?.costoStimaMetodo||'',costoStimaData:meta.costoStimaData||local?.costoStimaData||'',costoStimaMin:firstFiniteNumber(meta.costoStimaMin,local?.costoStimaMin,0),costoStimaMax:firstFiniteNumber(meta.costoStimaMax,local?.costoStimaMax,0),costoStimaSogliaMinima:firstFiniteNumber(meta.costoStimaSogliaMinima,local?.costoStimaSogliaMinima,0),costoStimaSignature:meta.costoStimaSignature||local?.costoStimaSignature||'',prezzoVendita:pulledPrezzoVendita,prezzoListinoUfficiale:firstFiniteNumber(meta.prezzoListinoUfficiale,local?.prezzoListinoUfficiale,0),linkUfficiale:meta.linkUfficiale||local?.linkUfficiale||'',promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),costoNormaleSconosciuto:!!(meta.costoNormaleSconosciuto??local?.costoNormaleSconosciuto),promoFornitoreAttiva:(typeof meta.promoFornitoreAttiva==='boolean'?meta.promoFornitoreAttiva:(typeof local?.promoFornitoreAttiva==='boolean'?local.promoFornitoreAttiva:pulledCostoUsdPromo>0)),dataInizioPromoFornitore:normalizePromoStartDate(meta.dataInizioPromoFornitore||local?.dataInizioPromoFornitore||''),scadenzaPromoFornitore:meta.scadenzaPromoFornitore||local?.scadenzaPromoFornitore||'',promoFornitoreDataSconosciuta:!!(meta.promoFornitoreDataSconosciuta??local?.promoFornitoreDataSconosciuta),dataInizioPromoPersonale:normalizePromoStartDate(meta.dataInizioPromoPersonale||local?.dataInizioPromoPersonale||meta.dataInizioPromo||local?.dataInizioPromo||''),scadenzaPromoPersonale:meta.scadenzaPromoPersonale||local?.scadenzaPromoPersonale||meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
       }).filter(a=>!articleMatchesDeleteTombstone(a, deletedArticleTombstones)),
       clienti:(cli||[]).map(c=>{
         const packed=unpackCloudClientNote(c.note||'');
@@ -14662,7 +14699,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.86', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.88', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
