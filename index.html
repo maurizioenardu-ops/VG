@@ -490,7 +490,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v125-soglie-corrette">
+  <meta name="vg-version" content="v126-minimo-in-dettaglio">
 </head>
 <body>
 
@@ -783,7 +783,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.85</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.86</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -4931,16 +4931,16 @@ function recommendedProfitByQuality(costo, qual){
   // TOP QUALITY / STANDARD
   // fino a 50 €   -> 45 €
   // 50,01-80 €    -> 55 €
-  // 80,01-120 €   -> 60 €
-  // 120,01-160 €  -> 70 €
-  // 160,01-220 €  -> 80 €
-  // oltre 220 €   -> 90 € oppure 25% del costo, il maggiore
+  // 80,01-120 €   -> 65 €
+  // 120,01-160 €  -> 75 €
+  // 160,01-220 €  -> 90 €
+  // oltre 220 €   -> 100 € oppure 30% del costo, il maggiore
   if(cost<=50) return 45;
   if(cost<=80) return 55;
-  if(cost<=120) return 60;
-  if(cost<=160) return 70;
-  if(cost<=220) return 80;
-  return Math.max(90,cost*0.25);
+  if(cost<=120) return 65;
+  if(cost<=160) return 75;
+  if(cost<=220) return 90;
+  return Math.max(100,cost*0.30);
 }
 function calcSellFromEurCost(cost, qual){
   const costo=Math.max(0,Number(cost||0));
@@ -9157,14 +9157,31 @@ function articleCostInfoHtml(a){
   const usdText=(Number.isFinite(info.usd)&&info.usd>0)?` <span>(${money(info.usd)} USD)</span>`:'';
   return `<div class="costMeta">Costo: ${money(info.eur)} €${usdText}</div>`;
 }
+function articleMinimumPriceWarningHtml(a){
+  const costInfo=articleCostInfo(a);
+  if(!costInfo||!(Number(costInfo.eur)>0)) return '';
+  const qualKey=normalizeQualityValue(articleQualityLabel(a)).toUpperCase();
+  const profitMin=recommendedProfitByQuality(Number(costInfo.eur),qualKey==='ORIGINALE'?'ORIGINALE':'STANDARD');
+  const minimum=Number(costInfo.eur)+Number(profitMin||0);
+  if(!(minimum>0)) return '';
+  const activePrice=Number(currentPrice(a)||0);
+  const estimated=!!costInfo.estimated;
+  const label=estimated?'Minimo consigliato stimato':'Minimo consigliato';
+  if(activePrice>0 && activePrice+0.005<minimum){
+    const deficit=minimum-activePrice;
+    return `<div style="margin-top:10px;padding:10px 12px;border:1px solid #dc2626;border-radius:12px;background:#fef2f2;color:#991b1b;font-weight:900;line-height:1.35">⚠️ Non scendere sotto ${money(minimum)}. Sei sotto di ${money(deficit)}.</div>`;
+  }
+  return `<div style="margin-top:8px;padding:8px 10px;border:1px solid #f59e0b;border-radius:12px;background:#fffbeb;color:#92400e;font-weight:900;line-height:1.3">${label}: ${money(minimum)}</div>`;
+}
 function articleMarginInfoHtml(a){
   const info=articleMarginInfo(a);
   const costHtml=articleCostInfoHtml(a);
-  if(!info) return `<div class="pill">Margine non disponibile</div><div class="marginMeta">Serve un costo reale oppure una stima accettata.</div>${costHtml}`;
+  const minHtml=articleMinimumPriceWarningHtml(a);
+  if(!info) return `<div class="pill">Margine non disponibile</div><div class="marginMeta">Serve un costo reale oppure una stima accettata.</div>${costHtml}${minHtml}`;
   const toneClass=info.tone==='good'?'marginGood':(info.tone==='mid'?'marginMid':'marginLow');
   const pctText=info.pct?` • ${info.pct}%`:'';
   const note=info.estimated?'<div class="marginMeta estimatedCostText">Valore ipotetico: non è guadagno verificato.</div>':'';
-  return `<div class="pill ${toneClass}">${esc(info.label)}</div><div class="marginMeta">${money(info.amount)}${pctText}</div>${note}${costHtml}`;
+  return `<div class="pill ${toneClass}">${esc(info.label)}</div><div class="marginMeta">${money(info.amount)}${pctText}</div>${note}${costHtml}${minHtml}`;
 }
 function articleSearchHay(a){
   const catLabel=displayCategoryValue(a?.categoria);
@@ -13363,7 +13380,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.85-2026-08-07';
+const VG_BUILD='1.0.86-2026-08-08';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14645,7 +14662,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.85', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.86', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
