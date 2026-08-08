@@ -784,7 +784,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.91</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.93</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -6196,6 +6196,21 @@ function ensureCurrentPromoHeader(text, a){
   const intro=promoPostIntroLines(a);
   return intro.length ? formatGeneratedPostLines([...intro, withoutOld]) : withoutOld;
 }
+function ensureFacebookPromoFirstLine(text, a){
+  let raw=String(text||'').trim();
+  if(!promoValid(a)) return raw;
+  const end = personalPromoValid(a)
+    ? personalPromoEnd(a)
+    : (supplierPromoValid(a) ? supplierPromoEnd(a) : '');
+  const firstLine=end
+    ? `💥PROMO FINO AL ${String(formatPromoDayMonth(end)||'').toUpperCase()}💥`
+    : '💥IN PROMOZIONE💥';
+  const cleaned=raw.split(/\r?\n/).filter(line=>{
+    const key=normalizeTextKey(line);
+    return !key || !/(?:promo|promozione|offerta|sconto|scadenz|valida?finoal|finoal|✨|🔥|⚡)/.test(key);
+  }).join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  return formatGeneratedPostLines([firstLine, cleaned]);
+}
 function postTraitFlags(a){
   const src = [
     a?.categoria||'', a?.modello||'', a?.descrizione||'', a?.variante||'', a?.materiale||'',
@@ -7396,7 +7411,8 @@ function normalizeFacebookPostForArticle(text, a){
   out=ensureFacebookPostHasDescriptionBelowModel(out, a);
   out=ensureFacebookPostHasArticleMeasures(out, a);
   out=ensureFacebookPostHasCode(out, a);
-  return normalizePublicPostForArticle(out, a);
+  out=normalizePublicPostForArticle(out, a);
+  return ensureFacebookPromoFirstLine(out, a);
 }
 function getArticleFacebookCustomPost(a){
   return String(a?.postFb || a?.postFacebook || a?.post_fb || '').trim();
@@ -10667,8 +10683,8 @@ function syncPromoCheckboxesFromAmounts(){
   const personalAmount=Number(document.getElementById('a_promo_price')?.value||0);
   const supplierCheck=document.getElementById('a_supplier_promo_on');
   const personalCheck=document.getElementById('a_promo_on');
-  // Un importo vuoto/zero spegne sempre la promo. Un importo già presente,
-  // invece, non deve riaccendere una spunta tolta manualmente.
+  // Una promo può essere attivata solo dopo aver indicato il relativo prezzo.
+  // Evita spunte attive senza un importo promo valido.
   if(supplierCheck && !(Number.isFinite(supplierAmount) && supplierAmount>0)) supplierCheck.checked=false;
   if(personalCheck && !(Number.isFinite(personalAmount) && personalAmount>0)) personalCheck.checked=false;
 }
@@ -13361,7 +13377,7 @@ document.getElementById('a_sell')?.addEventListener('input', ()=>{
   saveArticleDraft();
 });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_official_price','a_std_cost_unknown','a_supplier_promo_on','a_promo_on','a_promo_price','a_promo_date','a_supplier_promo_end','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_official_price','a_std_cost_unknown','a_supplier_promo_on','a_promo_on','a_promo_price','a_promo_date','a_supplier_promo_end','a_supplier_date_unknown','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
   ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));
@@ -13435,7 +13451,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.91-2026-08-08';
+const VG_BUILD='1.0.93-2026-08-08';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14717,7 +14733,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.91', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.93', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
