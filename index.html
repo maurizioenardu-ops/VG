@@ -55,6 +55,10 @@ body{-webkit-tap-highlight-color:transparent}
 .artCard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;box-shadow:0 10px 24px rgba(15,23,42,.05);min-height:152px;display:flex;flex-direction:column;gap:10px;cursor:pointer}
 .artCard.tight{min-height:unset}
 .artCard.is-unavailable{border-color:#ef4444;background:linear-gradient(180deg,#fff5f5 0%,#ffffff 100%);box-shadow:0 10px 24px rgba(239,68,68,.12)}
+.artCard.is-promo{border:2px solid #22c55e;background:linear-gradient(180deg,#f0fdf4 0%,#ffffff 100%);box-shadow:0 10px 24px rgba(34,197,94,.14)}
+.artCard.is-promo .artPrice{color:#15803d}.artPromoBadge{display:inline-flex;align-items:center;gap:5px;width:max-content;max-width:100%;padding:5px 9px;border-radius:999px;background:#dcfce7;border:1px solid #86efac;color:#166534;font-size:11px;font-weight:1000;letter-spacing:.02em}
+#mArtView.promo-active .modal{border:2px solid #22c55e;background:linear-gradient(180deg,#f0fdf4 0%,#ffffff 220px);box-shadow:0 24px 70px rgba(34,197,94,.18)}
+#mArtView.promo-active #vArtPrezzoUse{color:#15803d}
 .artCardHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .artIcon{width:62px;height:62px;border-radius:18px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:56px;line-height:1;background:linear-gradient(135deg,#fff8ef 0%, #eef4ff 100%);overflow:hidden}
 .artMeta{display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -491,7 +495,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v131-allarme-sotto-10">
+  <meta name="vg-version" content="v133-cliente-facebook">
 </head>
 <body>
 
@@ -784,7 +788,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.93</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.95</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -1162,7 +1166,7 @@ window.addEventListener('error',e=>{
   <div class="h3">Dati cliente</div>
   <div class="grid2">
     <div><div class="k">Nome</div><div id="vCliNome" class="t">-</div></div>
-    <div><div class="k">Telefono</div><div id="vCliTel" class="t">-</div><button class="btn smallish" type="button" data-action="openClientWhatsApp" style="margin-top:7px;background:#25D366;border-color:#25D366;color:#fff;min-height:34px;padding:7px 12px">WhatsApp</button></div>
+    <div><div class="k">Telefono</div><div id="vCliTel" class="t">-</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:7px"><button class="btn smallish" type="button" data-action="openClientWhatsApp" style="background:#25D366;border-color:#25D366;color:#fff;min-height:34px;padding:7px 12px">WhatsApp</button><button id="vCliFacebookBtn" class="btn smallish" type="button" data-action="openClientFacebook" style="display:none;background:#1877F2;border-color:#1877F2;color:#fff;min-height:34px;padding:7px 12px">Facebook</button></div></div>
   </div>
   <div style="margin-top:10px"><div class="k">Indirizzo</div><div id="vCliInd" class="mutedBox">-</div></div>
   <div class="grid2" style="margin-top:10px">
@@ -1203,6 +1207,7 @@ window.addEventListener('error',e=>{
     <div><div class="k">Nome</div><input id="c_nome" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
     <div><div class="k">Telefono</div><input id="c_tel" inputmode="tel" autocomplete="off"/></div>
   </div>
+  <div style="margin-top:10px"><div class="k">Profilo Facebook</div><input id="c_facebook" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://www.facebook.com/..."/><div class="helper">Link del profilo Facebook del cliente. Resta un dato interno.</div></div>
   <div style="margin-top:10px"><div class="k">Indirizzo</div><input id="c_ind" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">CAP / Codice postale</div><input id="c_cap" list="c_cap_list" inputmode="text" autocomplete="off"/><datalist id="c_cap_list"></datalist></div>
@@ -2932,6 +2937,7 @@ function collectClientDraft(){
     values:{
       nome:document.getElementById('c_nome')?.value||'',
       tel:document.getElementById('c_tel')?.value||'',
+      facebook:document.getElementById('c_facebook')?.value||'',
       indirizzo:document.getElementById('c_ind')?.value||'',
       cap:document.getElementById('c_cap')?.value||'',
       citta:document.getElementById('c_citta')?.value||'',
@@ -2960,6 +2966,7 @@ function restoreClientDraft(targetId=''){
   const v=draft.values||{};
   document.getElementById('c_nome').value=v.nome||'';
   document.getElementById('c_tel').value=v.tel||'';
+  document.getElementById('c_facebook').value=v.facebook||'';
   document.getElementById('c_ind').value=v.indirizzo||'';
   document.getElementById('c_cap').value=v.cap||'';
   document.getElementById('c_citta').value=v.citta||'';
@@ -7627,6 +7634,26 @@ function openCurrentClientWhatsApp(){
   if(digits.length<8){ toast('Numero WhatsApp non valido'); return; }
   window.open(`https://wa.me/${digits}`,'_blank','noopener');
 }
+function normalizeFacebookProfileUrl(raw=''){
+  let url=normalizeSpaceText(raw||'');
+  if(!url) return '';
+  if(/^www\./i.test(url)) url='https://'+url;
+  else if(/^(?:m\.|web\.)?facebook\.com\//i.test(url)) url='https://'+url;
+  try{
+    const u=new URL(url);
+    const host=String(u.hostname||'').toLowerCase().replace(/^www\./,'');
+    if(host==='facebook.com' || host.endsWith('.facebook.com')) return u.href;
+  }catch(_e){}
+  return '';
+}
+function openCurrentClientFacebook(){
+  const db=loadDB();
+  const client=(db.clienti||[]).find(c=>String(c?.id||'')===String(currentCliId||''));
+  if(!client){ toast('Cliente non trovato'); return; }
+  const url=normalizeFacebookProfileUrl(client.facebookUrl||client.facebook||'');
+  if(!url){ toast('Profilo Facebook non presente'); return; }
+  window.open(url,'_blank','noopener');
+}
 
 function hasAlternativeAddress(c){
   return !!c?.indirizzoAlternativoAttivo && [c?.indirizzoAlternativo,c?.capAlternativo,c?.cittaAlternativa,c?.provinciaAlternativa].some(v=>normalizeSpaceText(v||''));
@@ -9377,7 +9404,9 @@ function renderArt(){
     const metaLine=[qualityLine, photoLine].filter(Boolean).join(' • ');
     const notePreview=normalizeSpaceText(a.note||'');
     const noteHtml=notePreview ? `<div class="artCardNote" title="${esc(notePreview)}">${esc(notePreview)}</div>` : '';
-    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}">${noteHtml}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s">${a.codice?`Cod. ${esc(a.codice)} • `:''}${esc(metaLine)}</div>${unavailable}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div>${articleUnderMarginListBadgeHtml(a)}<div class="artActions artActionsSocial"><button class="btn smallish articleShareCompact" style="background:#1877F2;border-color:#1877F2;color:#fff" type="button" data-action="shareArtFacebookFromList" data-id="${a.id}"><span>Condividi<br>su FB</span></button><button class="btn smallish articleShareCompact" style="background:#229ED9;border-color:#229ED9;color:#fff" type="button" data-action="shareArtTelegramFromList" data-id="${a.id}"><span>Condividi<br>su TG</span></button></div></div>`;
+    const promoActive=promoValid(a);
+    const promoBadge=promoActive ? `<div class="artPromoBadge">🔥 IN PROMOZIONE</div>` : '';
+    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''} ${promoActive ? 'is-promo' : ''}" data-open="art" data-id="${a.id}">${noteHtml}${promoBadge}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s">${a.codice?`Cod. ${esc(a.codice)} • `:''}${esc(metaLine)}</div>${unavailable}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div>${articleUnderMarginListBadgeHtml(a)}<div class="artActions artActionsSocial"><button class="btn smallish articleShareCompact" style="background:#1877F2;border-color:#1877F2;color:#fff" type="button" data-action="shareArtFacebookFromList" data-id="${a.id}"><span>Condividi<br>su FB</span></button><button class="btn smallish articleShareCompact" style="background:#229ED9;border-color:#229ED9;color:#fff" type="button" data-action="shareArtTelegramFromList" data-id="${a.id}"><span>Condividi<br>su TG</span></button></div></div>`;
   }).join('');
   const emptyText=noPhotoOnly ? 'Nessun articolo senza foto.' : (promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.');
   const activeHtml=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
@@ -10162,6 +10191,9 @@ async function openArtView(id){
   if(officialPriceEl) officialPriceEl.textContent=officialPrice>0?money(officialPrice):'-';
   document.getElementById('vArtPrezzo').textContent=money(a.prezzoVendita||0);
   document.getElementById('vArtPrezzoUse').textContent=money(currentPrice(a));
+  const promoActive=promoValid(a);
+  const artViewWrap=document.getElementById('mArtView');
+  if(artViewWrap) artViewWrap.classList.toggle('promo-active', promoActive);
   const pill=document.getElementById('vArtPromoPill');
   pill.innerHTML = promoInfoHtml(a,{marginTop:'6px'});
   const marginBox=document.getElementById('vArtMarginBox');
@@ -11244,6 +11276,8 @@ function openCliView(id){
   currentCliId=id;
   document.getElementById('vCliNome').textContent=c.nome||'-';
   document.getElementById('vCliTel').textContent=withIntlPrefix(c.telefono||'',c.paese||'Italia')||'-';
+  const fbBtn=document.getElementById('vCliFacebookBtn');
+  if(fbBtn) fbBtn.style.display=normalizeFacebookProfileUrl(c.facebookUrl||c.facebook||'')?'inline-flex':'none';
   document.getElementById('vCliInd').textContent=c.indirizzo||'-';
   document.getElementById('vCliCap').textContent=c.cap||'-';
   document.getElementById('vCliCity').textContent=c.citta||'-';
@@ -11651,6 +11685,7 @@ function openCliEdit(id){
   document.getElementById('cliEditTitle').textContent=c?'Modifica cliente':'Nuovo cliente';
   document.getElementById('c_nome').value=c?.nome||'';
   document.getElementById('c_tel').value=c?.telefono||'';
+  document.getElementById('c_facebook').value=c?.facebookUrl||c?.facebook||'';
   document.getElementById('c_ind').value=c?.indirizzo||'';
   document.getElementById('c_cap').value=c?.cap||'';
   document.getElementById('c_citta').value=c?.citta||'';
@@ -11680,6 +11715,8 @@ async function saveCli(){
   const db=loadDB();
   const nome=document.getElementById('c_nome').value.trim();
   if(!nome){ toast('Nome obbligatorio'); return; }
+  const facebookRaw=document.getElementById('c_facebook').value.trim();
+  if(facebookRaw && !normalizeFacebookProfileUrl(facebookRaw)){ toast('Link Facebook non valido'); return; }
 
   const old=currentCliId?db.clienti.find(c=>c.id===currentCliId):null;
   const candidate={
@@ -11689,6 +11726,7 @@ async function saveCli(){
     cognome: old?.cognome||'',
     email: old?.email||'',
     telefono: document.getElementById('c_tel').value.trim(),
+    facebookUrl: normalizeFacebookProfileUrl(document.getElementById('c_facebook').value.trim()),
     indirizzo: document.getElementById('c_ind').value.trim(),
     cap: document.getElementById('c_cap').value.trim(),
     citta: document.getElementById('c_citta').value.trim(),
@@ -13211,6 +13249,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='copyCliAltShip') return copyTextFrom(document.getElementById('c_alt_ship'));
   if(a==='copyCliShipView') return copyTextFrom(document.getElementById('vCliShip'));
   if(a==='openClientWhatsApp') return openCurrentClientWhatsApp();
+  if(a==='openClientFacebook') return openCurrentClientFacebook();
   if(a==='copyCliAltShipView') return copyTextFrom(document.getElementById('vCliAltShip'));
   if(a==='copyOrdClientAddress') return copyCurrentOrderClientAddress();
   if(a==='editCliFromView'){ hide('mCliView', true); return openCliEdit(currentCliId); }
@@ -13323,7 +13362,7 @@ document.getElementById('qArtCat')?.addEventListener('change', renderArt);
 document.getElementById('qArtBrand')?.addEventListener('change', renderArt);
 document.getElementById('qArtQuality')?.addEventListener('change', renderArt);
 bindSearchSuggest('qCli','qCliSuggest','cli', ()=>renderCli());
-['c_nome','c_tel','c_ind','c_cap','c_citta','c_prov','c_prov_text','c_paese','c_note','c_alt_nome','c_alt_cognome','c_alt_ind','c_alt_cap','c_alt_citta','c_alt_prov','c_alt_paese'].forEach(id=>{
+['c_nome','c_tel','c_facebook','c_ind','c_cap','c_citta','c_prov','c_prov_text','c_paese','c_note','c_alt_nome','c_alt_cognome','c_alt_ind','c_alt_cap','c_alt_citta','c_alt_prov','c_alt_paese'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
   const handle=(force=false)=>{
@@ -13451,7 +13490,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.93-2026-08-08';
+const VG_BUILD='1.0.95-2026-08-08';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -13691,7 +13730,8 @@ function buildCloudClientMeta(cli){
     capAlternativo:normalizeSpaceText(cli?.capAlternativo||''),
     cittaAlternativa:normalizeSpaceText(cli?.cittaAlternativa||''),
     provinciaAlternativa:normalizeSpaceText(cli?.provinciaAlternativa||''),
-    paeseAlternativo:normalizeCountryName(cli?.paeseAlternativo||cli?.paese||'Italia')
+    paeseAlternativo:normalizeCountryName(cli?.paeseAlternativo||cli?.paese||'Italia'),
+    facebookUrl:normalizeFacebookProfileUrl(cli?.facebookUrl||cli?.facebook||'')
   };
 }
 function packCloudClientNote(cli){
@@ -13945,6 +13985,7 @@ async function pullCloudToLocal(opts={}){
           indirizzoAlternativo:meta.indirizzoAlternativo||'',capAlternativo:meta.capAlternativo||'',
           cittaAlternativa:meta.cittaAlternativa||'',provinciaAlternativa:meta.provinciaAlternativa||'',
           paeseAlternativo:normalizeCountryName(meta.paeseAlternativo||c.paese||'Italia'),
+          facebookUrl:normalizeFacebookProfileUrl(meta.facebookUrl||''),
           _ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true
         };
       }),
@@ -14733,7 +14774,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.93', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.95', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
