@@ -491,7 +491,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v130-avvisi-sotto-margine">
+  <meta name="vg-version" content="v131-allarme-sotto-10">
 </head>
 <body>
 
@@ -784,7 +784,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.90</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.91</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -4805,7 +4805,7 @@ function renderOrderMinimumWarning(total){
     return info;
   }
   const deficit=Math.max(0,info.minimum-Number(total||0));
-  const below=deficit>=5;
+  const below=deficit>=10;
   if(below){
     const shownDeficit=roundDown5(deficit);
     el.style.display='block';
@@ -10794,7 +10794,7 @@ function renderArtAutoFields(){
   if(minWarn){
     const minPrice=roundDown5(Number(theoreticalSell||0));
     const deficit=(chosenSale>0&&minPrice>0)?(minPrice-chosenSale):0;
-    if(deficit>=5){
+    if(deficit>=10){
       const shownDeficit=roundDown5(deficit);
       minWarn.style.display='block';
       minWarn.style.borderColor='#dc2626';
@@ -12403,7 +12403,7 @@ async function saveOrd(){
   const scontoCliente=totals.discount;
   const tot=totals.total;
   const minInfo=totals.minimumInfo||calcOrderMinimumFloor(ordRows,db);
-  if(minInfo.complete && (minInfo.minimum-tot)>=5){
+  if(minInfo.complete && (minInfo.minimum-tot)>=10){
     const deficit=roundDown5(minInfo.minimum-tot);
     const ok=window.confirm(`⚠️ Il totale ordine è ${Math.round(tot)} €.\nIl minimo consigliato è ${Math.round(minInfo.minimum)} €.\nStai scendendo di ${Math.round(deficit)} € sotto il minimo.\n\nSalvare comunque?`);
     if(!ok) return;
@@ -13435,7 +13435,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.90-2026-08-08';
+const VG_BUILD='1.0.91-2026-08-08';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14717,7 +14717,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.90', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.91', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
