@@ -490,7 +490,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v128-listino-ufficiale-top-rivisto">
+  <meta name="vg-version" content="v129-campi-ordinati">
 </head>
 <body>
 
@@ -783,7 +783,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.88</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.89</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -959,20 +959,24 @@ window.addEventListener('error',e=>{
   <video id="vArtHeroVideo" class="hero" controls style="display:none;width:100%"></video>
   <div id="vArtThumbs" class="thumbs"></div>
   <div class="hr"></div>
+  <div class="h3">Identificazione</div>
   <div class="grid2">
-    <div><div class="k">Codice</div><div id="vArtCod" class="t">-</div></div>
     <div><div class="k">Modello</div><div id="vArtModel" class="t">-</div></div>
+    <div><div class="k">Codice</div><div id="vArtCod" class="t">-</div></div>
   </div>
   <div class="grid2" style="margin-top:10px">
-    <div><div class="k">Qualità</div><div id="vArtQual" class="t">-</div></div>
     <div><div class="k">Marca</div><div id="vArtBrand" class="t">-</div></div>
+    <div><div class="k">Qualità</div><div id="vArtQual" class="t">-</div></div>
   </div>
-  <div style="margin-top:10px"><div class="k">Fornitore</div><div id="vArtForn" class="t">-</div></div>
-  <div style="margin-top:10px"><div class="k">Data inserimento</div><div id="vArtCreatedAt" class="t">-</div></div>
   <div style="margin-top:10px"><div class="k" id="vArtColorsLabel">Colori disponibili</div><div id="vArtColors" class="t">-</div></div>
-  <div id="vArtOfficialWrap" class="grid2" style="margin-top:10px;display:none">
+  <div class="grid2" style="margin-top:10px">
+    <div><div class="k">Fornitore</div><div id="vArtForn" class="t">-</div></div>
+    <div><div class="k">Data inserimento</div><div id="vArtCreatedAt" class="t">-</div></div>
+  </div>
+  <div class="hr"></div>
+  <div class="h3">Prezzi</div>
+  <div id="vArtOfficialWrap" style="margin-top:10px;display:none">
     <div><div class="k">Prezzo listino ufficiale</div><div id="vArtOfficialPrice" class="t">-</div></div>
-    <div><div class="k">Riferimento ufficiale</div><button id="vArtOfficialLinkBtn" class="btn smallish" type="button" data-action="openOfficialLink">Apri sito ufficiale</button></div>
   </div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">Prezzo vendita</div><div id="vArtPrezzo" class="t">-</div></div>
@@ -1097,9 +1101,8 @@ window.addEventListener('error',e=>{
       <div><div id="a_sell_label" class="k">Prezzo scelto da te</div><input id="a_sell" inputmode="decimal" autocomplete="off"/><div id="a_sell_hint" class="helper" style="display:none;margin-top:5px"></div></div>
       <div><div class="k">Guadagno effettivo</div><input id="a_margin" readonly/></div>
     </div>
-    <div class="grid2" style="margin-top:10px">
-      <div><div class="k">Prezzo listino ufficiale</div><input id="a_official_price" inputmode="decimal" autocomplete="off" placeholder="Es. 2500"/><div class="helper">Riferimento interno verificato sul sito ufficiale. Non viene inserito automaticamente nei post.</div></div>
-      <div><div class="k">Link ufficiale</div><input id="a_official_link" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://..."/></div>
+    <div style="margin-top:10px">
+      <div class="k">Prezzo listino ufficiale</div><input id="a_official_price" inputmode="decimal" autocomplete="off" placeholder="Es. 2500"/><div class="helper">Solo riferimento interno. Inserisci il prezzo verificato sul sito ufficiale.</div>
     </div>
     <div id="a_min_price_warning" class="helper" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid #f59e0b;border-radius:12px;background:#fffbeb;color:#92400e;font-weight:900"></div>
     <div id="a_high_cost_warning" class="helper" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid #dc2626;border-radius:12px;background:#fef2f2;color:#991b1b;font-weight:900"></div>
@@ -1155,6 +1158,7 @@ window.addEventListener('error',e=>{
 <div id="mCliView" class="modalwrap"><div class="modal">
   <div class="h2">Dettaglio cliente</div>
   <div id="vCliNoteWrap" class="viewAlertNote" style="display:none"><div class="viewAlertNoteLabel">Allerta note cliente</div><div id="vCliNote" class="viewAlertNoteBody">-</div></div>
+  <div class="h3">Dati cliente</div>
   <div class="grid2">
     <div><div class="k">Nome</div><div id="vCliNome" class="t">-</div></div>
     <div><div class="k">Telefono</div><div id="vCliTel" class="t">-</div><button class="btn smallish" type="button" data-action="openClientWhatsApp" style="margin-top:7px;background:#25D366;border-color:#25D366;color:#fff;min-height:34px;padding:7px 12px">WhatsApp</button></div>
@@ -1168,12 +1172,16 @@ window.addEventListener('error',e=>{
     <div><div class="k">Provincia / Regione</div><div id="vCliProv" class="t">-</div></div>
     <div><div class="k">Paese</div><div id="vCliCountry" class="t">Italia</div></div>
   </div>
+  <div class="hr"></div>
+  <div class="h3">Spedizione</div>
   <div style="margin-top:10px"><div class="k">Indirizzo principale per spedizione</div><textarea id="vCliShip" readonly placeholder="Shipping Address"></textarea></div>
   <div id="vCliAltWrap" class="mutedBox" style="display:none;margin-top:10px">
     <div class="k">Indirizzo alternativo</div>
     <textarea id="vCliAltShip" readonly placeholder="Alternative Shipping Address" style="margin-top:6px"></textarea>
     <div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyCliAltShipView">Copia indirizzo alternativo</button></div>
   </div>
+  <div class="hr"></div>
+  <div class="h3">Acquisti</div>
   <div style="margin-top:10px"><div class="k">Riepilogo acquisti</div><div id="vCliOrderSummary" class="mutedBox"></div></div>
   <div style="margin-top:10px"><div class="k">Acquisti effettuati</div><div id="vCliOrders" class="list"></div></div>
   <div class="grid2" style="margin-top:10px">
@@ -1189,6 +1197,7 @@ window.addEventListener('error',e=>{
 
 <div id="mCliEdit" class="modalwrap"><div class="modal">
   <div class="h2" id="cliEditTitle">Nuovo cliente</div>
+  <div class="h3">Dati cliente</div>
   <div class="grid2">
     <div><div class="k">Nome</div><input id="c_nome" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
     <div><div class="k">Telefono</div><input id="c_tel" inputmode="tel" autocomplete="off"/></div>
@@ -1203,7 +1212,8 @@ window.addEventListener('error',e=>{
     <div id="c_prov_text_wrap" style="display:none"><div class="k">Provincia / Regione</div><input id="c_prov_text" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Es. Catalogna, Baviera..."/></div>
     <div><div class="k">Paese</div><select id="c_paese"></select></div>
   </div>
-  <div style="margin-top:10px"><div class="k">Note</div><textarea id="c_note"></textarea></div>
+  <div class="hr"></div>
+  <div class="h3">Spedizione</div>
   <div style="margin-top:10px"><div class="k">Indirizzo principale per spedizione</div><textarea id="c_ship" readonly placeholder="Shipping Address"></textarea></div>
   <div style="margin-top:10px">
     <label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="c_alt_on" type="checkbox" style="width:auto;margin-right:8px"/>Indirizzo alternativo</label>
@@ -1226,6 +1236,9 @@ window.addEventListener('error',e=>{
     <div style="margin-top:10px"><div class="k">Anteprima indirizzo alternativo</div><textarea id="c_alt_ship" readonly placeholder="Alternative Shipping Address"></textarea></div>
     <div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyCliAltShip">Copia indirizzo alternativo</button></div>
   </div>
+  <div class="hr"></div>
+  <div class="h3">Note</div>
+  <div style="margin-top:10px"><textarea id="c_note" placeholder="Note interne sul cliente"></textarea></div>
   <div class="actions compact bottomMini">
     <button class="btn primary smallish" type="button" data-action="copyCliShip">Copia indirizzo</button>
     <button class="btn primary smallish" type="button" data-action="saveCli">Salva</button>
@@ -1248,6 +1261,22 @@ window.addEventListener('error',e=>{
   </div>
   <div id="vOrdMeasureWarning" class="orderMeasureWarning" hidden>⚠️ MISURA DA DEFINIRE</div>
   <div style="margin-top:10px"><div class="k">Modalità di pagamento</div><div id="vOrdPaymentMethod" class="mutedBox">-</div></div>
+  <div class="hr"></div>
+  <div class="h3">Articoli e importi</div>
+  <div id="vOrdRows" class="list"></div>
+  <div style="margin-top:10px"><div class="k">Foto ordine</div><div id="vOrdPhotos" class="orderPhotoGrid"></div><div id="vOrdPhotosEmpty" class="small" style="margin-top:6px">Nessuna foto ordine</div></div>
+  <div style="margin-top:10px"><div class="k">Note</div><div id="vOrdNote" class="mutedBox">-</div></div>
+  <div class="grid2" style="margin-top:10px">
+    <div><div class="k">Subtotale righe</div><div id="vOrdSub" class="t">-</div></div>
+    <div><div class="k">Sconto cliente</div><div id="vOrdDiscount" class="t">-</div></div>
+  </div>
+  <div class="grid2" style="margin-top:10px">
+    <div><div id="vOrdTotLabel" class="k">Totale pagato</div><div id="vOrdTot" class="t priceHot">-</div></div>
+    <div><div class="k">Guadagno</div><div id="vOrdProfit" class="t pricePaid">-</div></div>
+  </div>
+  <div id="vOrdCumMeta" class="small" style="margin-top:8px;display:none"></div>
+  <div class="hr"></div>
+  <div class="h3">Spedizione</div>
   <div style="margin-top:10px"><div class="k">Tracking</div><div id="vOrdTrack" class="mutedBox">-</div></div>
   <div class="actions compact bottomMini" style="margin-top:8px">
     <button class="btn smallish" type="button" data-action="openParcelView">Apri Parcel</button>
@@ -1268,20 +1297,6 @@ window.addEventListener('error',e=>{
       </div>
     </div>
   </div>
-  <div class="hr"></div>
-  <div class="h2">Righe ordine</div>
-  <div id="vOrdRows" class="list"></div>
-  <div style="margin-top:10px"><div class="k">Foto ordine</div><div id="vOrdPhotos" class="orderPhotoGrid"></div><div id="vOrdPhotosEmpty" class="small" style="margin-top:6px">Nessuna foto ordine</div></div>
-  <div style="margin-top:10px"><div class="k">Note</div><div id="vOrdNote" class="mutedBox">-</div></div>
-  <div class="grid2" style="margin-top:10px">
-    <div><div class="k">Subtotale righe</div><div id="vOrdSub" class="t">-</div></div>
-    <div><div class="k">Sconto cliente</div><div id="vOrdDiscount" class="t">-</div></div>
-  </div>
-  <div class="grid2" style="margin-top:10px">
-    <div><div id="vOrdTotLabel" class="k">Totale pagato</div><div id="vOrdTot" class="t priceHot">-</div></div>
-    <div><div class="k">Guadagno</div><div id="vOrdProfit" class="t pricePaid">-</div></div>
-  </div>
-  <div id="vOrdCumMeta" class="small" style="margin-top:8px;display:none"></div>
   <div class="actions compact bottomMini">
     <button class="btn primary smallish" type="button" data-action="copyOrdClientAddress">Copia indirizzo cliente</button>
     <button class="btn smallish" type="button" data-action="editOrdFromView">Modifica</button>
@@ -1298,7 +1313,7 @@ window.addEventListener('error',e=>{
   </div>
 
   <div class="orderSection">
-    <div class="h3">Dati ordine</div>
+    <div class="h3">Stato, pagamento e importi</div>
     <div class="grid2">
       <div><div class="k">Stato</div>
         <select id="o_stato">
@@ -1319,7 +1334,8 @@ window.addEventListener('error',e=>{
     </div>
     <div class="card" style="margin-top:10px"><div class="k">Riepilogo ordine</div><div id="o_tot" class="priceHot">0</div><div id="o_tot_meta" class="small" style="margin-top:6px">Subtotale €0,00 • Sconto €0,00</div></div>
     <div id="o_min_price_warning" class="helper" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid #f59e0b;border-radius:12px;background:#fffbeb;color:#92400e;font-weight:900"></div>
-    <div style="margin-top:10px"><div class="k">Note</div><input id="o_note" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Aggiungi una nota utile per questo ordine"/></div>
+    <div class="hr"></div>
+    <div><div class="k">Note ordine</div><input id="o_note" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Aggiungi una nota utile per questo ordine"/></div>
   </div>
 
   <div class="orderSection">
@@ -1344,7 +1360,7 @@ window.addEventListener('error',e=>{
   </div>
 
   <div class="orderSection">
-    <div class="h3">Foto ordine</div>
+    <div class="h3">Spedizione e foto</div>
     <div><div class="k">Aggiungi foto</div><input id="o_photo" type="file" accept="image/*"/><div class="small" style="margin-top:6px">Per ogni articolo viene copiata una sola foto, cercando quella del colore scelto. Se serve, puoi aggiungerne una manuale.</div><div id="o_photo_prev" class="orderPhotoGrid"></div></div>
     <div class="orderTrackCard"><div class="k">Tracking</div><input id="o_tracking" placeholder="Inserisci tracking" autocomplete="off" autocapitalize="off" spellcheck="false"/><div class="orderTrackActions"><button class="btn smallish" type="button" data-action="openParcel">Apri Parcel</button><button class="btn smallish" type="button" data-action="askChatGPT" style="background:#111827;border-color:#111827;color:#fff">✦ Chiedi a ChatGPT</button></div></div>
   </div>
@@ -2832,7 +2848,6 @@ function collectArticleDraft(){
       fornitore:document.getElementById('a_forn')?.value||'',
       fornitoreLink:document.getElementById('a_forn_link')?.value||'',
       prezzoListinoUfficiale:document.getElementById('a_official_price')?.value||'',
-      linkUfficiale:document.getElementById('a_official_link')?.value||'',
       materiale:document.getElementById('a_taglia')?.value||'',
       variante:document.getElementById('a_variante')?.value||'',
       colore:(document.getElementById('a_color_mode')?.value==='multiple' ? '' : (document.getElementById('a_colore')?.value||'')),
@@ -2879,7 +2894,6 @@ function restoreArticleDraft(targetId=''){
   updateSupplierField(v.fornitore||'');
   document.getElementById('a_forn_link').value=v.fornitoreLink||'';
   if(document.getElementById('a_official_price')) document.getElementById('a_official_price').value=v.prezzoListinoUfficiale||'';
-  if(document.getElementById('a_official_link')) document.getElementById('a_official_link').value=v.linkUfficiale||'';
   document.getElementById('a_taglia').value=v.materiale||'';
   document.getElementById('a_variante').value=v.variante||'';
   document.getElementById('a_colore').value=v.colore||'';
@@ -9331,7 +9345,7 @@ function renderArt(){
     const metaLine=[qualityLine, photoLine].filter(Boolean).join(' • ');
     const notePreview=normalizeSpaceText(a.note||'');
     const noteHtml=notePreview ? `<div class="artCardNote" title="${esc(notePreview)}">${esc(notePreview)}</div>` : '';
-    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}">${noteHtml}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s artPhotoCount">${esc(metaLine)}</div>${unavailable}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions artActionsSocial"><button class="btn smallish articleShareCompact" style="background:#1877F2;border-color:#1877F2;color:#fff" type="button" data-action="shareArtFacebookFromList" data-id="${a.id}"><span>Condividi<br>su FB</span></button><button class="btn smallish articleShareCompact" style="background:#229ED9;border-color:#229ED9;color:#fff" type="button" data-action="shareArtTelegramFromList" data-id="${a.id}"><span>Condividi<br>su TG</span></button></div></div>`;
+    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''}" data-open="art" data-id="${a.id}">${noteHtml}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s">${a.codice?`Cod. ${esc(a.codice)} • `:''}${esc(metaLine)}</div>${unavailable}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div><div class="artActions artActionsSocial"><button class="btn smallish articleShareCompact" style="background:#1877F2;border-color:#1877F2;color:#fff" type="button" data-action="shareArtFacebookFromList" data-id="${a.id}"><span>Condividi<br>su FB</span></button><button class="btn smallish articleShareCompact" style="background:#229ED9;border-color:#229ED9;color:#fff" type="button" data-action="shareArtTelegramFromList" data-id="${a.id}"><span>Condividi<br>su TG</span></button></div></div>`;
   }).join('');
   const emptyText=noPhotoOnly ? 'Nessun articolo senza foto.' : (promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.');
   const activeHtml=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
@@ -9464,7 +9478,8 @@ function renderCli(){
     <div class="row" data-open="cli" data-id="${c.id}" style="grid-template-columns:1fr auto">
       <div>
         <div class="t">${esc(c.nome||'-')}</div>
-        <div class="s">${esc(c.telefono||'')} • ${esc(c.citta||'')} ${c.provincia?`(${esc(c.provincia)})`:''} • ${esc(normalizeCountryName(c.paese||'Italia'))}</div>
+        <div class="s">${c.telefono?`Tel. ${esc(c.telefono)}`:'Telefono non indicato'}</div>
+        <div class="s">${esc(c.citta||'-')}${c.provincia?` • ${esc(c.provincia)}`:''}</div>
       </div>
       <div class="pill">${esc(normalizeCountryName(c.paese||'Italia'))}</div>
     </div>
@@ -9562,11 +9577,12 @@ function renderOrd(){
     const totalLabel=orderPaidStatus(o)?'Totale pagato':'Da pagare';
     return `<div class="row" data-open="ord" data-id="${o.id}" style="grid-template-columns:1fr auto">
       <div>
-        <div class="t">${esc(c?c.nome:'-')} • ${esc(totalLabel)} <span class="${totalCls}">${money(paidTotal)}</span></div>
-        <div class="s"><span class="statusText status${statusMeta.key.charAt(0).toUpperCase()+statusMeta.key.slice(1)}"><span class="statusIcon">${esc(statusMeta.icon)}</span>${esc(statusMeta.label)}</span> • ${esc(o.data||'')}${o.mis?` • Mis. ${esc(o.mis)}`:''}${paymentText?` • ${esc(paymentText)}`:''}${o.tracking?` • Track ${esc(o.tracking)}`:''}</div>
+        <div class="t">${esc(c?c.nome:'-')}</div>
+        <div class="s">${esc(o.data||'')}${paymentText?` • ${esc(paymentText)}`:''}${o.mis?` • Mis. ${esc(o.mis)}`:''}</div>
         ${measureWarningHtml}
         ${articlesHtml}
-        <div class="s" style="margin-top:6px">${profitVal==null?'<span class="estimatedCostText">Guadagno non disponibile: costo reale mancante</span>':`Guadagno <span class="pricePaid">${money(profitVal)}</span>`}</div>
+        <div class="s" style="margin-top:7px"><b>${esc(totalLabel)}:</b> <span class="${totalCls}">${money(paidTotal)}</span>${profitVal==null?' • <span class="estimatedCostText">Guadagno non disponibile</span>':` • Guadagno <span class="pricePaid">${money(profitVal)}</span>`}</div>
+        ${o.tracking?`<div class="s" style="margin-top:4px"><b>Tracking:</b> ${esc(o.tracking)}</div>`:''}
       </div>
       ${orderStatusBadgeHtml(o.stato||'-')}
     </div>`;
@@ -10109,12 +10125,9 @@ async function openArtView(id){
   }
   const officialWrap=document.getElementById('vArtOfficialWrap');
   const officialPriceEl=document.getElementById('vArtOfficialPrice');
-  const officialLinkBtn=document.getElementById('vArtOfficialLinkBtn');
   const officialPrice=Number(a.prezzoListinoUfficiale||0);
-  const officialLink=String(a.linkUfficiale||'').trim();
-  if(officialWrap) officialWrap.style.display=(officialPrice>0 || officialLink)?'grid':'none';
+  if(officialWrap) officialWrap.style.display=officialPrice>0?'block':'none';
   if(officialPriceEl) officialPriceEl.textContent=officialPrice>0?money(officialPrice):'-';
-  if(officialLinkBtn){ officialLinkBtn.style.display=officialLink?'inline-flex':'none'; officialLinkBtn.dataset.url=officialLink; }
   document.getElementById('vArtPrezzo').textContent=money(a.prezzoVendita||0);
   document.getElementById('vArtPrezzoUse').textContent=money(currentPrice(a));
   const pill=document.getElementById('vArtPromoPill');
@@ -10181,7 +10194,6 @@ function parseBulkArticleText(text){
     scadenzaPromoFornitore:['fine promo fornitore','scadenza promo fornitore'],
     link:['link','link fornitore','pagina fornitore','url'],
     prezzoListinoUfficiale:['prezzo listino ufficiale','prezzo ufficiale','listino ufficiale','official price'],
-    linkUfficiale:['link ufficiale','sito ufficiale','pagina ufficiale','official link'],
     descrizione:['descrizione','description'],
     note:['note','nota']
   };
@@ -10273,7 +10285,6 @@ function applyBulkPasteArticle(){
   if(set('a_usd',parseBulkArticleNumber(data.costoUsd))) applied.push('costo USD');
   if(set('a_usd_promo',parseBulkArticleNumber(data.costoUsdPromo))) applied.push('costo promo USD');
   if(set('a_official_price',parseBulkArticleNumber(data.prezzoListinoUfficiale))) applied.push('prezzo listino ufficiale');
-  if(set('a_official_link',data.linkUfficiale)) applied.push('link ufficiale');
   const realUsd=Number(parseBulkArticleNumber(data.costoUsd)||0);
   const estimatedUsd=Number(parseBulkArticleNumber(data.costoStimatoUsd)||0);
   let estimatedEur=Number(parseBulkArticleNumber(data.costoStimatoEur)||0);
@@ -10344,7 +10355,7 @@ async function openArtEdit(id){
   const set=(k,v)=>document.getElementById(k).value=(v===0?0:(v||''));
 
   if(!a){
-    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_belt_h','a_usd','a_usd_promo','a_official_price','a_official_link','a_high_cost_rule','a_profit_min','a_theoretical','a_recommended','a_promo_price','a_promo_date','a_supplier_promo_end','a_supplier_promo_end','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
+    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_belt_h','a_usd','a_usd_promo','a_official_price','a_high_cost_rule','a_profit_min','a_theoretical','a_recommended','a_promo_price','a_promo_date','a_supplier_promo_end','a_supplier_promo_end','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
     .forEach(fid => document.getElementById(fid).value='');
     document.getElementById('a_color_mode').value='single';
     document.getElementById('a_color_count').value='';
@@ -10369,7 +10380,7 @@ async function openArtEdit(id){
   set('a_cod', a?.codice); syncBrandField(a?.brand); set('a_mod', a?.modello);
   refreshArticleCategorySelects(a?.categoria||'');
   set('a_desc', a?.descrizione); set('a_forn', a?.fornitore); set('a_forn_link', a?.fornitoreLink||'');
-  set('a_official_price', a?.prezzoListinoUfficiale||''); set('a_official_link', a?.linkUfficiale||'');
+  set('a_official_price', a?.prezzoListinoUfficiale||'');
   set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
   set('a_mis', a?.misura); set('a_belt_h', a?.altezzaCintura||a?.hCintura||''); set('a_usd', a?.costoUsd||''); set('a_usd_promo', a?.costoUsdPromo||'');
   currentArticleCostEstimate=storedArticleCostEstimate(a);
@@ -10899,8 +10910,7 @@ async function duplicateCurrentArticle(sourceId=null){
   updateSupplierField(clone.fornitore||'');
   document.getElementById('a_forn_link').value=clone.fornitoreLink||'';
   if(document.getElementById('a_official_price')) document.getElementById('a_official_price').value=clone.prezzoListinoUfficiale||'';
-  if(document.getElementById('a_official_link')) document.getElementById('a_official_link').value=clone.linkUfficiale||'';
-  document.getElementById('a_taglia').value=clone.materiale||clone.taglia||'';
+    document.getElementById('a_taglia').value=clone.materiale||clone.taglia||'';
   document.getElementById('a_variante').value=clone.variante||'';
   document.getElementById('a_colore').value=clone.colore||'';
   document.getElementById('a_color_mode').value=getArticleColorMode(clone);
@@ -11000,7 +11010,6 @@ async function saveArt(){
       fornitore: document.getElementById('a_forn').value.trim(),
       fornitoreLink: document.getElementById('a_forn_link').value.trim(),
       prezzoListinoUfficiale: firstFiniteNumber(document.getElementById('a_official_price')?.value,0),
-      linkUfficiale: String(document.getElementById('a_official_link')?.value||'').trim(),
       materiale: document.getElementById('a_taglia').value.trim(),
       taglia: '',
       variante: document.getElementById('a_variante').value.trim(),
@@ -12883,7 +12892,6 @@ function readArticleForm(){
     fornitore: document.getElementById('a_forn')?.value.trim()||'',
     fornitoreLink: document.getElementById('a_forn_link')?.value.trim()||'',
     prezzoListinoUfficiale: firstFiniteNumber(document.getElementById('a_official_price')?.value,0),
-    linkUfficiale: String(document.getElementById('a_official_link')?.value||'').trim(),
     materiale: document.getElementById('a_taglia')?.value.trim()||'',
     taglia: '',
     variante: document.getElementById('a_variante')?.value.trim()||'',
@@ -13172,7 +13180,6 @@ document.addEventListener('click',(ev)=>{
   if(a==='downloadArtPhotosIg') return downloadCurrentArticlePhotos('ig');
   if(a==='downloadArtPhotos') return downloadCurrentArticlePhotos('tg');
   if(a==='openSupplierLink'){ const link=String(document.getElementById('vArtSupplierLink')?.value||'').trim(); if(!link){ toast('Nessun link fornitore'); return; } const safe=/^https?:\/\//i.test(link)?link:'https://'+link; window.open(safe,'_blank'); return; }
-  if(a==='openOfficialLink'){ const link=String(document.getElementById('vArtOfficialLinkBtn')?.dataset.url||'').trim(); if(!link){ toast('Nessun link ufficiale'); return; } const safe=/^https?:\/\//i.test(link)?link:'https://'+link; window.open(safe,'_blank'); return; }
   if(a==='copyCliShip') return copyTextFrom(document.getElementById('c_ship'));
   if(a==='copyCliAltShip') return copyTextFrom(document.getElementById('c_alt_ship'));
   if(a==='copyCliShipView') return copyTextFrom(document.getElementById('vCliShip'));
@@ -13277,7 +13284,7 @@ if(__viewFbPostEl){
   __viewFbPostEl.addEventListener('blur', ()=>saveViewFbPostNow({cloud:true}));
 }
 
-['a_post','a_post_fb','a_post_ig','a_note','a_forn_link','a_official_price','a_official_link'].forEach(id=>{
+['a_post','a_post_fb','a_post_ig','a_note','a_forn_link','a_official_price'].forEach(id=>{
   const el=document.getElementById(id);
   if(el) ['input','change'].forEach(evt=>el.addEventListener(evt, ()=>{
     if(id==='a_post_fb') el.dataset.fbCustom='1';
@@ -13343,7 +13350,7 @@ document.getElementById('a_sell')?.addEventListener('input', ()=>{
   saveArticleDraft();
 });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_official_price','a_official_link','a_std_cost_unknown','a_supplier_promo_on','a_promo_on','a_promo_price','a_promo_date','a_supplier_promo_end','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_official_price','a_std_cost_unknown','a_supplier_promo_on','a_promo_on','a_promo_price','a_promo_date','a_supplier_promo_end','a_forn','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
   ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));
@@ -13417,7 +13424,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.88-2026-08-08';
+const VG_BUILD='1.0.89-2026-08-08';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14699,7 +14706,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.88', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.89', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

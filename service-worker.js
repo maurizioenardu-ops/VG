@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.88-2026-08-08-listino-ufficiale-top-rivisto';
+const VERSION = 'gestionale-vg-1.0.89-2026-08-08-campi-ordinati';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',
