@@ -495,7 +495,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v133-cliente-facebook">
+  <meta name="vg-version" content="v135-contatti-cliente-ordine">
 </head>
 <body>
 
@@ -788,7 +788,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.95</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.97</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -1259,7 +1259,7 @@ window.addEventListener('error',e=>{
   <div class="h2">Dettaglio ordine</div>
   <div class="grid2">
     <div><div class="k">Cliente</div><div id="vOrdCli" class="t">-</div></div>
-    <div><div class="k">Stato</div><div id="vOrdStato" class="pill">-</div><select id="vOrdStatusQuick" aria-label="Aggiorna stato ordine" style="margin-top:7px;min-height:38px;padding:6px 9px;font-size:14px"><option>Richiesto</option><option>In attesa di pagamento</option><option>Pagato</option><option>In lavorazione</option><option>Spedito</option><option>Consegnato</option><option>Annullato</option></select></div>
+    <div><div class="k">Stato</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div id="vOrdStato" class="pill">-</div><button id="vOrdWhatsAppBtn" class="btn smallish" type="button" data-action="openOrderClientWhatsApp" style="display:none;background:#25D366;border-color:#25D366;color:#fff;min-height:34px;padding:7px 12px">WhatsApp</button><button id="vOrdFacebookBtn" class="btn smallish" type="button" data-action="openOrderClientFacebook" style="display:none;background:#1877F2;border-color:#1877F2;color:#fff;min-height:34px;padding:7px 12px">Facebook</button></div><select id="vOrdStatusQuick" aria-label="Aggiorna stato ordine" style="margin-top:7px;min-height:38px;padding:6px 9px;font-size:14px"><option>Richiesto</option><option>In attesa di pagamento</option><option>Pagato</option><option>In lavorazione</option><option>Spedito</option><option>Consegnato</option><option>Annullato</option></select></div>
   </div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">Data</div><div id="vOrdData" class="t">-</div></div>
@@ -7480,8 +7480,10 @@ function buildPostTelegram(a, includePrice=true){
   const misura=normalizePostLine(a.misura||'', brand);
   const materialeCompat=normalizePostLine(a.materiale||a.taglia||'', brand);
   const qemoji=emojiQualityForPost(a);
-  const qualityHeading=(qemoji==='🥇') ? '🥇 ORIGINAL QUALITY' : '🥈 TOP QUALITY';
-  const lines=[qualityHeading];
+  const telegramModelLine = modello
+    ? (/[🥇🥈]/u.test(modello) ? modello : `${modello} ${qemoji}`.trim())
+    : qemoji;
+  const lines=[];
   const seen = new Set();
   const pushUnique = (value, formatter=null)=>{
     let txt = compactPostValue(value||'');
@@ -7496,7 +7498,7 @@ function buildPostTelegram(a, includePrice=true){
   if(promoValid(a)){
     const tipoMateriale=materiale || materialeCompat || variante;
     lines.push(...promoPostIntroLines(a));
-    if(modello) lines.push(modello);
+    if(telegramModelLine) lines.push(telegramModelLine);
     pushUnique(tipoMateriale);
     pushUnique(colore);
     pushUnique(misura, v=>formatPostMisura(v, a));
@@ -7508,7 +7510,7 @@ function buildPostTelegram(a, includePrice=true){
     lines.push(`cod. ${a.codice}`);
     return normalizePublicPostForArticle(formatGeneratedPostLines(lines), a);
   }
-  if(modello) lines.push(modello);
+  if(telegramModelLine) lines.push(telegramModelLine);
   pushUnique(variante);
   pushUnique(colore);
   pushUnique(misura, v=>formatPostMisura(v, a));
@@ -7649,6 +7651,29 @@ function normalizeFacebookProfileUrl(raw=''){
 function openCurrentClientFacebook(){
   const db=loadDB();
   const client=(db.clienti||[]).find(c=>String(c?.id||'')===String(currentCliId||''));
+  if(!client){ toast('Cliente non trovato'); return; }
+  const url=normalizeFacebookProfileUrl(client.facebookUrl||client.facebook||'');
+  if(!url){ toast('Profilo Facebook non presente'); return; }
+  window.open(url,'_blank','noopener');
+}
+function getCurrentOrderClient(){
+  const db=loadDB();
+  const ord=(db.ordini||[]).find(o=>String(o?.id||'')===String(currentOrdId||''));
+  if(!ord) return null;
+  return (db.clienti||[]).find(c=>String(c?.id||'')===String(ord.clienteId||'')) || ord.clienteSnapshot || ord.clienteStorico || null;
+}
+function openCurrentOrderClientWhatsApp(){
+  const client=getCurrentOrderClient();
+  if(!client){ toast('Cliente non trovato'); return; }
+  const raw=normalizeSpaceText(client.telefono||'');
+  if(!raw){ toast('Numero di telefono non presente'); return; }
+  const international=withIntlPrefix(raw,client.paese||'Italia');
+  const digits=String(international||'').replace(/\D+/g,'');
+  if(digits.length<8){ toast('Numero WhatsApp non valido'); return; }
+  window.open(`https://wa.me/${digits}`,'_blank','noopener');
+}
+function openCurrentOrderClientFacebook(){
+  const client=getCurrentOrderClient();
   if(!client){ toast('Cliente non trovato'); return; }
   const url=normalizeFacebookProfileUrl(client.facebookUrl||client.facebook||'');
   if(!url){ toast('Profilo Facebook non presente'); return; }
@@ -11594,6 +11619,13 @@ async function openOrdView(id){
   const profitEl=document.getElementById('vOrdProfit');
   const cumEl=document.getElementById('vOrdCumMeta');
   document.getElementById('vOrdCli').textContent=c?.nome||'-';
+  const ordWaBtn=document.getElementById('vOrdWhatsAppBtn');
+  const ordFbBtn=document.getElementById('vOrdFacebookBtn');
+  const ordPhone=normalizeSpaceText(c?.telefono||'');
+  const ordIntlPhone=ordPhone ? withIntlPrefix(ordPhone,c?.paese||'Italia') : '';
+  const ordPhoneDigits=String(ordIntlPhone||'').replace(/\D+/g,'');
+  if(ordWaBtn) ordWaBtn.style.display=ordPhoneDigits.length>=8?'inline-flex':'none';
+  if(ordFbBtn) ordFbBtn.style.display=normalizeFacebookProfileUrl(c?.facebookUrl||c?.facebook||'')?'inline-flex':'none';
   const ordStatusMeta=orderStatusMeta(o.stato||'-');
   const ordStatoEl=document.getElementById('vOrdStato');
   ordStatoEl.textContent='';
@@ -13250,6 +13282,8 @@ document.addEventListener('click',(ev)=>{
   if(a==='copyCliShipView') return copyTextFrom(document.getElementById('vCliShip'));
   if(a==='openClientWhatsApp') return openCurrentClientWhatsApp();
   if(a==='openClientFacebook') return openCurrentClientFacebook();
+  if(a==='openOrderClientWhatsApp') return openCurrentOrderClientWhatsApp();
+  if(a==='openOrderClientFacebook') return openCurrentOrderClientFacebook();
   if(a==='copyCliAltShipView') return copyTextFrom(document.getElementById('vCliAltShip'));
   if(a==='copyOrdClientAddress') return copyCurrentOrderClientAddress();
   if(a==='editCliFromView'){ hide('mCliView', true); return openCliEdit(currentCliId); }
@@ -13490,7 +13524,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.95-2026-08-08';
+const VG_BUILD='1.0.97-2026-08-09';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14774,7 +14808,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.95', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.97', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

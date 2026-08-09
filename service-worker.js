@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.95-2026-08-08-cliente-facebook';
+const VERSION = 'gestionale-vg-1.0.97-2026-08-09-contatti-ordine';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',
