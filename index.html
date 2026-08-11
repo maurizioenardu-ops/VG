@@ -516,7 +516,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v139-storage-ai-idb">
+  <meta name="vg-version" content="v141-local-visual-search-clean">
 </head>
 <body>
 
@@ -623,7 +623,7 @@ window.addEventListener('error',e=>{
         <div class="visualSearchRow">
           <button class="btn visualSearchBtn" type="button" data-action="searchArticleByPhoto">🖼️ Cerca con foto</button>
           <input id="visualSearchFile" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" style="display:none"/>
-          <div id="visualSearchStatus" class="visualSearchStatus">Confronto AI con le foto già presenti negli articoli.</div>
+          <div id="visualSearchStatus" class="visualSearchStatus">Confronto locale con le foto già presenti sul dispositivo. Zero traffico Supabase.</div>
         </div>
       </div>
       <div class="grid2 artFilterGrid" style="margin-top:10px">
@@ -836,7 +836,7 @@ window.addEventListener('error',e=>{
         <div class="small">Inserisci il link privato della conversazione da usare sempre per il controllo delle spedizioni.</div>
         <div style="margin-top:10px">
           <div class="k">Link conversazione ChatGPT</div>
-          <input id="chatgptTrackingChatUrl" type="url" placeholder="https://chatgpt.com/c/..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
+          <input id="chatgptTrackingChatUrl" type="url" placeholder="https://chatgpt.com/..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
         </div>
         <div class="small" style="margin-top:8px">Il pulsante negli ordini copia cliente, articoli, codici, tracking, data e stato, poi apre sempre questa conversazione. Il numero ordine non viene inserito.</div>
       </div>
@@ -991,7 +991,7 @@ window.addEventListener('error',e=>{
   </div>
   <div id="visualAiProgress" class="visualAiProgress">Preparazione ricerca…</div>
   <div id="visualAiResults" class="visualAiResults"></div>
-  <div class="visualAiHint">La percentuale indica somiglianza visiva, non identificazione certa. Il risultato finale resta sempre da confermare.</div>
+  <div class="visualAiHint">La percentuale indica una somiglianza locale di colori e forme. La ricerca non scarica foto da Supabase.</div>
   <div class="actions compact viewBottomSpace"><button class="btn" type="button" data-action="closeVisualArticleSearch">Chiudi</button></div>
 </div></div>
 
@@ -9502,14 +9502,12 @@ function restoreArchivedArticle(id){
 
 
 // =========================
-// RICERCA VISIVA AI ARTICOLI
+// RICERCA VISIVA LOCALE ARTICOLI
+// Zero rete durante il confronto: usa solo foto/miniature già presenti sul dispositivo.
 // =========================
-const VG_VISUAL_AI_VERSION='mobilenet-v2-a1';
-const VG_VISUAL_TF_URL='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js';
-const VG_VISUAL_MOBILENET_URL='https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js';
-let vgVisualModel=null;
 let vgVisualSearchBusy=false;
 let vgVisualQueryObjectUrl='';
+let vgVisualResultObjectUrls=[];
 
 function vgSetVisualStatus(text, kind=''){
   const el=document.getElementById('visualSearchStatus');
@@ -9518,145 +9516,138 @@ function vgSetVisualStatus(text, kind=''){
   el.classList.toggle('busy',kind==='busy');
   el.classList.toggle('error',kind==='error');
 }
-function vgLoadScriptOnce(src, globalName){
-  return new Promise((resolve,reject)=>{
-    if(globalName && window[globalName]) return resolve(window[globalName]);
-    const found=[...document.scripts].find(x=>x.src===src);
-    if(found){
-      if(globalName && window[globalName]) return resolve(window[globalName]);
-      found.addEventListener('load',()=>resolve(globalName?window[globalName]:true),{once:true});
-      found.addEventListener('error',()=>reject(new Error('Impossibile caricare il motore AI')), {once:true});
-      return;
-    }
-    const sc=document.createElement('script');
-    sc.src=src; sc.async=true; sc.crossOrigin='anonymous';
-    sc.onload=()=>resolve(globalName?window[globalName]:true);
-    sc.onerror=()=>reject(new Error('Impossibile caricare il motore AI'));
-    document.head.appendChild(sc);
-  });
-}
-async function vgGetVisualModel(progressCb){
-  if(vgVisualModel) return vgVisualModel;
-  if(!navigator.onLine) throw new Error('La prima ricerca AI richiede connessione internet.');
-  progressCb?.('Carico il motore AI…');
-  await vgLoadScriptOnce(VG_VISUAL_TF_URL,'tf');
-  progressCb?.('Carico il modello visivo…');
-  await vgLoadScriptOnce(VG_VISUAL_MOBILENET_URL,'mobilenet');
-  if(!window.mobilenet?.load) throw new Error('Modello AI non disponibile.');
-  vgVisualModel=await window.mobilenet.load({version:2,alpha:1.0});
-  return vgVisualModel;
-}
-function vgFloat32ToBase64(arr){
-  const u8=new Uint8Array(arr.buffer,arr.byteOffset,arr.byteLength);
-  let bin='';
-  const chunk=0x8000;
-  for(let i=0;i<u8.length;i+=chunk) bin+=String.fromCharCode(...u8.subarray(i,i+chunk));
-  return btoa(bin);
-}
-function vgBase64ToFloat32(s){
-  try{
-    const bin=atob(s); const u8=new Uint8Array(bin.length);
-    for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
-    return new Float32Array(u8.buffer);
-  }catch(_e){ return null; }
-}
-function vgVisualCacheKey(a){
-  return `vgai:${VG_VISUAL_AI_VERSION}:${String(a?.id||'')}:${Number(a?._ts||0)}`;
-}
-async function vgReadVisualEmbedding(a){
-  try{
-    const raw=await thumbGet(vgVisualCacheKey(a));
-    return raw?vgBase64ToFloat32(String(raw)):null;
-  }catch(_e){ return null; }
-}
-async function vgWriteVisualEmbedding(a,vec){
-  try{ await thumbSet(vgVisualCacheKey(a),vgFloat32ToBase64(vec)); return true; }
-  catch(_e){ return false; }
-}
-function vgPurgeLegacyVisualLocalStorage(){
-  const keys=[];
-  try{
-    for(let i=0;i<localStorage.length;i++){
-      const k=String(localStorage.key(i)||'');
-      if(k.startsWith('vgai:')) keys.push(k);
-    }
-  }catch(_e){}
-  keys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
-  return keys.length;
+function vgReleaseVisualResultObjectUrls(){
+  for(const u of vgVisualResultObjectUrls){ try{ URL.revokeObjectURL(u); }catch(_e){} }
+  vgVisualResultObjectUrls=[];
 }
 function vgCosineSimilarity(a,b){
-  if(!a||!b||a.length!==b.length) return -1;
+  if(!a||!b||a.length!==b.length) return 0;
   let dot=0,na=0,nb=0;
-  for(let i=0;i<a.length;i++){ const x=a[i],y=b[i]; dot+=x*y; na+=x*x; nb+=y*y; }
-  if(!na||!nb) return -1;
-  return dot/(Math.sqrt(na)*Math.sqrt(nb));
+  for(let i=0;i<a.length;i++){ const x=Number(a[i]||0),y=Number(b[i]||0); dot+=x*y; na+=x*x; nb+=y*y; }
+  if(!na||!nb) return 0;
+  return Math.max(0,Math.min(1,dot/(Math.sqrt(na)*Math.sqrt(nb))));
 }
 function vgImageFromSrc(src){
   return new Promise((resolve,reject)=>{
     const img=new Image();
-    if(/^https?:/i.test(src)) img.crossOrigin='anonymous';
+    // Questa ricerca non passa mai URL http/https: niente CORS e soprattutto niente rete.
     img.decoding='async';
     img.onload=()=>resolve(img);
-    img.onerror=()=>reject(new Error('Foto non leggibile'));
+    img.onerror=()=>reject(new Error('Foto locale non leggibile'));
     img.src=src;
   });
 }
-async function vgEmbeddingFromImageSource(src){
-  const img=await vgImageFromSrc(src);
-  const tensor=vgVisualModel.infer(img,true);
-  try{ const data=await tensor.data(); return new Float32Array(data); }
-  finally{ try{ tensor.dispose(); }catch(_e){} }
-}
-async function vgFirstArticleVisualSource(a){
-  const candidates=await getArticleThumbCandidates(a);
-  for(const c of candidates){
+async function vgLocalArticleVisualSource(a){
+  if(!a) return null;
+  const ids=Array.isArray(a.photoIds) ? a.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS) : [];
+  for(const id of ids){
+    const cacheKey=`idb:${String(id)}`;
     try{
-      const src=await resolveArticleThumbCandidateUrl(c);
-      if(src) return {src, key:c.key||''};
+      const cached=await thumbGet(cacheKey).catch(()=>null);
+      if(cached?.dataUrl) return {src:cached.dataUrl,revoke:false};
+      const stored=await idbGet(String(id)).catch(()=>null);
+      if(stored instanceof Blob){
+        const src=URL.createObjectURL(stored);
+        return {src,revoke:true};
+      }
+      if(typeof stored==='string'){
+        const clean=stored.trim();
+        if(/^data:|^blob:/i.test(clean)) return {src:clean,revoke:false};
+      }
+    }catch(_e){}
+  }
+  const fotoList=Array.isArray(a.foto) ? a.foto.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS) : [];
+  for(const raw of fotoList){
+    const clean=String(raw||'').trim();
+    if(!clean || isTemporaryLocalPhotoRef(clean)) continue;
+    if(/^data:|^blob:/i.test(clean)) return {src:clean,revoke:false};
+    // Se la foto nasce dal cloud, durante la ricerca usiamo SOLO una miniatura già in IndexedDB.
+    // Non risolviamo URL, non firmiamo URL e non scarichiamo nulla da Supabase.
+    try{
+      const key=articleThumbCacheKeyFromSource(clean,'cloud');
+      const cached=key ? await thumbGet(key).catch(()=>null) : null;
+      if(cached?.dataUrl) return {src:cached.dataUrl,revoke:false};
     }catch(_e){}
   }
   return null;
 }
-async function vgArticleVisualEmbedding(a){
-  const cached=await vgReadVisualEmbedding(a);
-  if(cached?.length) return cached;
-  const source=await vgFirstArticleVisualSource(a);
-  if(!source?.src) return null;
-  let tmpUrl='';
-  try{
-    let src=source.src;
-    if(/^https?:/i.test(src)){
-      try{
-        const r=await fetch(src,{mode:'cors',cache:'force-cache'});
-        if(r.ok){ const b=await r.blob(); tmpUrl=URL.createObjectURL(b); src=tmpUrl; }
-      }catch(_e){}
+async function vgLocalDescriptorFromSrc(src){
+  const img=await vgImageFromSrc(src);
+  const size=32;
+  const canvas=document.createElement('canvas');
+  canvas.width=size; canvas.height=size;
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  if(!ctx) throw new Error('Canvas non disponibile');
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,size,size);
+  const w=Number(img.naturalWidth||img.width||0), h=Number(img.naturalHeight||img.height||0);
+  if(!w||!h) throw new Error('Dimensioni foto non valide');
+  let sx=0,sy=0,sw=w,sh=h;
+  if(w>h){ sw=h; sx=(w-h)/2; } else if(h>w){ sh=w; sy=(h-w)/2; }
+  ctx.drawImage(img,sx,sy,sw,sh,0,0,size,size);
+  const px=ctx.getImageData(0,0,size,size).data;
+
+  const hist=new Float32Array(24); // 8 bin per R/G/B
+  const gray=new Float32Array(size*size);
+  for(let i=0,p=0;i<px.length;i+=4,p++){
+    const r=px[i]/255,g=px[i+1]/255,b=px[i+2]/255;
+    hist[Math.min(7,Math.floor(r*8))]++;
+    hist[8+Math.min(7,Math.floor(g*8))]++;
+    hist[16+Math.min(7,Math.floor(b*8))]++;
+    gray[p]=0.299*r+0.587*g+0.114*b;
+  }
+  const denom=size*size;
+  for(let i=0;i<hist.length;i++) hist[i]/=denom;
+
+  // Colore/spazio: media RGB in una griglia 8x8. Mantiene la disposizione generale dell'oggetto.
+  const cells=8, cell=size/cells;
+  const spatial=new Float32Array(cells*cells*3);
+  let si=0;
+  for(let cy=0;cy<cells;cy++) for(let cx=0;cx<cells;cx++){
+    let sr=0,sg=0,sb=0,n=0;
+    for(let y=Math.floor(cy*cell);y<Math.floor((cy+1)*cell);y++) for(let x=Math.floor(cx*cell);x<Math.floor((cx+1)*cell);x++){
+      const k=(y*size+x)*4; sr+=px[k]/255; sg+=px[k+1]/255; sb+=px[k+2]/255; n++;
     }
-    const vec=await vgEmbeddingFromImageSource(src);
-    if(vec?.length) await vgWriteVisualEmbedding(a,vec);
-    return vec;
-  }catch(_e){ return null; }
-  finally{ if(tmpUrl) try{URL.revokeObjectURL(tmpUrl);}catch(_e){} }
+    spatial[si++]=sr/n; spatial[si++]=sg/n; spatial[si++]=sb/n;
+  }
+
+  // Forma: semplici bordi locali sulla luminanza, sempre offline.
+  const edge=new Float32Array(cells*cells);
+  let ei=0;
+  for(let cy=0;cy<cells;cy++) for(let cx=0;cx<cells;cx++){
+    let sum=0,n=0;
+    const y0=Math.max(1,Math.floor(cy*cell)), y1=Math.min(size-1,Math.floor((cy+1)*cell));
+    const x0=Math.max(1,Math.floor(cx*cell)), x1=Math.min(size-1,Math.floor((cx+1)*cell));
+    for(let y=y0;y<y1;y++) for(let x=x0;x<x1;x++){
+      const gx=gray[y*size+(x+1)]-gray[y*size+(x-1)];
+      const gy=gray[(y+1)*size+x]-gray[(y-1)*size+x];
+      sum+=Math.sqrt(gx*gx+gy*gy); n++;
+    }
+    edge[ei++]=n?sum/n:0;
+  }
+  return {hist,spatial,edge};
 }
-async function vgArticleVisualPreview(a){
-  try{
-    const cands=await getArticleThumbCandidates(a);
-    for(const c of cands){ const src=await resolveArticleThumbCandidateUrl(c); if(src) return src; }
-  }catch(_e){}
-  return artIconForCategory(a?.categoria||'');
+function vgLocalVisualSimilarity(a,b){
+  if(!a||!b) return 0;
+  const color=vgCosineSimilarity(a.hist,b.hist);
+  const spatial=vgCosineSimilarity(a.spatial,b.spatial);
+  const shape=vgCosineSimilarity(a.edge,b.edge);
+  return Math.max(0,Math.min(1,(color*0.50)+(spatial*0.30)+(shape*0.20)));
 }
 function vgSimilarityPercent(sim){
   if(!Number.isFinite(sim)) return 0;
-  // MobileNet cosine is not a calibrated probability. Keep display conservative.
   return Math.max(0,Math.min(99,Math.round(sim*100)));
 }
 async function vgRenderVisualResults(results){
   const box=document.getElementById('visualAiResults');
   if(!box) return;
-  if(!results.length){ box.innerHTML='<div class="card"><div class="small">Nessun articolo confrontabile con foto disponibile.</div></div>'; return; }
+  vgReleaseVisualResultObjectUrls();
+  if(!results.length){ box.innerHTML='<div class="card"><div class="small">Nessun articolo con foto disponibile in locale.</div></div>'; return; }
   const rows=[];
   for(const r of results){
     const a=r.article;
-    const thumb=await vgArticleVisualPreview(a);
+    let thumb=artIconForCategory(a?.categoria||'');
+    const local=await vgLocalArticleVisualSource(a);
+    if(local?.src){ thumb=local.src; if(local.revoke) vgVisualResultObjectUrls.push(local.src); }
     rows.push(`<div class="visualAiResult" data-open="art" data-id="${esc(a.id)}"><img src="${esc(thumb)}" alt="${esc(a.modello||'Articolo')}"/><div><div class="name">${esc(a.modello||a.codice||'Articolo')}</div><div class="meta">${a.codice?`Cod. ${esc(a.codice)} • `:''}${esc(articleQualityLabel(a)||'')} ${a.colore?`• ${esc(a.colore)}`:''}</div></div><div class="visualAiScore">${vgSimilarityPercent(r.score)}% simile</div></div>`);
   }
   box.innerHTML=rows.join('');
@@ -9668,36 +9659,46 @@ async function vgRunVisualArticleSearch(file){
   const progress=document.getElementById('visualAiProgress');
   const resultsBox=document.getElementById('visualAiResults');
   try{
+    vgReleaseVisualResultObjectUrls();
     if(vgVisualQueryObjectUrl) try{URL.revokeObjectURL(vgVisualQueryObjectUrl);}catch(_e){}
     vgVisualQueryObjectUrl=URL.createObjectURL(file);
     const qimg=document.getElementById('visualAiQueryImg'); if(qimg) qimg.src=vgVisualQueryObjectUrl;
     if(resultsBox) resultsBox.innerHTML='';
     if(modal) modal.style.display='flex';
     const setProgress=(t)=>{ if(progress) progress.textContent=t; vgSetVisualStatus(t,'busy'); };
-    await vgGetVisualModel(setProgress);
-    setProgress('Analizzo la foto scelta…');
-    const qvec=await vgEmbeddingFromImageSource(vgVisualQueryObjectUrl);
+    setProgress('Analizzo la foto in locale…');
+    const qdesc=await vgLocalDescriptorFromSrc(vgVisualQueryObjectUrl);
     const db=loadDB();
     const articles=(db.articoli||[]).filter(a=>!isArticleUnavailable(a) && articlePhotoCountSync(a)>0);
     if(!articles.length) throw new Error('Non ci sono articoli con foto da confrontare.');
     const scored=[];
-    let done=0;
+    let done=0, skipped=0;
     for(const a of articles){
-      const avec=await vgArticleVisualEmbedding(a);
-      if(avec?.length===qvec.length){ const score=vgCosineSimilarity(qvec,avec); if(Number.isFinite(score)) scored.push({article:a,score}); }
+      let source=null;
+      try{
+        source=await vgLocalArticleVisualSource(a);
+        if(!source?.src){ skipped++; }
+        else{
+          const desc=await vgLocalDescriptorFromSrc(source.src);
+          const score=vgLocalVisualSimilarity(qdesc,desc);
+          if(Number.isFinite(score)) scored.push({article:a,score});
+        }
+      }catch(_e){ skipped++; }
+      finally{ if(source?.revoke) try{URL.revokeObjectURL(source.src);}catch(_e){} }
       done++;
-      if(done===1 || done%4===0 || done===articles.length){
-        setProgress(`Confronto AI: ${done}/${articles.length} articoli…`);
+      if(done===1 || done%8===0 || done===articles.length){
+        setProgress(`Confronto locale: ${done}/${articles.length} articoli…`);
         await new Promise(r=>setTimeout(r,0));
       }
     }
     scored.sort((x,y)=>y.score-x.score);
     const top=scored.slice(0,5);
     await vgRenderVisualResults(top);
-    if(progress) progress.textContent=`Trovati ${top.length} risultati più simili su ${scored.length} articoli confrontabili.`;
-    vgSetVisualStatus(`Ricerca completata: ${top.length} risultati.`, '');
+    const skippedText=skipped?` • ${skipped} senza foto locale`:'';
+    if(progress) progress.textContent=`${top.length} risultati su ${scored.length} articoli confrontati${skippedText}. Nessun download da Supabase.`;
+    vgSetVisualStatus(`Ricerca locale completata: ${scored.length} confrontati.`, '');
   }catch(err){
-    console.warn('Ricerca visiva AI fallita',err);
+    console.warn('Ricerca visiva locale fallita',err);
     const msg=err?.message||'Ricerca visiva non riuscita.';
     if(progress) progress.textContent=msg;
     if(resultsBox) resultsBox.innerHTML='';
@@ -9706,7 +9707,7 @@ async function vgRunVisualArticleSearch(file){
   }finally{ vgVisualSearchBusy=false; }
 }
 function vgOpenVisualArticlePicker(){
-  if(vgVisualSearchBusy){ toast('Ricerca AI già in corso'); return; }
+  if(vgVisualSearchBusy){ toast('Ricerca locale già in corso'); return; }
   const input=document.getElementById('visualSearchFile');
   if(!input) return;
   input.value='';
@@ -9717,6 +9718,7 @@ function vgOpenVisualArticlePicker(){
 }
 function vgCloseVisualArticleSearch(){
   const m=document.getElementById('mVisualArticleSearch'); if(m) m.style.display='none';
+  vgReleaseVisualResultObjectUrls();
 }
 
 function renderArt(){
@@ -12552,9 +12554,8 @@ function normalizeChatGPTConversationUrl(value=''){
     const u=new URL(/^https?:\/\//i.test(raw)?raw:`https://${raw}`);
     const host=String(u.hostname||'').toLowerCase().replace(/^www\./,'');
     if(host!=='chatgpt.com' && host!=='chat.openai.com') return '';
-    // Accetta sia /c/ID sia eventuali percorsi ChatGPT più lunghi che contengono /c/ID.
-    // Mantiene query e percorso originali per riaprire esattamente la stessa conversazione.
-    if(!/(^|\/)c\/[A-Za-z0-9-]+(?:\/|$)/i.test(u.pathname)) return '';
+    // Accetta tutti i percorsi HTTPS ufficiali di ChatGPT: conversazioni, progetti e link condivisi.
+    // Evita di dipendere dal solo formato /c/ID, che può cambiare.
     u.protocol='https:';
     u.hash='';
     return u.toString();
@@ -15173,7 +15174,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.101', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.103', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
