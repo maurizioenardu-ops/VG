@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Gestionale"/>
-<link rel="manifest" href="manifest.json?v=1.0.26"/>
+<link rel="manifest" href="manifest.json?v=1.0.100"/>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-v1-32.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-v1-192.png"/>
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v1.png"/>
@@ -487,7 +487,7 @@ input,select,textarea{font-size:17px;line-height:1.25}
 .archiveRow .t{font-weight:1000}.archiveRow .s{font-size:12px;color:#64748b;margin-top:3px}
 .archiveRestore{border:1px solid #16a34a;background:#16a34a;color:#fff;border-radius:12px;padding:10px 12px;font-weight:1000}
 
-/* v1.0.98 — ricerca articoli con foto AI */
+/* v1.0.100 — pacchetto PWA ripulito, funzioni 1.0.99 preservate */
 .visualSearchRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
 .visualSearchBtn{background:#7c3aed!important;border-color:#7c3aed!important;color:#fff!important;min-height:46px}
 .visualSearchStatus{font-size:13px;color:#667085;line-height:1.35;flex:1;min-width:180px}
@@ -516,7 +516,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v136-ricerca-foto-ai">
+  <meta name="vg-version" content="v138-pacchetto-pulito">
 </head>
 <body>
 
@@ -621,8 +621,8 @@ window.addEventListener('error',e=>{
       <div style="margin-top:10px">
         <div class="searchWrap"><input id="qArt" placeholder="Cerca per codice, marca, modello, categoria, qualità, colore, materiale, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
         <div class="visualSearchRow">
-          <button class="btn visualSearchBtn" type="button" data-action="searchArticleByPhoto">📷 Cerca con foto</button>
-          <input id="visualSearchFile" type="file" accept="image/*" capture="environment" style="display:none"/>
+          <button class="btn visualSearchBtn" type="button" data-action="searchArticleByPhoto">🖼️ Cerca con foto</button>
+          <input id="visualSearchFile" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" style="display:none"/>
           <div id="visualSearchStatus" class="visualSearchStatus">Confronto AI con le foto già presenti negli articoli.</div>
         </div>
       </div>
@@ -814,7 +814,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.97</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.100</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -987,7 +987,7 @@ window.addEventListener('error',e=>{
   <div class="h2">Ricerca articolo con foto</div>
   <div class="visualAiQuery" style="margin-top:10px">
     <img id="visualAiQueryImg" alt="Foto da cercare"/>
-    <div><div class="t">Confronto visivo AI</div><div class="small">Cerco gli articoli più simili usando la foto principale memorizzata per ciascun articolo.</div></div>
+    <div><div class="t">Confronto visivo AI</div><div class="small">Scegli una foto dalla galleria. La confronto con la foto principale memorizzata per ciascun articolo.</div></div>
   </div>
   <div id="visualAiProgress" class="visualAiProgress">Preparazione ricerca…</div>
   <div id="visualAiResults" class="visualAiResults"></div>
@@ -1018,10 +1018,7 @@ window.addEventListener('error',e=>{
     <div><div class="k">Data inserimento</div><div id="vArtCreatedAt" class="t">-</div></div>
   </div>
   <div class="hr"></div>
-  <div class="h3">Prezzi</div>
-  <div id="vArtOfficialWrap" style="margin-top:10px;display:none">
-    <div><div class="k">Prezzo listino ufficiale</div><div id="vArtOfficialPrice" class="t">-</div></div>
-  </div>
+  <div class="h3">Prezzi e margine</div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">Prezzo vendita</div><div id="vArtPrezzo" class="t">-</div></div>
     <div>
@@ -1030,6 +1027,11 @@ window.addEventListener('error',e=>{
       <div id="vArtPromoPill"></div>
       <div id="vArtMarginBox" class="marginBox" style="margin-top:8px"></div>
     </div>
+  </div>
+  <div id="vArtOfficialWrap" style="margin-top:14px;display:none;padding:12px 14px;border:1px solid #cbd5e1;border-radius:16px;background:#f8fafc">
+    <div class="k" style="margin-bottom:4px">Riferimento ufficiale</div>
+    <div><div class="k">Prezzo listino ufficiale</div><div id="vArtOfficialPrice" class="t">-</div></div>
+    <div class="helper" style="margin-top:5px">Dato informativo. Non incide sui calcoli.</div>
   </div>
   <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtAll">🔗 Condividi</button><span id="vArtFbSaveMeta" class="pubMeta" style="display:none"></span><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div></div>
   <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="copyPostTelegramNoPrice">Copia Telegram senza prezzo</button><button class="btn smallish" style="background:#229ED9;border-color:#229ED9;color:#fff" type="button" data-action="shareArtTelegram">✈️ Condividi su Telegram</button><span id="vArtPubMetaTg" class="pubMeta">0 · mai</span></div></div>
@@ -1111,7 +1113,7 @@ window.addEventListener('error',e=>{
   </div>
 
   <div class="formBlock prezzi inputSoft">
-    <div class="blockTitle">Prezzi e guadagno</div>
+    <div class="blockTitle">Prezzo fornitore</div>
     <div class="grid2">
       <div><div class="k">Qualità (auto)</div><input id="a_qual" readonly/></div>
       <div class="inputSupplierStd"><div class="k">Prezzo fornitore standard USD</div><input id="a_usd" inputmode="decimal" autocomplete="off"/></div>
@@ -1131,33 +1133,43 @@ window.addEventListener('error',e=>{
     </div>
     <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_supplier_date_unknown" type="checkbox" style="width:auto;margin-right:8px"/>Scadenza fornitore non comunicata</label></div>
     <div id="a_supplier_expiry_warning" class="helper" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid #f59e0b;border-radius:12px;background:#fffbeb;color:#92400e;font-weight:900">⚠️ Indica la data di scadenza oppure spunta “Scadenza fornitore non comunicata”.</div>
+  </div>
 
-    <div class="hr"></div>
+  <div class="formBlock prezzi inputSoft">
+    <div class="blockTitle">Prezzo di vendita e margine</div>
     <div class="grid2">
       <div><div class="k">Costo reale</div><input id="a_eur" readonly/></div>
       <div><div class="k">Guadagno minimo consigliato</div><input id="a_profit_min" readonly/></div>
     </div>
     <div class="grid2" style="margin-top:10px">
-      <div><div class="k">Prezzo teorico</div><input id="a_theoretical" readonly/></div>
       <div><div class="k">Prezzo consigliato</div><input id="a_recommended" readonly/></div>
-    </div>
-    <div class="grid2" style="margin-top:10px">
       <div><div id="a_sell_label" class="k">Prezzo scelto da te</div><input id="a_sell" inputmode="decimal" autocomplete="off"/><div id="a_sell_hint" class="helper" style="display:none;margin-top:5px"></div></div>
-      <div><div class="k">Guadagno effettivo</div><input id="a_margin" readonly/></div>
     </div>
     <div style="margin-top:10px">
-      <div class="k">Prezzo listino ufficiale</div><input id="a_official_price" inputmode="decimal" autocomplete="off" placeholder="Es. 2500"/><div class="helper">Solo riferimento interno. Inserisci il prezzo verificato sul sito ufficiale.</div>
+      <div class="k">Guadagno effettivo</div><input id="a_margin" readonly/>
     </div>
     <div id="a_min_price_warning" class="helper" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid #f59e0b;border-radius:12px;background:#fffbeb;color:#92400e;font-weight:900"></div>
     <div id="a_high_cost_warning" class="helper" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid #dc2626;border-radius:12px;background:#fef2f2;color:#991b1b;font-weight:900"></div>
-    <div id="a_promo_summary" class="helper" style="margin-top:8px"></div>
 
+    <!-- Resta solo come valore tecnico per il calcolo interno. -->
+    <input id="a_theoretical" type="hidden"/>
     <input id="a_high_cost_rule" type="hidden"/>
     <input id="a_final" type="hidden"/>
     <input id="a_promo_type" type="hidden"/>
     <div id="a_margin_pct" style="display:none"></div>
+  </div>
 
-    <div class="hr"></div>
+  <div class="formBlock prezzi inputSoft">
+    <div class="blockTitle">Riferimento ufficiale</div>
+    <div>
+      <div class="k">Prezzo listino ufficiale</div>
+      <input id="a_official_price" inputmode="decimal" autocomplete="off" placeholder="Es. 2500"/>
+      <div class="helper">Dato informativo verificato sul sito ufficiale. Non incide sui calcoli di costo, margine o prezzo consigliato.</div>
+    </div>
+  </div>
+
+  <div class="formBlock prezzi inputSoft">
+    <div class="blockTitle">Promo personale</div>
     <div class="grid2">
       <div><div class="k">Promo personale attiva</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Attiva</label></div>
       <div class="inputPromoPersonal"><div class="k">Prezzo promo mio personale</div><input id="a_promo_price" inputmode="decimal" autocomplete="off"/></div>
@@ -1165,6 +1177,7 @@ window.addEventListener('error',e=>{
     <div style="margin-top:10px">
       <div class="k">Fine promo personale</div><input id="a_promo_date" type="date" autocomplete="off"/>
     </div>
+    <div id="a_promo_summary" class="helper" style="margin-top:8px"></div>
   </div>
 
   <div class="formBlock postblk inputSoft">
@@ -4814,6 +4827,29 @@ function parseFlexibleAmount(value){
   const raw=String(value==null?'':value).trim().replace(/\s+/g,'').replace(',', '.');
   const n=Number(raw);
   return Number.isFinite(n) ? Math.max(0, n) : 0;
+}
+function parseOfficialListPrice(value){
+  if(typeof value==='number') return Number.isFinite(value) ? Math.max(0,value) : 0;
+  let s=String(value==null?'':value).trim();
+  if(!s) return 0;
+  s=s.replace(/[^0-9,.-]/g,'').replace(/(?!^)-/g,'');
+  const comma=s.lastIndexOf(','), dot=s.lastIndexOf('.');
+  if(comma>=0 && dot>=0){
+    const decimalSep=comma>dot?',':'.';
+    const thousandsSep=decimalSep===','?'.':',';
+    s=s.split(thousandsSep).join('');
+    if(decimalSep===',') s=s.replace(',','.');
+  }else if(comma>=0){
+    const parts=s.split(',');
+    if(parts.length>2) s=parts.join('');
+    else s=parts[0]+'.'+(parts[1]||'');
+  }else if(dot>=0){
+    const parts=s.split('.');
+    if(parts.length>2) s=parts.join('');
+    else if(parts.length===2 && parts[1].length===3 && parts[0].length<=3) s=parts.join('');
+  }
+  const n=Number(s);
+  return Number.isFinite(n) ? Math.max(0,n) : 0;
 }
 function calcOrderSubtotal(rows){
   return (Array.isArray(rows)?rows:[]).reduce((sum,row)=>sum+Math.max(0, Number(row?.prezzo||0)),0);
@@ -9619,7 +9655,12 @@ async function vgRunVisualArticleSearch(file){
 function vgOpenVisualArticlePicker(){
   if(vgVisualSearchBusy){ toast('Ricerca AI già in corso'); return; }
   const input=document.getElementById('visualSearchFile');
-  if(input){ input.value=''; input.click(); }
+  if(!input) return;
+  input.value='';
+  try{
+    if(typeof input.showPicker==='function') input.showPicker();
+    else input.click();
+  }catch(_e){ input.click(); }
 }
 function vgCloseVisualArticleSearch(){
   const m=document.getElementById('mVisualArticleSearch'); if(m) m.style.display='none';
@@ -10611,7 +10652,7 @@ function applyBulkPasteArticle(){
   if(set('a_belt_h',data.altezzaCintura)) applied.push('altezza cintura');
   if(set('a_usd',parseBulkArticleNumber(data.costoUsd))) applied.push('costo USD');
   if(set('a_usd_promo',parseBulkArticleNumber(data.costoUsdPromo))) applied.push('costo promo USD');
-  if(set('a_official_price',parseBulkArticleNumber(data.prezzoListinoUfficiale))) applied.push('prezzo listino ufficiale');
+  if(set('a_official_price',parseOfficialListPrice(data.prezzoListinoUfficiale)||'')) applied.push('prezzo listino ufficiale');
   const realUsd=Number(parseBulkArticleNumber(data.costoUsd)||0);
   const estimatedUsd=Number(parseBulkArticleNumber(data.costoStimatoUsd)||0);
   let estimatedEur=Number(parseBulkArticleNumber(data.costoStimatoEur)||0);
@@ -11331,7 +11372,7 @@ async function saveArt(){
       descrizione: document.getElementById('a_desc').value.trim(),
       fornitore: document.getElementById('a_forn').value.trim(),
       fornitoreLink: document.getElementById('a_forn_link').value.trim(),
-      prezzoListinoUfficiale: firstFiniteNumber(document.getElementById('a_official_price')?.value,0),
+      prezzoListinoUfficiale: parseOfficialListPrice(document.getElementById('a_official_price')?.value),
       materiale: document.getElementById('a_taglia').value.trim(),
       taglia: '',
       variante: document.getElementById('a_variante').value.trim(),
@@ -13226,7 +13267,7 @@ function readArticleForm(){
     descrizione: document.getElementById('a_desc')?.value.trim()||'',
     fornitore: document.getElementById('a_forn')?.value.trim()||'',
     fornitoreLink: document.getElementById('a_forn_link')?.value.trim()||'',
-    prezzoListinoUfficiale: firstFiniteNumber(document.getElementById('a_official_price')?.value,0),
+    prezzoListinoUfficiale: parseOfficialListPrice(document.getElementById('a_official_price')?.value),
     materiale: document.getElementById('a_taglia')?.value.trim()||'',
     taglia: '',
     variante: document.getElementById('a_variante')?.value.trim()||'',
@@ -13624,7 +13665,7 @@ if(__viewFbPostEl){
   __viewFbPostEl.addEventListener('blur', ()=>saveViewFbPostNow({cloud:true}));
 }
 
-['a_post','a_post_fb','a_post_ig','a_note','a_forn_link','a_official_price'].forEach(id=>{
+['a_post','a_post_fb','a_post_ig','a_note','a_forn_link'].forEach(id=>{
   const el=document.getElementById(id);
   if(el) ['input','change'].forEach(evt=>el.addEventListener(evt, ()=>{
     if(id==='a_post_fb') el.dataset.fbCustom='1';
@@ -13677,6 +13718,13 @@ document.getElementById('a_usd_promo')?.addEventListener('input', ()=>{
   const check=document.getElementById('a_supplier_promo_on');
   if(check && Number.isFinite(amount) && amount>0) check.checked=true;
 });
+document.getElementById('a_official_price')?.addEventListener('blur', (e)=>{
+  const n=parseOfficialListPrice(e.target?.value);
+  if(e.target) e.target.value=n>0 ? String(Math.round(n*100)/100) : '';
+  saveArticleDraft();
+});
+document.getElementById('a_official_price')?.addEventListener('input', ()=>saveArticleDraft());
+
 document.getElementById('a_promo_price')?.addEventListener('input', ()=>{
   const amount=Number(document.getElementById('a_promo_price')?.value||0);
   const check=document.getElementById('a_promo_on');
@@ -13766,7 +13814,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.98-2026-08-11';
+const VG_BUILD='1.0.100-2026-08-11';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -15050,7 +15098,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.98', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.100', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

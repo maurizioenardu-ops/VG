@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.98-2026-08-11-ricerca-foto-ai';
+const VERSION = 'gestionale-vg-1.0.100-2026-08-11-pacchetto-pulito';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',
