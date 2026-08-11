@@ -486,6 +486,27 @@ input,select,textarea{font-size:17px;line-height:1.25}
 .archiveRow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:#fff;border:1px solid #dbe2ea;border-radius:14px;padding:12px}
 .archiveRow .t{font-weight:1000}.archiveRow .s{font-size:12px;color:#64748b;margin-top:3px}
 .archiveRestore{border:1px solid #16a34a;background:#16a34a;color:#fff;border-radius:12px;padding:10px 12px;font-weight:1000}
+
+/* v1.0.98 — ricerca articoli con foto AI */
+.visualSearchRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.visualSearchBtn{background:#7c3aed!important;border-color:#7c3aed!important;color:#fff!important;min-height:46px}
+.visualSearchStatus{font-size:13px;color:#667085;line-height:1.35;flex:1;min-width:180px}
+.visualSearchStatus.busy{color:#6d28d9;font-weight:800}
+.visualSearchStatus.error{color:#b91c1c;font-weight:800}
+.visualAiModal .modal{max-width:700px}
+.visualAiQuery{display:flex;gap:12px;align-items:center;padding:10px;border:1px solid #e4e7ec;border-radius:16px;background:#fafafa}
+.visualAiQuery img{width:92px;height:92px;object-fit:cover;border-radius:14px;border:1px solid #d0d5dd;background:#fff}
+.visualAiProgress{margin-top:10px;padding:10px 12px;border-radius:12px;background:#f5f3ff;color:#5b21b6;font-weight:800;font-size:14px}
+.visualAiResults{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
+.visualAiResult{display:grid;grid-template-columns:88px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px;border:1px solid #e4e7ec;border-radius:16px;background:#fff;cursor:pointer}
+.visualAiResult:active{transform:scale(.995)}
+.visualAiResult img{width:88px;height:88px;object-fit:cover;border-radius:13px;background:#f2f4f7}
+.visualAiResult .name{font-weight:900;font-size:18px;line-height:1.15}
+.visualAiResult .meta{font-size:13px;color:#667085;margin-top:4px;line-height:1.35}
+.visualAiScore{font-weight:900;font-size:15px;color:#5b21b6;white-space:nowrap;text-align:right}
+.visualAiHint{font-size:12px;color:#667085;margin-top:8px;line-height:1.4}
+@media(max-width:520px){.visualAiResult{grid-template-columns:74px minmax(0,1fr)}.visualAiResult img{width:74px;height:74px}.visualAiScore{grid-column:2;text-align:left;margin-top:-4px}.visualAiQuery img{width:76px;height:76px}}
+
 </style>
 <script>
 window.addEventListener('error',e=>{
@@ -495,7 +516,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v135-contatti-cliente-ordine">
+  <meta name="vg-version" content="v136-ricerca-foto-ai">
 </head>
 <body>
 
@@ -599,6 +620,11 @@ window.addEventListener('error',e=>{
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Articoli</div><button class="btn" type="button" data-action="newArt">+ Nuovo</button></div>
       <div style="margin-top:10px">
         <div class="searchWrap"><input id="qArt" placeholder="Cerca per codice, marca, modello, categoria, qualità, colore, materiale, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
+        <div class="visualSearchRow">
+          <button class="btn visualSearchBtn" type="button" data-action="searchArticleByPhoto">📷 Cerca con foto</button>
+          <input id="visualSearchFile" type="file" accept="image/*" capture="environment" style="display:none"/>
+          <div id="visualSearchStatus" class="visualSearchStatus">Confronto AI con le foto già presenti negli articoli.</div>
+        </div>
       </div>
       <div class="grid2 artFilterGrid" style="margin-top:10px">
         <div><select id="qArtCat"><option value="">Tutte le categorie</option></select></div>
@@ -954,6 +980,19 @@ window.addEventListener('error',e=>{
     <button class="btn smallish" type="button" data-action="closeSocialEdit">Annulla</button>
     <button class="btn danger smallish" type="button" data-action="deleteSocialPost">Elimina</button>
   </div>
+</div></div>
+
+<!-- MODAL RICERCA VISIVA AI -->
+<div id="mVisualArticleSearch" class="modalwrap visualAiModal"><div class="modal">
+  <div class="h2">Ricerca articolo con foto</div>
+  <div class="visualAiQuery" style="margin-top:10px">
+    <img id="visualAiQueryImg" alt="Foto da cercare"/>
+    <div><div class="t">Confronto visivo AI</div><div class="small">Cerco gli articoli più simili usando la foto principale memorizzata per ciascun articolo.</div></div>
+  </div>
+  <div id="visualAiProgress" class="visualAiProgress">Preparazione ricerca…</div>
+  <div id="visualAiResults" class="visualAiResults"></div>
+  <div class="visualAiHint">La percentuale indica somiglianza visiva, non identificazione certa. Il risultato finale resta sempre da confermare.</div>
+  <div class="actions compact viewBottomSpace"><button class="btn" type="button" data-action="closeVisualArticleSearch">Chiudi</button></div>
 </div></div>
 
 <!-- MODALS -->
@@ -9387,6 +9426,205 @@ function restoreArchivedArticle(id){
   if(cloudEnabled()) cloudSaveOne('art',db.articoli[i],db).catch(err=>{console.warn('Ripristino cloud fallito',err);toast('Ripristinato in locale, cloud non aggiornato');});
 }
 
+
+// =========================
+// RICERCA VISIVA AI ARTICOLI
+// =========================
+const VG_VISUAL_AI_VERSION='mobilenet-v2-a1';
+const VG_VISUAL_TF_URL='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js';
+const VG_VISUAL_MOBILENET_URL='https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js';
+let vgVisualModel=null;
+let vgVisualSearchBusy=false;
+let vgVisualQueryObjectUrl='';
+
+function vgSetVisualStatus(text, kind=''){
+  const el=document.getElementById('visualSearchStatus');
+  if(!el) return;
+  el.textContent=text||'';
+  el.classList.toggle('busy',kind==='busy');
+  el.classList.toggle('error',kind==='error');
+}
+function vgLoadScriptOnce(src, globalName){
+  return new Promise((resolve,reject)=>{
+    if(globalName && window[globalName]) return resolve(window[globalName]);
+    const found=[...document.scripts].find(x=>x.src===src);
+    if(found){
+      if(globalName && window[globalName]) return resolve(window[globalName]);
+      found.addEventListener('load',()=>resolve(globalName?window[globalName]:true),{once:true});
+      found.addEventListener('error',()=>reject(new Error('Impossibile caricare il motore AI')), {once:true});
+      return;
+    }
+    const sc=document.createElement('script');
+    sc.src=src; sc.async=true; sc.crossOrigin='anonymous';
+    sc.onload=()=>resolve(globalName?window[globalName]:true);
+    sc.onerror=()=>reject(new Error('Impossibile caricare il motore AI'));
+    document.head.appendChild(sc);
+  });
+}
+async function vgGetVisualModel(progressCb){
+  if(vgVisualModel) return vgVisualModel;
+  if(!navigator.onLine) throw new Error('La prima ricerca AI richiede connessione internet.');
+  progressCb?.('Carico il motore AI…');
+  await vgLoadScriptOnce(VG_VISUAL_TF_URL,'tf');
+  progressCb?.('Carico il modello visivo…');
+  await vgLoadScriptOnce(VG_VISUAL_MOBILENET_URL,'mobilenet');
+  if(!window.mobilenet?.load) throw new Error('Modello AI non disponibile.');
+  vgVisualModel=await window.mobilenet.load({version:2,alpha:1.0});
+  return vgVisualModel;
+}
+function vgFloat32ToBase64(arr){
+  const u8=new Uint8Array(arr.buffer,arr.byteOffset,arr.byteLength);
+  let bin='';
+  const chunk=0x8000;
+  for(let i=0;i<u8.length;i+=chunk) bin+=String.fromCharCode(...u8.subarray(i,i+chunk));
+  return btoa(bin);
+}
+function vgBase64ToFloat32(s){
+  try{
+    const bin=atob(s); const u8=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+    return new Float32Array(u8.buffer);
+  }catch(_e){ return null; }
+}
+function vgVisualCacheKey(a){
+  return `vgai:${VG_VISUAL_AI_VERSION}:${String(a?.id||'')}:${Number(a?._ts||0)}`;
+}
+function vgReadVisualEmbedding(a){
+  try{ const raw=localStorage.getItem(vgVisualCacheKey(a)); return raw?vgBase64ToFloat32(raw):null; }catch(_e){ return null; }
+}
+function vgWriteVisualEmbedding(a,vec){
+  try{ localStorage.setItem(vgVisualCacheKey(a),vgFloat32ToBase64(vec)); }catch(_e){}
+}
+function vgCosineSimilarity(a,b){
+  if(!a||!b||a.length!==b.length) return -1;
+  let dot=0,na=0,nb=0;
+  for(let i=0;i<a.length;i++){ const x=a[i],y=b[i]; dot+=x*y; na+=x*x; nb+=y*y; }
+  if(!na||!nb) return -1;
+  return dot/(Math.sqrt(na)*Math.sqrt(nb));
+}
+function vgImageFromSrc(src){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    if(/^https?:/i.test(src)) img.crossOrigin='anonymous';
+    img.decoding='async';
+    img.onload=()=>resolve(img);
+    img.onerror=()=>reject(new Error('Foto non leggibile'));
+    img.src=src;
+  });
+}
+async function vgEmbeddingFromImageSource(src){
+  const img=await vgImageFromSrc(src);
+  const tensor=vgVisualModel.infer(img,true);
+  try{ const data=await tensor.data(); return new Float32Array(data); }
+  finally{ try{ tensor.dispose(); }catch(_e){} }
+}
+async function vgFirstArticleVisualSource(a){
+  const candidates=await getArticleThumbCandidates(a);
+  for(const c of candidates){
+    try{
+      const src=await resolveArticleThumbCandidateUrl(c);
+      if(src) return {src, key:c.key||''};
+    }catch(_e){}
+  }
+  return null;
+}
+async function vgArticleVisualEmbedding(a){
+  const cached=vgReadVisualEmbedding(a);
+  if(cached?.length) return cached;
+  const source=await vgFirstArticleVisualSource(a);
+  if(!source?.src) return null;
+  let tmpUrl='';
+  try{
+    let src=source.src;
+    if(/^https?:/i.test(src)){
+      try{
+        const r=await fetch(src,{mode:'cors',cache:'force-cache'});
+        if(r.ok){ const b=await r.blob(); tmpUrl=URL.createObjectURL(b); src=tmpUrl; }
+      }catch(_e){}
+    }
+    const vec=await vgEmbeddingFromImageSource(src);
+    if(vec?.length) vgWriteVisualEmbedding(a,vec);
+    return vec;
+  }catch(_e){ return null; }
+  finally{ if(tmpUrl) try{URL.revokeObjectURL(tmpUrl);}catch(_e){} }
+}
+async function vgArticleVisualPreview(a){
+  try{
+    const cands=await getArticleThumbCandidates(a);
+    for(const c of cands){ const src=await resolveArticleThumbCandidateUrl(c); if(src) return src; }
+  }catch(_e){}
+  return artIconForCategory(a?.categoria||'');
+}
+function vgSimilarityPercent(sim){
+  if(!Number.isFinite(sim)) return 0;
+  // MobileNet cosine is not a calibrated probability. Keep display conservative.
+  return Math.max(0,Math.min(99,Math.round(sim*100)));
+}
+async function vgRenderVisualResults(results){
+  const box=document.getElementById('visualAiResults');
+  if(!box) return;
+  if(!results.length){ box.innerHTML='<div class="card"><div class="small">Nessun articolo confrontabile con foto disponibile.</div></div>'; return; }
+  const rows=[];
+  for(const r of results){
+    const a=r.article;
+    const thumb=await vgArticleVisualPreview(a);
+    rows.push(`<div class="visualAiResult" data-open="art" data-id="${esc(a.id)}"><img src="${esc(thumb)}" alt="${esc(a.modello||'Articolo')}"/><div><div class="name">${esc(a.modello||a.codice||'Articolo')}</div><div class="meta">${a.codice?`Cod. ${esc(a.codice)} • `:''}${esc(articleQualityLabel(a)||'')} ${a.colore?`• ${esc(a.colore)}`:''}</div></div><div class="visualAiScore">${vgSimilarityPercent(r.score)}% simile</div></div>`);
+  }
+  box.innerHTML=rows.join('');
+}
+async function vgRunVisualArticleSearch(file){
+  if(vgVisualSearchBusy || !(file instanceof Blob)) return;
+  vgVisualSearchBusy=true;
+  const modal=document.getElementById('mVisualArticleSearch');
+  const progress=document.getElementById('visualAiProgress');
+  const resultsBox=document.getElementById('visualAiResults');
+  try{
+    if(vgVisualQueryObjectUrl) try{URL.revokeObjectURL(vgVisualQueryObjectUrl);}catch(_e){}
+    vgVisualQueryObjectUrl=URL.createObjectURL(file);
+    const qimg=document.getElementById('visualAiQueryImg'); if(qimg) qimg.src=vgVisualQueryObjectUrl;
+    if(resultsBox) resultsBox.innerHTML='';
+    if(modal) modal.style.display='flex';
+    const setProgress=(t)=>{ if(progress) progress.textContent=t; vgSetVisualStatus(t,'busy'); };
+    await vgGetVisualModel(setProgress);
+    setProgress('Analizzo la foto scelta…');
+    const qvec=await vgEmbeddingFromImageSource(vgVisualQueryObjectUrl);
+    const db=loadDB();
+    const articles=(db.articoli||[]).filter(a=>!isArticleUnavailable(a) && articlePhotoCountSync(a)>0);
+    if(!articles.length) throw new Error('Non ci sono articoli con foto da confrontare.');
+    const scored=[];
+    let done=0;
+    for(const a of articles){
+      const avec=await vgArticleVisualEmbedding(a);
+      if(avec?.length===qvec.length){ const score=vgCosineSimilarity(qvec,avec); if(Number.isFinite(score)) scored.push({article:a,score}); }
+      done++;
+      if(done===1 || done%4===0 || done===articles.length){
+        setProgress(`Confronto AI: ${done}/${articles.length} articoli…`);
+        await new Promise(r=>setTimeout(r,0));
+      }
+    }
+    scored.sort((x,y)=>y.score-x.score);
+    const top=scored.slice(0,5);
+    await vgRenderVisualResults(top);
+    if(progress) progress.textContent=`Trovati ${top.length} risultati più simili su ${scored.length} articoli confrontabili.`;
+    vgSetVisualStatus(`Ricerca completata: ${top.length} risultati.`, '');
+  }catch(err){
+    console.warn('Ricerca visiva AI fallita',err);
+    const msg=err?.message||'Ricerca visiva non riuscita.';
+    if(progress) progress.textContent=msg;
+    if(resultsBox) resultsBox.innerHTML='';
+    vgSetVisualStatus(msg,'error');
+    toast(msg);
+  }finally{ vgVisualSearchBusy=false; }
+}
+function vgOpenVisualArticlePicker(){
+  if(vgVisualSearchBusy){ toast('Ricerca AI già in corso'); return; }
+  const input=document.getElementById('visualSearchFile');
+  if(input){ input.value=''; input.click(); }
+}
+function vgCloseVisualArticleSearch(){
+  const m=document.getElementById('mVisualArticleSearch'); if(m) m.style.display='none';
+}
+
 function renderArt(){
   const db=loadDB();
   const promoCount=(db.articoli||[]).filter(promoValid).length;
@@ -13100,6 +13338,8 @@ document.addEventListener('click',(ev)=>{
     setArtBrowse(artBrowseState.level==='promo'?'promo':(artBrowseState.level==='noPhoto'?'noPhoto':'mixed'));
     return renderArt();
   }
+  if(a==='searchArticleByPhoto'){ vgOpenVisualArticlePicker(); return; }
+  if(a==='closeVisualArticleSearch'){ vgCloseVisualArticleSearch(); return; }
   if(a==='selectArtCategory'){ const sel=document.getElementById('qArtCat'); if(sel) sel.value=String(el.dataset.name||''); setArtBrowse('tutti'); return renderArt(); }
   if(a==='openArtCategory'){ setArtBrowse('tutti'); return renderArt(); }
   if(a==='openArtBrand'){ setArtBrowse('tutti'); return renderArt(); }
@@ -13392,6 +13632,8 @@ if(__viewFbPostEl){
   }));
 });
 bindSearchSuggest('qArt','qArtSuggest','art', ()=>renderArt());
+document.getElementById('visualSearchFile')?.addEventListener('change',e=>{ const f=e.target?.files?.[0]; if(f) vgRunVisualArticleSearch(f); });
+document.getElementById('visualAiResults')?.addEventListener('click',e=>{ if(e.target.closest('[data-open="art"]')) vgCloseVisualArticleSearch(); });
 document.getElementById('qArtCat')?.addEventListener('change', renderArt);
 document.getElementById('qArtBrand')?.addEventListener('change', renderArt);
 document.getElementById('qArtQuality')?.addEventListener('change', renderArt);
@@ -13524,7 +13766,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.97-2026-08-09';
+const VG_BUILD='1.0.98-2026-08-11';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14808,7 +15050,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.97', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.98', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
