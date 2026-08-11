@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Gestionale"/>
-<link rel="manifest" href="manifest.json?v=1.0.100"/>
+<link rel="manifest" href="manifest.json?v=1.0.101"/>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-v1-32.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-v1-192.png"/>
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v1.png"/>
@@ -487,7 +487,7 @@ input,select,textarea{font-size:17px;line-height:1.25}
 .archiveRow .t{font-weight:1000}.archiveRow .s{font-size:12px;color:#64748b;margin-top:3px}
 .archiveRestore{border:1px solid #16a34a;background:#16a34a;color:#fff;border-radius:12px;padding:10px 12px;font-weight:1000}
 
-/* v1.0.100 — pacchetto PWA ripulito, funzioni 1.0.99 preservate */
+/* v1.0.101 — fix archivio locale: cache AI spostata in IndexedDB e salvataggio resiliente */
 .visualSearchRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
 .visualSearchBtn{background:#7c3aed!important;border-color:#7c3aed!important;color:#fff!important;min-height:46px}
 .visualSearchStatus{font-size:13px;color:#667085;line-height:1.35;flex:1;min-width:180px}
@@ -516,7 +516,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v138-pacchetto-pulito">
+  <meta name="vg-version" content="v139-storage-ai-idb">
 </head>
 <body>
 
@@ -814,7 +814,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.100</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.101</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -2808,18 +2808,55 @@ function loadDB(){
     return merged;
   }catch(e){ return defDB(); }
 }
+function freeTechnicalLocalStorageSpace(){
+  // Libera solo copie/cache rigenerabili. Non tocca articoli, clienti, ordini,
+  // preferenze utente, Bacheca o altri dati gestionali.
+  const removeExact=[
+    KEY+'_backup_latest',
+    KEY+'_backup_before_cloud_pull',
+    KEY+'_pre_import_backup',
+    'vg_db_full_v7_clean_pre_import_backup'
+  ];
+  removeExact.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
+  const remove=[];
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k=String(localStorage.key(i)||'');
+      if(k.startsWith('vgai:')) remove.push(k); // vecchia cache AI: ora vive in IndexedDB
+      else if(/^(vg_)?(thumb|preview|anteprim|cache)[:_\-]/i.test(k)) remove.push(k);
+    }
+  }catch(_e){}
+  remove.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
+  return removeExact.length+remove.length;
+}
+function setCoreDbRawResilient(raw){
+  try{
+    localStorage.setItem(KEY, raw);
+    return true;
+  }catch(firstErr){
+    const msg=String(firstErr?.message||firstErr||'');
+    if(!/quota|storage|space|full/i.test(msg)) throw firstErr;
+    freeTechnicalLocalStorageSpace();
+    // Dopo la pulizia tecnica riprova senza creare una seconda copia completa del DB.
+    localStorage.setItem(KEY, raw);
+    return true;
+  }
+}
 function saveDB(db){
   try{
     const cleanDb=normalizeDBShape(db||defDB());
     const raw=JSON.stringify(cleanDb);
-    localStorage.setItem(KEY, raw);
-    try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
+    setCoreDbRawResilient(raw);
+    // Niente duplicato completo in localStorage: su Android consuma quota inutilmente.
+    // La copia di sicurezza viene salvata in IndexedDB da persistSafetySnapshot().
+    try{ localStorage.removeItem(KEY+'_backup_latest'); }catch(_e){}
     try{ localStorage.setItem(AGENDA_KEY, JSON.stringify(Array.isArray(cleanDb.agenda)?cleanDb.agenda:[])); }catch(_e){}
     const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
     legacyKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
   }catch(err){
+    console.error('Salvataggio DB locale fallito', err);
     const msg=String(err?.message||err||'');
-    if(/quota|storage/i.test(msg)) toast('Salvataggio fallito: archivio locale pieno o sporco');
+    if(/quota|storage|space|full/i.test(msg)) toast('Spazio locale insufficiente. Ho già liberato le cache tecniche: i dati esistenti non sono stati cancellati.');
     else toast('Salvataggio fallito');
     return false;
   }
@@ -2892,7 +2929,8 @@ function clearDraftRaw(key){
 function persistSafetySnapshot(){
   try{
     const raw=localStorage.getItem(KEY);
-    if(raw) localStorage.setItem(KEY+'_backup_latest', raw);
+    if(raw) saveDbSafetySnapshot(raw).catch(()=>{});
+    try{ localStorage.removeItem(KEY+'_backup_latest'); }catch(_e){}
   }catch(_e){}
 }
 function collectArticleDraft(){
@@ -9525,11 +9563,26 @@ function vgBase64ToFloat32(s){
 function vgVisualCacheKey(a){
   return `vgai:${VG_VISUAL_AI_VERSION}:${String(a?.id||'')}:${Number(a?._ts||0)}`;
 }
-function vgReadVisualEmbedding(a){
-  try{ const raw=localStorage.getItem(vgVisualCacheKey(a)); return raw?vgBase64ToFloat32(raw):null; }catch(_e){ return null; }
+async function vgReadVisualEmbedding(a){
+  try{
+    const raw=await thumbGet(vgVisualCacheKey(a));
+    return raw?vgBase64ToFloat32(String(raw)):null;
+  }catch(_e){ return null; }
 }
-function vgWriteVisualEmbedding(a,vec){
-  try{ localStorage.setItem(vgVisualCacheKey(a),vgFloat32ToBase64(vec)); }catch(_e){}
+async function vgWriteVisualEmbedding(a,vec){
+  try{ await thumbSet(vgVisualCacheKey(a),vgFloat32ToBase64(vec)); return true; }
+  catch(_e){ return false; }
+}
+function vgPurgeLegacyVisualLocalStorage(){
+  const keys=[];
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k=String(localStorage.key(i)||'');
+      if(k.startsWith('vgai:')) keys.push(k);
+    }
+  }catch(_e){}
+  keys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
+  return keys.length;
 }
 function vgCosineSimilarity(a,b){
   if(!a||!b||a.length!==b.length) return -1;
@@ -9565,7 +9618,7 @@ async function vgFirstArticleVisualSource(a){
   return null;
 }
 async function vgArticleVisualEmbedding(a){
-  const cached=vgReadVisualEmbedding(a);
+  const cached=await vgReadVisualEmbedding(a);
   if(cached?.length) return cached;
   const source=await vgFirstArticleVisualSource(a);
   if(!source?.src) return null;
@@ -9579,7 +9632,7 @@ async function vgArticleVisualEmbedding(a){
       }catch(_e){}
     }
     const vec=await vgEmbeddingFromImageSource(src);
-    if(vec?.length) vgWriteVisualEmbedding(a,vec);
+    if(vec?.length) await vgWriteVisualEmbedding(a,vec);
     return vec;
   }catch(_e){ return null; }
   finally{ if(tmpUrl) try{URL.revokeObjectURL(tmpUrl);}catch(_e){} }
@@ -13019,6 +13072,25 @@ function stripImportedMedia(value, seen=new WeakSet()){
   }
   return out;
 }
+function saveDbSafetySnapshot(rawText){
+  return new Promise(resolve=>{
+    try{
+      const req=indexedDB.open('vg_json_recovery_v1',1);
+      req.onupgradeneeded=()=>{ const db=req.result; if(!db.objectStoreNames.contains('backups')) db.createObjectStore('backups',{keyPath:'id'}); };
+      req.onerror=()=>resolve(false);
+      req.onsuccess=()=>{
+        const db=req.result;
+        try{
+          const tx=db.transaction('backups','readwrite');
+          tx.objectStore('backups').put({id:'autosnapshot',filename:'autosnapshot.json',savedAt:new Date().toISOString(),raw:String(rawText||'')});
+          tx.oncomplete=()=>{ db.close(); resolve(true); };
+          tx.onerror=()=>{ db.close(); resolve(false); };
+          tx.onabort=()=>{ db.close(); resolve(false); };
+        }catch(_e){ db.close(); resolve(false); }
+      };
+    }catch(_e){ resolve(false); }
+  });
+}
 function saveRawImportRecovery(rawText, filename){
   return new Promise(resolve=>{
     try{
@@ -13814,7 +13886,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.100-2026-08-11';
+const VG_BUILD='1.0.101-2026-08-11';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -13930,9 +14002,9 @@ function saveDBLocal(db){
   try{
     const cleanDb=normalizeDBShape(db||defDB());
     const raw=JSON.stringify(cleanDb);
-    localStorage.setItem(KEY, raw);
-    try{ localStorage.setItem(KEY+'_backup_latest', raw); }catch(_e){}
-  }catch(err){ console.error(err); }
+    setCoreDbRawResilient(raw);
+    try{ localStorage.removeItem(KEY+'_backup_latest'); }catch(_e){}
+  }catch(err){ console.error('Salvataggio locale rapido fallito',err); }
 }
 function clearAllArticlePublishLogsInDb(db){
   const cleanDb=normalizeDBShape(db||defDB());
@@ -15033,6 +15105,9 @@ async function bootApp(){
 }
 bootApp();
 try{
+  try{ vgPurgeLegacyVisualLocalStorage(); }catch(_e){}
+  try{ localStorage.removeItem(KEY+'_backup_latest'); }catch(_e){}
+
   const __vgBuildKey='VG_BUILD_ACTIVE';
   const __vgPrevBuild=localStorage.getItem(__vgBuildKey);
   if(__vgPrevBuild!==VG_BUILD){
@@ -15098,7 +15173,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.100', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.101', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

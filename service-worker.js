@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.100-2026-08-11-pacchetto-pulito';
+const VERSION = 'gestionale-vg-1.0.101-2026-08-11-storage-ai-idb';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',
