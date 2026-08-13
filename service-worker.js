@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.103-2026-08-11-local-visual-search-clean';
+const VERSION = 'gestionale-vg-1.0.104-2026-08-13-client-dedup-safe';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',

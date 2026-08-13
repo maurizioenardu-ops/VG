@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Gestionale"/>
-<link rel="manifest" href="manifest.json?v=1.0.101"/>
+<link rel="manifest" href="manifest.json?v=1.0.104"/>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-v1-32.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-v1-192.png"/>
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v1.png"/>
@@ -487,7 +487,7 @@ input,select,textarea{font-size:17px;line-height:1.25}
 .archiveRow .t{font-weight:1000}.archiveRow .s{font-size:12px;color:#64748b;margin-top:3px}
 .archiveRestore{border:1px solid #16a34a;background:#16a34a;color:#fff;border-radius:12px;padding:10px 12px;font-weight:1000}
 
-/* v1.0.101 — fix archivio locale: cache AI spostata in IndexedDB e salvataggio resiliente */
+/* v1.0.104 — deduplica clienti sicura: rimuove solo copie omonime vuote, preserva omonimi completi e rimappa ordini/cloud */
 .visualSearchRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
 .visualSearchBtn{background:#7c3aed!important;border-color:#7c3aed!important;color:#fff!important;min-height:46px}
 .visualSearchStatus{font-size:13px;color:#667085;line-height:1.35;flex:1;min-width:180px}
@@ -516,7 +516,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v141-local-visual-search-clean">
+  <meta name="vg-version" content="v142-client-dedup-safe">
 </head>
 <body>
 
@@ -814,7 +814,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.101</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.104</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -2535,6 +2535,50 @@ function normalizeClientDedupKey(x){
   if(full) return `name|${full}|${citta}|${cap}|${indirizzo}`;
   return '';
 }
+function clientMeaningfulDataScore(x){
+  if(!x || typeof x!=='object') return 0;
+  let score=0;
+  const phone=normalizePhone(x?.telefono||x?.tel||x?.phone||'');
+  const email=normalizeEmail(x?.email||'');
+  const addr=normalizeSpaceText(x?.indirizzo||x?.address||'');
+  const cap=normalizeSpaceText(x?.cap||'');
+  const city=normalizeSpaceText(x?.citta||x?.city||'');
+  const prov=normalizeSpaceText(x?.provincia||x?.province||'');
+  const fb=normalizeFacebookProfileUrl(x?.facebookUrl||x?.facebook||'');
+  const note=normalizeSpaceText(x?.note||'');
+  if(phone && phone.replace(/\D/g,'').length>=6) score+=5;
+  if(email) score+=5;
+  if(addr) score+=3;
+  if(cap) score+=1;
+  if(city) score+=2;
+  if(prov) score+=1;
+  if(fb) score+=2;
+  if(note) score+=2;
+  if(x?.indirizzoAlternativoAttivo) score+=1;
+  ['nomeAlternativo','cognomeAlternativo','indirizzoAlternativo','capAlternativo','cittaAlternativa','provinciaAlternativa'].forEach(k=>{ if(normalizeSpaceText(x?.[k]||'')) score+=1; });
+  const country=normalizeCountryName(x?.paese||x?.country||'Italia');
+  if(country && normalizeTextKey(country)!=='italia') score+=1;
+  return score;
+}
+function clientHasStrongIdentityData(x){
+  const phone=normalizePhone(x?.telefono||x?.tel||x?.phone||'');
+  const email=normalizeEmail(x?.email||'');
+  const addr=normalizeSpaceText(x?.indirizzo||x?.address||'');
+  const city=normalizeSpaceText(x?.citta||x?.city||'');
+  return !!((phone && phone.replace(/\D/g,'').length>=6) || email || (addr && city));
+}
+function isClientNameOnlyRecord(x){
+  return !!normalizeTextKey(normalizeClientDisplayName(x)) && clientMeaningfulDataScore(x)===0;
+}
+function isSafeSparseClientDuplicate(a,b){
+  const an=normalizeTextKey(normalizeClientDisplayName(a));
+  const bn=normalizeTextKey(normalizeClientDisplayName(b));
+  if(!an || an!==bn) return false;
+  const aSparse=isClientNameOnlyRecord(a), bSparse=isClientNameOnlyRecord(b);
+  if(aSparse===bSparse) return false;
+  const rich=aSparse?b:a;
+  return clientHasStrongIdentityData(rich);
+}
 function mergeClientRecords(prev,item){
   if(!prev) return {
     ...item,
@@ -2559,30 +2603,39 @@ function mergeClientRecords(prev,item){
   };
   const prevTs=Number(prev?._ts||0);
   const itemTs=Number(item?._ts||0);
-  const nextWins=itemTs!==prevTs ? itemTs>prevTs : recordRichnessScore(item) >= recordRichnessScore(prev);
-  const merged=nextWins ? {...prev, ...item} : {...item, ...prev};
+  const prevDataScore=clientMeaningfulDataScore(prev);
+  const itemDataScore=clientMeaningfulDataScore(item);
+  const itemIsPrimary=itemDataScore!==prevDataScore ? itemDataScore>prevDataScore : (itemTs!==prevTs ? itemTs>prevTs : recordRichnessScore(item)>=recordRichnessScore(prev));
+  const primary=itemIsPrimary?item:prev;
+  const secondary=itemIsPrimary?prev:item;
+  const merged={...secondary,...primary};
+  const text=(a,b)=>normalizeSpaceText(a||'')||normalizeSpaceText(b||'');
   const latestStatusSource=itemTs>=prevTs ? item : prev;
   const fallbackStatusSource=itemTs>=prevTs ? prev : item;
+  merged.id=choosePreferredId(primary?.id, secondary?.id) || merged.id;
+  merged.nome=normalizeClientDisplayName(primary)||normalizeClientDisplayName(secondary);
+  merged.cognome=text(primary?.cognome,secondary?.cognome);
+  merged.telefono=normalizePhone(primary?.telefono||primary?.tel||primary?.phone||secondary?.telefono||secondary?.tel||secondary?.phone||'');
+  merged.email=normalizeEmail(primary?.email||secondary?.email||'');
+  merged.indirizzo=text(primary?.indirizzo||primary?.address,secondary?.indirizzo||secondary?.address);
+  merged.cap=text(primary?.cap,secondary?.cap);
+  merged.citta=text(primary?.citta||primary?.city,secondary?.citta||secondary?.city);
+  merged.provincia=text(primary?.provincia||primary?.province,secondary?.provincia||secondary?.province);
+  const pCountry=normalizeCountryName(primary?.paese||primary?.country||'Italia');
+  const sCountry=normalizeCountryName(secondary?.paese||secondary?.country||'Italia');
+  merged.paese=(pCountry && normalizeTextKey(pCountry)!=='italia') ? pCountry : (sCountry||pCountry||'Italia');
+  merged.note=String(primary?.note||'').trim() || String(secondary?.note||'').trim();
+  merged.facebookUrl=normalizeFacebookProfileUrl(primary?.facebookUrl||primary?.facebook||secondary?.facebookUrl||secondary?.facebook||'');
+  merged.indirizzoAlternativoAttivo=!!(primary?.indirizzoAlternativoAttivo||secondary?.indirizzoAlternativoAttivo||primary?.altAddressEnabled||secondary?.altAddressEnabled);
+  merged.nomeAlternativo=text(primary?.nomeAlternativo||primary?.altFirstName,secondary?.nomeAlternativo||secondary?.altFirstName);
+  merged.cognomeAlternativo=text(primary?.cognomeAlternativo||primary?.altLastName,secondary?.cognomeAlternativo||secondary?.altLastName);
+  merged.indirizzoAlternativo=text(primary?.indirizzoAlternativo||primary?.altAddress,secondary?.indirizzoAlternativo||secondary?.altAddress);
+  merged.capAlternativo=text(primary?.capAlternativo||primary?.altPostalCode,secondary?.capAlternativo||secondary?.altPostalCode);
+  merged.cittaAlternativa=text(primary?.cittaAlternativa||primary?.altCity,secondary?.cittaAlternativa||secondary?.altCity);
+  merged.provinciaAlternativa=text(primary?.provinciaAlternativa||primary?.altProvince,secondary?.provinciaAlternativa||secondary?.altProvince);
+  merged.paeseAlternativo=normalizeCountryName(primary?.paeseAlternativo||primary?.altCountry||secondary?.paeseAlternativo||secondary?.altCountry||merged.paese||'Italia');
   merged.stato=normalizeSpaceText(latestStatusSource?.stato||fallbackStatusSource?.stato||'Richiesto') || 'Richiesto';
-  merged._ts=Math.max(prevTs,itemTs,Date.now()>0?0:0);
-  merged.id=choosePreferredId(prev?.id, item?.id) || merged.id;
-  merged.nome=normalizeClientDisplayName(merged);
-  merged.cognome=normalizeSpaceText(merged?.cognome||'');
-  merged.telefono=normalizePhone(merged?.telefono||merged?.tel||merged?.phone||'');
-  merged.email=normalizeEmail(merged?.email||'');
-  merged.indirizzo=normalizeSpaceText(merged?.indirizzo||merged?.address||'');
-  merged.cap=normalizeSpaceText(merged?.cap||'');
-  merged.citta=normalizeSpaceText(merged?.citta||merged?.city||'');
-  merged.provincia=normalizeSpaceText(merged?.provincia||merged?.province||'');
-  merged.paese=normalizeCountryName(merged?.paese||merged?.country||'Italia');
-  merged.indirizzoAlternativoAttivo=!!(merged?.indirizzoAlternativoAttivo||merged?.altAddressEnabled);
-  merged.nomeAlternativo=normalizeSpaceText(merged?.nomeAlternativo||item?.nomeAlternativo||prev?.nomeAlternativo||merged?.altFirstName||item?.altFirstName||prev?.altFirstName||'');
-  merged.cognomeAlternativo=normalizeSpaceText(merged?.cognomeAlternativo||item?.cognomeAlternativo||prev?.cognomeAlternativo||merged?.altLastName||item?.altLastName||prev?.altLastName||'');
-  merged.indirizzoAlternativo=normalizeSpaceText(merged?.indirizzoAlternativo||merged?.altAddress||'');
-  merged.capAlternativo=normalizeSpaceText(merged?.capAlternativo||merged?.altPostalCode||'');
-  merged.cittaAlternativa=normalizeSpaceText(merged?.cittaAlternativa||merged?.altCity||'');
-  merged.provinciaAlternativa=normalizeSpaceText(merged?.provinciaAlternativa||merged?.altProvince||'');
-  merged.paeseAlternativo=normalizeCountryName(merged?.paeseAlternativo||merged?.altCountry||merged?.paese||'Italia');
+  merged._ts=Math.max(prevTs,itemTs);
   return merged;
 }
 function dedupeSemanticList(list, keyFn, mergeFn){
@@ -2620,7 +2673,46 @@ function dedupeSemanticList(list, keyFn, mergeFn){
   }
   return {items,idMap};
 }
-function dedupeClientiWithMap(list=[]){ return dedupeSemanticList(list, normalizeClientDedupKey, mergeClientRecords); }
+function dedupeClientiWithMap(list=[]){
+  const strict=dedupeSemanticList(list, normalizeClientDedupKey, mergeClientRecords);
+  const items=strict.items.slice();
+  const idMap=new Map(strict.idMap);
+  const removed=new Set();
+  const groups=new Map();
+  items.forEach((c,idx)=>{
+    const nameKey=normalizeTextKey(normalizeClientDisplayName(c));
+    if(!nameKey) return;
+    const arr=groups.get(nameKey)||[];
+    arr.push(idx); groups.set(nameKey,arr);
+  });
+  for(const indexes of groups.values()){
+    if(indexes.length<2) continue;
+    const rich=indexes.filter(i=>!isClientNameOnlyRecord(items[i]) && clientHasStrongIdentityData(items[i]));
+    const sparse=indexes.filter(i=>isClientNameOnlyRecord(items[i]));
+    // Sicurezza: uniamo il record vuoto solo quando esiste UNA sola scheda completa omonima.
+    // Se ci sono due clienti completi con lo stesso nome, non decidiamo noi chi sia chi.
+    if(rich.length!==1 || !sparse.length) continue;
+    const keepIdx=rich[0];
+    let keep=items[keepIdx];
+    for(const dropIdx of sparse){
+      const drop=items[dropIdx];
+      if(!isSafeSparseClientDuplicate(keep,drop)) continue;
+      const dropId=normalizeSpaceText(drop?.id||'');
+      keep=mergeClientRecords(keep,drop); // il record completo resta quello principale
+      items[keepIdx]=keep;
+      removed.add(dropIdx);
+      const keepId=normalizeSpaceText(keep?.id||'');
+      if(dropId && keepId && dropId!==keepId) idMap.set(dropId,keepId);
+    }
+  }
+  // Rende canoniche anche eventuali mappe create nella prima passata.
+  for(const [oldId,target0] of [...idMap.entries()]){
+    let target=target0, guard=0;
+    while(idMap.has(target) && idMap.get(target)!==target && guard++<20) target=idMap.get(target);
+    if(target) idMap.set(oldId,target);
+  }
+  return {items:items.filter((_c,idx)=>!removed.has(idx)),idMap};
+}
 function dedupeClienti(list=[]){ return dedupeClientiWithMap(list).items; }
 
 function normalizeArticleDedupKey(x){
@@ -12110,10 +12202,15 @@ async function saveCli(){
     _ts: Date.now()
   };
   const candidateKey=normalizeClientDedupKey(candidate) || normalizeTextKey(candidate.nome);
-  const exists = db.clienti.find(c => c.id !== currentCliId && (normalizeClientDedupKey(c) || normalizeTextKey(c?.nome)) === candidateKey);
+  const exists = db.clienti.find(c => c.id !== currentCliId && ((normalizeClientDedupKey(c) || normalizeTextKey(c?.nome)) === candidateKey || isSafeSparseClientDuplicate(c,candidate)));
   if(exists){
-    toast('Cliente già esistente');
-    return;
+    // Se esiste solo una vecchia scheda omonima vuota, la completiamo invece di creare un duplicato.
+    if(!currentCliId && isClientNameOnlyRecord(exists) && !isClientNameOnlyRecord(candidate) && clientHasStrongIdentityData(candidate)){
+      candidate.id=exists.id;
+    }else{
+      toast('Cliente già esistente');
+      return;
+    }
   }
   const obj={
     ...candidate,
@@ -13887,7 +13984,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.101-2026-08-11';
+const VG_BUILD='1.0.104-2026-08-13';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14145,6 +14242,66 @@ function unpackCloudClientNote(text){
   const plain=raw.replace(/\s*\[VGCLIMETA\][\s\S]*?\[\/VGCLIMETA\]\s*/gi,' ').replace(/\s{3,}/g,'\n\n').trim();
   return {plain,meta:(meta&&typeof meta==='object')?meta:{}};
 }
+function cloudClientRowAsLocal(c){
+  const packed=unpackCloudClientNote(c?.note||'');
+  const meta=packed.meta||{};
+  return {
+    id:c?.id,nome:normalizeClientDisplayName({nome:c?.nome,cognome:c?.cognome}),cognome:c?.cognome||'',
+    telefono:normalizePhone(c?.telefono||''),email:normalizeEmail(c?.email||''),
+    indirizzo:c?.indirizzo||'',cap:c?.cap||'',citta:c?.citta||'',provincia:c?.provincia||'',
+    paese:normalizeCountryName(c?.paese||'Italia'),note:packed.plain||'',
+    indirizzoAlternativoAttivo:!!meta.indirizzoAlternativoAttivo,
+    nomeAlternativo:meta.nomeAlternativo||'',cognomeAlternativo:meta.cognomeAlternativo||'',
+    indirizzoAlternativo:meta.indirizzoAlternativo||'',capAlternativo:meta.capAlternativo||'',
+    cittaAlternativa:meta.cittaAlternativa||'',provinciaAlternativa:meta.provinciaAlternativa||'',
+    paeseAlternativo:normalizeCountryName(meta.paeseAlternativo||c?.paese||'Italia'),
+    facebookUrl:normalizeFacebookProfileUrl(meta.facebookUrl||''),
+    _ts:parseTimestampLike(c?.updated_at,c?.created_at,Date.now()),_cloud:true
+  };
+}
+async function cleanupSparseDuplicateCloudClients(sb, cliRows=[], ordRows=[]){
+  if(!sb || !Array.isArray(cliRows) || cliRows.length<2) return {removed:0,remappedOrders:0};
+  const groups=new Map();
+  cliRows.forEach(row=>{
+    const local=cloudClientRowAsLocal(row);
+    const key=normalizeTextKey(normalizeClientDisplayName(local));
+    if(!key) return;
+    const arr=groups.get(key)||[];
+    arr.push({row,local}); groups.set(key,arr);
+  });
+  const removedIds=new Set();
+  let remappedOrders=0;
+  for(const group of groups.values()){
+    if(group.length<2) continue;
+    const rich=group.filter(x=>!isClientNameOnlyRecord(x.local) && clientHasStrongIdentityData(x.local));
+    const sparse=group.filter(x=>isClientNameOnlyRecord(x.local));
+    if(rich.length!==1 || !sparse.length) continue;
+    const keep=rich[0];
+    const keepId=String(keep.row?.id||'').trim();
+    if(!isUuid(keepId)) continue;
+    for(const drop of sparse){
+      const dropId=String(drop.row?.id||'').trim();
+      if(!isUuid(dropId) || dropId===keepId || !isSafeSparseClientDuplicate(keep.local,drop.local)) continue;
+      try{
+        const affected=(ordRows||[]).filter(o=>String(o?.cliente_id||'')===dropId).length;
+        const {error:updateErr}=await sb.from('ordini').update({cliente_id:keepId}).eq('cliente_id',dropId);
+        if(updateErr) throw updateErr;
+        (ordRows||[]).forEach(o=>{ if(String(o?.cliente_id||'')===dropId) o.cliente_id=keepId; });
+        remappedOrders+=affected;
+        const {error:deleteErr}=await sb.from('clienti').delete().eq('id',dropId);
+        if(deleteErr) throw deleteErr;
+        removedIds.add(dropId);
+      }catch(err){
+        console.warn('Pulizia duplicato cliente cloud non riuscita',dropId,err);
+      }
+    }
+  }
+  if(removedIds.size){
+    for(let i=cliRows.length-1;i>=0;i--){ if(removedIds.has(String(cliRows[i]?.id||''))) cliRows.splice(i,1); }
+    console.info(`Pulizia clienti cloud: rimossi ${removedIds.size} duplicati vuoti, rimappati ${remappedOrders} ordini.`);
+  }
+  return {removed:removedIds.size,remappedOrders};
+}
 async function upsertCloudClient(cli){
   const sb=await ensureCloud();
   if(!sb||!cloudSession) return cli;
@@ -14176,7 +14333,11 @@ async function upsertCloudClient(cli){
     const probeKey=normalizeClientDedupKey({...cli, nome:normalizeClientDisplayName(cli), cognome:nameParts.cognome, email:payload.email, telefono:payload.telefono});
     const existing=await sb.from('clienti').select('*').eq('nome', payload.nome).limit(20);
     const rows=Array.isArray(existing.data) ? existing.data : [];
-    const match=rows.find(row=>normalizeClientDedupKey({nome:[row.nome,row.cognome].filter(Boolean).join(' ').trim(), cognome:row.cognome, telefono:row.telefono, email:row.email, indirizzo:row.indirizzo, citta:row.citta, cap:row.cap})===probeKey);
+    let match=rows.find(row=>normalizeClientDedupKey(cloudClientRowAsLocal(row))===probeKey);
+    if(!match){
+      const safeMatches=rows.filter(row=>isSafeSparseClientDuplicate(cloudClientRowAsLocal(row),cli));
+      if(safeMatches.length===1) match=safeMatches[0];
+    }
     if(match) matchedId=match.id;
   }
 
@@ -14303,6 +14464,9 @@ async function pullCloudToLocal(opts={}){
       sb.from('prodotti_foto').select('prodotto_id,path,ordine').order('ordine',{ascending:true})
     ]);
     if(catsErr||prodErr||cliErr||ordErr||righeErr||fotosErr) throw (catsErr||prodErr||cliErr||ordErr||righeErr||fotosErr);
+    // Elimina dal cloud solo le copie omonime realmente vuote quando esiste una sola scheda completa sicura.
+    // Prima rimappa eventuali ordini, poi cancella il duplicato vuoto.
+    await cleanupSparseDuplicateCloudClients(sb, cli||[], ord||[]);
     const catMap=new Map((cats||[]).map(c=>[c.id,c.nome]));
     const prodMap=new Map((prod||[]).map(p=>[p.id,p]));
     const fotoByProd=new Map();
@@ -14369,23 +14533,7 @@ async function pullCloudToLocal(opts={}){
         const createdAt=meta.createdAt||local?.createdAt||local?.dataInserimento||p.created_at||'';
         return {id:p.id,createdAt,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:meta.fornitore||local?.fornitore||'',fornitoreLink:meta.fornitoreLink||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,costoStimatoAttivo:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoIpotetico:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoEurStimato:firstFiniteNumber(meta.costoEurStimato,local?.costoEurStimato,0),prezzoVenditaStimato:firstFiniteNumber(meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),prezzoVenditaStimatoOriginale:firstFiniteNumber(meta.prezzoVenditaStimatoOriginale,local?.prezzoVenditaStimatoOriginale,meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),costoStimaCampioni:Math.max(0,parseInt(meta.costoStimaCampioni||local?.costoStimaCampioni||0,10)||0),costoStimaAffidabilita:meta.costoStimaAffidabilita||local?.costoStimaAffidabilita||'',costoStimaMetodo:meta.costoStimaMetodo||local?.costoStimaMetodo||'',costoStimaData:meta.costoStimaData||local?.costoStimaData||'',costoStimaMin:firstFiniteNumber(meta.costoStimaMin,local?.costoStimaMin,0),costoStimaMax:firstFiniteNumber(meta.costoStimaMax,local?.costoStimaMax,0),costoStimaSogliaMinima:firstFiniteNumber(meta.costoStimaSogliaMinima,local?.costoStimaSogliaMinima,0),costoStimaSignature:meta.costoStimaSignature||local?.costoStimaSignature||'',prezzoVendita:pulledPrezzoVendita,prezzoListinoUfficiale:firstFiniteNumber(meta.prezzoListinoUfficiale,local?.prezzoListinoUfficiale,0),linkUfficiale:meta.linkUfficiale||local?.linkUfficiale||'',promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),costoNormaleSconosciuto:!!(meta.costoNormaleSconosciuto??local?.costoNormaleSconosciuto),promoFornitoreAttiva:(typeof meta.promoFornitoreAttiva==='boolean'?meta.promoFornitoreAttiva:(typeof local?.promoFornitoreAttiva==='boolean'?local.promoFornitoreAttiva:pulledCostoUsdPromo>0)),dataInizioPromoFornitore:normalizePromoStartDate(meta.dataInizioPromoFornitore||local?.dataInizioPromoFornitore||''),scadenzaPromoFornitore:meta.scadenzaPromoFornitore||local?.scadenzaPromoFornitore||'',promoFornitoreDataSconosciuta:!!(meta.promoFornitoreDataSconosciuta??local?.promoFornitoreDataSconosciuta),dataInizioPromoPersonale:normalizePromoStartDate(meta.dataInizioPromoPersonale||local?.dataInizioPromoPersonale||meta.dataInizioPromo||local?.dataInizioPromo||''),scadenzaPromoPersonale:meta.scadenzaPromoPersonale||local?.scadenzaPromoPersonale||meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],pubblicazioniCanali:normalizeArticlePublishLog(meta.pubblicazioniCanali||meta.publishStats||local?.pubblicazioniCanali||local?.publishStats||local?.socialPub||{}),_ts:cloudTs,_cloud:true};
       }).filter(a=>!articleMatchesDeleteTombstone(a, deletedArticleTombstones)),
-      clienti:(cli||[]).map(c=>{
-        const packed=unpackCloudClientNote(c.note||'');
-        const meta=packed.meta||{};
-        return {
-          id:c.id,nome:normalizeClientDisplayName({nome:c.nome,cognome:c.cognome}),cognome:c.cognome||'',
-          telefono:normalizePhone(c.telefono||''),email:normalizeEmail(c.email||''),
-          indirizzo:c.indirizzo||'',cap:c.cap||'',citta:c.citta||'',provincia:c.provincia||'',
-          paese:normalizeCountryName(c.paese||'Italia'),note:packed.plain||'',
-          indirizzoAlternativoAttivo:!!meta.indirizzoAlternativoAttivo,
-          nomeAlternativo:meta.nomeAlternativo||'',cognomeAlternativo:meta.cognomeAlternativo||'',
-          indirizzoAlternativo:meta.indirizzoAlternativo||'',capAlternativo:meta.capAlternativo||'',
-          cittaAlternativa:meta.cittaAlternativa||'',provinciaAlternativa:meta.provinciaAlternativa||'',
-          paeseAlternativo:normalizeCountryName(meta.paeseAlternativo||c.paese||'Italia'),
-          facebookUrl:normalizeFacebookProfileUrl(meta.facebookUrl||''),
-          _ts:parseTimestampLike(c.updated_at, c.created_at, Date.now()),_cloud:true
-        };
-      }),
+      clienti:(cli||[]).map(c=>cloudClientRowAsLocal(c)),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, brand:localRow?.brand||row?.brand||'', categoria:localRow?.categoria||row?.categoria||'', qualita:localRow?.qualita||row?.qualita||'', costoEur:historicalNumber(localRow?.costoEur,row?.costoEur), articoloSnapshot:localRow?.articoloSnapshot||row?.articoloSnapshot||null, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), numeroColore:normalizeSpaceText(localRow?.numeroColore||''), colore:normalizeSpaceText(localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); const statoMeta=normalizeOrderStatus(noteMeta.stato||''); const localStatus=local?.stato?normalizeOrderStatus(local.stato):''; const cloudDerived=(o.stato==='consegnato'?'Consegnato':(o.stato==='spedito'?'Spedito':(o.stato==='annullato'?'Annullato':((o.pagato===true || o.pagato===1 || o.pagato==='true')?'Pagato':'Richiesto')))); const statoCloud=noteMeta.stato ? statoMeta : (localStatus || cloudDerived); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:statoCloud,data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',modalitaPagamento:noteMeta.modalitaPagamento||local?.modalitaPagamento||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],shippingPhotoId:String(local?.shippingPhotoId||''),shippingPhoto:String(local?.shippingPhoto||''),foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
     };
     const mergedCategories=[...new Set([
@@ -15174,7 +15322,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.103', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.104', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
