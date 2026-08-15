@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.104-2026-08-13-client-dedup-safe';
+const VERSION = 'gestionale-vg-1.0.105-2026-08-15-social-category-folders';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',
