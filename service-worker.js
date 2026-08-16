@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.105-2026-08-15-social-category-folders';
+const VERSION = 'gestionale-vg-1.0.106-2026-08-16-bacheca-cartelle-categorie';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',
