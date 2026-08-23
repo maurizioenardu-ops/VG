@@ -4628,71 +4628,48 @@ async function shareArticleFilesSmart(files, options={}){
 async function shareArtAll(){
   const db=loadDB();
   const a=db.articoli.find(x=>x.id===currentArtId); if(!a) return;
+  const text=normalizeFacebookPostForArticle((document.getElementById('vArtPostFb')?.value||getArticleFacebookPost(a)||'').trim(),a);
+  const title=(a.modello||a.codice||'Articolo');
 
-  // Usa sistema warming esistente per le foto (già collaudato)
-  let ctx=getPreparedCurrentArticlePhotoContext();
-  if(!ctx) ctx=await getCurrentArticlePhotoContext();
-
-  // Se foto non ancora pronte, avvia warming e chiedi di ripremere
-  if(ctx && !areCachedArticlePhotoFilesComplete(ctx)){
-    warmCurrentArticlePhotoShare(ctx,{silent:true}).catch(()=>{});
-    const readyCount=(getCachedArticlePhotoFilesForCtx(ctx)||[]).length;
-    toast(readyCount>0
-      ? `Sto preparando: ${readyCount}/${ctx.pics.length} foto pronte. Premi Condividi tra un attimo.`
-      : `Sto preparando le foto. Premi Condividi tra un attimo.`
-    );
-    return;
-  }
-
-  toast('⏳ Preparo file…');
-  const files=[];
-
-  // 1. VIDEO PRIMA
-  const vids=Array.isArray(a.videoIds)?a.videoIds.filter(Boolean):[];
-  for(let i=0;i<vids.length;i++){
-    try{
-      const sb=await ensureCloud(); if(!sb) continue;
-      const {data,error}=await sb.storage.from(SUPABASE_BUCKET).download(vids[i]);
-      if(!error&&data){
-        const ext=(vids[i].split('.').pop()||'mp4').replace(/[^a-z0-9]/gi,'').toLowerCase()||'mp4';
-        files.push(new File([data],`video_${i+1}.${ext}`,{type:data.type||'video/mp4'}));
-      }
-    }catch(e){ console.warn('Video non preparato:',e); }
-  }
-
-  // 2. POI FOTO (già pronte dal warming)
-  if(ctx){
-    const photoFiles=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
-    files.push(...photoFiles);
-  }
-
-  if(!files.length){ toast('Nessun file da condividere'); return; }
-
-  const text=(document.getElementById('vArtPostFb')?.value||'').trim();
-
+  // IMPORTANTISSIMO: navigator.share deve partire direttamente dal tocco.
+  // Niente await, download o preparazioni prima del pannello, altrimenti Android perde la user activation.
   try{
-    const shareResult=await shareArticleFilesSmart(files,{baseName:(a.codice||a.modello||'articolo'),title:(a.modello||a.codice||'Articolo'),channel:'fb',text});
-    if(shareResult?.ok){
+    let files=[];
+    const ctx=getPreparedCurrentArticlePhotoContext();
+    if(ctx) files=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
+
+    let payload={title};
+    if(text) payload.text=text;
+    if(files.length && (typeof navigator.canShare!=='function' || navigator.canShare({files}))) payload.files=files;
+
+    if(typeof navigator.share==='function'){
+      // Facebook può ignorare il testo quando riceve file: lo lasciamo anche negli appunti.
+      if(text) copyShareTextSync(text);
+      await navigator.share(payload);
       recordArticlePublication('fb');
-      if(shareResult.mode==='sheet'){
-        toast(text?'✅ Facebook aperto con foto separate. Il testo è stato inviato e resta anche copiato negli appunti 📋':'✅ Facebook aperto con foto separate.');
-      }else if(shareResult.mode==='title'){
-        toast(text?'📋 Testo FB copiato negli appunti. La condivisione file completa non era disponibile.':'✅ Condivisione aperta!');
-      }else{
-        toast(text?'✅ Condivisione aperta. Testo copiato negli appunti 📋':'✅ Condivisione aperta!');
-      }
-    } else {
-      if(text){ try{ await navigator.clipboard.writeText(text); }catch(_e){ try{ fallbackCopyText(text); }catch(__e){} } toast('Condivisione non disponibile: testo copiato negli appunti'); }
-      else toast('Condivisione non supportata su questo browser');
+      toast(text?'✅ Pannello condivisione aperto. Testo FB anche negli appunti 📋':'✅ Pannello condivisione aperto');
+      return;
     }
+
+    if(text){
+      try{ await navigator.clipboard.writeText(text); }catch(_e){ fallbackCopyText(text); }
+      toast('Condivisione non supportata: testo copiato negli appunti');
+    }else toast('Condivisione non supportata su questo browser');
   }catch(err){
     if(isShareAbortError(err)) return;
-    if(isShareActivationError(err)){ toast('⚠️ Premi di nuovo Condividi: il browser ha perso il tocco durante la preparazione.'); return; }
     console.warn('shareArtAll fallito:',err);
+    // Se il dispositivo rifiuta i file, riprova subito col solo testo quando l'attivazione è ancora valida.
+    try{
+      if(typeof navigator.share==='function'){
+        await navigator.share({title,text});
+        recordArticlePublication('fb');
+        toast('✅ Pannello condivisione aperto');
+        return;
+      }
+    }catch(err2){ if(isShareAbortError(err2)) return; console.warn('shareArtAll fallback fallito:',err2); }
     toast('⚠️ Condivisione non riuscita');
   }
 }
-
 
 async function shareArtTelegram(){
   const db=loadDB();
@@ -7763,9 +7740,22 @@ function stripExpiredPromoLinesFromPost(text, a){
     return true;
   }).join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
+function ensureFacebookPostHasQualityEmoji(text, a){
+  const raw=String(text||'').trim();
+  const emoji=emojiQualityForPost(a);
+  if(!raw || !emoji) return raw;
+  // Elimina eventuale medaglia qualità errata e mette quella corretta sulla riga principale.
+  const lines=raw.split(/\r?\n/).map(line=>String(line||'').replace(/[🥇🥈]/gu,' ').replace(/\s{2,}/g,' ').trim());
+  const modelKey=normalizeTextKey(postPrimaryName(a,'fb')||a?.modello||'');
+  let idx=modelKey ? lines.findIndex(line=>normalizeTextKey(line).includes(modelKey)) : -1;
+  if(idx<0) idx=lines.findIndex(line=>String(line||'').trim());
+  if(idx>=0) lines[idx]=`${lines[idx]} ${emoji}`.trim();
+  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
 function normalizeFacebookPostForArticle(text, a){
   let out=stripArticlePrivateNotesFromPost(text, a);
   out=stripExpiredPromoLinesFromPost(out, a);
+  out=ensureFacebookPostHasQualityEmoji(out, a);
   out=ensureOriginalPremiumSocialLine(out, a);
   out=ensureFacebookPostHasDescriptionBelowModel(out, a);
   out=ensureFacebookPostHasArticleMeasures(out, a);
