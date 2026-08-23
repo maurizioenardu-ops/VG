@@ -10845,16 +10845,20 @@ function parseBulkArticleText(text){
     if(m){
       const key=lookup[normalizeBulkArticleLabel(m[1])];
       if(key){
-        currentKey=key;
+        // Ogni campo del blocco articolo vale SOLO sulla propria riga.
+        // In precedenza currentKey restava attivo e qualunque testo successivo
+        // (istruzioni, commenti, prompt, ecc.) veniva appeso al valore precedente,
+        // finendo poi nei post FB/TG e perfino nei campi numerici.
+        currentKey='';
         const value=String(m[2]||'').trim();
         if(key==='descrizione'||key==='note'){ ignored.push(key); continue; }
         if(value) out[key]=value;
         continue;
       }
     }
-    if(currentKey && !['descrizione','note'].includes(currentKey)){
-      out[currentKey]=[out[currentKey],line].filter(Boolean).join('\n');
-    }
+    // Le righe senza una etichetta riconosciuta vengono volutamente ignorate.
+    // Il formato PWA è un campo per riga e non prevede continuazioni libere.
+
   }
   // Formato compatto senza etichette: codice, modello, descrizione, colore, materiale, misure, link.
   if(!out.codice && !Object.keys(out).length){
