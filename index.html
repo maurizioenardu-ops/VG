@@ -3115,7 +3115,9 @@ function restoreArticleDraft(targetId=''){
   currentSupplierManualOverride=(typeof v.fornitoreManuale==='boolean') ? v.fornitoreManuale : !!String(v.fornitore||'').trim();
   currentQualityManualOverride=(typeof v.qualitaManuale==='boolean') ? v.qualitaManuale : !!String(v.qualita||'').trim();
   updateSupplierField(v.fornitore||'');
-  document.getElementById('a_qual').value=v.qualita||document.getElementById('a_qual').value||'';
+  const draftSupplierQuality=getDefaultQualityFromSupplier(document.getElementById('a_forn')?.value||'');
+  document.getElementById('a_qual').value=draftSupplierQuality || v.qualita || document.getElementById('a_qual').value || '';
+  if(draftSupplierQuality) currentQualityManualOverride=false;
   if(document.getElementById('a_official_price')) document.getElementById('a_official_price').value=v.prezzoListinoUfficiale||'';
   document.getElementById('a_taglia').value=v.materiale||'';
   document.getElementById('a_variante').value=v.variante||'';
@@ -5163,11 +5165,23 @@ function getEffectiveArticleSupplier(article={}){
   return normalizeSupplierValue(article?.fornitore||detectSupplierFromUrl(article?.fornitoreLink||''));
 }
 function getEffectiveArticleQuality(article={}){
-  const explicit=normalizeSpaceText(article?.qualita||article?.qualità||'');
-  if(explicit) return explicit;
-  return getDefaultQualityFromSupplier(getEffectiveArticleSupplier(article));
+  const supplier=getEffectiveArticleSupplier(article);
+  const supplierDefault=getDefaultQualityFromSupplier(supplier);
+  // Per i fornitori riconosciuti la qualità è vincolata al fornitore:
+  // Daniel/Jessica = Top Quality, Jayden = Original Quality.
+  if(supplierDefault) return supplierDefault;
+  return normalizeSpaceText(article?.qualita||article?.qualità||'');
 }
-function currentArticleFormQuality(){ return normalizeSpaceText(document.getElementById('a_qual')?.value||''); }
+function currentArticleFormQuality(){
+  const supplier=normalizeSupplierValue(document.getElementById('a_forn')?.value||'');
+  const forced=getDefaultQualityFromSupplier(supplier);
+  if(forced){
+    const el=document.getElementById('a_qual');
+    if(el && el.value!==forced) el.value=forced;
+    return forced;
+  }
+  return normalizeSpaceText(document.getElementById('a_qual')?.value||'');
+}
 function getArticleBrandValue(){
   const sel=document.getElementById('a_brand');
   const custom=document.getElementById('a_brand_custom');
@@ -5230,8 +5244,16 @@ function updateSupplierField(preferredValue=''){
     sel.appendChild(custom);
   }
   sel.value=target||'';
-  if(!currentQualityManualOverride && qualityEl){
-    qualityEl.value=getDefaultQualityFromSupplier(sel.value)||'';
+  const forcedQuality=getDefaultQualityFromSupplier(sel.value)||'';
+  if(qualityEl){
+    if(forcedQuality){
+      qualityEl.value=forcedQuality;
+      qualityEl.readOnly=true;
+      currentQualityManualOverride=false;
+    }else{
+      qualityEl.readOnly=false;
+      if(!currentQualityManualOverride) qualityEl.value='';
+    }
   }
   if(hint){
     if(currentSupplierManualOverride){
@@ -5246,11 +5268,16 @@ function updateSupplierField(preferredValue=''){
 }
 function handleSupplierManualChange(){
   currentSupplierManualOverride=true;
-  if(!currentQualityManualOverride){
-    const qualityEl=document.getElementById('a_qual');
-    if(qualityEl) qualityEl.value=getDefaultQualityFromSupplier(document.getElementById('a_forn')?.value||'');
+  // Un fornitore noto determina sempre la qualità predefinita al momento della selezione.
+  // L'utente può comunque modificarla manualmente subito dopo.
+  const qualityEl=document.getElementById('a_qual');
+  const supplier=document.getElementById('a_forn')?.value||'';
+  const supplierQuality=getDefaultQualityFromSupplier(supplier);
+  if(qualityEl && supplierQuality){
+    qualityEl.value=supplierQuality;
+    currentQualityManualOverride=false;
   }
-  updateSupplierField(document.getElementById('a_forn')?.value||'');
+  updateSupplierField(supplier);
   renderArtAutoFields();
   saveArticleDraft();
 }
@@ -10935,14 +10962,20 @@ function applyBulkPasteArticle(){
   }else{
     updateSupplierField(document.getElementById('a_forn')?.value||'');
   }
-  if(data.qualita){
+  const knownSupplierQuality=getDefaultQualityFromSupplier(document.getElementById('a_forn')?.value||'');
+  if(knownSupplierQuality){
+    const q=document.getElementById('a_qual');
+    if(q) q.value=knownSupplierQuality;
+    currentQualityManualOverride=false;
+    applied.push('qualità');
+  }else if(data.qualita){
     if(set('a_qual',data.qualita)){
       currentQualityManualOverride=true;
       applied.push('qualità');
     }
   }else if(!currentQualityManualOverride){
     const q=document.getElementById('a_qual');
-    if(q) q.value=getDefaultQualityFromSupplier(document.getElementById('a_forn')?.value||'');
+    if(q) q.value='';
   }
 
   if(set('a_usd',parseBulkArticleNumber(data.costoUsd))) applied.push('costo USD');
@@ -11051,7 +11084,13 @@ async function openArtEdit(id){
   currentSupplierManualOverride=(typeof a?.fornitoreManuale==='boolean') ? a.fornitoreManuale : !!normalizeSpaceText(a?.fornitore||'');
   currentQualityManualOverride=(typeof a?.qualitaManuale==='boolean') ? a.qualitaManuale : !!normalizeSpaceText(a?.qualita||a?.qualità||'');
   updateSupplierField(a?.fornitore||'');
-  set('a_qual', normalizeSpaceText(a?.qualita||a?.qualità||'') || getDefaultQualityFromSupplier(document.getElementById('a_forn')?.value||''));
+  const loadedSupplierQuality=getDefaultQualityFromSupplier(document.getElementById('a_forn')?.value||'');
+  if(loadedSupplierQuality){
+    set('a_qual', loadedSupplierQuality);
+    currentQualityManualOverride=false;
+  }else{
+    set('a_qual', normalizeSpaceText(a?.qualita||a?.qualità||''));
+  }
   set('a_official_price', a?.prezzoListinoUfficiale||'');
   set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
   set('a_mis', a?.misura); set('a_belt_h', a?.altezzaCintura||a?.hCintura||''); set('a_usd', a?.costoUsd||''); set('a_usd_promo', a?.costoUsdPromo||'');
@@ -11581,7 +11620,9 @@ async function duplicateCurrentArticle(sourceId=null){
   currentSupplierManualOverride=(typeof clone?.fornitoreManuale==='boolean') ? clone.fornitoreManuale : !!normalizeSpaceText(clone?.fornitore||'');
   currentQualityManualOverride=(typeof clone?.qualitaManuale==='boolean') ? clone.qualitaManuale : !!normalizeSpaceText(clone?.qualita||clone?.qualità||'');
   updateSupplierField(clone.fornitore||'');
-  document.getElementById('a_qual').value=normalizeSpaceText(clone?.qualita||clone?.qualità||'') || getDefaultQualityFromSupplier(document.getElementById('a_forn')?.value||'');
+  const cloneSupplierQuality=getDefaultQualityFromSupplier(document.getElementById('a_forn')?.value||'');
+  document.getElementById('a_qual').value=cloneSupplierQuality || normalizeSpaceText(clone?.qualita||clone?.qualità||'');
+  if(cloneSupplierQuality) currentQualityManualOverride=false;
   if(document.getElementById('a_official_price')) document.getElementById('a_official_price').value=clone.prezzoListinoUfficiale||'';
     document.getElementById('a_taglia').value=clone.materiale||clone.taglia||'';
   document.getElementById('a_variante').value=clone.variante||'';
