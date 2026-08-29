@@ -516,7 +516,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v147-fornitore-da-link">
+  <meta name="vg-version" content="v148-bulk-colori">
 </head>
 <body>
 
@@ -1228,7 +1228,7 @@ window.addEventListener('error',e=>{
 <div id="mArtBulkPaste" class="modalwrap"><div class="modal">
   <div class="h2">Incolla dati articolo</div>
   <div class="bulkPasteHint">Incolla il blocco preparato da ChatGPT. Descrizione e note vengono ignorate. Se il costo reale manca, puoi importare una stima: resterà sempre indicata come ipotetica.</div>
-  <textarea id="a_bulk_paste" class="bulkPasteBox" style="margin-top:10px" placeholder="CODICE: 202357&#10;BRAND:&#10;MODELLO:&#10;CATEGORIA:&#10;FORNITORE:&#10;MATERIALE:&#10;VARIANTE:&#10;COLORE:&#10;MISURE:&#10;ALTEZZA CINTURA:&#10;PREZZO FORNITORE USD:&#10;PREZZO FORNITORE PROMO USD:&#10;SCADENZA PROMO FORNITORE:&#10;LINK: https://...&#10;PREZZO UFFICIALE EUR:&#10;COSTO FORNITORE STIMATO USD:&#10;COSTO FORNITORE STIMATO EUR:&#10;STIMA MINIMA EUR:&#10;STIMA MASSIMA EUR:&#10;AFFIDABILITÀ STIMA:&#10;METODO STIMA:&#10;CAMPIONI STIMA:"></textarea>
+  <textarea id="a_bulk_paste" class="bulkPasteBox" style="margin-top:10px" placeholder="CODICE: 202357&#10;BRAND:&#10;MODELLO:&#10;CATEGORIA:&#10;FORNITORE:&#10;MATERIALE:&#10;VARIANTE:&#10;TIPO COLORE:&#10;COLORE:&#10;DISPONIBILE IN COLORI:&#10;ABBINAMENTO NUMERO / COLORE:&#10;MISURE:&#10;ALTEZZA CINTURA:&#10;PREZZO FORNITORE USD:&#10;PREZZO FORNITORE PROMO USD:&#10;SCADENZA PROMO FORNITORE:&#10;LINK: https://...&#10;PREZZO UFFICIALE EUR:&#10;COSTO FORNITORE STIMATO USD:&#10;COSTO FORNITORE STIMATO EUR:&#10;STIMA MINIMA EUR:&#10;STIMA MASSIMA EUR:&#10;AFFIDABILITÀ STIMA:&#10;METODO STIMA:&#10;CAMPIONI STIMA:"></textarea>
   <div id="a_bulk_result" class="small" style="margin-top:8px"></div>
   <div class="actions compact" style="margin-top:12px">
     <button type="button" class="btn primary" data-action="readBulkPasteClipboard">Incolla dagli appunti</button>
@@ -2138,10 +2138,10 @@ function getArticleColorLabels(article){
 }
 function parseColorLabelsInput(raw='', count=0){
   const safeCount=Math.max(0, parseInt(count||0,10) || 0);
-  const lines=String(raw||'').split(/\r?\n/).map(v=>normalizeSpaceText(v)).filter(Boolean);
+  const lines=String(raw||'').split(/\r?\n|\s*[;|]\s*/g).map(v=>normalizeSpaceText(v)).filter(Boolean);
   const out=new Array(safeCount).fill('');
   for(const line of lines){
-    const m=line.match(/^(\d{1,2})\s*[-.:)]\s*(.+)$/);
+    const m=line.match(/^(\d{1,2})(?:\s*[-.:)]\s*|\s+)(.+)$/);
     if(m){
       const idx=Math.max(1, parseInt(m[1],10)||0);
       if(idx>=1 && idx<=safeCount) out[idx-1]=normalizeSpaceText(m[2]||'');
@@ -10833,7 +10833,9 @@ function parseBulkArticleText(text){
     variante:['variante','versione'],
     colore:['colore','color'],
     tipoColore:['tipo colore','modalita colore'],
-    colori:['colori','colori disponibili','abbinamento colori','varianti colore'],
+    colorCount:['disponibile in colori','colori disponibili','numero colori','quantita colori','quantità colori'],
+    colorLabels:['abbinamento numero colore','abbinamento colori','numero colore'],
+    colori:['colori','varianti colore'],
     misura:['misura','misure','dimensioni','taglia'],
     altezzaCintura:['altezza cintura','h cintura'],
     costoUsd:['prezzo fornitore standard usd','prezzo fornitore usd','costo fornitore usd','costo usd','prezzo acquisto usd'],
@@ -10870,11 +10872,18 @@ function parseBulkArticleText(text){
         const value=String(m[2]||'').trim();
         if(key==='descrizione'||key==='note'){ ignored.push(key); continue; }
         if(value) out[key]=value;
+        // Eccezione controllata: gli abbinamenti colore possono occupare più righe
+        // (es. 1 Nero / 2 Beige / 3 Rosa), senza riaprire le continuazioni libere
+        // per gli altri campi del parser.
+        if(key==='colorLabels') currentKey='colorLabels';
         continue;
       }
     }
-    // Le righe senza una etichetta riconosciuta vengono volutamente ignorate.
-    // Il formato PWA è un campo per riga e non prevede continuazioni libere.
+    if(currentKey==='colorLabels' && /^\d{1,2}(?:\s*[-.:)]\s*|\s+)\S+/.test(line)){
+      out.colorLabels = out.colorLabels ? `${out.colorLabels}\n${line}` : line;
+      continue;
+    }
+    // Le altre righe senza una etichetta riconosciuta vengono volutamente ignorate.
 
   }
   // Formato compatto senza etichette: codice, modello, descrizione, colore, materiale, misure, link.
@@ -10997,21 +11006,47 @@ function applyBulkPasteArticle(){
     applied.push('costo fornitore stimato');
   }
 
-  if(data.colori){
-    document.getElementById('a_color_mode').value='multiple';
-    const colorLines=String(data.colori).split(/\n|,|;/).map(x=>x.trim()).filter(Boolean);
-    document.getElementById('a_color_count').value=String(colorLines.length||'');
-    document.getElementById('a_color_labels').value=colorLines.map((x,i)=>/^\d+\s*[-.)]/.test(x)?x:`${i+1} - ${x}`).join('\n');
-    applied.push('colori');
-  }else if(data.colore){
-    document.getElementById('a_color_mode').value=normalizeBulkArticleLabel(data.tipoColore).includes('piu')?'multiple':'single';
-    if(document.getElementById('a_color_mode').value==='single') document.getElementById('a_colore').value=String(data.colore).trim();
-    else {
-      const colorLines=String(data.colore).split(/,|;/).map(x=>x.trim()).filter(Boolean);
-      document.getElementById('a_color_count').value=String(colorLines.length||'');
-      document.getElementById('a_color_labels').value=colorLines.map((x,i)=>`${i+1} - ${x}`).join('\n');
+  {
+    const modeEl=document.getElementById('a_color_mode');
+    const countEl=document.getElementById('a_color_count');
+    const labelsEl=document.getElementById('a_color_labels');
+    const colorEl=document.getElementById('a_colore');
+    const tipo=normalizeBulkArticleLabel(data.tipoColore||'');
+    const tipoMultiple=tipo.includes('piu') || tipo.includes('multip');
+    const tipoSingle=tipo.includes('singol') || tipo.includes('unic');
+
+    let explicitCount=Math.max(0, parseInt(parseBulkArticleNumber(data.colorCount)||0,10) || 0);
+    // Retrocompatibilità: un vecchio "COLORI DISPONIBILI: Nero, Beige"
+    // viene trattato come elenco se non contiene un numero.
+    let labelsRaw=String(data.colorLabels||data.colori||(!explicitCount && data.colorCount ? data.colorCount : '')||'').trim();
+    let rawLines=labelsRaw
+      ? labelsRaw.split(/\r?\n|\s*[;,|]\s*/g).map(x=>normalizeSpaceText(x)).filter(Boolean)
+      : [];
+    let highestNumber=0;
+    rawLines.forEach(line=>{
+      const m=line.match(/^(\d{1,2})(?:\s*[-.:)]\s*|\s+)/);
+      if(m) highestNumber=Math.max(highestNumber,parseInt(m[1],10)||0);
+    });
+    const inferredCount=Math.max(explicitCount, highestNumber, rawLines.length);
+    const wantsMultiple=tipoMultiple || inferredCount>1 || !!labelsRaw;
+
+    if(wantsMultiple){
+      if(modeEl) modeEl.value='multiple';
+      const finalCount=Math.max(2,inferredCount||0);
+      if(countEl) countEl.value=String(finalCount);
+      if(labelsEl){
+        const parsed=parseColorLabelsInput(labelsRaw,finalCount);
+        labelsEl.value=formatColorLabelsInput(parsed,finalCount);
+      }
+      if(colorEl) colorEl.value='';
+      applied.push('colori');
+    }else if(data.colore || tipoSingle){
+      if(modeEl) modeEl.value='single';
+      if(colorEl && data.colore) colorEl.value=String(data.colore).trim();
+      if(countEl) countEl.value='';
+      if(labelsEl) labelsEl.value='';
+      if(data.colore) applied.push('colore');
     }
-    applied.push('colore');
   }
   updateArticleColorModeUI();
   updateArticleMeasureState();
