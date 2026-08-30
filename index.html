@@ -516,7 +516,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v148-bulk-colori">
+  <meta name="vg-version" content="v149-share-fix">
 </head>
 <body>
 
@@ -4571,9 +4571,8 @@ async function shareArticleFilesSmart(files, options={}){
   const text=String(options.text||'').trim();
   if(typeof navigator.share!=='function') return {ok:false,mode:'unsupported'};
 
-  // Facebook e alcune app Android ignorano spesso il campo text quando ci sono file.
-  // Copia quindi il testo in modo sincrono PRIMA di aprire il pannello, senza perdere il gesto utente.
-  const textCopied=!!text && copyShareTextSync(text);
+  // Il comando Condividi deve solo condividere. La copia resta esclusiva dei pulsanti Copia.
+  const textCopied=false;
 
   // Prima scelta: pannello nativo con testo e file nello stesso gesto.
   if(list.length){
@@ -4643,18 +4642,13 @@ async function shareArtAll(){
     if(files.length && (typeof navigator.canShare!=='function' || navigator.canShare({files}))) payload.files=files;
 
     if(typeof navigator.share==='function'){
-      // Facebook può ignorare il testo quando riceve file: lo lasciamo anche negli appunti.
-      if(text) copyShareTextSync(text);
       await navigator.share(payload);
       recordArticlePublication('fb');
-      toast(text?'✅ Pannello condivisione aperto. Testo FB anche negli appunti 📋':'✅ Pannello condivisione aperto');
+      toast('✅ Pannello condivisione aperto');
       return;
     }
 
-    if(text){
-      try{ await navigator.clipboard.writeText(text); }catch(_e){ fallbackCopyText(text); }
-      toast('Condivisione non supportata: testo copiato negli appunti');
-    }else toast('Condivisione non supportata su questo browser');
+    toast('⚠️ Condivisione non supportata su questo browser');
   }catch(err){
     if(isShareAbortError(err)) return;
     console.warn('shareArtAll fallito:',err);
@@ -4716,8 +4710,7 @@ async function shareArtTelegram(){
       const result=await shareArticleFilesSmart([],{title:(a.modello||a.codice||'Articolo'),text,channel:'tg'});
       if(result?.ok){ recordArticlePublication('tg'); toast('✅ Condivisione Telegram aperta'); return; }
     }catch(err){ if(isShareAbortError(err)) return; }
-    try{ await navigator.clipboard.writeText(text); }catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
-    toast('Condivisione non disponibile: testo copiato negli appunti');
+    toast('⚠️ Condivisione non disponibile su questo browser');
     return;
   }
 
@@ -4726,14 +4719,14 @@ async function shareArtTelegram(){
     if(shareResult?.ok){
       recordArticlePublication('tg');
       if(shareResult.mode==='sheet'){
-        toast(text?'✅ Facebook aperto con foto separate. Il testo è stato inviato e resta anche copiato negli appunti 📋':'✅ Facebook aperto con foto separate.');
+        toast('✅ Condivisione Telegram aperta con foto');
       }else if(shareResult.mode==='title'){
-        toast(text?'📋 Testo Telegram copiato. La condivisione file completa non era disponibile.':'✅ Condivisione Telegram aperta!');
+        toast('✅ Condivisione Telegram aperta');
       }else{
-        toast(text?'✅ Condivisione aperta. Testo copiato negli appunti 📋':'✅ Condivisione aperta!');
+        toast('✅ Condivisione Telegram aperta');
       }
     } else {
-      toast(text?'📋 Testo Telegram copiato. La condivisione file non è supportata.':'Condivisione non supportata su questo browser');
+      toast('⚠️ Condivisione Telegram non supportata su questo browser');
     }
   }catch(err){
     if(isShareAbortError(err)) return;
@@ -4759,17 +4752,26 @@ async function shareArticleFromListByChannel(artId, channel='fb'){
   const text=isDirectSocial
     ? String(buildPostTelegram(a) || '').trim()
     : normalizeFacebookPostForArticle(buildPostFacebook(a), a);
+
   let ctx=null;
   try{ ctx=await prepareArticlePhotoShareContext(a); }
   catch(err){ console.warn('Preparazione contesto foto da elenco fallita', err); }
 
+  // Nessuna foto: tenta comunque la condivisione del solo testo. Mai copiare in automatico.
   if(!ctx){
-    if(text){
-      try{ await navigator.clipboard.writeText(text); }
-      catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
-      toast(isDirectSocial ? `📋 Testo ${channelLabel} copiato. Nessuna foto disponibile.` : '📋 Testo FB senza prezzo copiato. Nessuna foto disponibile.');
-    }else{
-      toast('Nessuna foto disponibile');
+    if(!text){ toast('Nessun contenuto da condividere'); return; }
+    if(typeof navigator.share!=='function'){
+      toast(`⚠️ Condivisione ${channelLabel} non supportata su questo browser`);
+      return;
+    }
+    try{
+      await navigator.share({title:(a.modello||a.codice||'Articolo'),text});
+      recordArticlePublication(isTelegram?'tg':(isWhatsApp?'wa':'fb'));
+      toast(`✅ Condivisione ${channelLabel} aperta`);
+    }catch(err){
+      if(isShareAbortError(err)) return;
+      console.warn('Condivisione solo testo fallita:',err);
+      toast(`⚠️ Condivisione ${channelLabel} non riuscita`);
     }
     return;
   }
@@ -4777,63 +4779,42 @@ async function shareArticleFromListByChannel(artId, channel='fb'){
   let cached=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
   const complete=areCachedArticlePhotoFilesComplete(ctx);
   if(!complete){
-    try{ await warmCurrentArticlePhotoShare(ctx, { silent:true }); }
-    catch(err){ console.warn('Warmup condivisione da elenco fallito', err); }
-    cached=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
+    warmCurrentArticlePhotoShare(ctx,{silent:true}).catch(()=>{});
+    const readyCount=cached.length;
+    toast(readyCount>0
+      ? `Sto preparando: ${readyCount}/${ctx.pics.length} foto pronte. Premi di nuovo ${channelLabel} tra un attimo.`
+      : `Sto preparando le foto. Premi di nuovo ${channelLabel} tra un attimo.`
+    );
+    return;
   }
 
+  cached=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
   if(!cached.length){
-    toast(text
-      ? (isDirectSocial ? `📋 Testo ${channelLabel} copiato. Sto preparando le foto: premi ${channelLabel} tra un attimo.` : '📋 Testo FB senza prezzo copiato. Sto preparando le foto: premi Facebook tra un attimo.')
-      : (isDirectSocial ? `Sto preparando le foto: premi ${channelLabel} tra un attimo.` : 'Sto preparando le foto: premi Facebook tra un attimo.'));
-    if(text){
-      try{ await navigator.clipboard.writeText(text); }
-      catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
-    }
-    warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
+    toast(`⚠️ Foto non disponibili per la condivisione ${channelLabel}`);
     return;
   }
 
   try{
-    const shareResult=await shareArticleFilesSmart(cached,{baseName:(a.codice||a.modello||'articolo'),title:(a.modello||a.codice||'Articolo'),channel:isTelegram?'tg':(isWhatsApp?'wa':'fb'),text});
+    const shareResult=await shareArticleFilesSmart(cached,{
+      baseName:(a.codice||a.modello||'articolo'),
+      title:(a.modello||a.codice||'Articolo'),
+      channel:isTelegram?'tg':(isWhatsApp?'wa':'fb'),
+      text
+    });
     if(shareResult?.ok){
       recordArticlePublication(isTelegram?'tg':(isWhatsApp?'wa':'fb'));
-      if(shareResult.mode==='sheet'){
-        toast(text
-          ? (isDirectSocial ? `✅ ${channelLabel} aperto! Ho unito ${shareResult.count||cached.length} foto in un'unica immagine con testo pronto.` : `✅ Facebook aperto con foto e testo. Ho unito ${shareResult.count||cached.length} foto in un'unica immagine; il testo resta anche copiato 📋`)
-          : `✅ Condivisione aperta! Ho unito ${shareResult.count||cached.length} foto in un'unica immagine.`);
-      }else if(shareResult.mode==='title'){
-        toast(text
-          ? (isDirectSocial ? `✅ ${channelLabel} aperto. Se il testo non appare, è già copiato 📋` : '📋 Testo FB copiato. La condivisione file completa non era disponibile.')
-          : '✅ Condivisione aperta!');
-      }else{
-        toast(text
-          ? (isDirectSocial ? `✅ ${channelLabel} aperto con foto e testo.` : '✅ Facebook aperto con foto separate. Testo FB copiato negli appunti 📋')
-          : '✅ Condivisione aperta!');
-      }
+      toast(`✅ Condivisione ${channelLabel} aperta`);
       return;
     }
-    if(text){
-      try{ await navigator.clipboard.writeText(text); }
-      catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
-    }
-    toast(text
-      ? (isDirectSocial ? `📋 Testo ${channelLabel} copiato. Condivisione file non supportata su questo browser.` : '📋 Testo FB copiato. Condivisione file non supportata su questo browser.')
-      : 'Condivisione non supportata su questo browser');
+    toast(`⚠️ Condivisione ${channelLabel} non supportata su questo browser`);
   }catch(err){
     if(isShareAbortError(err)) return;
     if(isShareActivationError(err)){
-      toast(isDirectSocial ? `⚠️ Premi di nuovo ${channelLabel}: il browser ha perso il tocco durante la preparazione.` : '⚠️ Premi di nuovo Facebook: il browser ha perso il tocco durante la preparazione.');
+      toast(`⚠️ Premi di nuovo ${channelLabel}: il browser ha perso il tocco durante la preparazione.`);
       return;
     }
     console.warn('Condivisione articolo da elenco fallita:', err);
-    if(text){
-      try{ await navigator.clipboard.writeText(text); }
-      catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
-    }
-    toast(text
-      ? (isDirectSocial ? `📋 Testo ${channelLabel} copiato. Condivisione foto non riuscita.` : '📋 Testo FB copiato. Condivisione foto non riuscita.')
-      : '⚠️ Condivisione non riuscita');
+    toast(`⚠️ Condivisione ${channelLabel} non riuscita`);
   }
 }
 async function shareArticleFromList(artId){ return shareArticleFromListByChannel(artId,'fb'); }
