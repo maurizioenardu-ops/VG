@@ -4624,115 +4624,140 @@ async function shareArticleFilesSmart(files, options={}){
   return {ok:false,mode:'fail',textCopied};
 }
 
+
+async function nativeShareArticleNow({title='', text='', files=[], channelLabel='Condivisione'}={}){
+  if(typeof navigator.share!=='function'){
+    toast(`⚠️ ${channelLabel} non supportata su questo browser`);
+    return false;
+  }
+  const cleanFiles=normalizePreparedPhotoFiles(files||[]);
+  if(!cleanFiles.length){
+    toast('⚠️ Nessuna foto pronta da condividere');
+    return false;
+  }
+
+  // Prima prova tutte le foto. Se Android/Facebook rifiuta il gruppo,
+  // riprova automaticamente con la prima foto, che è molto più compatibile.
+  const attempts=[];
+  attempts.push(cleanFiles);
+  if(cleanFiles.length>1) attempts.push([cleanFiles[0]]);
+
+  let lastErr=null;
+  for(const shareFiles of attempts){
+    try{
+      if(typeof navigator.canShare==='function'){
+        let ok=false;
+        try{ ok=!!navigator.canShare({files:shareFiles}); }catch(_e){ ok=false; }
+        if(!ok) continue;
+      }
+      const payload={title,files:shareFiles};
+      if(text) payload.text=text;
+      await navigator.share(payload);
+      return {count:shareFiles.length};
+    }catch(err){
+      if(isShareAbortError(err)) throw err;
+      lastErr=err;
+      console.warn(`${channelLabel} fallita con ${shareFiles.length} foto`,err);
+    }
+  }
+
+  if(lastErr && isShareActivationError(lastErr)){
+    toast('⚠️ Le foto sono pronte. Premi di nuovo Condividi.');
+  }else{
+    toast(`⚠️ ${channelLabel} con foto non riuscita`);
+  }
+  return false;
+}
+
 async function shareArtAll(){
   const db=loadDB();
   const a=db.articoli.find(x=>x.id===currentArtId); if(!a) return;
-  const text=normalizeFacebookPostForArticle((document.getElementById('vArtPostFb')?.value||getArticleFacebookPost(a)||'').trim(),a);
+  const postText=normalizeFacebookPostForArticle((document.getElementById('vArtPostFb')?.value||getArticleFacebookPost(a)||'').trim(),a);
   const title=(a.modello||a.codice||'Articolo');
 
-  // IMPORTANTISSIMO: navigator.share deve partire direttamente dal tocco.
-  // Niente await, download o preparazioni prima del pannello, altrimenti Android perde la user activation.
   try{
-    let files=[];
-    const ctx=getPreparedCurrentArticlePhotoContext();
-    if(ctx) files=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
+    let ctx=getPreparedCurrentArticlePhotoContext();
+    if(!ctx) ctx=await prepareArticlePhotoShareContext(a);
+    if(!ctx){ toast('⚠️ Nessuna foto disponibile'); return; }
 
-    let payload={title};
-    if(text) payload.text=text;
-    if(files.length && (typeof navigator.canShare!=='function' || navigator.canShare({files}))) payload.files=files;
-
-    if(typeof navigator.share==='function'){
-      await navigator.share(payload);
-      recordArticlePublication('fb');
-      toast('✅ Pannello condivisione aperto');
-      return;
+    // Tenta la preparazione nello stesso tocco. Su Android moderno l'attivazione
+    // utente resta normalmente valida per il breve tempo necessario.
+    let files=getCachedArticlePhotoFilesForCtx(ctx)||[];
+    if(!areCachedArticlePhotoFilesComplete(ctx)){
+      toast(`Preparo ${ctx.pics.length} foto...`);
+      files=await warmCurrentArticlePhotoShare(ctx,{silent:true});
     }
 
-    toast('⚠️ Condivisione non supportata su questo browser');
+    const result=await nativeShareArticleNow({
+      title,
+      text:postText,
+      files,
+      channelLabel:'Condivisione Facebook'
+    });
+    if(result){
+      recordArticlePublication('fb');
+      toast(`✅ Pannello condivisione aperto con ${result.count} foto`);
+    }
   }catch(err){
     if(isShareAbortError(err)) return;
     console.warn('shareArtAll fallito:',err);
-    // Se il dispositivo rifiuta i file, riprova subito col solo testo quando l'attivazione è ancora valida.
-    try{
-      if(typeof navigator.share==='function'){
-        await navigator.share({title,text});
-        recordArticlePublication('fb');
-        toast('✅ Pannello condivisione aperto');
-        return;
-      }
-    }catch(err2){ if(isShareAbortError(err2)) return; console.warn('shareArtAll fallback fallito:',err2); }
-    toast('⚠️ Condivisione non riuscita');
+    if(isShareActivationError(err)) toast('⚠️ Foto pronte. Premi di nuovo Condividi su FB.');
+    else toast('⚠️ Condivisione Facebook con foto non riuscita');
   }
 }
 
 async function shareArtTelegram(){
   const db=loadDB();
   const a=(db.articoli||[]).find(x=>x.id===currentArtId); if(!a) return;
+  const text=(document.getElementById('vArtPost')?.value || buildPostTelegram(a) || '').trim();
+  const title=(a.modello||a.codice||'Articolo');
 
-  let ctx=getPreparedCurrentArticlePhotoContext();
-  if(!ctx) ctx=await getCurrentArticlePhotoContext();
-
-  if(ctx && !areCachedArticlePhotoFilesComplete(ctx)){
-    warmCurrentArticlePhotoShare(ctx,{silent:true}).catch(()=>{});
-    const readyCount=(getCachedArticlePhotoFilesForCtx(ctx)||[]).length;
-    toast(readyCount>0
-      ? `Sto preparando: ${readyCount}/${ctx.pics.length} foto pronte. Premi di nuovo Telegram tra un attimo.`
-      : `Sto preparando le foto. Premi di nuovo Telegram tra un attimo.`
-    );
+  // Stessa logica di Facebook: nessun await prima di navigator.share sul percorso di successo.
+  const ctx=getPreparedCurrentArticlePhotoContext();
+  if(!ctx){
+    prepareArticlePhotoShareContext(a)
+      .then(c=>{ if(c) return warmCurrentArticlePhotoShare(c,{silent:true}); })
+      .catch(err=>console.warn('Preparazione foto Telegram fallita',err));
+    toast('Sto preparando le foto. Premi di nuovo Telegram tra un attimo.');
     return;
   }
 
-  toast('⏳ Preparo foto e video per Telegram…');
-  const files=[];
-
-  const vids=Array.isArray(a.videoIds)?a.videoIds.filter(Boolean):[];
-  for(let i=0;i<vids.length;i++){
-    try{
-      const sb=await ensureCloud(); if(!sb) continue;
-      const {data,error}=await sb.storage.from(SUPABASE_BUCKET).download(vids[i]);
-      if(!error&&data){
-        const ext=(vids[i].split('.').pop()||'mp4').replace(/[^a-z0-9]/gi,'').toLowerCase()||'mp4';
-        files.push(new File([data],`video_${i+1}.${ext}`,{type:data.type||'video/mp4'}));
-      }
-    }catch(e){ console.warn('Video Telegram non preparato:',e); }
+  if(!areCachedArticlePhotoFilesComplete(ctx)){
+    warmCurrentArticlePhotoShare(ctx,{silent:true}).catch(()=>{});
+    const ready=(getCachedArticlePhotoFilesForCtx(ctx)||[]).length;
+    toast(ready>0
+      ? `Sto preparando: ${ready}/${ctx.pics.length} foto pronte. Premi di nuovo Telegram tra un attimo.`
+      : 'Sto preparando le foto. Premi di nuovo Telegram tra un attimo.');
+    return;
   }
 
-  if(ctx){
-    const photoFiles=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
-    files.push(...photoFiles);
-  }
-
-  const text=(document.getElementById('vArtPost')?.value || buildPostTelegram(a) || '').trim();
-
+  const files=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
   if(!files.length){
-    if(!text){ toast('Nessun file da condividere'); return; }
-    try{
-      const result=await shareArticleFilesSmart([],{title:(a.modello||a.codice||'Articolo'),text,channel:'tg'});
-      if(result?.ok){ recordArticlePublication('tg'); toast('✅ Condivisione Telegram aperta'); return; }
-    }catch(err){ if(isShareAbortError(err)) return; }
-    toast('⚠️ Condivisione non disponibile su questo browser');
+    toast('⚠️ Le foto non sono disponibili per Telegram.');
+    return;
+  }
+
+  if(typeof navigator.share!=='function'){
+    toast('⚠️ Condivisione Telegram non supportata su questo browser');
     return;
   }
 
   try{
-    const shareResult=await shareArticleFilesSmart(files,{baseName:(a.codice||a.modello||'articolo'),title:(a.modello||a.codice||'Articolo'),channel:'tg',text});
-    if(shareResult?.ok){
-      recordArticlePublication('tg');
-      if(shareResult.mode==='sheet'){
-        toast('✅ Condivisione Telegram aperta con foto');
-      }else if(shareResult.mode==='title'){
-        toast('✅ Condivisione Telegram aperta');
-      }else{
-        toast('✅ Condivisione Telegram aperta');
-      }
-    } else {
-      toast('⚠️ Condivisione Telegram non supportata su questo browser');
+    const payload={title,files};
+    if(text) payload.text=text;
+
+    if(typeof navigator.canShare==='function' && !navigator.canShare({files})){
+      toast('⚠️ Il dispositivo non accetta queste foto insieme.');
+      return;
     }
+
+    await navigator.share(payload);
+    recordArticlePublication('tg');
+    toast(`✅ Condivisione Telegram aperta con ${files.length} foto`);
   }catch(err){
     if(isShareAbortError(err)) return;
-    if(isShareActivationError(err)){ toast('⚠️ Premi di nuovo Telegram: il browser ha perso il tocco durante la preparazione.'); return; }
     console.warn('shareArtTelegram fallito:',err);
-    toast('⚠️ Condivisione Telegram non riuscita');
+    toast('⚠️ Condivisione Telegram con foto non riuscita');
   }
 }
 
@@ -4747,74 +4772,40 @@ async function shareArticleFromListByChannel(artId, channel='fb'){
   const cleanChannel=String(channel||'fb').toLowerCase();
   const isTelegram=cleanChannel==='tg';
   const isWhatsApp=cleanChannel==='wa';
-  const isDirectSocial=isTelegram||isWhatsApp;
   const channelLabel=isTelegram?'Telegram':(isWhatsApp?'WhatsApp':'Facebook');
-  const text=isDirectSocial
+  const postText=(isTelegram||isWhatsApp)
     ? String(buildPostTelegram(a) || '').trim()
     : normalizeFacebookPostForArticle(buildPostFacebook(a), a);
-
-  let ctx=null;
-  try{ ctx=await prepareArticlePhotoShareContext(a); }
-  catch(err){ console.warn('Preparazione contesto foto da elenco fallita', err); }
-
-  // Nessuna foto: tenta comunque la condivisione del solo testo. Mai copiare in automatico.
-  if(!ctx){
-    if(!text){ toast('Nessun contenuto da condividere'); return; }
-    if(typeof navigator.share!=='function'){
-      toast(`⚠️ Condivisione ${channelLabel} non supportata su questo browser`);
-      return;
-    }
-    try{
-      await navigator.share({title:(a.modello||a.codice||'Articolo'),text});
-      recordArticlePublication(isTelegram?'tg':(isWhatsApp?'wa':'fb'));
-      toast(`✅ Condivisione ${channelLabel} aperta`);
-    }catch(err){
-      if(isShareAbortError(err)) return;
-      console.warn('Condivisione solo testo fallita:',err);
-      toast(`⚠️ Condivisione ${channelLabel} non riuscita`);
-    }
-    return;
-  }
-
-  let cached=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
-  const complete=areCachedArticlePhotoFilesComplete(ctx);
-  if(!complete){
-    warmCurrentArticlePhotoShare(ctx,{silent:true}).catch(()=>{});
-    const readyCount=cached.length;
-    toast(readyCount>0
-      ? `Sto preparando: ${readyCount}/${ctx.pics.length} foto pronte. Premi di nuovo ${channelLabel} tra un attimo.`
-      : `Sto preparando le foto. Premi di nuovo ${channelLabel} tra un attimo.`
-    );
-    return;
-  }
-
-  cached=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
-  if(!cached.length){
-    toast(`⚠️ Foto non disponibili per la condivisione ${channelLabel}`);
-    return;
-  }
+  const title=(a.modello||a.codice||'Articolo');
 
   try{
-    const shareResult=await shareArticleFilesSmart(cached,{
-      baseName:(a.codice||a.modello||'articolo'),
-      title:(a.modello||a.codice||'Articolo'),
-      channel:isTelegram?'tg':(isWhatsApp?'wa':'fb'),
-      text
-    });
-    if(shareResult?.ok){
-      recordArticlePublication(isTelegram?'tg':(isWhatsApp?'wa':'fb'));
-      toast(`✅ Condivisione ${channelLabel} aperta`);
-      return;
+    let ctx=getPreparedCurrentArticlePhotoContext();
+    if(!ctx || String(ctx?.art?.id||'')!==String(a.id)){
+      ctx=await prepareArticlePhotoShareContext(a);
     }
-    toast(`⚠️ Condivisione ${channelLabel} non supportata su questo browser`);
+    if(!ctx){ toast(`⚠️ Nessuna foto disponibile per ${channelLabel}`); return; }
+
+    let files=getCachedArticlePhotoFilesForCtx(ctx)||[];
+    if(!areCachedArticlePhotoFilesComplete(ctx)){
+      toast(`Preparo ${ctx.pics.length} foto...`);
+      files=await warmCurrentArticlePhotoShare(ctx,{silent:true});
+    }
+
+    const result=await nativeShareArticleNow({
+      title,
+      text:postText,
+      files,
+      channelLabel:`Condivisione ${channelLabel}`
+    });
+    if(result){
+      recordArticlePublication(isTelegram?'tg':(isWhatsApp?'wa':'fb'));
+      toast(`✅ ${channelLabel}: aperto pannello con ${result.count} foto`);
+    }
   }catch(err){
     if(isShareAbortError(err)) return;
-    if(isShareActivationError(err)){
-      toast(`⚠️ Premi di nuovo ${channelLabel}: il browser ha perso il tocco durante la preparazione.`);
-      return;
-    }
-    console.warn('Condivisione articolo da elenco fallita:', err);
-    toast(`⚠️ Condivisione ${channelLabel} non riuscita`);
+    console.warn(`Condivisione ${channelLabel} fallita`,err);
+    if(isShareActivationError(err)) toast(`⚠️ Foto pronte. Premi di nuovo ${channelLabel}.`);
+    else toast(`⚠️ Condivisione ${channelLabel} con foto non riuscita`);
   }
 }
 async function shareArticleFromList(artId){ return shareArticleFromListByChannel(artId,'fb'); }
