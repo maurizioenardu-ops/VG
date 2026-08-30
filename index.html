@@ -5464,8 +5464,21 @@ function storedArticleCostEstimate(article){
 }
 function acceptedArticleCostEstimate(){
   const e=currentArticleCostEstimate;
-  const sale=Number(e?.salePrice||e?.suggestedPrice||0);
-  return e?.ok && e?.active && Number(e?.estimatedCost)>0 && sale>0 ? e : null;
+  if(!(e?.ok && e?.active && Number(e?.estimatedCost)>0)) return null;
+
+  // Se il prezzo suggerito non è ancora stato calcolato, ricavalo dal costo stimato.
+  // Prima la stima veniva scartata completamente quando salePrice/suggestedPrice era 0.
+  if(!(Number(e.salePrice||e.suggestedPrice||0)>0)){
+    const qual=currentArticleFormQuality();
+    const calc=calcSellFromEurCost(Number(e.estimatedCost||0),qual);
+    const suggested=Number(calc?.sell||0);
+    if(suggested>0){
+      e.suggestedPrice=suggested;
+      e.salePrice=suggested;
+      e.prudentPrice=Number(e.prudentPrice||suggested);
+    }
+  }
+  return e;
 }
 function renderArticleCostEstimateBox(force=false){
   const box=document.getElementById('a_cost_estimate_box');
@@ -5484,7 +5497,7 @@ function renderArticleCostEstimateBox(force=false){
   const input=articleCostEstimateInputFromForm();
   const signature=articleCostEstimateSignature(input);
   const previous=currentArticleCostEstimate;
-  if(previous?.signature && previous.signature!==signature) currentArticleCostEstimate=null;
+  if(previous?.signature && previous.signature!==signature && !previous?.external) currentArticleCostEstimate=null;
   if((force && !currentArticleCostEstimate?.external) || !currentArticleCostEstimate || currentArticleCostEstimate.signature!==signature){
     const next=estimateArticleCostFromHistory(input,loadDB(),currentArtId||'');
     if(next?.ok && previous?.signature===signature){
@@ -10931,7 +10944,11 @@ async function openBulkPasteArticle(){
   if(box) box.value='';
   if(result) result.textContent='';
   show('mArtBulkPaste');
-  setTimeout(()=>box?.focus(),50);
+  // Non dare focus al textarea: su mobile aprirebbe automaticamente la tastiera.
+  setTimeout(()=>{
+    try{ box?.blur(); }catch(_e){}
+    try{ document.activeElement?.blur?.(); }catch(_e){}
+  },50);
 }
 async function readBulkPasteClipboard(){
   const box=document.getElementById('a_bulk_paste');
@@ -10939,10 +10956,15 @@ async function readBulkPasteClipboard(){
     const text=await navigator.clipboard.readText();
     if(!text) throw new Error('Appunti vuoti');
     if(box) box.value=text;
+    // Dopo l'incolla togli subito il focus, così la tastiera non compare.
+    try{ box?.blur(); }catch(_e){}
+    try{ document.activeElement?.blur?.(); }catch(_e){}
     toast('Testo incollato');
   }catch(err){
-    toast('Tieni premuto nel riquadro e scegli Incolla');
-    box?.focus();
+    // Non forzare più il focus sul riquadro: era lui ad aprire la tastiera.
+    try{ box?.blur(); }catch(_e){}
+    try{ document.activeElement?.blur?.(); }catch(_e){}
+    toast('Impossibile leggere gli appunti automaticamente. Tocca il riquadro solo se vuoi incollare manualmente.');
   }
 }
 function applyBulkPasteArticle(){
@@ -14145,6 +14167,45 @@ document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.k
 
 document.getElementById('a_usd')?.addEventListener('input',()=>{
   if(Number(document.getElementById('a_usd')?.value||0)>0) currentArticleCostEstimate=null;
+});
+document.getElementById('a_std_cost_unknown')?.addEventListener('change', ()=>{
+  const checked=!!document.getElementById('a_std_cost_unknown')?.checked;
+  const usd=Number(document.getElementById('a_usd')?.value||0);
+  const promoUsd=Number(document.getElementById('a_usd_promo')?.value||0);
+
+  if(!checked){
+    if(currentArticleCostEstimate) currentArticleCostEstimate.active=false;
+    renderArticleCostEstimateBox(false);
+    renderArtAutoFields();
+    saveArticleDraft();
+    return;
+  }
+
+  // Se esiste un prezzo reale, la stima non deve partire.
+  if(usd>0 || promoUsd>0){
+    document.getElementById('a_std_cost_unknown').checked=false;
+    toast('Il prezzo fornitore è già presente: la stima non serve.');
+    return;
+  }
+
+  // Forza il calcolo dai comparabili storici al momento della spunta.
+  renderArticleCostEstimateBox(true);
+  if(currentArticleCostEstimate?.ok && Number(currentArticleCostEstimate?.estimatedCost||0)>0){
+    currentArticleCostEstimate.active=true;
+    const calc=calcSellFromEurCost(Number(currentArticleCostEstimate.estimatedCost||0),currentArticleFormQuality());
+    const suggested=Number(currentArticleCostEstimate.suggestedPrice||calc?.sell||0);
+    if(suggested>0){
+      currentArticleCostEstimate.suggestedPrice=suggested;
+      currentArticleCostEstimate.salePrice=Number(currentArticleCostEstimate.salePrice||suggested);
+    }
+    renderArtAutoFields();
+    saveArticleDraft();
+    toast(`⚠️ Costo stimato attivato: € ${money(currentArticleCostEstimate.estimatedCost)}`);
+  }else{
+    renderArtAutoFields();
+    saveArticleDraft();
+    toast('⚠️ Non ci sono comparabili sufficienti per stimare automaticamente il costo.');
+  }
 });
 document.getElementById('a_usd_promo')?.addEventListener('input', ()=>{
   const amount=Number(document.getElementById('a_usd_promo')?.value||0);
