@@ -4625,6 +4625,33 @@ async function shareArticleFilesSmart(files, options={}){
 }
 
 
+
+async function copyShareTextToClipboard(text=''){
+  const value=String(text||'').trim();
+  if(!value) return false;
+  try{
+    await navigator.clipboard.writeText(value);
+    return true;
+  }catch(_e){
+    try{
+      const ta=document.createElement('textarea');
+      ta.value=value;
+      ta.setAttribute('readonly','');
+      ta.style.position='fixed';
+      ta.style.opacity='0';
+      ta.style.pointerEvents='none';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      const ok=document.execCommand('copy');
+      ta.remove();
+      return !!ok;
+    }catch(_e2){
+      return false;
+    }
+  }
+}
+
 async function nativeShareArticleNow({title='', text='', files=[], channelLabel='Condivisione'}={}){
   if(typeof navigator.share!=='function'){
     toast(`⚠️ ${channelLabel} non supportata su questo browser`);
@@ -4680,13 +4707,15 @@ async function shareArtAll(){
     if(!ctx) ctx=await prepareArticlePhotoShareContext(a);
     if(!ctx){ toast('⚠️ Nessuna foto disponibile'); return; }
 
-    // Tenta la preparazione nello stesso tocco. Su Android moderno l'attivazione
-    // utente resta normalmente valida per il breve tempo necessario.
     let files=getCachedArticlePhotoFilesForCtx(ctx)||[];
     if(!areCachedArticlePhotoFilesComplete(ctx)){
       toast(`Preparo ${ctx.pics.length} foto...`);
       files=await warmCurrentArticlePhotoShare(ctx,{silent:true});
     }
+
+    // Facebook/Android spesso ignora "text" quando nel payload ci sono file.
+    // Copiamo quindi esplicitamente il testo negli appunti e condividiamo le foto.
+    const copied=await copyShareTextToClipboard(postText);
 
     const result=await nativeShareArticleNow({
       title,
@@ -4696,7 +4725,9 @@ async function shareArtAll(){
     });
     if(result){
       recordArticlePublication('fb');
-      toast(`✅ Pannello condivisione aperto con ${result.count} foto`);
+      toast(copied
+        ? `✅ ${result.count} foto pronte. Testo copiato negli appunti.`
+        : `✅ Pannello condivisione aperto con ${result.count} foto`);
     }
   }catch(err){
     if(isShareAbortError(err)) return;
@@ -4791,6 +4822,11 @@ async function shareArticleFromListByChannel(artId, channel='fb'){
       files=await warmCurrentArticlePhotoShare(ctx,{silent:true});
     }
 
+    // Per Facebook e WhatsApp copiamo anche il testo perché alcune app ignorano
+    // il campo text quando ricevono foto tramite Web Share API.
+    const shouldCopyText = !isTelegram;
+    const copied = shouldCopyText ? await copyShareTextToClipboard(postText) : false;
+
     const result=await nativeShareArticleNow({
       title,
       text:postText,
@@ -4799,7 +4835,11 @@ async function shareArticleFromListByChannel(artId, channel='fb'){
     });
     if(result){
       recordArticlePublication(isTelegram?'tg':(isWhatsApp?'wa':'fb'));
-      toast(`✅ ${channelLabel}: aperto pannello con ${result.count} foto`);
+      if(copied){
+        toast(`✅ ${channelLabel}: ${result.count} foto. Testo copiato negli appunti.`);
+      }else{
+        toast(`✅ ${channelLabel}: aperto pannello con ${result.count} foto`);
+      }
     }
   }catch(err){
     if(isShareAbortError(err)) return;
