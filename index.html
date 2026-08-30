@@ -5373,45 +5373,86 @@ function articleCostEstimateSignature(input={}){
 function estimateArticleCostFromHistory(input={},db=loadDB(),excludeId=''){
   const category=normalizeTextKey(input?.categoria||'');
   const quality=qualityPricingKey(input?.qualita||'');
-  if(!category || !quality) return {ok:false,reason:'Indica prima categoria e qualità: servono per confrontare articoli davvero simili.'};
+  if(!quality) return {ok:false,reason:'Indica prima la qualità: Top Quality e Original Quality non devono essere mescolate.'};
+
   const supplier=normalizeTextKey(input?.fornitore||'');
   const brand=normalizeTextKey(input?.brand||'');
-  const list=[];
+  const strict=[];
+  const fallbackPool=[];
+
   for(const art of (db?.articoli||[])){
     if(String(art?.id||'')===String(excludeId||'')) continue;
+
+    // Qualità resta un vincolo assoluto: mai mischiare Top e Original.
     if(qualityPricingKey(getEffectiveArticleQuality(art))!==quality) continue;
-    if(normalizeTextKey(art?.categoria||'')!==category) continue;
+
     const cost=realHistoricalArticleCost(art);
     if(!(cost>0)) continue;
+
+    const artCategory=normalizeTextKey(art?.categoria||'');
+    const sameCategory=!!category && artCategory===category;
     const sameSupplier=!!supplier && normalizeTextKey(getEffectiveArticleSupplier(art))===supplier;
-    let score=100;
-    if(sameSupplier) score+=50;
-    if(brand && normalizeTextKey(art?.brand||'')===brand) score+=10;
-    score+=Math.round(estimateTokenOverlap(input?.materiale,art?.materiale||art?.taglia)*18);
-    score+=Math.round(estimateTokenOverlap(`${input?.variante||''} ${input?.descrizione||''}`,`${art?.variante||''} ${art?.descrizione||''}`)*14);
-    score+=Math.round(estimateTokenOverlap(input?.modello,art?.modello)*10);
-    score+=Math.round(estimateTokenOverlap(input?.misura,art?.misura||art?.dimensioni)*8);
-    list.push({art,cost,score,sameSupplier});
+
+    let score=40;
+    if(sameCategory) score+=100;
+    if(sameSupplier) score+=60;
+    if(brand && normalizeTextKey(art?.brand||'')===brand) score+=15;
+    score+=Math.round(estimateTokenOverlap(input?.materiale,art?.materiale||art?.taglia)*24);
+    score+=Math.round(estimateTokenOverlap(`${input?.variante||''} ${input?.descrizione||''}`,`${art?.variante||''} ${art?.descrizione||''}`)*18);
+    score+=Math.round(estimateTokenOverlap(input?.modello,art?.modello)*16);
+    score+=Math.round(estimateTokenOverlap(input?.misura,art?.misura||art?.dimensioni)*10);
+
+    const item={art,cost,score,sameSupplier,sameCategory};
+    fallbackPool.push(item);
+    if(sameCategory) strict.push(item);
   }
-  if(list.length<3) return {ok:false,reason:`Servono almeno 3 articoli con costo reale nella stessa categoria e qualità. Trovati: ${list.length}.`,sampleCount:list.length};
+
+  // Prima prova stessa categoria + stessa qualità.
+  // Se sono meno di 3, amplia SOLO all'interno della stessa qualità,
+  // privilegiando stesso fornitore, brand, materiale, modello e dimensioni.
+  let list=strict.length>=3 ? strict : fallbackPool;
+  if(!list.length){
+    return {ok:false,reason:'Nessun articolo storico con costo reale e stessa qualità.',sampleCount:0};
+  }
+
   list.sort((a,b)=>b.score-a.score || Number(b.art?._ts||0)-Number(a.art?._ts||0));
+
   const sameSupplierList=supplier ? list.filter(x=>x.sameSupplier) : [];
-  let chosen=(sameSupplierList.length>=3 ? sameSupplierList : list).slice(0,12);
-  let costs=chosen.map(x=>x.cost).sort((a,b)=>a-b);
+  let chosen=(sameSupplierList.length>=2 ? sameSupplierList : list).slice(0,12);
+
+  // Se il pool allargato è usato, evita comparabili palesemente deboli:
+  // conserva comunque almeno il migliore, così la PWA può dare una stima Bassa.
+  if(strict.length<3 && chosen.length>1){
+    const best=chosen[0]?.score||0;
+    const filtered=chosen.filter((x,i)=>i===0 || x.score>=Math.max(45,best-85));
+    if(filtered.length) chosen=filtered;
+  }
+
+  let costs=chosen.map(x=>x.cost).filter(x=>Number.isFinite(x)&&x>0).sort((a,b)=>a-b);
+  if(!costs.length) return {ok:false,reason:'Comparabili senza costo reale utilizzabile.',sampleCount:0};
+
   if(costs.length>=5){
     const q1=sortedQuantile(costs,.25), q3=sortedQuantile(costs,.75), iqr=q3-q1;
     const low=Math.max(0,q1-(iqr*1.5)), high=q3+(iqr*1.5);
     const filtered=chosen.filter(x=>x.cost>=low&&x.cost<=high);
     if(filtered.length>=3){ chosen=filtered; costs=chosen.map(x=>x.cost).sort((a,b)=>a-b); }
   }
+
   const median=sortedQuantile(costs,.5);
   const p75=sortedQuantile(costs,.75);
   const min=Math.min(...costs), max=Math.max(...costs);
-  const prudent=Math.round(Math.max(median*1.03,p75)*100)/100;
+
+  // Con pochi campioni niente artifici: usa il costo reale del miglior comparabile
+  // o una mediana prudente quando i campioni aumentano.
+  const prudent=costs.length===1
+    ? Math.round(costs[0]*100)/100
+    : Math.round(Math.max(median*1.03,p75)*100)/100;
+
   const historicalMargins=chosen.map(x=>{
     const sale=Number(x?.art?.prezzoVendita||0);
     return sale>0 ? sale-x.cost : NaN;
   }).filter(x=>Number.isFinite(x)&&x>0).sort((a,b)=>a-b);
+
   const qual=qualityPricingKey(input?.qualita||'');
   const fallback=calcSellFromEurCost(prudent,qual);
   const marginLow=historicalMargins.length>=3 ? sortedQuantile(historicalMargins,.25) : Math.max(0,Number(fallback.marg||0)*.85);
@@ -5421,17 +5462,28 @@ function estimateArticleCostFromHistory(input={},db=loadDB(),excludeId=''){
   const minimum=Math.max(hardFloor,round5(prudent+marginLow));
   const suggested=Math.max(minimum,round5(prudent+marginBalanced));
   const prudentPrice=Math.max(suggested,round5(prudent+marginHigh));
+
   const spread=median>0 ? (max-min)/median : 1;
   const sameSupplierCount=chosen.filter(x=>x.sameSupplier).length;
+  const sameCategoryCount=chosen.filter(x=>x.sameCategory).length;
+
   let confidence='Bassa';
-  if(chosen.length>=6 && spread<=0.22 && (!supplier || sameSupplierCount>=3)) confidence='Alta';
-  else if(chosen.length>=4 && spread<=0.38) confidence='Media';
+  if(chosen.length>=6 && sameCategoryCount>=3 && spread<=0.22 && (!supplier || sameSupplierCount>=3)) confidence='Alta';
+  else if(chosen.length>=4 && sameCategoryCount>=2 && spread<=0.38) confidence='Media';
+
+  const method = strict.length>=3
+    ? 'Comparabili storici: stessa qualità e categoria; priorità a stesso fornitore, materiale, modello e dimensioni'
+    : 'Fallback storico: stessa qualità; priorità a stesso fornitore, categoria, brand, materiale, modello e dimensioni';
+
   return {
     ok:true,active:false,estimatedCost:prudent,suggestedPrice:suggested,salePrice:suggested,minimumPrice:minimum,prudentPrice,
-    historicalMarginLow:Math.round(marginLow*100)/100,historicalMarginMedian:Math.round(marginBalanced*100)/100,historicalMarginHigh:Math.round(marginHigh*100)/100,
-    sampleCount:chosen.length,confidence,minCost:Math.round(min*100)/100,maxCost:Math.round(max*100)/100,
-    method:'Comparabili storici: stesso fornitore, qualità, categoria, materiale, lavorazione, modello e dimensioni',signature:articleCostEstimateSignature(input),
-    calculatedAt:new Date().toISOString(),sameSupplierCount
+    historicalMarginLow:Math.round(marginLow*100)/100,
+    historicalMarginMedian:Math.round(marginBalanced*100)/100,
+    historicalMarginHigh:Math.round(marginHigh*100)/100,
+    sampleCount:chosen.length,confidence,
+    minCost:Math.round(min*100)/100,maxCost:Math.round(max*100)/100,
+    method,signature:articleCostEstimateSignature(input),
+    calculatedAt:new Date().toISOString(),sameSupplierCount,sameCategoryCount
   };
 }
 function articleCostEstimateInputFromForm(){
@@ -14204,7 +14256,7 @@ document.getElementById('a_std_cost_unknown')?.addEventListener('change', ()=>{
   }else{
     renderArtAutoFields();
     saveArticleDraft();
-    toast('⚠️ Non ci sono comparabili sufficienti per stimare automaticamente il costo.');
+    toast(`⚠️ ${currentArticleCostEstimate?.reason || 'Stima non disponibile.'}`);
   }
 });
 document.getElementById('a_usd_promo')?.addEventListener('input', ()=>{
