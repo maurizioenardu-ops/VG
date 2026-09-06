@@ -516,7 +516,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v149-share-fix">
+  <meta name="vg-version" content="v150-social-colori">
 </head>
 <body>
 
@@ -1212,7 +1212,7 @@ window.addEventListener('error',e=>{
     <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Aggiungi foto</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 9 foto totali per articolo.</div></div>
+    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Aggiungi foto</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 20 foto totali per articolo.</div></div>
     <div id="a_photo_prev" class="thumbs"></div>
     <div style="margin-top:10px"><div class="k">Video articolo</div><input id="a_video" type="file" accept="video/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickArtVideos">Aggiungi video</button><button class="btn danger smallish" type="button" data-action="clearArtVideos">Rimuovi tutti i video</button></div><div id="a_video_status" class="small" style="margin-top:6px">I video vengono caricati su Supabase. Max 3 video per articolo.</div></div>
     <div id="a_video_prev" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
@@ -1585,7 +1585,7 @@ const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maxi
 const round5=n=>Math.round(n/5)*5;
 const roundUp5=n=>Math.ceil(Math.max(0,Number(n||0))/5)*5;
 const roundDown5=n=>Math.floor(Math.max(0,Number(n||0))/5)*5;
-const MAX_ARTICLE_PHOTOS=9;
+const MAX_ARTICLE_PHOTOS=20;
 const PROMO_EXPIRED_GRACE_DAYS=3;
 
 function defDB(){
@@ -6547,6 +6547,44 @@ function postCategoryDescriptors(a, mode='fb'){
   }
   return uniquePostLines(descriptors);
 }
+function articleSocialColorAvailabilityLine(a){
+  const shape=deriveColorShape(a||{});
+  const count=Math.max(0, parseInt(shape?.colorCount||0,10) || 0);
+  if(shape?.colorMode!=='multiple' || count<2) return '';
+  const labels=normalizeStoredColorLabels(shape?.colorLabels||[], count)
+    .map(v=>normalizeSpaceText(v||''))
+    .filter(Boolean);
+  const uniqueLabels=[];
+  const seen=new Set();
+  for(const label of labels){
+    const key=normalizeTextKey(label);
+    if(!key || seen.has(key)) continue;
+    seen.add(key);
+    uniqueLabels.push(smartSentenceCase(label));
+  }
+  // Con 2 o 3 colori, se i nomi sono tutti disponibili, mostriamo la lista.
+  if(count<=3 && uniqueLabels.length===count){
+    return `Colori disp.: ${uniqueLabels.join(', ')}`;
+  }
+  // Da 4 colori in su, oppure se i nomi non sono completi, mostriamo solo il numero.
+  return `${count} colori disp.`;
+}
+function isSocialColorAvailabilityLine(line=''){
+  const raw=normalizeSpaceText(line||'');
+  if(!raw) return false;
+  return /^\d+\s+colori\s+disp\.?$/i.test(raw)
+    || /^colori\s+disp\.?\s*:\s*.+$/i.test(raw);
+}
+function ensureSocialPostHasAvailableColors(text, a){
+  const wanted=articleSocialColorAvailabilityLine(a);
+  let lines=String(text||'').split(/\r?\n/).filter(line=>!isSocialColorAvailabilityLine(line));
+  if(!wanted) return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  const codeIndex=lines.findIndex(line=>/^\s*(?:cod\.?|codice)\s*[:.\-]?/i.test(String(line||'')));
+  const insertAt=codeIndex>=0 ? codeIndex : lines.length;
+  lines.splice(insertAt,0,wanted);
+  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+
 function postPrimaryName(a, mode='fb'){
   const model=normalizePostModelLine(a?.modello||'', a?.brand||'');
   if(mode==='fb' && model) return model;
@@ -7792,6 +7830,7 @@ function normalizePublicPostForArticle(text, a){
   out=stripSocialFooterNoise(out);
   out=ensureCurrentPromoHeader(out, a);
   out=stripPublicMaterialWordFromPost(out);
+  out=ensureSocialPostHasAvailableColors(out, a);
   return dedupeQualityEmojisInPost(out, a);
 }
 function stripExpiredPromoLinesFromPost(text, a){
@@ -7871,8 +7910,8 @@ function setArticleFacebookPostAuto(text){
 }
 
 function buildPostInstagram(a){
-  // Instagram usa esclusivamente testi generici e prudenti.
-  // Niente marchi, modello, codice, prezzo, promo, misure o dettagli commerciali.
+  // Instagram resta generico e prudente, ma può indicare la disponibilità colori.
+  // Niente marchi, modello, codice, prezzo, promo, misure o altri dettagli commerciali.
   const variants=[
     'Scrivimi in privato per informazioni 📩',
     'Mandami un messaggio privato per tutti i dettagli 📩',
@@ -7883,7 +7922,9 @@ function buildPostInstagram(a){
   const key=String(a?.codice||a?.id||a?.modello||'');
   let hash=0;
   for(let i=0;i<key.length;i++) hash=((hash*31)+key.charCodeAt(i))>>>0;
-  return variants[hash % variants.length];
+  const base=variants[hash % variants.length];
+  const colors=articleSocialColorAvailabilityLine(a);
+  return colors ? `${colors}\n\n${base}` : base;
 }
 
 function buildPostTelegram(a, includePrice=true){
@@ -11289,7 +11330,7 @@ async function appendPendingArtPhotoFiles(fileList){
   const pendingCount=Array.isArray(currentArtPendingFiles) ? currentArtPendingFiles.length : 0;
   const remaining=Math.max(0, MAX_ARTICLE_PHOTOS - existingCount - pendingCount);
   if(!remaining){
-    toast('Hai già raggiunto il massimo di 9 foto per articolo');
+    toast('Hai già raggiunto il massimo di 20 foto per articolo');
     updateArtPhotoStatus();
     return;
   }
@@ -11886,19 +11927,19 @@ async function saveArt(){
         (old?.note && old.note !== document.getElementById('a_note').value)
           ? stripArticlePrivateNotesFromPost(document.getElementById('a_post_fb').value, {note: old.note})
           : document.getElementById('a_post_fb').value,
-        {codice:code, modello:document.getElementById('a_mod').value.trim(), categoria:categoriaValue, descrizione:document.getElementById('a_desc').value.trim(), misura:misuraValue, altezzaCintura:altezzaCinturaValue, hCintura:altezzaCinturaValue, note:document.getElementById('a_note').value}
+        {codice:code, modello:document.getElementById('a_mod').value.trim(), categoria:categoriaValue, descrizione:document.getElementById('a_desc').value.trim(), misura:misuraValue, altezzaCintura:altezzaCinturaValue, hCintura:altezzaCinturaValue, colorMode, colorCount:(colorMode==='multiple'?colorCount:0), colorLabels:(colorMode==='multiple'?colorLabels:[]), note:document.getElementById('a_note').value}
       ),
       postIg: normalizePublicPostForArticle(
         (old?.note && old.note !== document.getElementById('a_note').value)
           ? stripArticlePrivateNotesFromPost(document.getElementById('a_post_ig').value, {note: old.note})
           : document.getElementById('a_post_ig').value,
-        {note:document.getElementById('a_note').value}
+        {colorMode, colorCount:(colorMode==='multiple'?colorCount:0), colorLabels:(colorMode==='multiple'?colorLabels:[]), note:document.getElementById('a_note').value}
       ),
       post: normalizePublicPostForArticle(
         (old?.note && old.note !== document.getElementById('a_note').value)
           ? stripArticlePrivateNotesFromPost(document.getElementById('a_post').value, {note: old.note})
           : document.getElementById('a_post').value,
-        {note:document.getElementById('a_note').value}
+        {colorMode, colorCount:(colorMode==='multiple'?colorCount:0), colorLabels:(colorMode==='multiple'?colorLabels:[]), note:document.getElementById('a_note').value}
       ),
       note: document.getElementById('a_note').value,
       foto: keptFoto,
