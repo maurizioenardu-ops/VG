@@ -516,7 +516,7 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v147-fornitore-da-link">
+  <meta name="vg-version" content="v150-social-colori">
 </head>
 <body>
 
@@ -1228,7 +1228,7 @@ window.addEventListener('error',e=>{
 <div id="mArtBulkPaste" class="modalwrap"><div class="modal">
   <div class="h2">Incolla dati articolo</div>
   <div class="bulkPasteHint">Incolla il blocco preparato da ChatGPT. Descrizione e note vengono ignorate. Se il costo reale manca, puoi importare una stima: resterà sempre indicata come ipotetica.</div>
-  <textarea id="a_bulk_paste" class="bulkPasteBox" style="margin-top:10px" placeholder="CODICE: 202357&#10;BRAND:&#10;MODELLO:&#10;CATEGORIA:&#10;FORNITORE:&#10;MATERIALE:&#10;VARIANTE:&#10;COLORE:&#10;MISURE:&#10;ALTEZZA CINTURA:&#10;PREZZO FORNITORE USD:&#10;PREZZO FORNITORE PROMO USD:&#10;SCADENZA PROMO FORNITORE:&#10;LINK: https://...&#10;PREZZO UFFICIALE EUR:&#10;COSTO FORNITORE STIMATO USD:&#10;COSTO FORNITORE STIMATO EUR:&#10;STIMA MINIMA EUR:&#10;STIMA MASSIMA EUR:&#10;AFFIDABILITÀ STIMA:&#10;METODO STIMA:&#10;CAMPIONI STIMA:"></textarea>
+  <textarea id="a_bulk_paste" class="bulkPasteBox" style="margin-top:10px" placeholder="CODICE: 202357&#10;BRAND:&#10;MODELLO:&#10;CATEGORIA:&#10;FORNITORE:&#10;MATERIALE:&#10;VARIANTE:&#10;TIPO COLORE:&#10;COLORE:&#10;DISPONIBILE IN COLORI:&#10;ABBINAMENTO NUMERO / COLORE:&#10;MISURE:&#10;ALTEZZA CINTURA:&#10;PREZZO FORNITORE USD:&#10;PREZZO FORNITORE PROMO USD:&#10;SCADENZA PROMO FORNITORE:&#10;LINK: https://...&#10;PREZZO UFFICIALE EUR:&#10;COSTO FORNITORE STIMATO USD:&#10;COSTO FORNITORE STIMATO EUR:&#10;STIMA MINIMA EUR:&#10;STIMA MASSIMA EUR:&#10;AFFIDABILITÀ STIMA:&#10;METODO STIMA:&#10;CAMPIONI STIMA:"></textarea>
   <div id="a_bulk_result" class="small" style="margin-top:8px"></div>
   <div class="actions compact" style="margin-top:12px">
     <button type="button" class="btn primary" data-action="readBulkPasteClipboard">Incolla dagli appunti</button>
@@ -2138,10 +2138,10 @@ function getArticleColorLabels(article){
 }
 function parseColorLabelsInput(raw='', count=0){
   const safeCount=Math.max(0, parseInt(count||0,10) || 0);
-  const lines=String(raw||'').split(/\r?\n/).map(v=>normalizeSpaceText(v)).filter(Boolean);
+  const lines=String(raw||'').split(/\r?\n|\s*[;|]\s*/g).map(v=>normalizeSpaceText(v)).filter(Boolean);
   const out=new Array(safeCount).fill('');
   for(const line of lines){
-    const m=line.match(/^(\d{1,2})\s*[-.:)]\s*(.+)$/);
+    const m=line.match(/^(\d{1,2})(?:\s*[-.:)]\s*|\s+)(.+)$/);
     if(m){
       const idx=Math.max(1, parseInt(m[1],10)||0);
       if(idx>=1 && idx<=safeCount) out[idx-1]=normalizeSpaceText(m[2]||'');
@@ -3115,7 +3115,9 @@ function restoreArticleDraft(targetId=''){
   currentSupplierManualOverride=(typeof v.fornitoreManuale==='boolean') ? v.fornitoreManuale : !!String(v.fornitore||'').trim();
   currentQualityManualOverride=(typeof v.qualitaManuale==='boolean') ? v.qualitaManuale : !!String(v.qualita||'').trim();
   updateSupplierField(v.fornitore||'');
-  document.getElementById('a_qual').value=v.qualita||document.getElementById('a_qual').value||'';
+  const draftSupplierQuality=getDefaultQualityFromSupplier(document.getElementById('a_forn')?.value||'');
+  document.getElementById('a_qual').value=draftSupplierQuality || v.qualita || document.getElementById('a_qual').value || '';
+  if(draftSupplierQuality) currentQualityManualOverride=false;
   if(document.getElementById('a_official_price')) document.getElementById('a_official_price').value=v.prezzoListinoUfficiale||'';
   document.getElementById('a_taglia').value=v.materiale||'';
   document.getElementById('a_variante').value=v.variante||'';
@@ -4569,9 +4571,8 @@ async function shareArticleFilesSmart(files, options={}){
   const text=String(options.text||'').trim();
   if(typeof navigator.share!=='function') return {ok:false,mode:'unsupported'};
 
-  // Facebook e alcune app Android ignorano spesso il campo text quando ci sono file.
-  // Copia quindi il testo in modo sincrono PRIMA di aprire il pannello, senza perdere il gesto utente.
-  const textCopied=!!text && copyShareTextSync(text);
+  // Il comando Condividi deve solo condividere. La copia resta esclusiva dei pulsanti Copia.
+  const textCopied=false;
 
   // Prima scelta: pannello nativo con testo e file nello stesso gesto.
   if(list.length){
@@ -4623,144 +4624,171 @@ async function shareArticleFilesSmart(files, options={}){
   return {ok:false,mode:'fail',textCopied};
 }
 
-async function shareArtAll(){
-  const db=loadDB();
-  const a=db.articoli.find(x=>x.id===currentArtId); if(!a) return;
 
-  // Usa sistema warming esistente per le foto (già collaudato)
-  let ctx=getPreparedCurrentArticlePhotoContext();
-  if(!ctx) ctx=await getCurrentArticlePhotoContext();
 
-  // Se foto non ancora pronte, avvia warming e chiedi di ripremere
-  if(ctx && !areCachedArticlePhotoFilesComplete(ctx)){
-    warmCurrentArticlePhotoShare(ctx,{silent:true}).catch(()=>{});
-    const readyCount=(getCachedArticlePhotoFilesForCtx(ctx)||[]).length;
-    toast(readyCount>0
-      ? `Sto preparando: ${readyCount}/${ctx.pics.length} foto pronte. Premi Condividi tra un attimo.`
-      : `Sto preparando le foto. Premi Condividi tra un attimo.`
-    );
-    return;
-  }
-
-  toast('⏳ Preparo file…');
-  const files=[];
-
-  // 1. VIDEO PRIMA
-  const vids=Array.isArray(a.videoIds)?a.videoIds.filter(Boolean):[];
-  for(let i=0;i<vids.length;i++){
-    try{
-      const sb=await ensureCloud(); if(!sb) continue;
-      const {data,error}=await sb.storage.from(SUPABASE_BUCKET).download(vids[i]);
-      if(!error&&data){
-        const ext=(vids[i].split('.').pop()||'mp4').replace(/[^a-z0-9]/gi,'').toLowerCase()||'mp4';
-        files.push(new File([data],`video_${i+1}.${ext}`,{type:data.type||'video/mp4'}));
-      }
-    }catch(e){ console.warn('Video non preparato:',e); }
-  }
-
-  // 2. POI FOTO (già pronte dal warming)
-  if(ctx){
-    const photoFiles=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
-    files.push(...photoFiles);
-  }
-
-  if(!files.length){ toast('Nessun file da condividere'); return; }
-
-  const text=(document.getElementById('vArtPostFb')?.value||'').trim();
-
+async function copyShareTextToClipboard(text=''){
+  const value=String(text||'').trim();
+  if(!value) return false;
   try{
-    const shareResult=await shareArticleFilesSmart(files,{baseName:(a.codice||a.modello||'articolo'),title:(a.modello||a.codice||'Articolo'),channel:'fb',text});
-    if(shareResult?.ok){
-      recordArticlePublication('fb');
-      if(shareResult.mode==='sheet'){
-        toast(text?'✅ Facebook aperto con foto separate. Il testo è stato inviato e resta anche copiato negli appunti 📋':'✅ Facebook aperto con foto separate.');
-      }else if(shareResult.mode==='title'){
-        toast(text?'📋 Testo FB copiato negli appunti. La condivisione file completa non era disponibile.':'✅ Condivisione aperta!');
-      }else{
-        toast(text?'✅ Condivisione aperta. Testo copiato negli appunti 📋':'✅ Condivisione aperta!');
-      }
-    } else {
-      if(text){ try{ await navigator.clipboard.writeText(text); }catch(_e){ try{ fallbackCopyText(text); }catch(__e){} } toast('Condivisione non disponibile: testo copiato negli appunti'); }
-      else toast('Condivisione non supportata su questo browser');
+    await navigator.clipboard.writeText(value);
+    return true;
+  }catch(_e){
+    try{
+      const ta=document.createElement('textarea');
+      ta.value=value;
+      ta.setAttribute('readonly','');
+      ta.style.position='fixed';
+      ta.style.opacity='0';
+      ta.style.pointerEvents='none';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      const ok=document.execCommand('copy');
+      ta.remove();
+      return !!ok;
+    }catch(_e2){
+      return false;
     }
-  }catch(err){
-    if(isShareAbortError(err)) return;
-    if(isShareActivationError(err)){ toast('⚠️ Premi di nuovo Condividi: il browser ha perso il tocco durante la preparazione.'); return; }
-    console.warn('shareArtAll fallito:',err);
-    toast('⚠️ Condivisione non riuscita');
   }
 }
 
+async function nativeShareArticleNow({title='', text='', files=[], channelLabel='Condivisione'}={}){
+  if(typeof navigator.share!=='function'){
+    toast(`⚠️ ${channelLabel} non supportata su questo browser`);
+    return false;
+  }
+  const cleanFiles=normalizePreparedPhotoFiles(files||[]);
+  if(!cleanFiles.length){
+    toast('⚠️ Nessuna foto pronta da condividere');
+    return false;
+  }
+
+  // Prima prova tutte le foto. Se Android/Facebook rifiuta il gruppo,
+  // riprova automaticamente con la prima foto, che è molto più compatibile.
+  const attempts=[];
+  attempts.push(cleanFiles);
+  if(cleanFiles.length>1) attempts.push([cleanFiles[0]]);
+
+  let lastErr=null;
+  for(const shareFiles of attempts){
+    try{
+      if(typeof navigator.canShare==='function'){
+        let ok=false;
+        try{ ok=!!navigator.canShare({files:shareFiles}); }catch(_e){ ok=false; }
+        if(!ok) continue;
+      }
+      const payload={title,files:shareFiles};
+      if(text) payload.text=text;
+      await navigator.share(payload);
+      return {count:shareFiles.length};
+    }catch(err){
+      if(isShareAbortError(err)) throw err;
+      lastErr=err;
+      console.warn(`${channelLabel} fallita con ${shareFiles.length} foto`,err);
+    }
+  }
+
+  if(lastErr && isShareActivationError(lastErr)){
+    toast('⚠️ Le foto sono pronte. Premi di nuovo Condividi.');
+  }else{
+    toast(`⚠️ ${channelLabel} con foto non riuscita`);
+  }
+  return false;
+}
+
+async function shareArtAll(){
+  const db=loadDB();
+  const a=db.articoli.find(x=>x.id===currentArtId); if(!a) return;
+  const postText=normalizeFacebookPostForArticle((document.getElementById('vArtPostFb')?.value||getArticleFacebookPost(a)||'').trim(),a);
+  const title=(a.modello||a.codice||'Articolo');
+
+  try{
+    let ctx=getPreparedCurrentArticlePhotoContext();
+    if(!ctx) ctx=await prepareArticlePhotoShareContext(a);
+    if(!ctx){ toast('⚠️ Nessuna foto disponibile'); return; }
+
+    let files=getCachedArticlePhotoFilesForCtx(ctx)||[];
+    if(!areCachedArticlePhotoFilesComplete(ctx)){
+      toast(`Preparo ${ctx.pics.length} foto...`);
+      files=await warmCurrentArticlePhotoShare(ctx,{silent:true});
+    }
+
+    // Facebook/Android spesso ignora "text" quando nel payload ci sono file.
+    // Copiamo quindi esplicitamente il testo negli appunti e condividiamo le foto.
+    const copied=await copyShareTextToClipboard(postText);
+
+    const result=await nativeShareArticleNow({
+      title,
+      text:postText,
+      files,
+      channelLabel:'Condivisione Facebook'
+    });
+    if(result){
+      recordArticlePublication('fb');
+      toast(copied
+        ? `✅ ${result.count} foto pronte. Testo copiato negli appunti.`
+        : `✅ Pannello condivisione aperto con ${result.count} foto`);
+    }
+  }catch(err){
+    if(isShareAbortError(err)) return;
+    console.warn('shareArtAll fallito:',err);
+    if(isShareActivationError(err)) toast('⚠️ Foto pronte. Premi di nuovo Condividi su FB.');
+    else toast('⚠️ Condivisione Facebook con foto non riuscita');
+  }
+}
 
 async function shareArtTelegram(){
   const db=loadDB();
   const a=(db.articoli||[]).find(x=>x.id===currentArtId); if(!a) return;
+  const text=(document.getElementById('vArtPost')?.value || buildPostTelegram(a) || '').trim();
+  const title=(a.modello||a.codice||'Articolo');
 
-  let ctx=getPreparedCurrentArticlePhotoContext();
-  if(!ctx) ctx=await getCurrentArticlePhotoContext();
-
-  if(ctx && !areCachedArticlePhotoFilesComplete(ctx)){
-    warmCurrentArticlePhotoShare(ctx,{silent:true}).catch(()=>{});
-    const readyCount=(getCachedArticlePhotoFilesForCtx(ctx)||[]).length;
-    toast(readyCount>0
-      ? `Sto preparando: ${readyCount}/${ctx.pics.length} foto pronte. Premi di nuovo Telegram tra un attimo.`
-      : `Sto preparando le foto. Premi di nuovo Telegram tra un attimo.`
-    );
+  // Stessa logica di Facebook: nessun await prima di navigator.share sul percorso di successo.
+  const ctx=getPreparedCurrentArticlePhotoContext();
+  if(!ctx){
+    prepareArticlePhotoShareContext(a)
+      .then(c=>{ if(c) return warmCurrentArticlePhotoShare(c,{silent:true}); })
+      .catch(err=>console.warn('Preparazione foto Telegram fallita',err));
+    toast('Sto preparando le foto. Premi di nuovo Telegram tra un attimo.');
     return;
   }
 
-  toast('⏳ Preparo foto e video per Telegram…');
-  const files=[];
-
-  const vids=Array.isArray(a.videoIds)?a.videoIds.filter(Boolean):[];
-  for(let i=0;i<vids.length;i++){
-    try{
-      const sb=await ensureCloud(); if(!sb) continue;
-      const {data,error}=await sb.storage.from(SUPABASE_BUCKET).download(vids[i]);
-      if(!error&&data){
-        const ext=(vids[i].split('.').pop()||'mp4').replace(/[^a-z0-9]/gi,'').toLowerCase()||'mp4';
-        files.push(new File([data],`video_${i+1}.${ext}`,{type:data.type||'video/mp4'}));
-      }
-    }catch(e){ console.warn('Video Telegram non preparato:',e); }
+  if(!areCachedArticlePhotoFilesComplete(ctx)){
+    warmCurrentArticlePhotoShare(ctx,{silent:true}).catch(()=>{});
+    const ready=(getCachedArticlePhotoFilesForCtx(ctx)||[]).length;
+    toast(ready>0
+      ? `Sto preparando: ${ready}/${ctx.pics.length} foto pronte. Premi di nuovo Telegram tra un attimo.`
+      : 'Sto preparando le foto. Premi di nuovo Telegram tra un attimo.');
+    return;
   }
 
-  if(ctx){
-    const photoFiles=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
-    files.push(...photoFiles);
-  }
-
-  const text=(document.getElementById('vArtPost')?.value || buildPostTelegram(a) || '').trim();
-
+  const files=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
   if(!files.length){
-    if(!text){ toast('Nessun file da condividere'); return; }
-    try{
-      const result=await shareArticleFilesSmart([],{title:(a.modello||a.codice||'Articolo'),text,channel:'tg'});
-      if(result?.ok){ recordArticlePublication('tg'); toast('✅ Condivisione Telegram aperta'); return; }
-    }catch(err){ if(isShareAbortError(err)) return; }
-    try{ await navigator.clipboard.writeText(text); }catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
-    toast('Condivisione non disponibile: testo copiato negli appunti');
+    toast('⚠️ Le foto non sono disponibili per Telegram.');
+    return;
+  }
+
+  if(typeof navigator.share!=='function'){
+    toast('⚠️ Condivisione Telegram non supportata su questo browser');
     return;
   }
 
   try{
-    const shareResult=await shareArticleFilesSmart(files,{baseName:(a.codice||a.modello||'articolo'),title:(a.modello||a.codice||'Articolo'),channel:'tg',text});
-    if(shareResult?.ok){
-      recordArticlePublication('tg');
-      if(shareResult.mode==='sheet'){
-        toast(text?'✅ Facebook aperto con foto separate. Il testo è stato inviato e resta anche copiato negli appunti 📋':'✅ Facebook aperto con foto separate.');
-      }else if(shareResult.mode==='title'){
-        toast(text?'📋 Testo Telegram copiato. La condivisione file completa non era disponibile.':'✅ Condivisione Telegram aperta!');
-      }else{
-        toast(text?'✅ Condivisione aperta. Testo copiato negli appunti 📋':'✅ Condivisione aperta!');
-      }
-    } else {
-      toast(text?'📋 Testo Telegram copiato. La condivisione file non è supportata.':'Condivisione non supportata su questo browser');
+    const payload={title,files};
+    if(text) payload.text=text;
+
+    if(typeof navigator.canShare==='function' && !navigator.canShare({files})){
+      toast('⚠️ Il dispositivo non accetta queste foto insieme.');
+      return;
     }
+
+    await navigator.share(payload);
+    recordArticlePublication('tg');
+    toast(`✅ Condivisione Telegram aperta con ${files.length} foto`);
   }catch(err){
     if(isShareAbortError(err)) return;
-    if(isShareActivationError(err)){ toast('⚠️ Premi di nuovo Telegram: il browser ha perso il tocco durante la preparazione.'); return; }
     console.warn('shareArtTelegram fallito:',err);
-    toast('⚠️ Condivisione Telegram non riuscita');
+    toast('⚠️ Condivisione Telegram con foto non riuscita');
   }
 }
 
@@ -4775,86 +4803,49 @@ async function shareArticleFromListByChannel(artId, channel='fb'){
   const cleanChannel=String(channel||'fb').toLowerCase();
   const isTelegram=cleanChannel==='tg';
   const isWhatsApp=cleanChannel==='wa';
-  const isDirectSocial=isTelegram||isWhatsApp;
   const channelLabel=isTelegram?'Telegram':(isWhatsApp?'WhatsApp':'Facebook');
-  const text=isDirectSocial
+  const postText=(isTelegram||isWhatsApp)
     ? String(buildPostTelegram(a) || '').trim()
     : normalizeFacebookPostForArticle(buildPostFacebook(a), a);
-  let ctx=null;
-  try{ ctx=await prepareArticlePhotoShareContext(a); }
-  catch(err){ console.warn('Preparazione contesto foto da elenco fallita', err); }
-
-  if(!ctx){
-    if(text){
-      try{ await navigator.clipboard.writeText(text); }
-      catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
-      toast(isDirectSocial ? `📋 Testo ${channelLabel} copiato. Nessuna foto disponibile.` : '📋 Testo FB senza prezzo copiato. Nessuna foto disponibile.');
-    }else{
-      toast('Nessuna foto disponibile');
-    }
-    return;
-  }
-
-  let cached=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
-  const complete=areCachedArticlePhotoFilesComplete(ctx);
-  if(!complete){
-    try{ await warmCurrentArticlePhotoShare(ctx, { silent:true }); }
-    catch(err){ console.warn('Warmup condivisione da elenco fallito', err); }
-    cached=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
-  }
-
-  if(!cached.length){
-    toast(text
-      ? (isDirectSocial ? `📋 Testo ${channelLabel} copiato. Sto preparando le foto: premi ${channelLabel} tra un attimo.` : '📋 Testo FB senza prezzo copiato. Sto preparando le foto: premi Facebook tra un attimo.')
-      : (isDirectSocial ? `Sto preparando le foto: premi ${channelLabel} tra un attimo.` : 'Sto preparando le foto: premi Facebook tra un attimo.'));
-    if(text){
-      try{ await navigator.clipboard.writeText(text); }
-      catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
-    }
-    warmCurrentArticlePhotoShare(ctx, { silent:true }).catch(()=>{});
-    return;
-  }
+  const title=(a.modello||a.codice||'Articolo');
 
   try{
-    const shareResult=await shareArticleFilesSmart(cached,{baseName:(a.codice||a.modello||'articolo'),title:(a.modello||a.codice||'Articolo'),channel:isTelegram?'tg':(isWhatsApp?'wa':'fb'),text});
-    if(shareResult?.ok){
+    let ctx=getPreparedCurrentArticlePhotoContext();
+    if(!ctx || String(ctx?.art?.id||'')!==String(a.id)){
+      ctx=await prepareArticlePhotoShareContext(a);
+    }
+    if(!ctx){ toast(`⚠️ Nessuna foto disponibile per ${channelLabel}`); return; }
+
+    let files=getCachedArticlePhotoFilesForCtx(ctx)||[];
+    if(!areCachedArticlePhotoFilesComplete(ctx)){
+      toast(`Preparo ${ctx.pics.length} foto...`);
+      files=await warmCurrentArticlePhotoShare(ctx,{silent:true});
+    }
+
+    // Per Facebook e WhatsApp copiamo anche il testo perché alcune app ignorano
+    // il campo text quando ricevono foto tramite Web Share API.
+    const shouldCopyText = !isTelegram;
+    const copied = shouldCopyText ? await copyShareTextToClipboard(postText) : false;
+
+    const result=await nativeShareArticleNow({
+      title,
+      text:postText,
+      files,
+      channelLabel:`Condivisione ${channelLabel}`
+    });
+    if(result){
       recordArticlePublication(isTelegram?'tg':(isWhatsApp?'wa':'fb'));
-      if(shareResult.mode==='sheet'){
-        toast(text
-          ? (isDirectSocial ? `✅ ${channelLabel} aperto! Ho unito ${shareResult.count||cached.length} foto in un'unica immagine con testo pronto.` : `✅ Facebook aperto con foto e testo. Ho unito ${shareResult.count||cached.length} foto in un'unica immagine; il testo resta anche copiato 📋`)
-          : `✅ Condivisione aperta! Ho unito ${shareResult.count||cached.length} foto in un'unica immagine.`);
-      }else if(shareResult.mode==='title'){
-        toast(text
-          ? (isDirectSocial ? `✅ ${channelLabel} aperto. Se il testo non appare, è già copiato 📋` : '📋 Testo FB copiato. La condivisione file completa non era disponibile.')
-          : '✅ Condivisione aperta!');
+      if(copied){
+        toast(`✅ ${channelLabel}: ${result.count} foto. Testo copiato negli appunti.`);
       }else{
-        toast(text
-          ? (isDirectSocial ? `✅ ${channelLabel} aperto con foto e testo.` : '✅ Facebook aperto con foto separate. Testo FB copiato negli appunti 📋')
-          : '✅ Condivisione aperta!');
+        toast(`✅ ${channelLabel}: aperto pannello con ${result.count} foto`);
       }
-      return;
     }
-    if(text){
-      try{ await navigator.clipboard.writeText(text); }
-      catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
-    }
-    toast(text
-      ? (isDirectSocial ? `📋 Testo ${channelLabel} copiato. Condivisione file non supportata su questo browser.` : '📋 Testo FB copiato. Condivisione file non supportata su questo browser.')
-      : 'Condivisione non supportata su questo browser');
   }catch(err){
     if(isShareAbortError(err)) return;
-    if(isShareActivationError(err)){
-      toast(isDirectSocial ? `⚠️ Premi di nuovo ${channelLabel}: il browser ha perso il tocco durante la preparazione.` : '⚠️ Premi di nuovo Facebook: il browser ha perso il tocco durante la preparazione.');
-      return;
-    }
-    console.warn('Condivisione articolo da elenco fallita:', err);
-    if(text){
-      try{ await navigator.clipboard.writeText(text); }
-      catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
-    }
-    toast(text
-      ? (isDirectSocial ? `📋 Testo ${channelLabel} copiato. Condivisione foto non riuscita.` : '📋 Testo FB copiato. Condivisione foto non riuscita.')
-      : '⚠️ Condivisione non riuscita');
+    console.warn(`Condivisione ${channelLabel} fallita`,err);
+    if(isShareActivationError(err)) toast(`⚠️ Foto pronte. Premi di nuovo ${channelLabel}.`);
+    else toast(`⚠️ Condivisione ${channelLabel} con foto non riuscita`);
   }
 }
 async function shareArticleFromList(artId){ return shareArticleFromListByChannel(artId,'fb'); }
@@ -5163,11 +5154,23 @@ function getEffectiveArticleSupplier(article={}){
   return normalizeSupplierValue(article?.fornitore||detectSupplierFromUrl(article?.fornitoreLink||''));
 }
 function getEffectiveArticleQuality(article={}){
-  const explicit=normalizeSpaceText(article?.qualita||article?.qualità||'');
-  if(explicit) return explicit;
-  return getDefaultQualityFromSupplier(getEffectiveArticleSupplier(article));
+  const supplier=getEffectiveArticleSupplier(article);
+  const supplierDefault=getDefaultQualityFromSupplier(supplier);
+  // Per i fornitori riconosciuti la qualità è vincolata al fornitore:
+  // Daniel/Jessica = Top Quality, Jayden = Original Quality.
+  if(supplierDefault) return supplierDefault;
+  return normalizeSpaceText(article?.qualita||article?.qualità||'');
 }
-function currentArticleFormQuality(){ return normalizeSpaceText(document.getElementById('a_qual')?.value||''); }
+function currentArticleFormQuality(){
+  const supplier=normalizeSupplierValue(document.getElementById('a_forn')?.value||'');
+  const forced=getDefaultQualityFromSupplier(supplier);
+  if(forced){
+    const el=document.getElementById('a_qual');
+    if(el && el.value!==forced) el.value=forced;
+    return forced;
+  }
+  return normalizeSpaceText(document.getElementById('a_qual')?.value||'');
+}
 function getArticleBrandValue(){
   const sel=document.getElementById('a_brand');
   const custom=document.getElementById('a_brand_custom');
@@ -5230,8 +5233,16 @@ function updateSupplierField(preferredValue=''){
     sel.appendChild(custom);
   }
   sel.value=target||'';
-  if(!currentQualityManualOverride && qualityEl){
-    qualityEl.value=getDefaultQualityFromSupplier(sel.value)||'';
+  const forcedQuality=getDefaultQualityFromSupplier(sel.value)||'';
+  if(qualityEl){
+    if(forcedQuality){
+      qualityEl.value=forcedQuality;
+      qualityEl.readOnly=true;
+      currentQualityManualOverride=false;
+    }else{
+      qualityEl.readOnly=false;
+      if(!currentQualityManualOverride) qualityEl.value='';
+    }
   }
   if(hint){
     if(currentSupplierManualOverride){
@@ -5362,45 +5373,86 @@ function articleCostEstimateSignature(input={}){
 function estimateArticleCostFromHistory(input={},db=loadDB(),excludeId=''){
   const category=normalizeTextKey(input?.categoria||'');
   const quality=qualityPricingKey(input?.qualita||'');
-  if(!category || !quality) return {ok:false,reason:'Indica prima categoria e qualità: servono per confrontare articoli davvero simili.'};
+  if(!quality) return {ok:false,reason:'Indica prima la qualità: Top Quality e Original Quality non devono essere mescolate.'};
+
   const supplier=normalizeTextKey(input?.fornitore||'');
   const brand=normalizeTextKey(input?.brand||'');
-  const list=[];
+  const strict=[];
+  const fallbackPool=[];
+
   for(const art of (db?.articoli||[])){
     if(String(art?.id||'')===String(excludeId||'')) continue;
+
+    // Qualità resta un vincolo assoluto: mai mischiare Top e Original.
     if(qualityPricingKey(getEffectiveArticleQuality(art))!==quality) continue;
-    if(normalizeTextKey(art?.categoria||'')!==category) continue;
+
     const cost=realHistoricalArticleCost(art);
     if(!(cost>0)) continue;
+
+    const artCategory=normalizeTextKey(art?.categoria||'');
+    const sameCategory=!!category && artCategory===category;
     const sameSupplier=!!supplier && normalizeTextKey(getEffectiveArticleSupplier(art))===supplier;
-    let score=100;
-    if(sameSupplier) score+=50;
-    if(brand && normalizeTextKey(art?.brand||'')===brand) score+=10;
-    score+=Math.round(estimateTokenOverlap(input?.materiale,art?.materiale||art?.taglia)*18);
-    score+=Math.round(estimateTokenOverlap(`${input?.variante||''} ${input?.descrizione||''}`,`${art?.variante||''} ${art?.descrizione||''}`)*14);
-    score+=Math.round(estimateTokenOverlap(input?.modello,art?.modello)*10);
-    score+=Math.round(estimateTokenOverlap(input?.misura,art?.misura||art?.dimensioni)*8);
-    list.push({art,cost,score,sameSupplier});
+
+    let score=40;
+    if(sameCategory) score+=100;
+    if(sameSupplier) score+=60;
+    if(brand && normalizeTextKey(art?.brand||'')===brand) score+=15;
+    score+=Math.round(estimateTokenOverlap(input?.materiale,art?.materiale||art?.taglia)*24);
+    score+=Math.round(estimateTokenOverlap(`${input?.variante||''} ${input?.descrizione||''}`,`${art?.variante||''} ${art?.descrizione||''}`)*18);
+    score+=Math.round(estimateTokenOverlap(input?.modello,art?.modello)*16);
+    score+=Math.round(estimateTokenOverlap(input?.misura,art?.misura||art?.dimensioni)*10);
+
+    const item={art,cost,score,sameSupplier,sameCategory};
+    fallbackPool.push(item);
+    if(sameCategory) strict.push(item);
   }
-  if(list.length<3) return {ok:false,reason:`Servono almeno 3 articoli con costo reale nella stessa categoria e qualità. Trovati: ${list.length}.`,sampleCount:list.length};
+
+  // Prima prova stessa categoria + stessa qualità.
+  // Se sono meno di 3, amplia SOLO all'interno della stessa qualità,
+  // privilegiando stesso fornitore, brand, materiale, modello e dimensioni.
+  let list=strict.length>=3 ? strict : fallbackPool;
+  if(!list.length){
+    return {ok:false,reason:'Nessun articolo storico con costo reale e stessa qualità.',sampleCount:0};
+  }
+
   list.sort((a,b)=>b.score-a.score || Number(b.art?._ts||0)-Number(a.art?._ts||0));
+
   const sameSupplierList=supplier ? list.filter(x=>x.sameSupplier) : [];
-  let chosen=(sameSupplierList.length>=3 ? sameSupplierList : list).slice(0,12);
-  let costs=chosen.map(x=>x.cost).sort((a,b)=>a-b);
+  let chosen=(sameSupplierList.length>=2 ? sameSupplierList : list).slice(0,12);
+
+  // Se il pool allargato è usato, evita comparabili palesemente deboli:
+  // conserva comunque almeno il migliore, così la PWA può dare una stima Bassa.
+  if(strict.length<3 && chosen.length>1){
+    const best=chosen[0]?.score||0;
+    const filtered=chosen.filter((x,i)=>i===0 || x.score>=Math.max(45,best-85));
+    if(filtered.length) chosen=filtered;
+  }
+
+  let costs=chosen.map(x=>x.cost).filter(x=>Number.isFinite(x)&&x>0).sort((a,b)=>a-b);
+  if(!costs.length) return {ok:false,reason:'Comparabili senza costo reale utilizzabile.',sampleCount:0};
+
   if(costs.length>=5){
     const q1=sortedQuantile(costs,.25), q3=sortedQuantile(costs,.75), iqr=q3-q1;
     const low=Math.max(0,q1-(iqr*1.5)), high=q3+(iqr*1.5);
     const filtered=chosen.filter(x=>x.cost>=low&&x.cost<=high);
     if(filtered.length>=3){ chosen=filtered; costs=chosen.map(x=>x.cost).sort((a,b)=>a-b); }
   }
+
   const median=sortedQuantile(costs,.5);
   const p75=sortedQuantile(costs,.75);
   const min=Math.min(...costs), max=Math.max(...costs);
-  const prudent=Math.round(Math.max(median*1.03,p75)*100)/100;
+
+  // Con pochi campioni niente artifici: usa il costo reale del miglior comparabile
+  // o una mediana prudente quando i campioni aumentano.
+  const prudent=costs.length===1
+    ? Math.round(costs[0]*100)/100
+    : Math.round(Math.max(median*1.03,p75)*100)/100;
+
   const historicalMargins=chosen.map(x=>{
     const sale=Number(x?.art?.prezzoVendita||0);
     return sale>0 ? sale-x.cost : NaN;
   }).filter(x=>Number.isFinite(x)&&x>0).sort((a,b)=>a-b);
+
   const qual=qualityPricingKey(input?.qualita||'');
   const fallback=calcSellFromEurCost(prudent,qual);
   const marginLow=historicalMargins.length>=3 ? sortedQuantile(historicalMargins,.25) : Math.max(0,Number(fallback.marg||0)*.85);
@@ -5410,17 +5462,28 @@ function estimateArticleCostFromHistory(input={},db=loadDB(),excludeId=''){
   const minimum=Math.max(hardFloor,round5(prudent+marginLow));
   const suggested=Math.max(minimum,round5(prudent+marginBalanced));
   const prudentPrice=Math.max(suggested,round5(prudent+marginHigh));
+
   const spread=median>0 ? (max-min)/median : 1;
   const sameSupplierCount=chosen.filter(x=>x.sameSupplier).length;
+  const sameCategoryCount=chosen.filter(x=>x.sameCategory).length;
+
   let confidence='Bassa';
-  if(chosen.length>=6 && spread<=0.22 && (!supplier || sameSupplierCount>=3)) confidence='Alta';
-  else if(chosen.length>=4 && spread<=0.38) confidence='Media';
+  if(chosen.length>=6 && sameCategoryCount>=3 && spread<=0.22 && (!supplier || sameSupplierCount>=3)) confidence='Alta';
+  else if(chosen.length>=4 && sameCategoryCount>=2 && spread<=0.38) confidence='Media';
+
+  const method = strict.length>=3
+    ? 'Comparabili storici: stessa qualità e categoria; priorità a stesso fornitore, materiale, modello e dimensioni'
+    : 'Fallback storico: stessa qualità; priorità a stesso fornitore, categoria, brand, materiale, modello e dimensioni';
+
   return {
     ok:true,active:false,estimatedCost:prudent,suggestedPrice:suggested,salePrice:suggested,minimumPrice:minimum,prudentPrice,
-    historicalMarginLow:Math.round(marginLow*100)/100,historicalMarginMedian:Math.round(marginBalanced*100)/100,historicalMarginHigh:Math.round(marginHigh*100)/100,
-    sampleCount:chosen.length,confidence,minCost:Math.round(min*100)/100,maxCost:Math.round(max*100)/100,
-    method:'Comparabili storici: stesso fornitore, qualità, categoria, materiale, lavorazione, modello e dimensioni',signature:articleCostEstimateSignature(input),
-    calculatedAt:new Date().toISOString(),sameSupplierCount
+    historicalMarginLow:Math.round(marginLow*100)/100,
+    historicalMarginMedian:Math.round(marginBalanced*100)/100,
+    historicalMarginHigh:Math.round(marginHigh*100)/100,
+    sampleCount:chosen.length,confidence,
+    minCost:Math.round(min*100)/100,maxCost:Math.round(max*100)/100,
+    method,signature:articleCostEstimateSignature(input),
+    calculatedAt:new Date().toISOString(),sameSupplierCount,sameCategoryCount
   };
 }
 function articleCostEstimateInputFromForm(){
@@ -5453,8 +5516,21 @@ function storedArticleCostEstimate(article){
 }
 function acceptedArticleCostEstimate(){
   const e=currentArticleCostEstimate;
-  const sale=Number(e?.salePrice||e?.suggestedPrice||0);
-  return e?.ok && e?.active && Number(e?.estimatedCost)>0 && sale>0 ? e : null;
+  if(!(e?.ok && e?.active && Number(e?.estimatedCost)>0)) return null;
+
+  // Se il prezzo suggerito non è ancora stato calcolato, ricavalo dal costo stimato.
+  // Prima la stima veniva scartata completamente quando salePrice/suggestedPrice era 0.
+  if(!(Number(e.salePrice||e.suggestedPrice||0)>0)){
+    const qual=currentArticleFormQuality();
+    const calc=calcSellFromEurCost(Number(e.estimatedCost||0),qual);
+    const suggested=Number(calc?.sell||0);
+    if(suggested>0){
+      e.suggestedPrice=suggested;
+      e.salePrice=suggested;
+      e.prudentPrice=Number(e.prudentPrice||suggested);
+    }
+  }
+  return e;
 }
 function renderArticleCostEstimateBox(force=false){
   const box=document.getElementById('a_cost_estimate_box');
@@ -5473,7 +5549,7 @@ function renderArticleCostEstimateBox(force=false){
   const input=articleCostEstimateInputFromForm();
   const signature=articleCostEstimateSignature(input);
   const previous=currentArticleCostEstimate;
-  if(previous?.signature && previous.signature!==signature) currentArticleCostEstimate=null;
+  if(previous?.signature && previous.signature!==signature && !previous?.external) currentArticleCostEstimate=null;
   if((force && !currentArticleCostEstimate?.external) || !currentArticleCostEstimate || currentArticleCostEstimate.signature!==signature){
     const next=estimateArticleCostFromHistory(input,loadDB(),currentArtId||'');
     if(next?.ok && previous?.signature===signature){
@@ -6471,6 +6547,44 @@ function postCategoryDescriptors(a, mode='fb'){
   }
   return uniquePostLines(descriptors);
 }
+function articleSocialColorAvailabilityLine(a){
+  const shape=deriveColorShape(a||{});
+  const count=Math.max(0, parseInt(shape?.colorCount||0,10) || 0);
+  if(shape?.colorMode!=='multiple' || count<2) return '';
+  const labels=normalizeStoredColorLabels(shape?.colorLabels||[], count)
+    .map(v=>normalizeSpaceText(v||''))
+    .filter(Boolean);
+  const uniqueLabels=[];
+  const seen=new Set();
+  for(const label of labels){
+    const key=normalizeTextKey(label);
+    if(!key || seen.has(key)) continue;
+    seen.add(key);
+    uniqueLabels.push(smartSentenceCase(label));
+  }
+  // Con 2 o 3 colori, se i nomi sono tutti disponibili, mostriamo la lista.
+  if(count<=3 && uniqueLabels.length===count){
+    return `Colori disp.: ${uniqueLabels.join(', ')}`;
+  }
+  // Da 4 colori in su, oppure se i nomi non sono completi, mostriamo solo il numero.
+  return `${count} colori disp.`;
+}
+function isSocialColorAvailabilityLine(line=''){
+  const raw=normalizeSpaceText(line||'');
+  if(!raw) return false;
+  return /^\d+\s+colori\s+disp\.?$/i.test(raw)
+    || /^colori\s+disp\.?\s*:\s*.+$/i.test(raw);
+}
+function ensureSocialPostHasAvailableColors(text, a){
+  const wanted=articleSocialColorAvailabilityLine(a);
+  let lines=String(text||'').split(/\r?\n/).filter(line=>!isSocialColorAvailabilityLine(line));
+  if(!wanted) return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  const codeIndex=lines.findIndex(line=>/^\s*(?:cod\.?|codice)\s*[:.\-]?/i.test(String(line||'')));
+  const insertAt=codeIndex>=0 ? codeIndex : lines.length;
+  lines.splice(insertAt,0,wanted);
+  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+
 function postPrimaryName(a, mode='fb'){
   const model=normalizePostModelLine(a?.modello||'', a?.brand||'');
   if(mode==='fb' && model) return model;
@@ -7716,6 +7830,7 @@ function normalizePublicPostForArticle(text, a){
   out=stripSocialFooterNoise(out);
   out=ensureCurrentPromoHeader(out, a);
   out=stripPublicMaterialWordFromPost(out);
+  out=ensureSocialPostHasAvailableColors(out, a);
   return dedupeQualityEmojisInPost(out, a);
 }
 function stripExpiredPromoLinesFromPost(text, a){
@@ -7741,9 +7856,22 @@ function stripExpiredPromoLinesFromPost(text, a){
     return true;
   }).join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
+function ensureFacebookPostHasQualityEmoji(text, a){
+  const raw=String(text||'').trim();
+  const emoji=emojiQualityForPost(a);
+  if(!raw || !emoji) return raw;
+  // Elimina eventuale medaglia qualità errata e mette quella corretta sulla riga principale.
+  const lines=raw.split(/\r?\n/).map(line=>String(line||'').replace(/[🥇🥈]/gu,' ').replace(/\s{2,}/g,' ').trim());
+  const modelKey=normalizeTextKey(postPrimaryName(a,'fb')||a?.modello||'');
+  let idx=modelKey ? lines.findIndex(line=>normalizeTextKey(line).includes(modelKey)) : -1;
+  if(idx<0) idx=lines.findIndex(line=>String(line||'').trim());
+  if(idx>=0) lines[idx]=`${lines[idx]} ${emoji}`.trim();
+  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
 function normalizeFacebookPostForArticle(text, a){
   let out=stripArticlePrivateNotesFromPost(text, a);
   out=stripExpiredPromoLinesFromPost(out, a);
+  out=ensureFacebookPostHasQualityEmoji(out, a);
   out=ensureOriginalPremiumSocialLine(out, a);
   out=ensureFacebookPostHasDescriptionBelowModel(out, a);
   out=ensureFacebookPostHasArticleMeasures(out, a);
@@ -7782,8 +7910,8 @@ function setArticleFacebookPostAuto(text){
 }
 
 function buildPostInstagram(a){
-  // Instagram usa esclusivamente testi generici e prudenti.
-  // Niente marchi, modello, codice, prezzo, promo, misure o dettagli commerciali.
+  // Instagram resta generico e prudente, ma può indicare la disponibilità colori.
+  // Niente marchi, modello, codice, prezzo, promo, misure o altri dettagli commerciali.
   const variants=[
     'Scrivimi in privato per informazioni 📩',
     'Mandami un messaggio privato per tutti i dettagli 📩',
@@ -7794,7 +7922,9 @@ function buildPostInstagram(a){
   const key=String(a?.codice||a?.id||a?.modello||'');
   let hash=0;
   for(let i=0;i<key.length;i++) hash=((hash*31)+key.charCodeAt(i))>>>0;
-  return variants[hash % variants.length];
+  const base=variants[hash % variants.length];
+  const colors=articleSocialColorAvailabilityLine(a);
+  return colors ? `${colors}\n\n${base}` : base;
 }
 
 function buildPostTelegram(a, includePrice=true){
@@ -10821,7 +10951,9 @@ function parseBulkArticleText(text){
     variante:['variante','versione'],
     colore:['colore','color'],
     tipoColore:['tipo colore','modalita colore'],
-    colori:['colori','colori disponibili','abbinamento colori','varianti colore'],
+    colorCount:['disponibile in colori','colori disponibili','numero colori','quantita colori','quantità colori'],
+    colorLabels:['abbinamento numero colore','abbinamento colori','numero colore'],
+    colori:['colori','varianti colore'],
     misura:['misura','misure','dimensioni','taglia'],
     altezzaCintura:['altezza cintura','h cintura'],
     costoUsd:['prezzo fornitore standard usd','prezzo fornitore usd','costo fornitore usd','costo usd','prezzo acquisto usd'],
@@ -10858,11 +10990,18 @@ function parseBulkArticleText(text){
         const value=String(m[2]||'').trim();
         if(key==='descrizione'||key==='note'){ ignored.push(key); continue; }
         if(value) out[key]=value;
+        // Eccezione controllata: gli abbinamenti colore possono occupare più righe
+        // (es. 1 Nero / 2 Beige / 3 Rosa), senza riaprire le continuazioni libere
+        // per gli altri campi del parser.
+        if(key==='colorLabels') currentKey='colorLabels';
         continue;
       }
     }
-    // Le righe senza una etichetta riconosciuta vengono volutamente ignorate.
-    // Il formato PWA è un campo per riga e non prevede continuazioni libere.
+    if(currentKey==='colorLabels' && /^\d{1,2}(?:\s*[-.:)]\s*|\s+)\S+/.test(line)){
+      out.colorLabels = out.colorLabels ? `${out.colorLabels}\n${line}` : line;
+      continue;
+    }
+    // Le altre righe senza una etichetta riconosciuta vengono volutamente ignorate.
 
   }
   // Formato compatto senza etichette: codice, modello, descrizione, colore, materiale, misure, link.
@@ -10898,7 +11037,11 @@ async function openBulkPasteArticle(){
   if(box) box.value='';
   if(result) result.textContent='';
   show('mArtBulkPaste');
-  setTimeout(()=>box?.focus(),50);
+  // Non dare focus al textarea: su mobile aprirebbe automaticamente la tastiera.
+  setTimeout(()=>{
+    try{ box?.blur(); }catch(_e){}
+    try{ document.activeElement?.blur?.(); }catch(_e){}
+  },50);
 }
 async function readBulkPasteClipboard(){
   const box=document.getElementById('a_bulk_paste');
@@ -10906,10 +11049,15 @@ async function readBulkPasteClipboard(){
     const text=await navigator.clipboard.readText();
     if(!text) throw new Error('Appunti vuoti');
     if(box) box.value=text;
+    // Dopo l'incolla togli subito il focus, così la tastiera non compare.
+    try{ box?.blur(); }catch(_e){}
+    try{ document.activeElement?.blur?.(); }catch(_e){}
     toast('Testo incollato');
   }catch(err){
-    toast('Tieni premuto nel riquadro e scegli Incolla');
-    box?.focus();
+    // Non forzare più il focus sul riquadro: era lui ad aprire la tastiera.
+    try{ box?.blur(); }catch(_e){}
+    try{ document.activeElement?.blur?.(); }catch(_e){}
+    toast('Impossibile leggere gli appunti automaticamente. Tocca il riquadro solo se vuoi incollare manualmente.');
   }
 }
 function applyBulkPasteArticle(){
@@ -10985,21 +11133,47 @@ function applyBulkPasteArticle(){
     applied.push('costo fornitore stimato');
   }
 
-  if(data.colori){
-    document.getElementById('a_color_mode').value='multiple';
-    const colorLines=String(data.colori).split(/\n|,|;/).map(x=>x.trim()).filter(Boolean);
-    document.getElementById('a_color_count').value=String(colorLines.length||'');
-    document.getElementById('a_color_labels').value=colorLines.map((x,i)=>/^\d+\s*[-.)]/.test(x)?x:`${i+1} - ${x}`).join('\n');
-    applied.push('colori');
-  }else if(data.colore){
-    document.getElementById('a_color_mode').value=normalizeBulkArticleLabel(data.tipoColore).includes('piu')?'multiple':'single';
-    if(document.getElementById('a_color_mode').value==='single') document.getElementById('a_colore').value=String(data.colore).trim();
-    else {
-      const colorLines=String(data.colore).split(/,|;/).map(x=>x.trim()).filter(Boolean);
-      document.getElementById('a_color_count').value=String(colorLines.length||'');
-      document.getElementById('a_color_labels').value=colorLines.map((x,i)=>`${i+1} - ${x}`).join('\n');
+  {
+    const modeEl=document.getElementById('a_color_mode');
+    const countEl=document.getElementById('a_color_count');
+    const labelsEl=document.getElementById('a_color_labels');
+    const colorEl=document.getElementById('a_colore');
+    const tipo=normalizeBulkArticleLabel(data.tipoColore||'');
+    const tipoMultiple=tipo.includes('piu') || tipo.includes('multip');
+    const tipoSingle=tipo.includes('singol') || tipo.includes('unic');
+
+    let explicitCount=Math.max(0, parseInt(parseBulkArticleNumber(data.colorCount)||0,10) || 0);
+    // Retrocompatibilità: un vecchio "COLORI DISPONIBILI: Nero, Beige"
+    // viene trattato come elenco se non contiene un numero.
+    let labelsRaw=String(data.colorLabels||data.colori||(!explicitCount && data.colorCount ? data.colorCount : '')||'').trim();
+    let rawLines=labelsRaw
+      ? labelsRaw.split(/\r?\n|\s*[;,|]\s*/g).map(x=>normalizeSpaceText(x)).filter(Boolean)
+      : [];
+    let highestNumber=0;
+    rawLines.forEach(line=>{
+      const m=line.match(/^(\d{1,2})(?:\s*[-.:)]\s*|\s+)/);
+      if(m) highestNumber=Math.max(highestNumber,parseInt(m[1],10)||0);
+    });
+    const inferredCount=Math.max(explicitCount, highestNumber, rawLines.length);
+    const wantsMultiple=tipoMultiple || inferredCount>1 || !!labelsRaw;
+
+    if(wantsMultiple){
+      if(modeEl) modeEl.value='multiple';
+      const finalCount=Math.max(2,inferredCount||0);
+      if(countEl) countEl.value=String(finalCount);
+      if(labelsEl){
+        const parsed=parseColorLabelsInput(labelsRaw,finalCount);
+        labelsEl.value=formatColorLabelsInput(parsed,finalCount);
+      }
+      if(colorEl) colorEl.value='';
+      applied.push('colori');
+    }else if(data.colore || tipoSingle){
+      if(modeEl) modeEl.value='single';
+      if(colorEl && data.colore) colorEl.value=String(data.colore).trim();
+      if(countEl) countEl.value='';
+      if(labelsEl) labelsEl.value='';
+      if(data.colore) applied.push('colore');
     }
-    applied.push('colore');
   }
   updateArticleColorModeUI();
   updateArticleMeasureState();
@@ -11062,7 +11236,13 @@ async function openArtEdit(id){
   currentSupplierManualOverride=(typeof a?.fornitoreManuale==='boolean') ? a.fornitoreManuale : !!normalizeSpaceText(a?.fornitore||'');
   currentQualityManualOverride=(typeof a?.qualitaManuale==='boolean') ? a.qualitaManuale : !!normalizeSpaceText(a?.qualita||a?.qualità||'');
   updateSupplierField(a?.fornitore||'');
-  set('a_qual', normalizeSpaceText(a?.qualita||a?.qualità||'') || getDefaultQualityFromSupplier(document.getElementById('a_forn')?.value||''));
+  const loadedSupplierQuality=getDefaultQualityFromSupplier(document.getElementById('a_forn')?.value||'');
+  if(loadedSupplierQuality){
+    set('a_qual', loadedSupplierQuality);
+    currentQualityManualOverride=false;
+  }else{
+    set('a_qual', normalizeSpaceText(a?.qualita||a?.qualità||''));
+  }
   set('a_official_price', a?.prezzoListinoUfficiale||'');
   set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
   set('a_mis', a?.misura); set('a_belt_h', a?.altezzaCintura||a?.hCintura||''); set('a_usd', a?.costoUsd||''); set('a_usd_promo', a?.costoUsdPromo||'');
@@ -11592,7 +11772,9 @@ async function duplicateCurrentArticle(sourceId=null){
   currentSupplierManualOverride=(typeof clone?.fornitoreManuale==='boolean') ? clone.fornitoreManuale : !!normalizeSpaceText(clone?.fornitore||'');
   currentQualityManualOverride=(typeof clone?.qualitaManuale==='boolean') ? clone.qualitaManuale : !!normalizeSpaceText(clone?.qualita||clone?.qualità||'');
   updateSupplierField(clone.fornitore||'');
-  document.getElementById('a_qual').value=normalizeSpaceText(clone?.qualita||clone?.qualità||'') || getDefaultQualityFromSupplier(document.getElementById('a_forn')?.value||'');
+  const cloneSupplierQuality=getDefaultQualityFromSupplier(document.getElementById('a_forn')?.value||'');
+  document.getElementById('a_qual').value=cloneSupplierQuality || normalizeSpaceText(clone?.qualita||clone?.qualità||'');
+  if(cloneSupplierQuality) currentQualityManualOverride=false;
   if(document.getElementById('a_official_price')) document.getElementById('a_official_price').value=clone.prezzoListinoUfficiale||'';
     document.getElementById('a_taglia').value=clone.materiale||clone.taglia||'';
   document.getElementById('a_variante').value=clone.variante||'';
@@ -11745,19 +11927,19 @@ async function saveArt(){
         (old?.note && old.note !== document.getElementById('a_note').value)
           ? stripArticlePrivateNotesFromPost(document.getElementById('a_post_fb').value, {note: old.note})
           : document.getElementById('a_post_fb').value,
-        {codice:code, modello:document.getElementById('a_mod').value.trim(), categoria:categoriaValue, descrizione:document.getElementById('a_desc').value.trim(), misura:misuraValue, altezzaCintura:altezzaCinturaValue, hCintura:altezzaCinturaValue, note:document.getElementById('a_note').value}
+        {codice:code, modello:document.getElementById('a_mod').value.trim(), categoria:categoriaValue, descrizione:document.getElementById('a_desc').value.trim(), misura:misuraValue, altezzaCintura:altezzaCinturaValue, hCintura:altezzaCinturaValue, colorMode, colorCount:(colorMode==='multiple'?colorCount:0), colorLabels:(colorMode==='multiple'?colorLabels:[]), note:document.getElementById('a_note').value}
       ),
       postIg: normalizePublicPostForArticle(
         (old?.note && old.note !== document.getElementById('a_note').value)
           ? stripArticlePrivateNotesFromPost(document.getElementById('a_post_ig').value, {note: old.note})
           : document.getElementById('a_post_ig').value,
-        {note:document.getElementById('a_note').value}
+        {colorMode, colorCount:(colorMode==='multiple'?colorCount:0), colorLabels:(colorMode==='multiple'?colorLabels:[]), note:document.getElementById('a_note').value}
       ),
       post: normalizePublicPostForArticle(
         (old?.note && old.note !== document.getElementById('a_note').value)
           ? stripArticlePrivateNotesFromPost(document.getElementById('a_post').value, {note: old.note})
           : document.getElementById('a_post').value,
-        {note:document.getElementById('a_note').value}
+        {colorMode, colorCount:(colorMode==='multiple'?colorCount:0), colorLabels:(colorMode==='multiple'?colorLabels:[]), note:document.getElementById('a_note').value}
       ),
       note: document.getElementById('a_note').value,
       foto: keptFoto,
@@ -14078,6 +14260,45 @@ document.getElementById('brandName')?.addEventListener('keydown',(ev)=>{ if(ev.k
 
 document.getElementById('a_usd')?.addEventListener('input',()=>{
   if(Number(document.getElementById('a_usd')?.value||0)>0) currentArticleCostEstimate=null;
+});
+document.getElementById('a_std_cost_unknown')?.addEventListener('change', ()=>{
+  const checked=!!document.getElementById('a_std_cost_unknown')?.checked;
+  const usd=Number(document.getElementById('a_usd')?.value||0);
+  const promoUsd=Number(document.getElementById('a_usd_promo')?.value||0);
+
+  if(!checked){
+    if(currentArticleCostEstimate) currentArticleCostEstimate.active=false;
+    renderArticleCostEstimateBox(false);
+    renderArtAutoFields();
+    saveArticleDraft();
+    return;
+  }
+
+  // Se esiste un prezzo reale, la stima non deve partire.
+  if(usd>0 || promoUsd>0){
+    document.getElementById('a_std_cost_unknown').checked=false;
+    toast('Il prezzo fornitore è già presente: la stima non serve.');
+    return;
+  }
+
+  // Forza il calcolo dai comparabili storici al momento della spunta.
+  renderArticleCostEstimateBox(true);
+  if(currentArticleCostEstimate?.ok && Number(currentArticleCostEstimate?.estimatedCost||0)>0){
+    currentArticleCostEstimate.active=true;
+    const calc=calcSellFromEurCost(Number(currentArticleCostEstimate.estimatedCost||0),currentArticleFormQuality());
+    const suggested=Number(currentArticleCostEstimate.suggestedPrice||calc?.sell||0);
+    if(suggested>0){
+      currentArticleCostEstimate.suggestedPrice=suggested;
+      currentArticleCostEstimate.salePrice=Number(currentArticleCostEstimate.salePrice||suggested);
+    }
+    renderArtAutoFields();
+    saveArticleDraft();
+    toast(`⚠️ Costo stimato attivato: € ${money(currentArticleCostEstimate.estimatedCost)}`);
+  }else{
+    renderArtAutoFields();
+    saveArticleDraft();
+    toast(`⚠️ ${currentArticleCostEstimate?.reason || 'Stima non disponibile.'}`);
+  }
 });
 document.getElementById('a_usd_promo')?.addEventListener('input', ()=>{
   const amount=Number(document.getElementById('a_usd_promo')?.value||0);
