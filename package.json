@@ -1,0 +1,10 @@
+{
+  "name": "gestionale-vg-android",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/core": "^7.4.3"
+  }
+}
