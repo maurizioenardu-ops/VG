@@ -1,33 +1,18 @@
 {
-  "id": "./?app=gestionale-vg",
+  "id": "./index-1.html?app=gestionale-vg",
   "name": "Gestionale V&G",
   "short_name": "Gestionale",
   "description": "Gestionale V&G per articoli, clienti, ordini, finanze, promozioni e pubblicazioni social.",
   "lang": "it-IT",
   "dir": "ltr",
-  "start_url": "./?app=gestionale-vg#home",
+  "start_url": "./index-1.html?app=gestionale-vg#home",
   "scope": "./",
   "display": "standalone",
-  "display_override": [
-    "window-controls-overlay",
-    "standalone",
-    "minimal-ui"
-  ],
   "orientation": "portrait-primary",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
-  "categories": [
-    "business",
-    "productivity",
-    "finance"
-  ],
+  "categories": ["business", "productivity", "finance"],
   "prefer_related_applications": false,
-  "launch_handler": {
-    "client_mode": [
-      "navigate-existing",
-      "auto"
-    ]
-  },
   "icons": [
     {
       "src": "icon-v1-192.png",
@@ -48,21 +33,5 @@
       "purpose": "maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "screenshot-mobile-v1.jpg",
-      "sizes": "540x960",
-      "type": "image/jpeg",
-      "form_factor": "narrow",
-      "label": "Scheda articolo e condivisione social"
-    },
-    {
-      "src": "screenshot-wide-v1.jpg",
-      "sizes": "1280x720",
-      "type": "image/jpeg",
-      "form_factor": "wide",
-      "label": "Gestionale V&G su schermo ampio"
-    }
-  ],
-  "version": "1.0.109"
+  "version": "1.0.110"
 }
