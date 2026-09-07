@@ -1,0 +1,196 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - android-apk
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create web directory
+        run: |
+          mkdir -p www
+          rsync -a ./ www/ \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude 'node_modules/' \
+            --exclude 'android/' \
+            --exclude 'www/' \
+            --exclude 'package.json' \
+            --exclude 'package-lock.json' \
+            --exclude 'capacitor.config.json'
+
+      - name: Inject Android system font CSS
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('www/index.html')
+          s = p.read_text(encoding='utf-8')
+          css = '''
+          <style id="vg-android-flipfont">
+          @font-face {
+            font-family: 'VGFlipFont';
+            src: url('/flipfont.ttf') format('truetype');
+            font-style: normal;
+            font-weight: 100 900;
+            font-display: swap;
+          }
+          html, body, button, input, select, textarea {
+            font-family: 'VGFlipFont', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif !important;
+          }
+          </style>
+          '''
+          if 'vg-android-flipfont' not in s:
+              s = s.replace('</head>', css + '\n</head>', 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Add Android platform
+        run: npx cap add android
+
+      - name: Install Samsung FlipFont bridge
+        run: |
+          cat > android/app/src/main/java/com/gestionalevg/app/MainActivity.java <<'JAVA'
+          package com.gestionalevg.app;
+
+          import android.content.Context;
+          import android.graphics.Typeface;
+          import android.os.Bundle;
+          import android.webkit.WebResourceRequest;
+          import android.webkit.WebResourceResponse;
+          import android.webkit.WebView;
+
+          import com.getcapacitor.BridgeActivity;
+          import com.getcapacitor.BridgeWebViewClient;
+
+          import java.io.File;
+          import java.io.FileInputStream;
+          import java.io.FileNotFoundException;
+          import java.lang.reflect.Method;
+
+          public class MainActivity extends BridgeActivity {
+              private boolean flipFontClientInstalled = false;
+              private File flipFontFile = null;
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  flipFontFile = findCurrentSamsungFlipFont(this);
+              }
+
+              @Override
+              protected void onResume() {
+                  super.onResume();
+
+                  if (flipFontClientInstalled || getBridge() == null || getBridge().getWebView() == null) {
+                      return;
+                  }
+
+                  if (flipFontFile == null) {
+                      flipFontFile = findCurrentSamsungFlipFont(this);
+                  }
+
+                  getBridge().getWebView().setWebViewClient(new BridgeWebViewClient(getBridge()) {
+                      @Override
+                      public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                          String url = request.getUrl().toString();
+                          if (url.endsWith("/flipfont.ttf") && flipFontFile != null && flipFontFile.isFile()) {
+                              try {
+                                  return new WebResourceResponse(
+                                      "font/ttf",
+                                      null,
+                                      new FileInputStream(flipFontFile)
+                                  );
+                              } catch (FileNotFoundException ignored) {
+                              }
+                          }
+                          return super.shouldInterceptRequest(view, request);
+                      }
+                  });
+
+                  flipFontClientInstalled = true;
+              }
+
+              private static File findCurrentSamsungFlipFont(Context context) {
+                  try {
+                      Method method = Typeface.class.getMethod("semGetFontPathOfCurrentFontStyle");
+                      Object value = method.invoke(null);
+                      File found = resolveFontPath(value == null ? null : value.toString());
+                      if (found != null) return found;
+                  } catch (Throwable ignored) {
+                  }
+
+                  try {
+                      Method method = Typeface.class.getMethod("getFontPathFlipFont", Context.class, int.class);
+                      Object value = method.invoke(null, context, 1);
+                      File found = resolveFontPath(value == null ? null : value.toString());
+                      if (found != null) return found;
+                  } catch (Throwable ignored) {
+                  }
+
+                  return null;
+              }
+
+              private static File resolveFontPath(String path) {
+                  if (path == null || path.trim().isEmpty() || "default".equalsIgnoreCase(path.trim())) {
+                      return null;
+                  }
+
+                  File candidate = new File(path.trim());
+                  if (candidate.isFile()) return candidate;
+                  if (!candidate.isDirectory()) return null;
+
+                  String[] preferred = {
+                      "DroidSans.ttf",
+                      "DroidSansFallback.ttf"
+                  };
+                  for (String name : preferred) {
+                      File file = new File(candidate, name);
+                      if (file.isFile()) return file;
+                  }
+
+                  File[] files = candidate.listFiles((dir, name) ->
+                      name.toLowerCase().endsWith(".ttf") || name.toLowerCase().endsWith(".otf")
+                  );
+                  if (files != null && files.length > 0) return files[0];
+
+                  return null;
+              }
+          }
+          JAVA
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gestionale-VG-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
