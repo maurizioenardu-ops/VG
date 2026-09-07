@@ -17,7 +17,12 @@
 <style>
 :root{--navy:#0f172a;--bg:#f8fafc;--card:#fff;--line:#bcc6d4;--muted:#6b7280;--blue:#2563eb;--red:#dc2626;--cream:#fff7ed;--soft:#eef4ff;--gold:#f59e0b}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#111827}
+html,body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#111827}
+/* APK Android: evita che l'intestazione finisca sotto la barra di stato */
+.top{padding-top:calc(14px + env(safe-area-inset-top) + 24px) !important}
+@media (max-width:520px){
+  .top{padding:calc(14px + env(safe-area-inset-top) + 24px) 12px 12px !important}
+}
 body{-webkit-tap-highlight-color:transparent}
 .top{position:sticky;top:0;background:var(--navy);color:#fff;padding:10px 14px 8px;z-index:10}
 .top h1{margin:0;font-size:18px;font-weight:900;line-height:1.1}
@@ -820,7 +825,7 @@ window.addEventListener('error',e=>{
     
       <div class="card" style="margin-top:12px">
         <div class="h2">Cloud</div>
-        <div class="small">Accedi per sincronizzare i dati con il cloud.</div>
+        <div class="small">Disattivato nella versione di recupero per impedire sovrascritture.</div>
         <div id="cloudBar" class="date" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span id="cloudState">Cloud</span>
         </div>
@@ -15859,7 +15864,10 @@ async function bootApp(){
   go(initial,false);
   requestPersistentStorage();
   hideAuthGate();
-  try{ cloudUi(); }catch(_e){}
+  try{
+    cloudUi();
+    ensureCloud().catch(err=>console.warn('Avvio cloud fallito', err));
+  }catch(_e){}
 }
 bootApp();
 try{
