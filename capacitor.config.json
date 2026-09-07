@@ -1,0 +1,8 @@
+{
+  "appId": "com.gestionalevg.app",
+  "appName": "Gestionale V&G",
+  "webDir": ".",
+  "server": {
+    "androidScheme": "https"
+  }
+}
