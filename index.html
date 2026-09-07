@@ -18,11 +18,6 @@
 :root{--navy:#0f172a;--bg:#f8fafc;--card:#fff;--line:#bcc6d4;--muted:#6b7280;--blue:#2563eb;--red:#dc2626;--cream:#fff7ed;--soft:#eef4ff;--gold:#f59e0b}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#111827}
-/* APK Android: evita che l'intestazione finisca sotto la barra di stato */
-.top{padding-top:calc(14px + env(safe-area-inset-top) + 24px) !important}
-@media (max-width:520px){
-  .top{padding:calc(14px + env(safe-area-inset-top) + 24px) 12px 12px !important}
-}
 body{-webkit-tap-highlight-color:transparent}
 .top{position:sticky;top:0;background:var(--navy);color:#fff;padding:10px 14px 8px;z-index:10}
 .top h1{margin:0;font-size:18px;font-weight:900;line-height:1.1}
@@ -1217,7 +1212,7 @@ window.addEventListener('error',e=>{
     <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Aggiungi foto</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 20 foto totali per articolo.</div></div>
+    <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Aggiungi foto</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 9 foto totali per articolo.</div></div>
     <div id="a_photo_prev" class="thumbs"></div>
     <div style="margin-top:10px"><div class="k">Video articolo</div><input id="a_video" type="file" accept="video/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickArtVideos">Aggiungi video</button><button class="btn danger smallish" type="button" data-action="clearArtVideos">Rimuovi tutti i video</button></div><div id="a_video_status" class="small" style="margin-top:6px">I video vengono caricati su Supabase. Max 3 video per articolo.</div></div>
     <div id="a_video_prev" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
@@ -1590,7 +1585,7 @@ const money=n=>Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maxi
 const round5=n=>Math.round(n/5)*5;
 const roundUp5=n=>Math.ceil(Math.max(0,Number(n||0))/5)*5;
 const roundDown5=n=>Math.floor(Math.max(0,Number(n||0))/5)*5;
-const MAX_ARTICLE_PHOTOS=20;
+const MAX_ARTICLE_PHOTOS=9;
 const PROMO_EXPIRED_GRACE_DAYS=3;
 
 function defDB(){
@@ -11335,7 +11330,7 @@ async function appendPendingArtPhotoFiles(fileList){
   const pendingCount=Array.isArray(currentArtPendingFiles) ? currentArtPendingFiles.length : 0;
   const remaining=Math.max(0, MAX_ARTICLE_PHOTOS - existingCount - pendingCount);
   if(!remaining){
-    toast('Hai già raggiunto il massimo di 20 foto per articolo');
+    toast('Hai già raggiunto il massimo di 9 foto per articolo');
     updateArtPhotoStatus();
     return;
   }
@@ -15865,8 +15860,9 @@ async function bootApp(){
   requestPersistentStorage();
   hideAuthGate();
   try{
-    cloudUi();
-    ensureCloud().catch(err=>console.warn('Avvio cloud fallito', err));
+    const state=document.getElementById('cloudState');
+    if(state) state.textContent='Cloud disattivato in questa versione di recupero';
+    ['btnCloudLogin','btnCloudPull','btnCloudPush','btnCloudLogout'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.disabled=true; el.style.opacity='.5'; } });
   }catch(_e){}
 }
 bootApp();
