@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.109-2026-08-23-fornitore-da-link';
+const VERSION = 'gestionale-vg-1.0.109-clean-cloud-2026-09-08';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',

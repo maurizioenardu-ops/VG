@@ -1,0 +1,25 @@
+VG PULITO - ME Apps
+====================
+
+Questo pacchetto contiene soltanto i file necessari al Gestionale V&G.
+
+IMPORTANTE
+- index.html è la versione completa aggiornata con Cloud attivo.
+- Non caricare index-1.html, index_orig.html, index-4.html, index-5.html o altri backup.
+- Non caricare file _check*, __check*, _inline*, _script*, _syntax*, vecchi ZIP, screenshot, audio o note di lavorazione.
+- Il service worker ha una nuova chiave cache per evitare che torni la vecchia versione recovery.
+
+FILE DEL PACCHETTO
+- index.html
+- manifest.json
+- service-worker.js
+- supabaseClient.js
+- reset.html
+- .nojekyll
+- icone PWA
+- 3 immagini categoria usate dal gestionale
+
+Per una pulizia totale del repo:
+1. conserva temporaneamente una copia del repo/backup fuori GitHub;
+2. elimina i vecchi file inutili;
+3. carica solo il contenuto di questo ZIP nella root del repo VG.
