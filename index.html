@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Gestionale"/>
-<link rel="manifest" href="manifest.json?v=1.0.112"/>
+<link rel="manifest" href="manifest.json?v=1.0.114"/>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-v1-32.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-v1-192.png"/>
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v1.png"/>
@@ -212,6 +212,9 @@ video.hero{background:#000}
 #authGate .authErr{font-size:13px;font-weight:900;color:#ef4444;text-align:center;display:none;margin-top:-6px}
 #authGate .authBtn{width:100%;min-height:48px;font-size:16px;font-weight:900;background:var(--accent,#2563eb);color:#fff;border:none;border-radius:14px;cursor:pointer;margin-top:4px}
 #authGate .authBtn:active{opacity:.85}
+/* Sicurezza accesso: finché non esiste una sessione Supabase valida, il gestionale resta fuori dal DOM visibile. */
+body.auth-locked .top,body.auth-locked .app,body.auth-locked .navBottom{display:none!important}
+body.auth-locked{overflow:hidden;background:var(--bg)}
 .thumbs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .thumbs img{width:70px;height:70px;border-radius:12px;object-fit:cover;border:1px solid var(--line);cursor:pointer}
 .orderPhotoGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}.orderPhotoGrid img{width:100%;aspect-ratio:1/1;border-radius:14px;object-fit:cover;border:1px solid var(--line);background:#f3f4f6}.shippingPhotoRow{display:flex;align-items:center;gap:10px;margin-top:8px}.shippingPhotoBox{width:86px;height:86px;border:2px dashed #cbd5e1;border-radius:14px;background:#f8fafc;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;flex:0 0 86px}.shippingPhotoBox img{width:100%;height:100%;object-fit:cover}.shippingPhotoPlaceholder{text-align:center;font-size:11px;font-weight:900;color:#64748b;line-height:1.15;padding:8px}.shippingPhotoActions{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.helperRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
@@ -530,12 +533,12 @@ window.addEventListener('error',e=>{
 
 </script>
 <script src="supabaseClient.js"></script>
-  <meta name="vg-version" content="v150-social-colori">
+  <meta name="vg-version" content="v151-auth-locked">
 </head>
-<body>
+<body class="auth-locked">
 
 <!-- AUTH GATE — blocca tutto finché non sei loggato -->
-<div id="authGate" style="display:none">
+<div id="authGate" style="display:flex">
   <div class="authBox">
     <div class="authLogo">🔐</div>
     <div class="authTitle" id="authAppTitle">Gestionale</div>
@@ -850,7 +853,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.109</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.114</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -3717,21 +3720,20 @@ async function getArticleCloudSourcePaths(a, opts={}){
   return out.slice(0,MAX_ARTICLE_PHOTOS);
 }
 async function getPreferredArticlePhotoSources(a){
+  if(!a) return [];
   const local=await getArticleLocalPhotoSources(a);
+  const expectedLocal=Math.min(MAX_ARTICLE_PHOTOS, Array.isArray(a?.photoIds) ? a.photoIds.filter(Boolean).length : 0);
+
+  // Le stesse foto possono esistere sia in IndexedDB (photoIds) sia su Supabase (foto).
+  // Non vanno sommate: dopo il primo salvataggio cloud altrimenti ogni foto appare due volte.
+  // Se l'archivio locale è completo, è la sorgente preferita; il cloud resta il fallback.
+  if(local.length && (!expectedLocal || local.length>=expectedLocal)){
+    return dedupePhotoSources(local, MAX_ARTICLE_PHOTOS);
+  }
+
   const cloud=await getArticleCloudSourcePaths(a);
-  const out=[];
-  const seen=new Set();
-  const push=(src)=>{
-    const clean=String(src||'').trim();
-    if(!clean) return;
-    const key=canonicalPhotoSourceKey(clean) || clean;
-    if(!key || seen.has(key)) return;
-    seen.add(key);
-    out.push(clean);
-  };
-  local.forEach(push);
-  cloud.forEach(push);
-  return out.slice(0,MAX_ARTICLE_PHOTOS);
+  if(cloud.length) return dedupePhotoSources(cloud, MAX_ARTICLE_PHOTOS);
+  return dedupePhotoSources(local, MAX_ARTICLE_PHOTOS);
 }
 function articleThumbCacheKeyFromSource(src, prefix='src'){
   const raw=String(src||'').trim();
@@ -3954,7 +3956,21 @@ async function getArticlePics(a){
   return out.slice(0,MAX_ARTICLE_PHOTOS);
 }
 async function getArticleCloudSyncSources(a){
-  return await getPreferredArticlePhotoSources(a);
+  if(!a) return [];
+  const local=await getArticleLocalPhotoSources(a);
+  const cloud=await getArticleCloudSourcePaths(a, {allowCodeFallback:false});
+  const localCount=local.length;
+  const cloudCount=cloud.length;
+
+  // Se locale e cloud hanno già lo stesso numero di foto, usa i path cloud esistenti:
+  // evita upload duplicati ad ogni semplice modifica dell'articolo.
+  if(cloudCount>0 && localCount===cloudCount){
+    return dedupePhotoSources(cloud, MAX_ARTICLE_PHOTOS);
+  }
+  // Se il numero differisce, significa tipicamente aggiunta/rimozione locale: il locale
+  // rappresenta lo stato da sincronizzare e deve prevalere.
+  if(localCount>0) return dedupePhotoSources(local, MAX_ARTICLE_PHOTOS);
+  return dedupePhotoSources(cloud, MAX_ARTICLE_PHOTOS);
 }
 async function getStoredPhotoSources(ids=[]){
   const out=[];
@@ -14567,10 +14583,12 @@ async function ensureCloud(){
     cloudUi();
     refreshAutoCloudPull();
     if(cloudSession){
-      try{ renderActivePage(currentHistoryPage()); }catch(_e){}
+      startAuthenticatedApp().catch(err=>console.warn('Avvio sessione autenticata fallito',err));
       syncArticlePublishResetToCloudIfNeeded()
         .catch(err=>console.warn('Sync reset condivisioni cloud fallita', err))
         .finally(()=>setTimeout(()=>autoCloudPullNow('login'), 1500));
+    }else{
+      setAuthenticatedUi(false);
     }
   });
   cloudUi();
@@ -15109,6 +15127,7 @@ async function cloudLogin(){
     cloudSession=data.session||null;
     hide('mCloudLogin');
     document.getElementById('cloudPassword').value='';
+    await startAuthenticatedApp();
     cloudUi();
     toast('Login cloud riuscito');
   }catch(err){ toast('Login cloud fallito'); console.error(err); }
@@ -15119,6 +15138,7 @@ async function cloudLogout(){
     const sb=await ensureCloud(); if(!sb) return;
     await sb.auth.signOut();
     cloudSession=null;
+    try{ FOTO_SIGNED_URL_CACHE.clear(); }catch(_e){}
     cloudUi();
     showAuthGate();
     toast('Disconnesso. Arrivederci! 👋');
@@ -15842,18 +15862,62 @@ function useSocialSuggestion(idx){
 }
 
 /* ====== AUTH GATE ====== */
-function showAuthGate(){
+let authenticatedAppInitialized=false;
+function setAuthenticatedUi(allowed){
+  const ok=!!allowed;
+  document.body.classList.toggle('auth-locked', !ok);
   const gate=document.getElementById('authGate');
-  if(gate) gate.style.display='flex';
-  // Aggiorna titolo nel gate con il nome del gestionale
+  if(gate) gate.style.display=ok?'none':'flex';
+  if(!ok){
+    try{ setTopMenuOpen(false); }catch(_e){}
+    try{ document.querySelectorAll('.modalwrap').forEach(m=>m.style.display='none'); activeModalId=null; }catch(_e){}
+  }
+}
+async function startAuthenticatedApp(){
+  if(!cloudSession){ setAuthenticatedUi(false); return false; }
+  setAuthenticatedUi(true);
+  if(!authenticatedAppInitialized){
+    authenticatedAppInitialized=true;
+    renderAll();
+    renderSocial();
+    renderSocialSuggestions();
+    initSocialMediaInput();
+    initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship','c_alt_ship','vCliAltShip']);
+    updateArticleColorModeUI();
+    document.getElementById('a_color_suggest_btn')?.addEventListener('click', async ()=>{ try{ await suggestArticleColorLabelsFromImage(); }catch(err){ console.warn('Suggerimento colori fallito', err); toast('Non sono riuscita a leggere bene la foto'); } });
+    document.getElementById('a_color_labels_clear_btn')?.addEventListener('click', ()=>{ const el=document.getElementById('a_color_labels'); if(el){ el.value=''; saveArticleDraft(); toast('Abbinamenti colore puliti'); } });
+    renderDiagnostics();
+    fillUiEditor();
+    applyUiPrefs();
+    const chatUrlInput=document.getElementById('chatgptTrackingChatUrl');
+    if(chatUrlInput){
+      chatUrlInput.value=getConfiguredChatGPTConversationUrl();
+      chatUrlInput.addEventListener('change',()=>{
+        const ok=saveConfiguredChatGPTConversationUrl(chatUrlInput.value);
+        if(!ok){ toast('Link non riconosciuto: incolla l’indirizzo della conversazione aperta su ChatGPT'); chatUrlInput.focus(); return; }
+        chatUrlInput.value=getConfiguredChatGPTConversationUrl();
+        toast(chatUrlInput.value?'Link conversazione ChatGPT salvato':'Link conversazione ChatGPT rimosso');
+      });
+    }
+    const initial=location.hash.replace('#','')||'home';
+    history.replaceState({page:initial, artBrowse:{...artBrowseState}},'', '#'+initial);
+    go(initial,false);
+    requestPersistentStorage();
+  }else{
+    renderAll();
+    renderSocial();
+    renderActivePage(currentHistoryPage());
+  }
+  try{ cloudUi(); }catch(_e){}
+  return true;
+}
+function showAuthGate(){
+  setAuthenticatedUi(false);
   const titleEl=document.getElementById('authAppTitle');
   const appTitleEl=document.getElementById('appTitle');
   if(titleEl && appTitleEl) titleEl.textContent=appTitleEl.textContent||'Gestionale';
 }
-function hideAuthGate(){
-  const gate=document.getElementById('authGate');
-  if(gate) gate.style.display='none';
-}
+function hideAuthGate(){ setAuthenticatedUi(true); }
 function initAuthGate(){
   const btn=document.getElementById('authLoginBtn');
   const emailEl=document.getElementById('authEmail');
@@ -15873,9 +15937,8 @@ function initAuthGate(){
       if(error) throw error;
       cloudSession=data.session||null;
       if(passEl) passEl.value='';
-      hideAuthGate();
+      await startAuthenticatedApp();
       cloudUi();
-      // Carica dati dopo login
       try{ await autoCloudPullNow('login'); }catch(_e){}
       toast('Benvenuto! 👋');
     }catch(err){
@@ -15892,33 +15955,22 @@ function initAuthGate(){
 
 /* init */
 async function bootApp(){
-  renderAll();
-  renderSocial();
-  renderSocialSuggestions();
-  initSocialMediaInput();
-  initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship','c_alt_ship','vCliAltShip']);
-  updateArticleColorModeUI();
-  document.getElementById('a_color_suggest_btn')?.addEventListener('click', async ()=>{ try{ await suggestArticleColorLabelsFromImage(); }catch(err){ console.warn('Suggerimento colori fallito', err); toast('Non sono riuscita a leggere bene la foto'); } });
-  document.getElementById('a_color_labels_clear_btn')?.addEventListener('click', ()=>{ const el=document.getElementById('a_color_labels'); if(el){ el.value=''; saveArticleDraft(); toast('Abbinamenti colore puliti'); } });
-  renderDiagnostics();
-  fillUiEditor();
-  applyUiPrefs();
-  const chatUrlInput=document.getElementById('chatgptTrackingChatUrl');
-  if(chatUrlInput){
-    chatUrlInput.value=getConfiguredChatGPTConversationUrl();
-    chatUrlInput.addEventListener('change',()=>{
-      const ok=saveConfiguredChatGPTConversationUrl(chatUrlInput.value);
-      if(!ok){ toast('Link non riconosciuto: incolla l’indirizzo della conversazione aperta su ChatGPT'); chatUrlInput.focus(); return; }
-      chatUrlInput.value=getConfiguredChatGPTConversationUrl();
-      toast(chatUrlInput.value?'Link conversazione ChatGPT salvato':'Link conversazione ChatGPT rimosso');
-    });
+  initAuthGate();
+  showAuthGate();
+  try{
+    await ensureCloud();
+    if(cloudSession){
+      await startAuthenticatedApp();
+      try{ await autoCloudPullNow('startup'); }catch(_e){}
+    }else{
+      setAuthenticatedUi(false);
+    }
+  }catch(err){
+    console.warn('Avvio autenticazione fallito:',err);
+    setAuthenticatedUi(false);
+    const errEl=document.getElementById('authErr');
+    if(errEl){ errEl.textContent='Connessione al servizio di accesso non disponibile'; errEl.style.display='block'; }
   }
-  const initial=location.hash.replace('#','')||'home';
-  history.replaceState({page:initial, artBrowse:{...artBrowseState}},'', '#'+initial);
-  go(initial,false);
-  requestPersistentStorage();
-  hideAuthGate();
-  try{ cloudUi(); }catch(_e){}
 }
 bootApp();
 try{
@@ -15990,7 +16042,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.112', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.114', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
