@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.109-supabase-fix-2026-09-08';
+const VERSION = 'gestionale-vg-1.0.110-menu-icon-2026-09-08';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',

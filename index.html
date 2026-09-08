@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Gestionale"/>
-<link rel="manifest" href="manifest.json?v=1.0.109"/>
+<link rel="manifest" href="manifest.json?v=1.0.110"/>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-v1-32.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-v1-192.png"/>
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v1.png"/>
@@ -19,9 +19,23 @@
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#111827}
 body{-webkit-tap-highlight-color:transparent}
-.top{position:sticky;top:0;background:var(--navy);color:#fff;padding:10px 14px 8px;z-index:10}
+.top{position:sticky;top:0;background:var(--navy);color:#fff;padding:10px 14px 8px;z-index:30}
+.topRow{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:relative}
+.topMain{min-width:0;flex:1 1 auto}
 .top h1{margin:0;font-size:18px;font-weight:900;line-height:1.1}
 .date{margin-top:2px;font-size:11px;opacity:.86}
+.topMenuBtn{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border:1px solid rgba(255,255,255,.18);border-radius:14px;background:rgba(255,255,255,.08);box-shadow:0 8px 20px rgba(0,0,0,.18);padding:0;cursor:pointer;flex:0 0 auto}
+.topMenuBtn:active{transform:translateY(1px)}
+.topMenuBtnBar{display:block;width:18px;height:2.6px;border-radius:999px;background:#fff;margin:2.6px 0}
+.topMenuPanel{position:absolute;right:0;top:calc(100% + 10px);width:min(250px,calc(100vw - 24px));background:#ffffff;color:#0f172a;border:1px solid #d7deea;border-radius:18px;box-shadow:0 18px 40px rgba(15,23,42,.24);padding:10px;display:none;z-index:35}
+.topMenuPanel.open{display:block}
+.topMenuGrid{display:grid;grid-template-columns:1fr;gap:8px}
+.topMenuLink{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid #e2e8f0;border-radius:14px;background:#fff;color:#0f172a;padding:10px 12px;font:inherit;font-weight:900;box-shadow:0 4px 12px rgba(15,23,42,.05)}
+.topMenuLink:active{background:#f8fafc}
+.topMenuEmoji{font-size:17px;line-height:1}
+.topMenuText{display:flex;flex-direction:column;gap:1px}
+.topMenuTitle{font-size:13px;line-height:1.15}
+.topMenuSub{font-size:10px;color:#64748b;font-weight:800;line-height:1.2}
 .app{max-width:560px;margin:0 auto;min-height:100vh;padding:12px 12px 108px}
 .tabs{display:none !important}.tabs::-webkit-scrollbar{display:none}.tab{display:none}
 /* Social styles */
@@ -540,9 +554,30 @@ window.addEventListener('error',e=>{
 </div>
 
 <div class="top">
-  <h1 id="appTitle">Gestionale</h1>
-  <div id="dateLine" class="date">--/--/----</div>
-  
+  <div class="topRow">
+    <div class="topMain">
+      <h1 id="appTitle">Gestionale</h1>
+      <div id="dateLine" class="date">--/--/----</div>
+    </div>
+    <button id="topMenuBtn" class="topMenuBtn" type="button" aria-label="Apri menu" aria-expanded="false" data-action="toggleTopMenu">
+      <span class="topMenuBtnInner" aria-hidden="true">
+        <span class="topMenuBtnBar"></span>
+        <span class="topMenuBtnBar"></span>
+        <span class="topMenuBtnBar"></span>
+      </span>
+    </button>
+    <div id="topMenuPanel" class="topMenuPanel" aria-hidden="true">
+      <div class="topMenuGrid">
+        <button class="topMenuLink" type="button" data-go="home"><span class="topMenuEmoji">🏠</span><span class="topMenuText"><span class="topMenuTitle">Dashboard</span><span class="topMenuSub">Panoramica generale</span></span></button>
+        <button class="topMenuLink" type="button" data-go="articoli"><span class="topMenuEmoji">🏷️</span><span class="topMenuText"><span class="topMenuTitle">Articoli</span><span class="topMenuSub">Catalogo prodotti</span></span></button>
+        <button class="topMenuLink" type="button" data-go="clienti"><span class="topMenuEmoji">👥</span><span class="topMenuText"><span class="topMenuTitle">Clienti</span><span class="topMenuSub">Schede e contatti</span></span></button>
+        <button class="topMenuLink" type="button" data-go="ordini"><span class="topMenuEmoji">📦</span><span class="topMenuText"><span class="topMenuTitle">Ordini</span><span class="topMenuSub">Vendite e tracking</span></span></button>
+        <button class="topMenuLink" type="button" data-go="finanze"><span class="topMenuEmoji">💶</span><span class="topMenuText"><span class="topMenuTitle">Finanze</span><span class="topMenuSub">Incassi e margini</span></span></button>
+        <button class="topMenuLink" type="button" data-go="social"><span class="topMenuEmoji">📣</span><span class="topMenuText"><span class="topMenuTitle">Bacheca</span><span class="topMenuSub">Post e pubblicazioni</span></span></button>
+        <button class="topMenuLink" type="button" data-go="impostazioni"><span class="topMenuEmoji">⚙️</span><span class="topMenuText"><span class="topMenuTitle">Impostazioni</span><span class="topMenuSub">Configurazione app</span></span></button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="app">
@@ -8258,6 +8293,16 @@ function copyCurrentOrderClientAddress(){
   return copyText(buildShippingAddress(client), 'Indirizzo cliente copiato');
 }
 
+function setTopMenuOpen(open){
+  const panel=document.getElementById('topMenuPanel');
+  const btn=document.getElementById('topMenuBtn');
+  const shouldOpen=!!open;
+  if(panel){ panel.classList.toggle('open', shouldOpen); panel.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true'); }
+  if(btn) btn.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+}
+function isTopMenuOpen(){ return !!document.getElementById('topMenuPanel')?.classList.contains('open'); }
+function toggleTopMenu(force){ setTopMenuOpen(typeof force==='boolean' ? force : !isTopMenuOpen()); }
+
 /* ====== NAV ====== */
 let activeModalId=null;
 function renderPageState(name){
@@ -8281,6 +8326,7 @@ function renderActivePage(name){
   }catch(err){ console.warn('Render pagina fallito', name, err); }
 }
 function go(name, push=true){
+  setTopMenuOpen(false);
   renderPageState(name);
   renderActivePage(name);
   const state={page:name};
@@ -13846,6 +13892,7 @@ document.addEventListener('click',(ev)=>{
     return;
   }
   const a=el.dataset.action;
+  if(a==='toggleTopMenu'){ ev.preventDefault(); ev.stopPropagation(); toggleTopMenu(); return; }
   if(a==='openCurrentOrders'){ orderListMode='open'; const q=document.getElementById('qOrd'); if(q) q.value=''; go('ordini'); return; }
   if(a==='showAllOrders'){ orderListMode='all'; const q=document.getElementById('qOrd'); if(q) q.value=''; renderOrd(); history.replaceState({...history.state,page:'ordini',orderListMode:'all'},'', '#ordini'); return; }
   if(a==='restoreArchivedArticle'){ ev.preventDefault(); ev.stopPropagation(); return restoreArchivedArticle(el.dataset.id||''); }
@@ -14222,6 +14269,18 @@ if(__viewFbPostEl){
 });
 bindSearchSuggest('qArt','qArtSuggest','art', ()=>renderArt());
 document.getElementById('visualSearchFile')?.addEventListener('change',e=>{ const f=e.target?.files?.[0]; if(f) vgRunVisualArticleSearch(f); });
+document.addEventListener('click',(ev)=>{
+  const panel=document.getElementById('topMenuPanel');
+  const btn=document.getElementById('topMenuBtn');
+  if(!panel || !btn || !panel.classList.contains('open')) return;
+  if(ev.target.closest('#topMenuPanel') || ev.target.closest('#topMenuBtn')) return;
+  setTopMenuOpen(false);
+});
+
+document.addEventListener('keydown',(ev)=>{
+  if(ev.key==='Escape') setTopMenuOpen(false);
+});
+
 document.getElementById('visualAiResults')?.addEventListener('click',e=>{ if(e.target.closest('[data-open="art"]')) vgCloseVisualArticleSearch(); });
 document.getElementById('qArtCat')?.addEventListener('change', renderArt);
 document.getElementById('qArtBrand')?.addEventListener('change', renderArt);
@@ -15931,7 +15990,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.109', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.110', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
