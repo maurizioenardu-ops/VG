@@ -1,11 +1,11 @@
 {
-  "id": "./index-1.html?app=gestionale-vg",
+  "id": "./index_orig.html?app=gestionale-vg",
   "name": "Gestionale V&G",
   "short_name": "Gestionale",
   "description": "Gestionale V&G per articoli, clienti, ordini, finanze, promozioni e pubblicazioni social.",
   "lang": "it-IT",
   "dir": "ltr",
-  "start_url": "./index-1.html?app=gestionale-vg#home",
+  "start_url": "./index_orig.html?app=gestionale-vg#home",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
@@ -33,5 +33,5 @@
       "purpose": "maskable"
     }
   ],
-  "version": "1.0.110"
+  "version": "1.0.111"
 }

@@ -1,10 +1,10 @@
-const VERSION = 'gestionale-vg-1.0.110-meapps-it';
+const VERSION = 'gestionale-vg-1.0.111-cloud-attivo';
 const CACHE = `gestionale-runtime-${VERSION}`;
 
 const REQUIRED_ASSETS = [
   './',
   './index.html',
-  './index-1.html',
+  './index_orig.html',
   './manifest.json',
   './icon-v1-192.png',
   './icon-v1-512.png',
@@ -19,7 +19,7 @@ self.addEventListener('install', event => {
     const cache = await caches.open(CACHE);
     for (const asset of REQUIRED_ASSETS) {
       try {
-        await cache.add(new Request(asset, { cache: 'reload' }));
+        await cache.add(new Request(asset, {cache: 'reload'}));
       } catch (err) {
         console.warn('[SW] Asset non memorizzato:', asset, err);
       }
@@ -39,14 +39,12 @@ self.addEventListener('fetch', event => {
   const req = event.request;
   if (req.method !== 'GET') return;
 
-  const url = new URL(req.url);
-
   if (req.mode === 'navigate') {
     event.respondWith((async () => {
       try {
-        return await fetch(req, { cache: 'no-store' });
+        return await fetch(req, {cache: 'no-store'});
       } catch (_) {
-        return (await caches.match('./index-1.html')) ||
+        return (await caches.match('./index_orig.html')) ||
                (await caches.match('./index.html')) ||
                Response.error();
       }
@@ -54,20 +52,18 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  if (url.origin === self.location.origin) {
-    event.respondWith((async () => {
-      const cached = await caches.match(req);
-      if (cached) return cached;
-      try {
-        const fresh = await fetch(req);
-        if (fresh && fresh.ok) {
-          const cache = await caches.open(CACHE);
-          cache.put(req, fresh.clone());
-        }
-        return fresh;
-      } catch (_) {
-        return cached || Response.error();
+  event.respondWith((async () => {
+    const cached = await caches.match(req);
+    if (cached) return cached;
+    try {
+      const fresh = await fetch(req);
+      if (fresh && fresh.ok && new URL(req.url).origin === self.location.origin) {
+        const cache = await caches.open(CACHE);
+        cache.put(req, fresh.clone());
       }
-    })());
-  }
+      return fresh;
+    } catch (_) {
+      return cached || Response.error();
+    }
+  })());
 });
