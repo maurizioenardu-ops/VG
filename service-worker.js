@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.109-clean-cloud-2026-09-08';
+const VERSION = 'gestionale-vg-1.0.109-supabase-fix-2026-09-08';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',
@@ -6,13 +6,18 @@ const REQUIRED_ASSETS = [
   './apple-touch-icon-v1.png', './favicon-v1-32.png',
   './screenshot-mobile-v1.jpg', './screenshot-wide-v1.jpg'
 ];
+
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil((async()=>{
     const cache=await caches.open(CACHE);
-    for(const asset of REQUIRED_ASSETS){ try{ await cache.add(new Request(asset,{cache:'reload'})); }catch(err){ console.warn('[SW] Asset non memorizzato:',asset,err); } }
+    for(const asset of REQUIRED_ASSETS){
+      try{ await cache.add(new Request(asset,{cache:'reload'})); }
+      catch(err){ console.warn('[SW] Asset non memorizzato:',asset,err); }
+    }
   })());
 });
+
 self.addEventListener('activate', event => {
   event.waitUntil((async()=>{
     const keys=await caches.keys();
@@ -20,31 +25,55 @@ self.addEventListener('activate', event => {
     await self.clients.claim();
   })());
 });
+
 self.addEventListener('fetch', event => {
   const req=event.request;
   if(req.method!=='GET') return;
   const url=new URL(req.url);
+
   if(req.mode==='navigate'){
     event.respondWith((async()=>{
       try{
         const fresh=await fetch(req,{cache:'no-store'});
-        const cache=await caches.open(CACHE); cache.put('./index.html',fresh.clone());
+        const cache=await caches.open(CACHE);
+        cache.put('./index.html',fresh.clone());
         return fresh;
-      }catch(_e){ return (await caches.match('./index.html')) || Response.error(); }
+      }catch(_e){
+        return (await caches.match('./index.html')) || Response.error();
+      }
     })());
     return;
   }
-  if(url.origin===self.location.origin && (url.pathname.endsWith('manifest.json') || /icon-|apple-touch|favicon/.test(url.pathname))){
+
+  if(url.origin===self.location.origin &&
+     (url.pathname.endsWith('manifest.json') ||
+      url.pathname.endsWith('supabaseClient.js') ||
+      /icon-|apple-touch|favicon/.test(url.pathname))){
     event.respondWith((async()=>{
-      try{ const fresh=await fetch(req,{cache:'no-store'}); const cache=await caches.open(CACHE); cache.put(req,fresh.clone()); return fresh; }
-      catch(_e){ return (await caches.match(req)) || Response.error(); }
+      try{
+        const fresh=await fetch(req,{cache:'no-store'});
+        const cache=await caches.open(CACHE);
+        cache.put(req,fresh.clone());
+        return fresh;
+      }catch(_e){
+        return (await caches.match(req)) || Response.error();
+      }
     })());
     return;
   }
+
   event.respondWith((async()=>{
     const cached=await caches.match(req);
     if(cached) return cached;
-    try{ const fresh=await fetch(req); if(fresh?.ok && url.origin===self.location.origin){ const cache=await caches.open(CACHE); cache.put(req,fresh.clone()); } return fresh; }
-    catch(_e){ return cached || Response.error(); }
+    try{
+      const fresh=await fetch(req);
+      if(fresh?.ok && url.origin===self.location.origin){
+        const cache=await caches.open(CACHE);
+        cache.put(req,fresh.clone());
+      }
+      return fresh;
+    }catch(_e){
+      return cached || Response.error();
+    }
   })());
 });

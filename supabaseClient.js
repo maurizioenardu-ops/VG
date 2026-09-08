@@ -2,6 +2,7 @@
   'use strict';
   const PROJECT_URL='https://qfjwtawsqfwmsmrrgqfi.supabase.co';
   const STORAGE_KEY='sb-qfjwtawsqfwmsmrrgqfi-auth-token';
+  const DEFAULT_PUBLIC_KEY='sb_publishable_-EUVjwsk3txKk2Opqrc7Kw_xFNa9Hw1';
 
   function decodeJwtPayload(token){
     try{
@@ -32,7 +33,8 @@
       window.SUPABASE_ANON_KEY,
       document.querySelector('meta[name="vg-supabase-key"]')?.content,
       (()=>{ try{return localStorage.getItem('vg_supabase_public_key')}catch(_e){return ''} })(),
-      (()=>{ try{return localStorage.getItem('supabase_anon_key')}catch(_e){return ''} })()
+      (()=>{ try{return localStorage.getItem('supabase_anon_key')}catch(_e){return ''} })(),
+      DEFAULT_PUBLIC_KEY
     ];
     return String(candidates.find(v=>String(v||'').trim())||'').trim();
   }
@@ -65,6 +67,7 @@
     window.VG_SUPABASE_READY=null;
     return;
   }
+
   window.VG_SUPABASE_READY=(async()=>{
     const lib=await loadSupabaseLibrary();
     return lib.createClient(PROJECT_URL,publicKey,{
