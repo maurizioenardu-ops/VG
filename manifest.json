@@ -1,11 +1,11 @@
 {
-  "id": "./?app=gestionale-vg",
-  "name": "Gestionale V&G",
+  "id": "./?app=gestionale-vg-seconda",
+  "name": "Gestionale",
   "short_name": "Gestionale",
   "description": "Gestionale V&G per articoli, clienti, ordini, finanze, promozioni e pubblicazioni social.",
   "lang": "it-IT",
   "dir": "ltr",
-  "start_url": "./?app=gestionale-vg#home",
+  "start_url": "./?app=gestionale-vg-seconda#home",
   "scope": "./",
   "display": "standalone",
   "display_override": [
@@ -64,5 +64,5 @@
       "label": "Gestionale V&G su schermo ampio"
     }
   ],
-  "version": "1.0.110-menu-icon"
+  "version": "1.0.112-seconda-app"
 }
