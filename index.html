@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Gestionale"/>
-<link rel="manifest" href="manifest.json?v=1.0.114"/>
+<link rel="manifest" href="manifest.json?v=1.0.115"/>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-v1-32.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-v1-192.png"/>
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v1.png"/>
@@ -542,17 +542,20 @@ window.addEventListener('error',e=>{
   <div class="authBox">
     <div class="authLogo">🔐</div>
     <div class="authTitle" id="authAppTitle">Gestionale</div>
-    <div class="authSub">Accedi per continuare</div>
-    <div>
-      <div class="k">Email</div>
-      <input id="authEmail" type="email" placeholder="tua@email.com" autocomplete="username" autocapitalize="off" spellcheck="false" style="margin-top:6px"/>
+    <div class="authSub" id="authSub">Verifica accesso in corso…</div>
+    <div id="authChecking" style="display:flex;align-items:center;justify-content:center;min-height:92px;font-weight:900;color:#64748b">Accesso in corso…</div>
+    <div id="authForm" style="display:none;flex-direction:column;gap:14px">
+      <div>
+        <div class="k">Email</div>
+        <input id="authEmail" type="email" placeholder="tua@email.com" autocomplete="username" autocapitalize="off" spellcheck="false" style="margin-top:6px"/>
+      </div>
+      <div>
+        <div class="k">Password</div>
+        <input id="authPassword" type="password" placeholder="••••••••" autocomplete="current-password" style="margin-top:6px"/>
+      </div>
+      <div id="authErr" class="authErr">Email o password non corretti</div>
+      <button class="authBtn" id="authLoginBtn" type="button">Accedi</button>
     </div>
-    <div>
-      <div class="k">Password</div>
-      <input id="authPassword" type="password" placeholder="••••••••" autocomplete="current-password" style="margin-top:6px"/>
-    </div>
-    <div id="authErr" class="authErr">Email o password non corretti</div>
-    <button class="authBtn" id="authLoginBtn" type="button">Accedi</button>
   </div>
 </div>
 
@@ -14588,7 +14591,7 @@ async function ensureCloud(){
         .catch(err=>console.warn('Sync reset condivisioni cloud fallita', err))
         .finally(()=>setTimeout(()=>autoCloudPullNow('login'), 1500));
     }else{
-      setAuthenticatedUi(false);
+      showAuthGate('login');
     }
   });
   cloudUi();
@@ -15911,8 +15914,20 @@ async function startAuthenticatedApp(){
   try{ cloudUi(); }catch(_e){}
   return true;
 }
-function showAuthGate(){
+function setAuthGateMode(mode='login'){
+  const checking=mode==='checking';
+  const form=document.getElementById('authForm');
+  const check=document.getElementById('authChecking');
+  const sub=document.getElementById('authSub');
+  const err=document.getElementById('authErr');
+  if(form) form.style.display=checking?'none':'flex';
+  if(check) check.style.display=checking?'flex':'none';
+  if(sub) sub.textContent=checking?'Verifica accesso in corso…':'Accedi per continuare';
+  if(checking && err) err.style.display='none';
+}
+function showAuthGate(mode='login'){
   setAuthenticatedUi(false);
+  setAuthGateMode(mode);
   const titleEl=document.getElementById('authAppTitle');
   const appTitleEl=document.getElementById('appTitle');
   if(titleEl && appTitleEl) titleEl.textContent=appTitleEl.textContent||'Gestionale';
@@ -15956,18 +15971,18 @@ function initAuthGate(){
 /* init */
 async function bootApp(){
   initAuthGate();
-  showAuthGate();
+  showAuthGate('checking');
   try{
     await ensureCloud();
     if(cloudSession){
       await startAuthenticatedApp();
       try{ await autoCloudPullNow('startup'); }catch(_e){}
     }else{
-      setAuthenticatedUi(false);
+      showAuthGate('login');
     }
   }catch(err){
     console.warn('Avvio autenticazione fallito:',err);
-    setAuthenticatedUi(false);
+    showAuthGate('login');
     const errEl=document.getElementById('authErr');
     if(errEl){ errEl.textContent='Connessione al servizio di accesso non disponibile'; errEl.style.display='block'; }
   }
@@ -16042,7 +16057,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.114', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.115', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
