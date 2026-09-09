@@ -1,5 +1,5 @@
 {
   "appId": "com.vg.gestionale.seconda",
   "appName": "Gestionale",
-  "webDir": "."
+  "webDir": "www"
 }

@@ -48,21 +48,5 @@
       "purpose": "maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "screenshot-mobile-v1.jpg",
-      "sizes": "540x960",
-      "type": "image/jpeg",
-      "form_factor": "narrow",
-      "label": "Scheda articolo e condivisione social"
-    },
-    {
-      "src": "screenshot-wide-v1.jpg",
-      "sizes": "1280x720",
-      "type": "image/jpeg",
-      "form_factor": "wide",
-      "label": "Gestionale V&G su schermo ampio"
-    }
-  ],
-  "version": "1.0.115-auth-locked"
+  "version": "1.0.116-minimal"
 }

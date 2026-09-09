@@ -1,0 +1,52 @@
+workflows:
+  android-debug:
+    name: Gestionale - APK Debug
+    max_build_duration: 60
+    environment:
+      node: 22
+      java: 21
+    scripts:
+      - name: Installa dipendenze
+        script: |
+          npm install
+
+      - name: Prepara file web
+        script: |
+          rm -rf www
+          mkdir -p www
+
+          # Copia i file dell'app ed esclude soltanto materiale di sviluppo/build.
+          find . -maxdepth 1 -type f \
+            ! -name "codemagic.yaml" \
+            ! -name "package.json" \
+            ! -name "package-lock.json" \
+            ! -name "capacitor.config.json" \
+            ! -name "*.zip" \
+            ! -name "*.md" \
+            ! -name "*.sql" \
+            ! -name "*.txt" \
+            ! -name "*.bak" \
+            ! -name "__*" \
+            ! -name "_check*" \
+            ! -name "_inline*" \
+            ! -name "_script*" \
+            ! -name "_syntax*" \
+            ! -name "_test*" \
+            ! -name "_tmp*" \
+            -exec cp -f {} www/ \;
+
+      - name: Prepara progetto Android
+        script: |
+          if [ ! -d android ]; then
+            npx cap add android
+          fi
+          npx cap sync android
+
+      - name: Compila APK
+        script: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+    artifacts:
+      - android/app/build/outputs/**/*.apk
