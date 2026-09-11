@@ -7576,6 +7576,9 @@ document.addEventListener('click',(ev)=>{
   if(a==='cloudPull'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pullCloudToLocal().catch(err=>{toast(err?.message||'Carica cloud fallita'); console.error(err);}); }
   if(a==='cloudPush'){ document.getElementById('cloudSyncMini')?.classList.remove('show'); return pushLocalToCloud().catch(err=>{toast(err?.message||'Invia cloud fallita'); console.error(err);}); }
   if(a==='doCloudLogin') return cloudLogin();
+  if(a==='doCloudRegister') return cloudRegister();
+  if(a==='doCloudReset') return cloudResetPassword();
+  if(a==='doCloudLogout') return cloudLogout();
   if(a==='closeCloudLogin') return hide('mCloudLogin');
   if(a==='confirmYes') return closeConfirm(true);
   if(a==='confirmNo') return closeConfirm(false);
@@ -8174,6 +8177,41 @@ async function cloudLogin(){
     toast('Login cloud riuscito');
   }catch(err){ toast('Login cloud fallito'); console.error(err); }
   finally{ cloudBusy=false; cloudUi(); }
+}
+
+async function cloudRegister(){
+  try{
+    const sb=await ensureCloud();
+    if(!sb){ toast('Supabase non disponibile'); return; }
+    const email=document.getElementById('cloudEmail')?.value.trim();
+    const password=document.getElementById('cloudPassword')?.value||'';
+    if(!email || !password){ toast('Inserisci email e password'); return; }
+    if(password.length<6){ toast('La password deve avere almeno 6 caratteri'); return; }
+    cloudBusy=true; cloudUi();
+    const {data,error}=await sb.auth.signUp({email,password});
+    if(error) throw error;
+    cloudSession=data.session||null;
+    document.getElementById('cloudPassword').value='';
+    if(cloudSession){
+      prepareLocalDataForCloudUser(cloudSession.user?.id);
+      hide('mCloudLogin');
+      await startAuthenticatedApp();
+      toast('Registrazione completata');
+    }else toast('Registrazione inviata. Controlla la tua email per confermare.');
+    cloudUi();
+  }catch(err){ toast(err?.message||'Registrazione fallita'); console.error(err); }
+  finally{ cloudBusy=false; cloudUi(); }
+}
+async function cloudResetPassword(){
+  try{
+    const sb=await ensureCloud();
+    if(!sb){ toast('Supabase non disponibile'); return; }
+    const email=document.getElementById('cloudEmail')?.value.trim();
+    if(!email){ toast('Inserisci prima la tua email'); return; }
+    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});
+    if(error) throw error;
+    toast('Email per reimpostare la password inviata');
+  }catch(err){ toast(err?.message||'Invio email fallito'); console.error(err); }
 }
 async function cloudLogout(){
   try{
