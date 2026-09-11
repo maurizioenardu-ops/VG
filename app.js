@@ -2003,14 +2003,14 @@ async function syncArticlePhotosToCloud(artId, codice, pics){
     await sb.from('prodotti_foto').delete().eq('prodotto_id', artId);
     deleted=true;
     if(finalPaths.length){
-      const rows=finalPaths.map((path,idx)=>({prodotto_id: artId, path, ordine: idx}));
+      const rows=finalPaths.map((path,idx)=>({user_id:cloudSession.user.id, prodotto_id: artId, path, ordine: idx}));
       const { error } = await sb.from('prodotti_foto').insert(rows);
       if(error) throw error;
     }
   }catch(err){
     if(deleted && existingPaths.length){
       try{
-        const restoreRows=existingPaths.map((path,idx)=>({prodotto_id: artId, path, ordine: idx}));
+        const restoreRows=existingPaths.map((path,idx)=>({user_id:cloudSession.user.id, prodotto_id: artId, path, ordine: idx}));
         await sb.from('prodotti_foto').insert(restoreRows);
       }catch(_restoreErr){}
     }
@@ -7750,6 +7750,25 @@ async function cloudDeleteOne(type, payload){
     cloudBusy=false; cloudUi();
   }
 }
+
+const CLOUD_LOCAL_USER_KEY='vg_cloud_local_user_v1';
+function prepareLocalDataForCloudUser(userId){
+  const next=String(userId||'').trim();
+  if(!next) return;
+  try{
+    const previous=String(localStorage.getItem(CLOUD_LOCAL_USER_KEY)||'').trim();
+    if(previous && previous!==next){
+      [
+        KEY, KEY+'_backup_latest', KEY+'_backup_before_cloud_pull', KEY+'_pre_import_backup',
+        ART_DRAFT_KEY, CLI_DRAFT_KEY, ORD_DRAFT_KEY, AGENDA_KEY, CAT_IMAGES_KEY,
+        'vg_social_v1'
+      ].forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
+    }
+    localStorage.setItem(CLOUD_LOCAL_USER_KEY,next);
+  }catch(err){
+    console.warn('Preparazione archivio locale utente fallita',err);
+  }
+}
 async function ensureCloud(){
   if(cloudClient) return cloudClient;
   if(!window.VG_SUPABASE_READY) return null;
@@ -7772,7 +7791,7 @@ async function ensureCategoryId(nome){
   if(!nome) return null;
   const sb=await ensureCloud();
   if(!sb||!cloudSession) return null;
-  const {data,error}=await sb.from('categorie').upsert({nome:String(nome).trim()},{onConflict:'nome'}).select('id,nome').single();
+  const {data,error}=await sb.from('categorie').upsert({user_id:cloudSession.user.id,nome:String(nome).trim()},{onConflict:'user_id,nome'}).select('id,nome').single();
   if(error) throw error;
   return data?.id||null;
 }
@@ -7781,6 +7800,7 @@ async function upsertCloudArticle(art){
   if(!sb||!cloudSession) return art;
   const categoria_id=await ensureCategoryId(art.categoria||'');
   const payload={
+    user_id: cloudSession.user.id,
     sku: art.codice||null,
     nome: art.modello || art.codice || [art.brand, art.modello].filter(Boolean).join(' ').trim() || 'Articolo',
     descrizione: packCloudArticleDescription(art),
@@ -7795,7 +7815,7 @@ async function upsertCloudArticle(art){
     attivo: !(art?.nonDisponibile===true || art?.disponibile===false)
   };
   if(isUuid(art.id)) payload.id=art.id;
-  const {data,error}=await sb.from('prodotti').upsert(payload,{onConflict:'sku'}).select('*').single();
+  const {data,error}=await sb.from('prodotti').upsert(payload,{onConflict:'user_id,sku'}).select('*').single();
   if(error) throw error;
   const pics=await getArticleCloudSyncSources(art);
   let cloudFoto=[];
@@ -7834,6 +7854,7 @@ async function upsertCloudClient(cli){
   if(!sb||!cloudSession) return cli;
   const nameParts=splitClientNameForCloud(cli);
   const payload={
+    user_id: cloudSession.user.id,
     nome: nameParts.nome || 'Cliente',
     cognome: nameParts.cognome || null,
     telefono: normalizePhone(cli.telefono || null) || null,
@@ -7893,6 +7914,7 @@ async function upsertCloudOrder(ord, db){
   }
   if(!isUuid(clienteId)) throw new Error('Cliente ordine non sincronizzato');
   const payload={
+    user_id: cloudSession.user.id,
     numero_ordine: ord.numeroOrdine || (isUuid(ord.id)?('VGAPP-'+ord.id.slice(0,8)):String(ord.id||'VGAPP-'+uid().slice(0,6)).slice(0,50)),
     cliente_id: clienteId,
     data_ordine: ord.data || todayStr(),
@@ -7904,7 +7926,7 @@ async function upsertCloudOrder(ord, db){
     tracking_url: ord.tracking ? `https://17track.net/en/track?nums=${encodeURIComponent(ord.tracking)}` : null
   };
   if(isUuid(ord.id)) payload.id=ord.id;
-  const {data,error}=await sb.from('ordini').upsert(payload,{onConflict:'numero_ordine'}).select('*').single();
+  const {data,error}=await sb.from('ordini').upsert(payload,{onConflict:'user_id,numero_ordine'}).select('*').single();
   if(error) throw error;
   const ordineId=data.id;
   const {error:delErr}=await sb.from('righe_ordine').delete().eq('ordine_id', ordineId);
@@ -7926,7 +7948,7 @@ async function upsertCloudOrder(ord, db){
     const prezzoUnitario=Math.max(0, Number(r.prezzo||0));
     const lineDiscount=Math.min(remainingDiscount, prezzoUnitario);
     remainingDiscount=Math.max(0, remainingDiscount-lineDiscount);
-    righe.push({ordine_id:ordineId, prodotto_id:prodottoId, quantita:1, prezzo_unitario:prezzoUnitario, sconto:Number(lineDiscount.toFixed(2))});
+    righe.push({user_id:cloudSession.user.id, ordine_id:ordineId, prodotto_id:prodottoId, quantita:1, prezzo_unitario:prezzoUnitario, sconto:Number(lineDiscount.toFixed(2))});
   }
   if(righe.length){
     const {error:righeErr}=await sb.from('righe_ordine').insert(righe);
@@ -8145,6 +8167,7 @@ async function cloudLogin(){
     const {data,error}=await sb.auth.signInWithPassword({email,password});
     if(error) throw error;
     cloudSession=data.session||null;
+    if(cloudSession) prepareLocalDataForCloudUser(cloudSession.user?.id);
     hide('mCloudLogin');
     document.getElementById('cloudPassword').value='';
     cloudUi();
